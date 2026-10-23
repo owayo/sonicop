@@ -1,0 +1,482 @@
+[
+  {
+    "group": 64,
+    "issue": 54,
+    "target": "3.3/default",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.3\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 65,
+    "issue": 54,
+    "target": "3.3/default",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.3\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 68,
+    "issue": 54,
+    "target": "3.3/default",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.3\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 69,
+    "issue": 54,
+    "target": "3.3/default",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.3\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 112,
+    "issue": 54,
+    "target": "3.4/default",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 113,
+    "issue": 54,
+    "target": "3.4/default",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 116,
+    "issue": 54,
+    "target": "3.4/default",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 117,
+    "issue": 54,
+    "target": "3.4/default",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: default\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 160,
+    "issue": 54,
+    "target": "3.4/parser_prism",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 161,
+    "issue": 54,
+    "target": "3.4/parser_prism",
+    "ending": "crlf",
+    "mode": "-a",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 164,
+    "issue": 54,
+    "target": "3.4/parser_prism",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: false\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  },
+  {
+    "group": 165,
+    "issue": 54,
+    "target": "3.4/parser_prism",
+    "ending": "crlf",
+    "mode": "-A",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nStyle/StringLiterals:\n  Enabled: true\n  EnforcedStyle: single_quotes\n  ConsistentQuotesInMultiline: true\n",
+    "reason": "既存の物理 CRLF 復号による値の変更。補正 bytes は Issue #54 で検証する。",
+    "id": "nul_then_line_break",
+    "path": "case023.rb",
+    "source_hex": "613d2278000d0a220d0a",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+        "cop_name": "Style/StringLiterals",
+        "corrected": true,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 2,
+          "last_column": 1,
+          "length": 5,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "after_hex": "613d22785c75303030305c6e220d0a",
+    "raw_reference_after_hex": "613d22785c75303030305c6e220a",
+    "before_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    },
+    "after_value": {
+      "encoding": "UTF-8",
+      "hex": "78000a"
+    }
+  }
+]

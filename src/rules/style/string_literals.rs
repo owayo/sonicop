@@ -79,9 +79,8 @@ fn skipped(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if has_interpolation(node) {
         return true;
     }
-    // A literal the parser cuts into more than one line is a `dstr` whose per-line `str` children
-    // carry no quotes of their own, so `on_str` bails on the missing `loc.begin`.
-    if is_dstr(source) {
+    // 物理改行や whitequark の raw NUL で分かれた str には loc.begin がなく、on_str が除外する。
+    if is_parser_dstr(source, context) {
         return true;
     }
     inside_interpolation(node, context) || quoted_label_key(node, context)
@@ -123,9 +122,8 @@ fn check_dstr(
             children.push(Part {
                 quote: opening_delimiter(source),
                 source,
-                // `accept_child_double_quotes?` lets a part off when it is itself a `dstr`, which
-                // is what an interpolated or multi-line part parses as.
-                dstr: has_interpolation(child) || is_dstr(source),
+                // accept_child_double_quotes? は、補間・改行・raw NUL で dstr になった部品を許容する。
+                dstr: has_interpolation(child) || is_parser_dstr(source, context),
             });
         }
         if children.is_empty() {
@@ -136,15 +134,13 @@ fn check_dstr(
     }
     for node in context.nodes_of("string") {
         let source = context.source.node_text(node);
-        // An interpolation makes one of the `dstr`'s children a `begin` node, and upstream's
-        // `all_string_literals?` then rejects the whole literal without ignoring it.
-        if has_interpolation(node) || !is_dstr(source) {
+        // 補間の begin があれば all_string_literals? が全体を除外するため、str だけの場合に限る。
+        if has_interpolation(node) || !is_parser_dstr(source, context) {
             continue;
         }
-        // The parts of such a literal carry no quotes, so upstream reads the one quote style off
-        // the parent instead.
+        // 分割後の str には引用符がないため、本家同様に親の引用符を判定へ渡す。
         let quote = opening_delimiter(source);
-        let children: Vec<Part<'_>> = body_parts(source)
+        let children: Vec<Part<'_>> = parser_body_parts(source, context)
             .into_iter()
             .map(|source| Part {
                 quote,
@@ -263,6 +259,26 @@ fn body_parts(source: &str) -> Vec<&str> {
     let mut parts = Vec::new();
     for_each_body_part(source, |part| parts.push(part));
     parts
+}
+
+/// whitequark は raw NUL の直後でも str token を区切る。後続がなければ単一 str のままなので、
+/// NUL を含むだけで除外せず、物理行と同じ部品数で on_str / on_dstr を分ける。
+/// 引用符を持つ str だけを検査する両 cop で共有し、他用途の is_dstr は変更しない。
+fn parser_body_parts<'a>(source: &'a str, context: &RuleContext<'_>) -> Vec<&'a str> {
+    let parts = body_parts(source);
+    if source.contains('\0') && context.parser_engine() == crate::rules::ParserEngine::Whitequark {
+        parts.into_iter().flat_map(|part| part.split_inclusive('\0')).collect()
+    } else {
+        parts
+    }
+}
+
+pub(super) fn is_parser_dstr(source: &str, context: &RuleContext<'_>) -> bool {
+    if source.contains('\0') && context.parser_engine() == crate::rules::ParserEngine::Whitequark {
+        parser_body_parts(source, context).len() > 1
+    } else {
+        is_dstr(source)
+    }
 }
 
 /// Whether the literal is a `dstr` upstream. Every literal in the file reaches this, so the common

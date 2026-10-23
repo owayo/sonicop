@@ -1,0 +1,10 @@
+Oracle: RuboCop 1.89.0 real CLI; runtime bytes/encoding: actual MRI 2.7.8p225.
+Generator: scripts/record_interpolation_nul.py --ruby27 /path/to/ruby-2.7.8/miniruby
+36 CLI groups / 576 conditions: whitequark targets 2.7/3.3 and Prism target 3.4,
+both quote styles, LF/CRLF, inspect/-a/-A. Raw NUL boundary is separated from
+escaped NUL, SOH, quotes, adjacent literals and a comment-only NUL.
+Each group requires positive complete inspections and the exact target path set.
+All offenses, summary, exit, raw upstream bytes and value bytes/encoding are retained.
+after_hex restores only the registered source CRLF writeback format.
+
+SHA256: 7d73517446a92ec69ef690983dde76639df837f27cf04b8307ce39f08f5bf3a3
