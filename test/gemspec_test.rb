@@ -12,7 +12,15 @@ class GemspecTest < Minitest::Test
     Cargo.lock Cargo.toml build.rs
     config/default.yml licenses/NOTICE
     src/main.rs ext/sonicop/extconf.rb
-    licenses/PRISM.txt
+    licenses/PRISM.txt licenses/ONIGMO.txt
+    licenses/RUBY_BSDL.txt licenses/RUBY_COPYING.txt licenses/RUBY_LEGAL.txt
+    licenses/RUBY_REGEXP_COPYRIGHTS.txt src/regexp_encoding_tables.rs.PROVENANCE
+    crates/sonicop-onigmo-compat/Cargo.toml crates/sonicop-onigmo-compat/build.rs
+    crates/sonicop-onigmo-compat/shim.c crates/sonicop-onigmo-compat/rename.h
+    crates/sonicop-onigmo-compat/PROVENANCE.md crates/sonicop-onigmo-compat/PROVENANCE.json
+    crates/sonicop-onigmo-compat/src/lib.rs crates/sonicop-onigmo-compat/vendor/re.c
+    crates/sonicop-onigmo-compat/standalone/ruby_bytes.h
+    crates/sonicop-onigmo-compat/standalone/internal/sanitizers.h
     crates/sonicop-prism-compat/Cargo.toml crates/sonicop-prism-compat/build.rs
     crates/sonicop-prism-compat/shim.c crates/sonicop-prism-compat/rename.h
     crates/sonicop-prism-compat/src/lib.rs
@@ -84,12 +92,14 @@ class GemspecTest < Minitest::Test
     source = evaluate_gemspec
     native_files = FIXTURE_FILES.grep(%r{\Acrates/})
     native_files.each { |path| assert_includes source.files, path }
-    assert_includes source.files, 'licenses/PRISM.txt'
+    licenses = FIXTURE_FILES.grep(%r{\Alicenses/.*\.txt\z})
+    licenses.each { |path| assert_includes source.files, path }
+    assert_includes source.files, 'src/regexp_encoding_tables.rs.PROVENANCE'
 
     stub_executable(@root, 'libexec', 'sonicop')
     platform = evaluate_gemspec(platform: 'x86_64-linux')
     native_files.each { |path| refute_includes platform.files, path }
-    assert_includes platform.files, 'licenses/PRISM.txt'
+    licenses.each { |path| assert_includes platform.files, path }
   end
 
   # prebuilt 側は cargo を動かさないので、build script も死荷物にしかならない。

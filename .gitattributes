@@ -1,0 +1,3 @@
+# native の出典ハッシュと生成元を OS ごとの改行変換から守る。
+crates/sonicop-onigmo-compat/vendor/** text eol=lf linguist-vendored=true
+src/regexp_encoding_tables.rs text eol=lf linguist-generated=true

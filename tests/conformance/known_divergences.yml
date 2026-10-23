@@ -862,6 +862,282 @@ numeric_predicate_block_divergences:
       本家は send とブロックの間の行継続・縦タブも残すが、比較とブロックの組合せは構文を壊す。
       これらの区切りを置換で消すと、ブロックを別の式へ変えて構文保護をすり抜けるため、送信範囲だけを正しく置換する。
       独立した設計レビューに従って既存のファイル単位の構文保護を維持し、原本と未補正の診断を返す。
+
+# 正規表現の本家内部例外は再現せず、tests/regexp_validation.rs で差分を監視する。
+regexp_internal_error_divergences:
+  - id: "regexp-invalid-transcode-parser_whitequark"
+    cop: "Lint/Syntax"
+    target_ruby: "2.7"
+    parser_engine: "parser_whitequark"
+    source: "/#{\"\\x80\"}/n\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "\"\\x80\" on UTF-8"
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。String#encode が InvalidByteSequenceError を上げ、parser builder が rescue せず終了 2。Sonicop はこれを RegexpError の Syntax 診断へ変換せず、診断なし・原本保持・終了 0 とする。本家の内部例外は正常完了した一致へ数えない。"
+  - id: "regexp-invalid-transcode-parser_prism"
+    cop: "Lint/Syntax"
+    target_ruby: "3.3"
+    parser_engine: "parser_prism"
+    source: "/#{\"\\x80\"}/n\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "\"\\x80\" on UTF-8"
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。String#encode が InvalidByteSequenceError を上げ、parser builder が rescue せず終了 2。Sonicop はこれを RegexpError の Syntax 診断へ変換せず、診断なし・原本保持・終了 0 とする。本家の内部例外は正常完了した一致へ数えない。"
+  - id: "regexp-surrogate-parser_whitequark"
+    cop: "Lint/Syntax"
+    target_ruby: "2.7"
+    parser_engine: "parser_whitequark"
+    source: "/\\uD800/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "invalid codepoint 0xD800 in UTF-8"
+    sonicop:
+      exit: 1
+      files:
+        - path: "example.rb"
+          offenses:
+            - severity: "fatal"
+              message: "invalid Unicode range: /\\uD800/\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)"
+              cop_name: "Lint/Syntax"
+              corrected: false
+              correctable: false
+              location:
+                start_line: 1
+                start_column: 1
+                last_line: 1
+                last_column: 8
+                length: 8
+                line: 1
+                column: 1
+      summary:
+        offense_count: 1
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark lexer の Integer#chr が surrogate を RangeError として拒否し、診断前に終了 2。Sonicop は VM の内部例外を再現せず、Ruby Regexp.new の Unicode range 診断を返して原本を保持する。本家の内部例外は正常完了した一致へ数えない。"
+  - id: "regexp-mixed-unicode-then-binary-parser_whitequark"
+    cop: "Lint/Syntax"
+    target_ruby: "3.4"
+    parser_engine: "parser_whitequark"
+    source: "# encoding: ASCII-8BIT\n/#{\"\\u00e9\"}#{\"\\x80\"}/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "incompatible character encodings: UTF-8 and BINARY (ASCII-8BIT)"
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark は Unicode escape 部品を UTF-8 として保持し、非 ASCII Binary 部品との Array#join が Encoding::CompatibilityError で診断前に終了 2。Sonicop は内部例外を再現せず診断なし・原本保持・終了 0。Prism は Unicode escape 部品も source の Binary として扱い、同じ入力の両順序とも通常受理する陰性対照。内部例外を正常完了した一致へ数えない。"
+  - id: "regexp-mixed-binary-then-unicode-parser_whitequark"
+    cop: "Lint/Syntax"
+    target_ruby: "3.4"
+    parser_engine: "parser_whitequark"
+    source: "# encoding: ASCII-8BIT\n/#{\"\\x80\"}#{\"\\u00e9\"}/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "incompatible character encodings: BINARY (ASCII-8BIT) and UTF-8"
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark は Unicode escape 部品を UTF-8 として保持し、非 ASCII Binary 部品との Array#join が Encoding::CompatibilityError で診断前に終了 2。Sonicop は内部例外を再現せず診断なし・原本保持・終了 0。Prism は Unicode escape 部品も source の Binary として扱い、同じ入力の両順序とも通常受理する陰性対照。内部例外を正常完了した一致へ数えない。"
+
+  - id: "regexp-modifier-invalid-utf8-ord"
+    cop: "Lint/Syntax"
+    target_ruby: "2.7"
+    parser_engine: "parser_whitequark"
+    source: "/\\M-\\xFF/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 2
+      files: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 0
+      stderr_contains: "invalid byte sequence in UTF-8"
+    sonicop:
+      exit: 1
+      files:
+        - path: "example.rb"
+          offenses:
+            - severity: "fatal"
+              message: "invalid multibyte escape: /\\M-\\xFF/\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)"
+              cop_name: "Lint/Syntax"
+              corrected: false
+              correctable: false
+              location:
+                start_line: 1
+                start_column: 1
+                last_line: 1
+                last_column: 9
+                length: 9
+                line: 1
+                column: 1
+      summary:
+        offense_count: 1
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark lexer の modifier escape 復号が String#ord の ArgumentError で診断前に終了 2。Sonicop は VM の内部例外を再現せず、Regexp.new の invalid multibyte escape 診断を返して原本を保持する。本家の内部例外は正常完了した一致へ数えない。"
+
+# 同じ source を Prism で受理する本家の陰性対照。
+regexp_internal_error_controls:
+  - id: "regexp-mixed-unicode-then-binary-parser_prism"
+    cop: "Lint/Syntax"
+    target_ruby: "3.4"
+    parser_engine: "parser_prism"
+    source: "# encoding: ASCII-8BIT\n/#{\"\\u00e9\"}#{\"\\x80\"}/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark は Unicode escape 部品を UTF-8 として保持し、非 ASCII Binary 部品との Array#join が Encoding::CompatibilityError で診断前に終了 2。Sonicop は内部例外を再現せず診断なし・原本保持・終了 0。Prism は Unicode escape 部品も source の Binary として扱い、同じ入力の両順序とも通常受理する陰性対照。内部例外を正常完了した一致へ数えない。"
+  - id: "regexp-mixed-binary-then-unicode-parser_prism"
+    cop: "Lint/Syntax"
+    target_ruby: "3.4"
+    parser_engine: "parser_prism"
+    source: "# encoding: ASCII-8BIT\n/#{\"\\x80\"}#{\"\\u00e9\"}/\n"
+    endings:
+      - "lf"
+      - "crlf"
+    modes:
+      - "inspect"
+      - "safe"
+      - "unsafe"
+    upstream:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    sonicop:
+      exit: 0
+      files:
+        - path: "example.rb"
+          offenses: []
+      summary:
+        offense_count: 0
+        target_file_count: 1
+        inspected_file_count: 1
+    note: "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark は Unicode escape 部品を UTF-8 として保持し、非 ASCII Binary 部品との Array#join が Encoding::CompatibilityError で診断前に終了 2。Sonicop は内部例外を再現せず診断なし・原本保持・終了 0。Prism は Unicode escape 部品も source の Binary として扱い、同じ入力の両順序とも通常受理する陰性対照。内部例外を正常完了した一致へ数えない。"
+
 # 符号化宣言と矛盾する本家の補正を再現しない。tests/cli.rs が全入力を両モードで検査する。
 # 本家の出力は RuboCop 1.89.0 / Ruby 4.0.7 の実測から記録し、原本の保持と失敗報告を監視する。
 encoding_writeback_divergences:
@@ -1532,20 +1808,6 @@ divergences:
     note: >-
       規則 C。`a, b = c = @app.call(env)` の括弧を外すと `a, b = c = @app.call env` になり
       Ruby の構文エラー。多重代入と連鎖代入が揃ったときだけ駄目で、どちらか一方なら通る。
-  # 本家は解析前にソースを UTF-8 へ再符号化し、補間の無い正規表現リテラルを
-  # `Regexp.new` に通す (parser gem `Builders::Default#static_regexp`)。診断の文面は
-  # Ruby の正規表現エンジン (Onigmo) の例外そのままなので、再現するには Onigmo の
-  # 検証とその文面を移植することになる。ここだけ通しても他の RegexpError
-  # (unmatched close parenthesis / invalid quantifier など) は出せないままで、
-  # コーパスが踏んだ 1 種類だけを実装するのは件数合わせにしかならない。
-  - cop: Lint/Syntax
-    case: lint_syntax_static_regexp_validation
-    kind: false_negative
-    upstream: |-
-      1:1-7 (6 chars) too short escaped multibyte character: /\xdf/
-      (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
-    sonicop: (検出なし)
-    note: 本家は正規表現リテラルを Ruby の Regexp.new に通し、Onigmo の例外文面をそのまま診断にする。移植には Onigmo の検証とメッセージ生成が要る (実コーパスでは ruby/ruby の test/ruby/enc/test_windows_1252.rb だけが踏む)
   - cop: Style/ItBlockParameter
     case: style_it_block_parameter_nested_parameter_safe
     kind: correction

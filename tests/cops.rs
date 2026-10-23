@@ -22598,13 +22598,6 @@ mod redundant_regexp_character_class {
     fn an_interpolation_fills_the_class() {
         expect_no_offenses(COP, "r = /[#{y}]/\n");
     }
-
-    /// `Regexp::Parser` が受け付けないパターンは 1 件も報告されない。閉じない
-    /// 文字クラスがその 1 つで、手前の `[x]` まで巻き添えで見送られる。
-    #[test]
-    fn a_pattern_the_parser_refuses_yields_nothing() {
-        expect_no_offenses(COP, "r = /[x][a/\n");
-    }
 }
 
 /// `Style/RedundantSelf`: 局所変数と衝突しない `self.` は落とす。

@@ -11,6 +11,39 @@ pub struct Diagnostic {
 }
 
 type LiteralCallback = unsafe extern "C" fn(*mut c_void, usize, usize, c_int);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StringEncoding {
+    Utf8,
+    Binary,
+    UsAscii,
+}
+#[derive(Debug)]
+pub struct RegexpPart {
+    pub bytes: Vec<u8>,
+    pub encoding: StringEncoding,
+}
+#[derive(Debug)]
+pub struct Regexp {
+    pub range: Range<usize>,
+    pub flags: String,
+    pub parts: Vec<RegexpPart>,
+}
+#[derive(Debug)]
+pub struct Parsed {
+    pub diagnostics: Vec<Diagnostic>,
+    pub regexps: Vec<Regexp>,
+}
+type RegexpCallback = unsafe extern "C" fn(
+    *mut c_void,
+    usize,
+    usize,
+    *const u8,
+    usize,
+    c_int,
+    *const u8,
+    usize,
+    bool,
+);
 
 type Callback = unsafe extern "C" fn(*mut c_void, usize, usize, *const c_char, *const c_char);
 
@@ -24,6 +57,8 @@ unsafe extern "C" {
         main_script: bool,
         callback: Callback,
         data: *mut c_void,
+        regexp_callback: Option<RegexpCallback>,
+        regexp_data: *mut c_void,
     ) -> c_int;
     fn sonicop_prism_compat_literal_tokens(
         source: *const u8,
@@ -54,13 +89,60 @@ unsafe extern "C" fn collect(
     });
 }
 
+unsafe extern "C" fn collect_regexp(
+    data: *mut c_void,
+    start: usize,
+    end: usize,
+    bytes: *const u8,
+    length: usize,
+    encoding: c_int,
+    flags: *const u8,
+    flags_length: usize,
+    part: bool,
+) {
+    // native parser の所有値は callback 内で複製し、解放後へ参照を持ち出さない。
+    let regexps = unsafe { &mut *data.cast::<Vec<Regexp>>() };
+    if !part {
+        let flags = if flags_length == 0 {
+            &[]
+        } else {
+            unsafe { std::slice::from_raw_parts(flags, flags_length) }
+        };
+        regexps.push(Regexp {
+            range: start..end,
+            flags: String::from_utf8_lossy(flags).into_owned(),
+            parts: Vec::new(),
+        });
+    } else {
+        let bytes = if length == 0 {
+            &[]
+        } else {
+            unsafe { std::slice::from_raw_parts(bytes, length) }
+        };
+        if let Some(regexp) = regexps.last_mut() {
+            regexp.parts.push(RegexpPart {
+                bytes: bytes.to_vec(),
+                encoding: match encoding {
+                    1 => StringEncoding::Binary,
+                    2 => StringEncoding::UsAscii,
+                    _ => StringEncoding::Utf8,
+                },
+            });
+        }
+    }
+}
+
+pub fn parse_detailed(source: &[u8], version: &str, binary: bool) -> Result<Parsed, &'static str> {
+    parse_with_options(source, version, binary, false, true)
+}
+
 pub fn parse(source: &[u8], version: &str, binary: bool) -> Result<Vec<Diagnostic>, &'static str> {
-    parse_with_options(source, version, binary, false)
+    parse_with_options(source, version, binary, false, false).map(|parsed| parsed.diagnostics)
 }
 
 /// 書き戻し前の検査は部分式ではなく、Ruby が起動するスクリプトとして解析する。
 pub fn parse_script(source: &[u8], version: &str) -> Result<Vec<Diagnostic>, &'static str> {
-    parse_with_options(source, version, false, true)
+    parse_with_options(source, version, false, true, false).map(|parsed| parsed.diagnostics)
 }
 
 fn parse_with_options(
@@ -68,8 +150,10 @@ fn parse_with_options(
     version: &str,
     binary: bool,
     main_script: bool,
-) -> Result<Vec<Diagnostic>, &'static str> {
+    regexps_requested: bool,
+) -> Result<Parsed, &'static str> {
     let mut diagnostics = Vec::<Diagnostic>::new();
+    let mut regexps = Vec::<Regexp>::new();
     // pm_options_version_set の latest 分岐は終端の NUL まで比較する。
     let version = CString::new(version).map_err(|_| "invalid Prism target Ruby version")?;
     // C 側は同期的で、source・version・diagnostics の参照を戻り後に保持しない。
@@ -83,10 +167,15 @@ fn parse_with_options(
             main_script,
             collect,
             (&mut diagnostics as *mut Vec<Diagnostic>).cast(),
+            regexps_requested.then_some(collect_regexp),
+            (&mut regexps as *mut Vec<Regexp>).cast(),
         )
     };
     if result == 0 {
-        Ok(diagnostics)
+        Ok(Parsed {
+            diagnostics,
+            regexps,
+        })
     } else {
         Err("unsupported Prism target Ruby version")
     }
@@ -236,5 +325,70 @@ mod tests {
     fn percent_word_separators_are_not_protected() {
         assert!(protected("%w[a\x0bb]\n").is_empty());
         assert!(protected("%w[a\x0cb]\n").is_empty());
+    }
+}
+
+#[cfg(test)]
+mod regexp_tests {
+    use super::parse_detailed;
+    #[test]
+    fn regexp_parts_follow_translation_parser_static_string() {
+        for (source, expected) in [
+            (r#"/a/"#, Some("a")),
+            (r##"/#{"("}/"##, Some("(")),
+            (r##"/#{("a")}/"##, Some("a")),
+            (r##"/#{begin "(" end}/"##, None),
+            (r##"/#{"a" "b"}/"##, None),
+            (r##"/#{"a"; "b"}/"##, Some("ab")),
+            (r#"/#{}(/"#, Some("(")),
+            (r#"/#{x}(/"#, None),
+        ] {
+            let parsed = parse_detailed(source.as_bytes(), "3.3", false).unwrap();
+            assert!(
+                parsed.diagnostics.is_empty(),
+                "{source}: {:?}",
+                parsed.diagnostics
+            );
+            let actual = parsed.regexps.first().map(|r| {
+                r.parts
+                    .iter()
+                    .flat_map(|part| part.bytes.iter().copied())
+                    .collect::<Vec<_>>()
+            });
+            assert_eq!(actual.as_deref(), expected.map(str::as_bytes), "{source}");
+        }
+    }
+    #[test]
+    fn prism_string_values_keep_the_source_binary_encoding() {
+        let parsed =
+            parse_detailed(b"# coding: ASCII-8BIT\n/#{\"\\u00e9\"}/n\n", "3.3", true).unwrap();
+        assert!(parsed.diagnostics.is_empty());
+        assert_eq!(parsed.regexps.len(), 1);
+        assert!(
+            parsed.regexps[0]
+                .parts
+                .iter()
+                .all(|part| part.encoding == super::StringEncoding::Binary)
+        );
+        assert_eq!(
+            parsed.regexps[0]
+                .parts
+                .iter()
+                .flat_map(|part| part.bytes.iter().copied())
+                .collect::<Vec<_>>(),
+            vec![0xc3, 0xa9]
+        );
+        assert_eq!(parsed.regexps[0].flags, "n");
+    }
+    #[test]
+    fn empty_interpolation_is_a_real_us_ascii_string_part() {
+        let parsed = parse_detailed(br"/#{}\x80/", "3.3", false).unwrap();
+        assert!(parsed.diagnostics.is_empty());
+        assert_eq!(
+            parsed.regexps[0].parts[0].encoding,
+            super::StringEncoding::UsAscii
+        );
+        assert!(parsed.regexps[0].parts[0].bytes.is_empty());
+        assert_eq!(parsed.regexps[0].parts[1].bytes, br"\x80");
     }
 }

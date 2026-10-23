@@ -1286,6 +1286,7 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "shell-words",
+ "sonicop-onigmo-compat",
  "sonicop-prism-compat",
  "tempfile",
  "tree-sitter",
@@ -1294,6 +1295,13 @@ dependencies = [
  "ureq",
  "windows-sys",
  "xattr",
+]
+
+[[package]]
+name = "sonicop-onigmo-compat"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

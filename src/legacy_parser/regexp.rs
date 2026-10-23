@@ -9,11 +9,13 @@ pub(crate) fn names(source: &str, flags: &str) -> Vec<String> {
     crate::regexp_names::named_groups(source, flags.contains('x'))
 }
 
-/// 正規表現のコンパイル診断は従来のバックエンドも未対応。
-/// 捕捉名の字句分類とは別に Onigmo の検証が必要なので、受理の証明として使わない。
-pub(crate) fn validate(source: &str, flags: &str) -> Result<(), String> {
-    let _ = (source, flags);
-    Ok(())
+/// Regexp.new の符号化変換・前処理・Onigmo コンパイルを共通層へ渡す。
+pub(crate) fn validate(
+    source: &[u8],
+    encoding: crate::engine::LiteralEncoding,
+    flags: &str,
+) -> Result<(), String> {
+    crate::regexp_validation::validate(source, encoding, flags)
 }
 
 #[cfg(test)]

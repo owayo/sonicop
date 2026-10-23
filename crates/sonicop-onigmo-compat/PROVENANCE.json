@@ -1,0 +1,218 @@
+[
+  {
+    "path": "BSDL",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "BSDL",
+    "sha256": "36a9a6e7347214bbba599a412617204e65bff065dcbe5c46f5cb454c80de9eb0",
+    "blake3": "a2d1943d21b54c36a692e84855b78292b3d830170420ad0c9d0af7054ea832f1"
+  },
+  {
+    "path": "COPYING",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "COPYING",
+    "sha256": "4ebe48076b3ee165fbb9350aa8a9552f8043c8ed8a7edca2089133d33c1ea45f",
+    "blake3": "734da77d21bd293e1bd232c9baa70224cfecdf898046ac3043aa2569726ac683"
+  },
+  {
+    "path": "LEGAL",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "LEGAL",
+    "sha256": "a74812486cffbdc55141a5d9f165d782cbb202660d827622ec966237d4717b99",
+    "blake3": "09e704a16fb2f6e09110291e3d097d657c4241b76056de3fe2bd7458ad1f0baf"
+  },
+  {
+    "path": "enc/ascii.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/ascii.c",
+    "sha256": "6993065aac01ebb06b45e191fd76fea4e47d9773c29f2f6ae73923c25ab93681",
+    "blake3": "fc873cb798aae3092bef87a2f81c07591d8d188a901779867efc91e01b1fa93a"
+  },
+  {
+    "path": "enc/euc_jp.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/euc_jp.c",
+    "sha256": "96cc8f630fd620c31743a5803ec7e461a952e08b18fd156b2bad87a8d652ac74",
+    "blake3": "6141544b9f547d3c63e0c4f315dcd28ee6253aaf3ccc8f35d3de70f2cdc9a00e"
+  },
+  {
+    "path": "enc/jis/props.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/jis/props.h.blt",
+    "sha256": "aff852ddcc0b4026e3f99fb5cccf3397b93536accb11e18d5ac23834144dc99d",
+    "blake3": "370d9686ef00da3ddcc84d8b1f00b7bc90bee1a36a4c08eca35587ae96ed1076"
+  },
+  {
+    "path": "enc/shift_jis.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/shift_jis.h",
+    "sha256": "9a4c0c2edd422d3f346a53280d9c2de87f8abfafc7517acbfb68997004768d28",
+    "blake3": "4ed5c9f4c656180d4ef19a9aba8ce47df2051a5ce7aba9457a6af8b4eb1222f4"
+  },
+  {
+    "path": "enc/unicode.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/unicode.c",
+    "sha256": "d26a5293af9ea346d8c5e64e5758317dbe420d5f742817d6897bdf4209003442",
+    "blake3": "efc7c6d67ef7db3e01e481dc2fe72a491481d4925f14a7acf3cdbb3890233995"
+  },
+  {
+    "path": "enc/unicode/17.0.0/casefold.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/unicode/17.0.0/casefold.h",
+    "sha256": "91ade8850a688f7a0c72e5f5eed5dba197fa300f32b40bee3e05238ae68fb516",
+    "blake3": "3ab87a57b3aa0030751f8298e9f083dd0a854cce542a11b30d9867ffd4be9d5b"
+  },
+  {
+    "path": "enc/unicode/17.0.0/name2ctype.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/unicode/17.0.0/name2ctype.h",
+    "sha256": "7091cfa1b0a3b515e20da117463e8b5f01380ddb89eace4e85796aae8fabfd8e",
+    "blake3": "d8fa55261e6c086971c60a4685721775591291b3aa09d977f52ac2de8bbb3806"
+  },
+  {
+    "path": "enc/us_ascii.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/us_ascii.c",
+    "sha256": "70bdf491b55449b510de1d8bf2e7b9f182c04ac60539c431c4223e29a4157e61",
+    "blake3": "e8f3dd7e744eecd27791b0492a29f77e55ee452eb650bd889489f644df8d2516"
+  },
+  {
+    "path": "enc/utf_8.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/utf_8.c",
+    "sha256": "fee81280950388d535ee1edd49c309108b43d409dd9037fa34fee4ddf23d56b3",
+    "blake3": "91e0a27943fa260d0c5346fb16f10c0cc06269edfe6959295b38dc1f411e4f9c"
+  },
+  {
+    "path": "enc/windows_31j.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "enc/windows_31j.c",
+    "sha256": "0c28c75a4dba3d0ae50ea642679a11aefe83d629140bf61dbfc1ea52074d3b0c",
+    "blake3": "655f5e8847d12b1ec56b45994d25fb7425b21695884b69defde1cd2a60a9a3c6"
+  },
+  {
+    "path": "onigmo.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "include/ruby/onigmo.h",
+    "sha256": "0291b831d1c360abfae08eaa849de198d9370559a1875395debc146ae48064a1",
+    "blake3": "66e2a0c114f809459bf4e8a9518844d3ce51b718c135846d78e2692877c5f90a"
+  },
+  {
+    "path": "re.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "re.c",
+    "sha256": "72d992c54fa0904b988f8b56c6fadca72e2af3ba4237015cd6c1f3b35210f9b9",
+    "blake3": "a676c48e1c68976e4f997cb32e0f55f011478030458134d7f85b3d198155b1a2"
+  },
+  {
+    "path": "regcomp.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regcomp.c",
+    "sha256": "7810a1e6814febe40d2e20e9bcaec125256a98f5a6d2916e9105a73ed8af37c5",
+    "blake3": "58b858cb03bd3a63586cc0780a0bdad187f9174d4f1ed6ec9111d1be0d377da2"
+  },
+  {
+    "path": "regenc.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regenc.c",
+    "sha256": "9ef4c78e5522b5d6eb602570bde0e2fe58e6b195f7b9a121ab10f2da763b3f7e",
+    "blake3": "5eddc84bf7236fec8d7e0ef4b3cfab81bbad90283aec5af3e25511fd8802bea5"
+  },
+  {
+    "path": "regenc.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regenc.h",
+    "sha256": "d199ee305bf21a47ea0c96181abbb54aac98500da53057f7ccea91ddd896f025",
+    "blake3": "4201d35a15452c68bc4172b663ae7814592920b40a25a2f3fae00017a7bd6dba"
+  },
+  {
+    "path": "regerror.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regerror.c",
+    "sha256": "4b8b76a91e748d7ed7068bb9f2cc67bdb41f8745e4918b6fcf918edd437cab16",
+    "blake3": "310f0f234b695369776e83f0c8e6666f66cf8b4e45386e846628999a6413c09d"
+  },
+  {
+    "path": "regexec.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regexec.c",
+    "sha256": "f5e0c42382520ddc03ff87694b0a754ff72d0f28b9ad6e6804fe78925f43bc1e",
+    "blake3": "b5f509bc4c7d3cecf38009c20e95469a838774a7c7366de687d1c5de5f65e806"
+  },
+  {
+    "path": "regint.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regint.h",
+    "sha256": "8b12ab54268f01c8f3894a6dc2658f1cb9e93dad56fa27c7a0be13eab1131b24",
+    "blake3": "47b748da485dcc8e442db3f34d48c612d102b424f90920a8a316f82fd25f37a7"
+  },
+  {
+    "path": "regparse.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regparse.c",
+    "sha256": "e5293860d773f7cd157b2ac1cf75621fb29d79197b276bb038e0334f39713269",
+    "blake3": "2cbf9319a81c9690eea7f3805362672d92af2f9bd34acd2bf1f7d16fd4b8a1ee"
+  },
+  {
+    "path": "regparse.h",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regparse.h",
+    "sha256": "6ae97b5cfe3f7038d6f38c95cf4a44acb3d9896375a38f25887695b378198ce2",
+    "blake3": "844a7376b5839e3efe2764c214f26f90917390c63e19183a2bf107462fa23d1d"
+  },
+  {
+    "path": "regsyntax.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "regsyntax.c",
+    "sha256": "33ecdefc455364b40de16b84d62f87bb19506108975175fa386fe825582ed83c",
+    "blake3": "060ac98c89b605ab78ea567847ed60aaa844e6a825b5fafa580d940cbba8e43f"
+  },
+  {
+    "path": "st.c",
+    "repository": "k-takata/Onigmo",
+    "commit": "1d7ee878b3e4a9e41bf9825c937ae6cf0a9cd68c",
+    "source_path": "st.c",
+    "sha256": "fb6acbe243e61a5971a3323e7cc8e7bda9b2932b6cd9e2541b8ad21be0cefd15",
+    "blake3": "88ca7f1664a45174deaa65e554f0b5d1599640ecf1954155b9307ae6656e5601"
+  },
+  {
+    "path": "st.h",
+    "repository": "k-takata/Onigmo",
+    "commit": "1d7ee878b3e4a9e41bf9825c937ae6cf0a9cd68c",
+    "source_path": "st.h",
+    "sha256": "b6c4cddaca2f296a512d07e41f82398b7da178667ac2eae389445bb5cbc59601",
+    "blake3": "8b1db592a08eede0ea67cf2fe4fc346703a3edf8ef46637af09800e73f3764a8"
+  },
+  {
+    "path": "string.c",
+    "repository": "ruby/ruby",
+    "commit": "60c3d71bfbf9790229c682e26f8ec968f078c7da",
+    "source_path": "string.c",
+    "sha256": "9e24bb64f3ddb7cce4ab2826f5ac53efea42c5542ae8cbaa39f9425e1c796307",
+    "blake3": "634f24f52a480deaf79fd01aca68f3f7a0da0edf8915baab603498309d8cd320"
+  }
+]
