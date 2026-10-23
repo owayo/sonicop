@@ -46,11 +46,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if operators.is_empty() {
         return;
     }
+    // 誤った % 補正で literal 開始を壊すと次の pass は本文を code と読み、VT の新しい診断を足す。
+    // 制御文字がない通常ファイルには追加の字句解析を行わず、本文の本物の operator も除外しない。
+    let literal_starts = if context.source.text().bytes().any(|byte| matches!(byte, b'\x0b' | b'\x0c')) {
+        let positions: Vec<_> = operators.iter().map(|operator| operator.range.start).collect();
+        crate::parser::protected_control_starts(
+            context.root_node(), context.source.text(), context.regexp_semantics(), &positions,
+        )
+    } else {
+        Vec::new()
+    };
     let settings = Settings::read(context);
     let comments = comment_columns(context);
     // Only a file that actually pads an operator pays for the line and token bookkeeping.
     let alignment = OnceCell::new();
     for operator in &operators {
+        if literal_starts.binary_search(&operator.range.start).is_ok() {
+            continue;
+        }
         if let Some(offense) = check_operator(context, &settings, &comments, &alignment, operator) {
             offenses.push(offense);
         }
@@ -255,9 +268,9 @@ fn leading_tilde_operand<'tree>(right: Node<'tree>, at: usize) -> Option<Node<'t
     None
 }
 
-/// tree-sitter reads `a&b` as `a(&b)`, a block pass. Ruby's lexer only reads `&` that way when a
-/// space separates it from the receiver, so an ampersand butted against the name is the binary
-/// operator, which RuboCop reports as one.
+/// `a&b` を block pass と読む grammar の回復を補う。Ruby は receiver との空白がある時だけ
+/// 引数の `&` と読むので、名前に接した場合は二項演算子として報告する。VT も Ruby の空白で、
+/// Rust の ASCII whitespace の集合には含まれない。
 fn collect_block_pass(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec<OperatorSite>) {
     let Some(first) = node.child(0) else {
         return;
@@ -269,7 +282,7 @@ fn collect_block_pass(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
     let preceded_by_space = node
         .start_byte()
         .checked_sub(1)
-        .is_none_or(|index| bytes[index].is_ascii_whitespace());
+        .is_none_or(|index| bytes[index].is_ascii_whitespace() || bytes[index] == b'\x0b');
     if preceded_by_space {
         return;
     }

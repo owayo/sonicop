@@ -40,6 +40,29 @@ pub(crate) fn binary_operator_hints(
     hinted: &[Hint],
     semantics: crate::regexp_ast::Semantics,
 ) -> Vec<Hint> {
+    operator_analysis(root, text, hinted, semantics, &[], &[]).hints
+}
+
+/// literal の回復が先に binary を作る場合も、宣言順と scope が根拠の位置だけを返す。
+/// `probes` は原文の operator 開始位置を昇順・重複なしで渡す。
+pub(crate) fn operator_analysis(
+    root: Node<'_>,
+    text: &str,
+    hinted: &[Hint],
+    semantics: crate::regexp_ast::Semantics,
+    probes: &[usize],
+    literals: &[sonicop_prism_compat::ControlLiteral],
+) -> OperatorAnalysis {
+    let mut origins: Vec<_> = literals
+        .iter()
+        .map(|literal| (literal.start, literal.end, 0))
+        .collect();
+    origins.sort_unstable_by_key(|origin| origin.0);
+    let mut end = 0;
+    for origin in &mut origins {
+        end = end.max(origin.1);
+        origin.2 = end;
+    }
     let (beginnings, bodies) = heredoc_nodes(root);
     let heredocs: HashMap<usize, Node<'_>> = crate::heredocs::pair(beginnings, bodies, text)
         .into_iter()
@@ -49,16 +72,30 @@ pub(crate) fn binary_operator_hints(
         text,
         hinted,
         semantics,
-        frames: vec![Frame::new(false)],
+        frames: vec![Frame::new(false, true)],
         heredocs,
         cursor: root.walk(),
         hints: Vec::new(),
+        probes,
+        bound_positions: HashSet::new(),
+        origins,
     };
     walk.run(root);
     let mut hints = walk.hints;
     hints.sort_unstable_by_key(|hint| hint.position());
     hints.dedup();
-    hints
+    let mut bound_positions: Vec<_> = walk.bound_positions.into_iter().collect();
+    bound_positions.sort_unstable();
+    bound_positions.dedup();
+    OperatorAnalysis {
+        hints,
+        bound_positions,
+    }
+}
+
+pub(crate) struct OperatorAnalysis {
+    pub(crate) hints: Vec<Hint>,
+    pub(crate) bound_positions: Vec<usize>,
 }
 
 /// 原文の座標で表す手がかり。二項演算は改ページ、三項演算は `?` の直後の空白で伝える。
@@ -84,13 +121,18 @@ struct Frame<'a> {
     /// ブロックとラムダは外側の変数を見られる。`def`・`class`・`module` と最上位は見られない。
     block: bool,
     names: HashSet<Cow<'a, str>>,
+    // 追加の literal 判定だけに使う来歴。既存の手がかりの束縛を変えない。
+    query_names: HashSet<Cow<'a, str>>,
+    query_scope: bool,
 }
 
 impl Frame<'_> {
-    fn new(block: bool) -> Self {
+    fn new(block: bool, query_scope: bool) -> Self {
         Self {
             block,
             names: HashSet::new(),
+            query_names: HashSet::new(),
+            query_scope,
         }
     }
 }
@@ -98,7 +140,7 @@ impl Frame<'_> {
 enum Step<'tree> {
     Visit(Node<'tree>),
     /// スコープの中身を読む前に、その枠を積む。
-    Enter(bool),
+    Enter(bool, usize),
     Leave,
     /// 仮引数の名前。既定値より先に宣言する。
     Declare(Node<'tree>),
@@ -121,6 +163,10 @@ struct Walk<'a, 'tree> {
     /// 子を並べるたびに作らないよう、1 つを使い回す。
     cursor: TreeCursor<'tree>,
     hints: Vec<Hint>,
+    probes: &'a [usize],
+    bound_positions: HashSet<usize>,
+    // start, end, ここまでの最大 end。離れた literal 全件を毎宣言で調べない。
+    origins: Vec<(usize, usize, usize)>,
 }
 
 impl<'a, 'tree> Walk<'a, 'tree> {
@@ -130,7 +176,10 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         while let Some(step) = stack.pop() {
             match step {
                 Step::Visit(node) => self.visit(node, &bodies, &mut stack),
-                Step::Enter(block) => self.frames.push(Frame::new(block)),
+                Step::Enter(block, position) => {
+                    let trusted = self.trusted_origin(position);
+                    self.frames.push(Frame::new(block, trusted));
+                }
                 Step::Leave => {
                     self.frames.pop();
                 }
@@ -141,7 +190,7 @@ impl<'a, 'tree> Walk<'a, 'tree> {
                     for name in self.semantics.named_groups(regex, self.text, |beginning| {
                         self.heredocs.get(&beginning.id()).copied()
                     }) {
-                        self.declare_name(Cow::Owned(name));
+                        self.declare_name(Cow::Owned(name), regex.start_byte());
                     }
                 }
             }
@@ -160,7 +209,7 @@ impl<'a, 'tree> Walk<'a, 'tree> {
             self.push_children(node, stack, |child| {
                 !outer.iter().any(|field| field.id() == child.id())
             });
-            stack.push(Step::Enter(block));
+            stack.push(Step::Enter(block, node.start_byte()));
             for field in outer.into_iter().rev() {
                 stack.push(Step::Visit(field));
             }
@@ -348,7 +397,7 @@ impl<'a, 'tree> Walk<'a, 'tree> {
                 None => {
                     if let Some(key) = node.child_by_field_name("key") {
                         let name = self.text[key.byte_range()].trim_end_matches(':');
-                        self.declare_name(Cow::Borrowed(name));
+                        self.declare_name(Cow::Borrowed(name), key.start_byte());
                     }
                 }
             },
@@ -357,13 +406,22 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         }
     }
 
-    fn declare(&mut self, name: Node<'tree>) {
-        if let Some(name) = self.text.get(name.byte_range()) {
-            self.declare_name(Cow::Borrowed(name));
+    fn declare(&mut self, node: Node<'tree>) {
+        if let Some(name) = self.text.get(node.byte_range()) {
+            self.declare_name(Cow::Borrowed(name), node.start_byte());
         }
     }
 
-    fn declare_name(&mut self, name: Cow<'a, str>) {
+    fn declare_name(&mut self, name: Cow<'a, str>, position: usize) {
+        if !self.probes.is_empty() && self.trusted_origin(position) {
+            self.frames
+                .iter_mut()
+                .rev()
+                .find(|frame| frame.query_scope)
+                .expect("最上位の query 枠は残る")
+                .query_names
+                .insert(name.clone());
+        }
         self.frames
             .last_mut()
             .expect("最上位の枠は残る")
@@ -371,14 +429,43 @@ impl<'a, 'tree> Walk<'a, 'tree> {
             .insert(name);
     }
 
+    /// unsupported literal 内の代入や仮引数の回復を、新しい保護撤回の根拠にしない。
+    /// 本文の空白を丸ごと保護する範囲ではなく、query の宣言と scope の来歴だけに使う。
+    fn trusted_origin(&self, position: usize) -> bool {
+        let mut next = self.origins.partition_point(|origin| origin.0 <= position);
+        while next > 0 {
+            next -= 1;
+            let (start, end, prefix_end) = self.origins[next];
+            if prefix_end <= position {
+                break;
+            }
+            if position < end && !self.bound_positions.contains(&start) {
+                return false;
+            }
+        }
+        true
+    }
+
     /// その位置で名前がローカル変数に束縛されているか。
     fn is_local(&self, name: &str) -> bool {
+        self.local_in_frames(name, false)
+    }
+
+    fn local_in_frames(&self, name: &str, query: bool) -> bool {
         // `_1` から `_9` はブロックの番号付き引数で、宣言しなくてもローカル変数。
         let numbered = name.len() == 2
             && name.as_bytes()[0] == b'_'
             && matches!(name.as_bytes()[1], b'1'..=b'9');
         for frame in self.frames.iter().rev() {
-            if frame.names.contains(name) || (numbered && frame.block) {
+            if query && !frame.query_scope {
+                continue;
+            }
+            let names = if query {
+                &frame.query_names
+            } else {
+                &frame.names
+            };
+            if names.contains(name) || (numbered && frame.block) {
                 return true;
             }
             if !frame.block {
@@ -451,18 +538,24 @@ impl<'a, 'tree> Walk<'a, 'tree> {
                 identifier(first) && (first.is_ascii() || self.semantics.modern_question_literals())
             }) && characters.next().is_some_and(identifier)
         };
-        if !ternary && self.hinted.is_empty() {
+        let queried = !self.probes.is_empty()
+            && start > name.end_byte()
+            && self.probes.binary_search(&start).is_ok();
+        if !ternary && self.hinted.is_empty() && !queried {
             return;
         }
         // `obj.name +1` の `name` はメソッド名で、ローカル変数と同じ名前でも引数を取る。
-        if !multiple
-            && let Some(parent) = name.parent()
-            && parent.kind() == "call"
-            && parent.child_by_field_name("receiver").is_some()
-            && parent
-                .child_by_field_name("method")
-                .is_some_and(|method| method.id() == name.id())
-        {
+        let receiver = name.parent().is_some_and(|parent| {
+            parent.kind() == "call"
+                && parent.child_by_field_name("receiver").is_some()
+                && parent
+                    .child_by_field_name("method")
+                    .is_some_and(|method| method.id() == name.id())
+        });
+        if queried && !receiver && self.local_in_frames(&self.text[name.byte_range()], true) {
+            self.bound_positions.insert(start);
+        }
+        if (!ternary && self.hinted.is_empty()) || (!multiple && receiver) {
             return;
         }
         if ternary {
@@ -862,6 +955,59 @@ mod tests {
             ("x = 1\nputs(x?2)\n", vec![]),
         ] {
             assert_eq!(hinted(source), expected, "{source:?}");
+        }
+    }
+
+    /// 実 RuboCop 1.89.0 の lvar/send 対照。回復した literal 内の宣言・仮引数は根拠にしない。
+    #[test]
+    fn literal_operator_queries_keep_declaration_provenance() {
+        for (source, bound) in [
+            ("y %Q\x0b+ 1\x0b\n", false),
+            ("y=1\ny %Q\x0b+ 1\x0b\n", true),
+            ("y %Q\x0b+ 1\x0b\ny=1\n", false),
+            ("y=1\ndef m\ny %Q\x0b+ 1\x0b\nend\n", false),
+            ("y=1\nclass C\ny %Q\x0b+ 1\x0b\nend\n", false),
+            ("y=1\n[1].each { y %Q\x0b+ 1\x0b }\n", true),
+            ("y=1\n-> { y %Q\x0b+ 1\x0b }\n", true),
+            ("[1].each { y=1 }\ny %Q\x0b+ 1\x0b\n", false),
+            ("y=1\nobj.y %Q\x0b+ 1\x0b\n", false),
+            ("y %Q\x0b+ 1\x0b if y=1\n", false),
+            ("(y=1) if y %Q\x0b+ 1\x0b\n", true),
+            ("def m(y)\ny %Q\x0b+ 1\x0b\nend\n", true),
+            ("%Q\x0by=1\x0b\ny %Q\x0b+ 1\x0b\n", false),
+            ("%Q\x0bdef m(y); end\x0b\ny %Q\x0b+ 1\x0b\n", false),
+            ("%Q\x0bfoo { |y| }\x0b\ny %Q\x0b+ 1\x0b\n", false),
+            ("y=1\n%Q\x0by=2\x0b\ny %Q\x0b+ 1\x0b\n", true),
+            ("y=1\n%Q\x0bclass C\x0b\ny %Q\x0b+ 1\x0b\n", true),
+            ("%Q\x0by=2\x0b\ny=1\ny %Q\x0b+ 1\x0b\n", true),
+            ("%Q\x0by=2\x0b\ny %Q\x0b+ 1\x0b\ny=1\n", false),
+            ("値=1\n値 %Q\x0b+ 1\x0b\n", true),
+        ] {
+            for control in ['\x0b', '\x0c'] {
+                for ending in ["\n", "\r\n"] {
+                    let source = source
+                        .replace('\x0b', &control.to_string())
+                        .replace('\n', ending);
+                    let root = tree(&source);
+                    let probes: Vec<_> = source.match_indices("%Q").map(|(at, _)| at).collect();
+                    let last = *probes.last().unwrap();
+                    let literals = sonicop_prism_compat::control_literals(source.as_bytes());
+                    let analysis = super::operator_analysis(
+                        root.root_node(),
+                        &source,
+                        &[],
+                        crate::regexp_ast::Semantics::default(),
+                        &probes,
+                        &literals,
+                    );
+                    assert_eq!(
+                        analysis.bound_positions.contains(&last),
+                        bound,
+                        "{source:?}: {:?}",
+                        analysis.bound_positions
+                    );
+                }
+            }
         }
     }
 }

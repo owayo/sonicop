@@ -40,3 +40,69 @@ int sonicop_prism_compat_parse(const uint8_t *source, size_t length,
 const char *sonicop_prism_compat_version(void) {
     return pm_version();
 }
+
+
+typedef void (*sonicop_prism_literal_callback)(void *, size_t, size_t, int);
+
+typedef struct {
+    const uint8_t *source;
+    sonicop_prism_literal_callback callback;
+    void *data;
+} sonicop_prism_literal_context;
+
+/* literal の区切りと character だけを渡し、本文や %w の WORDS_SEP は通常の木へ任せる。 */
+static void sonicop_prism_literal_token(void *data, pm_parser_t *parser, pm_token_t *token) {
+    sonicop_prism_literal_context *context = (sonicop_prism_literal_context *)data;
+    int kind;
+    switch (token->type) {
+        case PM_TOKEN_STRING_BEGIN:
+        case PM_TOKEN_REGEXP_BEGIN:
+        case PM_TOKEN_PERCENT_LOWER_I:
+        case PM_TOKEN_PERCENT_UPPER_I:
+        case PM_TOKEN_PERCENT_LOWER_W:
+        case PM_TOKEN_PERCENT_UPPER_W:
+        case PM_TOKEN_PERCENT_LOWER_X:
+            kind = 0;
+            break;
+        case PM_TOKEN_SYMBOL_BEGIN:
+            /* 裸の :name は STRING_END を伴わない。引用符付きか %s の開始だけ積む。 */
+            if (token->end - token->start <= 1) return;
+            kind = 0;
+            break;
+        case PM_TOKEN_BACKTICK:
+            /* 同じ token が def ` や obj.` のメソッド名にも使われる。 */
+            if (parser->lex_modes.current->mode != PM_LEX_STRING) return;
+            kind = 0;
+            break;
+        case PM_TOKEN_STRING_END:
+        case PM_TOKEN_REGEXP_END:
+        case PM_TOKEN_LABEL_END:
+            kind = 1;
+            break;
+        case PM_TOKEN_CHARACTER_LITERAL:
+            kind = 2;
+            break;
+        default:
+            return;
+    }
+    context->callback(context->data, (size_t)(token->start - context->source),
+                      (size_t)(token->end - context->source), kind);
+}
+
+/* 制御文字がある希少経路だけ呼ぶ。診断と同じ parser と反復的な解放を使う。 */
+void sonicop_prism_compat_literal_tokens(const uint8_t *source, size_t length,
+                                       sonicop_prism_literal_callback callback, void *data) {
+    pm_options_t options = {0};
+    pm_options_encoding_set(&options, "UTF-8");
+    pm_options_encoding_locked_set(&options, true);
+    pm_options_partial_script_set(&options, true);
+    pm_parser_t parser;
+    pm_parser_init(&parser, source, length, &options);
+    sonicop_prism_literal_context context = {source, callback, data};
+    pm_lex_callback_t lex = {&context, sonicop_prism_literal_token};
+    parser.lex_callback = &lex;
+    pm_node_t *node = pm_parse(&parser);
+    pm_node_destroy(&parser, node);
+    pm_parser_free(&parser);
+    pm_options_free(&options);
+}

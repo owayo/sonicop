@@ -612,10 +612,11 @@ fn is_block_bearing_call(node: Node<'_>) -> bool {
         || (matches!(node.kind_str(), "call" | "method_call") && node.field("block").is_some())
 }
 
+// Ruby が区切りと読む VT は Rust の ASCII whitespace には含まれず、余分な空白を足さない。
 fn whitespace_at(text: &str, offset: usize) -> bool {
     text.as_bytes()
         .get(offset)
-        .is_some_and(|byte| byte.is_ascii_whitespace())
+        .is_some_and(|byte| byte.is_ascii_whitespace() || *byte == b'\x0b')
 }
 
 fn insert(offset: usize, replacement: &str) -> Edit {
