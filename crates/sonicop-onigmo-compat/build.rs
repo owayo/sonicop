@@ -127,8 +127,12 @@ fn main() {
         .unwrap();
         build.file(wrapper);
     }
-    if env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
-        build.flag("/utf-8");
+    // C23 では st.h の空引数宣言が引数なしになるため、以前の規則を明示する。
+    if build.get_compiler().is_like_msvc() {
+        build.std("c11").flag("/utf-8");
+    } else {
+        // regint.h は GNU の alloca を前提とするため、MinGW も含めて GNU 方言を保つ。
+        build.std("gnu11");
     }
     build.file(root.join("shim.c")).compile("sonicop_onigmo");
     println!("cargo:rerun-if-changed=vendor");
