@@ -434,6 +434,7 @@ cop, and the second time is always in a cop whose author had read the first fix:
 | `foo&.bar` | `call` | `csend` — upstream's `:send` arm excludes it, `on_csend` is separate |
 | `foo.bar { … }` | `call` holding the `block` | `block` around the `send` — the send's range stops before the block, and the block is its parent |
 | `a[b] = c` | `assignment` | `send` of `:[]=`, a binary operation like `a[b]`; `a.b = c` sends `:b=`, which is no operator |
+| `not(x)`, `not (x)` | the same `unary` over `parenthesized_statements` | `(send x :!)` and `(send (begin x) :!)`: parentheses written against the keyword are its own, spaced ones are a `begin` |
 | `a.+(b)`, `a.+ (b)` | a `call` whose `argument_list` opens with `(` | only the first is `parenthesized?`; the spaced `(b)` is a `begin` argument |
 | `%w[…]`, `%i[…]` | `string_array` / `symbol_array` | `array`, with `percent_literal?` true |
 | `%w[…]`'s elements | `bare_string` / `bare_symbol` | `str` / `sym` |

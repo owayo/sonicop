@@ -13681,6 +13681,137 @@ mod numeric_predicate {
             .run();
     }
 
+    /// `negated?` は本家の親が `!` の send かどうかだけを見る。`not x` と `x.!` も `!` の send で、
+    /// `!` の引数でもよい。`not(x)` の括弧はキーワードのもので begin を作らない。包まないと
+    /// `foo.zero?.!` は `foo == 0.!` になり、比べる値が変わる。
+    #[test]
+    fn the_comparison_style_parenthesizes_under_every_negation() {
+        for (annotated, corrected) in [
+            (
+                r#"
+                not foo.zero?
+                    ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "not (foo == 0)\n",
+            ),
+            (
+                r#"
+                not(foo.zero?)
+                    ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "not((foo == 0))\n",
+            ),
+            (
+                r#"
+                foo.zero?.!
+                ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "(foo == 0).!\n",
+            ),
+            (
+                r#"
+                bar.!(foo.zero?)
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0))\n",
+            ),
+            (
+                r#"
+                bar.! foo.zero?
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.! (foo == 0)\n",
+            ),
+            (
+                r#"
+                bar.!(foo.zero?, x)
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0), x)\n",
+            ),
+            (
+                r#"
+                foo.zero?::!
+                ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "(foo == 0)::!\n",
+            ),
+            (
+                r#"
+                not(
+                  foo.zero?
+                  ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                )
+                "#,
+                "not(\n  (foo == 0)\n)\n",
+            ),
+            // 空白を挟んだ `not (x)`、`!(x)`、`not((x))` の内側の括弧は begin で、親は `!` ではない。
+            (
+                r#"
+                not (foo.zero?)
+                     ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "not (foo == 0)\n",
+            ),
+            (
+                r#"
+                !(foo.zero?)
+                  ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "!(foo == 0)\n",
+            ),
+            (
+                r#"
+                not((foo.zero?))
+                     ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "not((foo == 0))\n",
+            ),
+            (
+                r#"
+                bar.!((foo.zero?))
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0))\n",
+            ),
+            // 親の `!` に付いたブロックは、引数の親が `!` の send であることを変えない。
+            (
+                r#"
+                bar.!(foo.zero?) { }
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0)) { }\n",
+            ),
+            // splat の親は splat。
+            (
+                r#"
+                bar.!(*foo.zero?)
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar.!(*foo == 0)\n",
+            ),
+            // `&.!` は csend で、`send_type?` が偽。
+            (
+                r#"
+                foo.zero?&.!
+                ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "foo == 0&.!\n",
+            ),
+            (
+                r#"
+                bar&.!(foo.zero?)
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar&.!(foo == 0)\n",
+            ),
+        ] {
+            CopCase::annotated(COP, annotated)
+                .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+                .corrected(corrected)
+                .run();
+        }
+    }
 }
 /// `Style/RescueStandardError`: 既定では例外クラスを省いた `rescue` を報告する。
 ///

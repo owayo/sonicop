@@ -341,14 +341,34 @@ fn line_breaks(content: &str, single_quoted: bool) -> usize {
     breaks
 }
 
-/// `negated?`: the comparison this cop is about to write sits under a `!`.
+/// `negated?`: 書き戻す比較の、本家での親が `!` の send であること。`!x`・`not x`・`x.!` の
+/// どれでもよく、`x.!(y)` の引数でもよい。`&.!` は csend なので含まない。
 fn negated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent_of(context).is_some_and(|parent| {
-        parent.kind_str() == "unary"
-            && parent
-                .field("operator")
-                .is_some_and(|operator| context.source.node_text(operator) == "!")
-    })
+    upstream_parent(context, node)
+        .is_some_and(|parent| send_node::negation(parent, context).is_some())
+}
+
+/// `node.parent`: 引数リストは本家ではノードにならない。`not(x)` の括弧は `kNOT tLPAREN2 expr
+/// rparen` でキーワードの一部になり、begin を作らない。空白を挟んだ `not (x)` の括弧は begin。
+fn upstream_parent<'tree>(
+    context: &'tree RuleContext<'_>,
+    node: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let parent = node.parent_of(context)?;
+    match parent.kind_str() {
+        "argument_list" => parent.parent_of(context),
+        "parenthesized_statements" => {
+            let outer = parent.parent_of(context)?;
+            let keyword_parentheses = outer.kind_str() == "unary"
+                && outer.field("operator").is_some_and(|operator| {
+                    context.source.node_text(operator) == "not"
+                        && operator.end_byte() == parent.start_byte()
+                })
+                && super::nodes::children_in(parent, context).len() == 1;
+            Some(if keyword_parentheses { outer } else { parent })
+        }
+        _ => Some(parent),
+    }
 }
 
 fn selector_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
