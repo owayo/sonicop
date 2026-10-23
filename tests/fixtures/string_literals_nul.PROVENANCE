@@ -6,8 +6,8 @@
 対象: TargetRubyVersion/ParserEngine の 7 組、引用符 2 種、ConsistentQuotesInMultiline 2 種、LF/CRLF。
 通常 29 入力 × 168 CLI = 4,872 条件は inspect/-a/-A を記録。
 ASCII-8BIT は whitequark 2.7 / Prism 3.4 の 5 入力 × 16 CLI = 80 条件で inspect のみ。
-合計 184 CLI / 4,952 条件。うちIssue #54 の既存 CRLF 復号差 12 条件は string_literals_nul_pending.json に
-本家生記録を残し、診断を検査するが補正 bytes の一致には数えない。4,940 条件が完全比較の対象。
+合計 184 CLI / 4,952 条件。Issue #54 の CRLF 復号差 12 条件の保留を解除し、
+元の本家生記録を変更せず、全 4,952 条件の診断と補正後 bytes を比較する。
 raw NUL の位置、連続、実エスケープ、隣接 literal、補間、
 heredoc、コメント、SOH、タブ、ESC、多バイト文字を含む。
 

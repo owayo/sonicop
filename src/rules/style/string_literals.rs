@@ -411,11 +411,13 @@ pub(super) fn corrected_literal(
     parser_engine: ParserEngine,
 ) -> String {
     // percent literal は診断対象外なので、引用符は両端の各 1 byte だけ。
-    let inner = &source[1..source.len() - 1];
+    // 本家の source buffer と Ruby の字句処理は、実 CRLF を値の LF に正規化する。
+    // 原本の保存形式と区別し、escaped \r や単独の CR は値として残す。
+    let inner = source[1..source.len() - 1].replace("\r\n", "\n");
     let value = if single_quotes {
-        decode_double_quoted(inner)
+        decode_double_quoted(&inner)
     } else {
-        decode_single_quoted(inner)
+        decode_single_quoted(&inner)
     };
     // Prism の改行部品は UTF-8 の空文字へ結合され、ASCII 値はその符号化を保つ。
     // 原本の ASCII 表記と値の ASCII bytes は違うため、報告対象の復号値で判定する。
