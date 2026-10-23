@@ -3334,8 +3334,10 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             fs::read(directory.path().join("example.rb")).unwrap(),
             expected.as_bytes()
         );
+        // 引用の無い exec ruby -x は本家 parser も拒否する。Ruby と shell の両方で
+        // 有効な launcher を使い、コメントだけの補正を安全ゲートが許すことを確認する。
         let source = format!(
-            "#!/bin/sh{newline}# comment {newline}exec ruby -x \"$0\" \"$@\" if false{newline}#!ruby{newline}puts :ok{newline}"
+            "#!/bin/sh{newline}# comment {newline}exec \"${{RUBY-ruby}}\" \"-x\" \"$0\" \"$@\" && [ ] if false{newline}#!ruby{newline}puts :ok{newline}"
         );
         let expected = source.replace("# comment ", "# comment");
         fs::write(directory.path().join("example.rb"), &source).unwrap();

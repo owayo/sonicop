@@ -353,6 +353,16 @@ and length still match. Keep LF/CRLF, endless-method and tab-crossing controls t
 このスクリプトは正の完了件数、対象パス集合、診断全項目の多重集合を比較し、
 別々の入力で生じた過剰と不足を打ち消さない。
 
+**旧版の構文は parser gem の状態機械で判定する。** `src/legacy_parser` は固定した parser
+3.3.12.0 と racc 1.8.1 の字句器・還元動作・C cparse の回復を使う。対象 2.7〜3.2 と
+明示した parser_whitequark の 3.3/3.4 は、tree-sitter の ERROR の有無に関係なく全ファイルを通す。
+error の合成 shift ではトークンを消費せず errstatus を減らさない。回復で失われた def の
+文脈も正常な終了動作が走るまで戻さない。構文ごとの手書きゲートや後続診断を追加しない。
+`tables` は `ruby scripts/legacy_parser/generate.rb` で再生成し、固定版・入力ハッシュ・ライセンスは
+`src/legacy_parser/PROVENANCE.md` を参照する。Ruby 版 Racc の結果を C 版の代用にしない。
+LF/CRLF、文字単位の EOF 範囲、同範囲で先の診断を残す順序、-a/-A が原本を変更しないことを
+実 CLI の記録で検査する。中間ノードも rayon worker の小さいスタックで反復して解放する。
+
 ## Adding a cop test
 
 `tests/cops.rs` uses upstream's caret notation: the annotation points at the preceding source line,
