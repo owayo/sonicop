@@ -4569,3 +4569,254 @@ fn a_nested_heredoc_assignment_stays_bound_after_both_correction_modes() {
     }
     assert_eq!(checked, 48);
 }
+
+/// ブロック付き send の範囲だけを診断・置換する。本家 1.89.0 の実出力を全項目で照合し、
+/// `-a` は変更せず、`-A` はブロックと原本の LF/CRLF を残す。
+#[test]
+fn numeric_predicate_preserves_blocks_on_disk() {
+    for (source, send, replacement, corrected, length) in [
+        (
+            "x.>(0) { }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive? { }\n",
+            6,
+        ),
+        (
+            "0.<(x) { }\n",
+            "0.<(x)",
+            "x.positive?",
+            "x.positive? { }\n",
+            6,
+        ),
+        ("x.==(0) { }\n", "x.==(0)", "x.zero?", "x.zero? { }\n", 7),
+        (
+            "日本語.>(0) { 'é' }\n",
+            "日本語.>(0)",
+            "日本語.positive?",
+            "日本語.positive? { 'é' }\n",
+            8,
+        ),
+        (
+            "x.>(0) \\\n { }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive? \\\n { }\n",
+            6,
+        ),
+        (
+            "x.>(0)\\\n{ }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive?\\\n{ }\n",
+            6,
+        ),
+        (
+            "x.>(0) \\\n\\\n { }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive? \\\n\\\n { }\n",
+            6,
+        ),
+        (
+            "x.>(0)\u{b}{ }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive?\u{b}{ }\n",
+            6,
+        ),
+        (
+            "x.>(0)\u{c}{ }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive?\u{c}{ }\n",
+            6,
+        ),
+        (
+            "x.>(0)\t{ }\n",
+            "x.>(0)",
+            "x.positive?",
+            "x.positive?\t{ }\n",
+            6,
+        ),
+    ] {
+        for ending in ["\n", "\r\n"] {
+            for mode in ["inspect", "-a", "-A"] {
+                let original = source.replace('\n', ending);
+                let directory = project_with_ruby(&[("example.rb", &original)], "2.7");
+                let mut run = command(directory.path());
+                run.args([
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Style/NumericPredicate",
+                    "--format",
+                    "json",
+                ]);
+                if mode != "inspect" {
+                    run.arg(mode);
+                }
+                let correcting = mode == "-A";
+                let output = run
+                    .arg("example.rb")
+                    .assert()
+                    .code(if correcting { 0 } else { 1 })
+                    .get_output()
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["summary"]["target_file_count"], 1);
+                assert_eq!(report["summary"]["inspected_file_count"], 1);
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::json!([{
+                        "severity": "convention",
+                        "message": format!("Use `{replacement}` instead of `{send}`."),
+                        "cop_name": "Style/NumericPredicate",
+                        "corrected": correcting,
+                        "correctable": true,
+                        "location": {"start_line": 1, "start_column": 1, "last_line": 1,
+                            "last_column": length, "length": length, "line": 1, "column": 1}
+                    }]),
+                    "{source:?} {ending:?} {mode}"
+                );
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    if correcting {
+                        corrected.replace('\n', ending)
+                    } else {
+                        original
+                    }
+                    .as_bytes()
+                );
+                assert!(output.stderr.is_empty());
+            }
+        }
+    }
+}
+
+/// comparison の本家補正はブロックを残して構文を壊す。ブロックを消す回避はせず、既存の
+/// 構文保護で原本と未補正の診断を返す。同じファイルの無害な別の補正も途中まで書かない。
+#[test]
+fn numeric_predicate_rejects_upstream_comparisons_that_leave_invalid_blocks() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["numeric_predicate_block_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 6);
+    for case in cases {
+        let before = case["source"].as_str().unwrap();
+        let target = case["target_ruby"].as_str().unwrap();
+        assert_ne!(case["upstream"]["source"].as_str().unwrap(), before);
+        assert!(
+            case["upstream"]["offenses"]
+                .as_sequence()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["cop_name"].as_str() == Some("Lint/Syntax"))
+        );
+        let expected = serde_json::to_value(&case["sonicop"]["offenses"]).unwrap();
+        for ending in ["\n", "\r\n"] {
+            for mode in ["inspect", "-a", "-A"] {
+                let original = before.replace('\n', ending);
+                let directory = project_with_ruby(&[("example.rb", &original)], target);
+                fs::write(directory.path().join(".rubocop.yml"), format!(
+                    "AllCops:\n  TargetRubyVersion: {target}\n  NewCops: enable\nStyle/NumericPredicate:\n  EnforcedStyle: comparison\n"
+                )).unwrap();
+                // 拒否した -A を再実行しても同じ原本・診断・終了コードになる。
+                for _ in 0..if mode == "-A" { 2 } else { 1 } {
+                    let mut run = command(directory.path());
+                    run.args([
+                        "--cache",
+                        "false",
+                        "--only",
+                        "Style/NumericPredicate",
+                        "--format",
+                        "json",
+                    ]);
+                    if mode != "inspect" {
+                        run.arg(mode);
+                    }
+                    let output = run
+                        .arg("example.rb")
+                        .assert()
+                        .code(if mode == "-A" { 2 } else { 1 })
+                        .get_output()
+                        .clone();
+                    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                    assert_eq!(report["summary"]["target_file_count"], 1);
+                    assert_eq!(report["summary"]["inspected_file_count"], 1);
+                    assert_eq!(
+                        report["files"][0]["offenses"],
+                        expected,
+                        "{} {ending:?} {mode}",
+                        case["id"].as_str().unwrap()
+                    );
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        original.as_bytes()
+                    );
+                    let stderr = if mode == "-A" {
+                        case["sonicop"]["stderr"].as_str().unwrap()
+                    } else {
+                        ""
+                    };
+                    assert_eq!(output.stderr, stderr.as_bytes());
+                }
+            }
+        }
+    }
+}
+
+/// 構文を壊すファイルを拒否しても、別ファイルの有効な補正は続ける。
+#[test]
+fn numeric_predicate_block_rejection_does_not_stop_other_files() {
+    for ending in ["\n", "\r\n"] {
+        let original = "foo.zero? { }\n".replace('\n', ending);
+        let other = "bar.zero?\n".replace('\n', ending);
+        let directory = project_with_ruby(&[("bad.rb", &original), ("good.rb", &other)], "2.7");
+        fs::write(directory.path().join(".rubocop.yml"),
+            "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\nStyle/NumericPredicate:\n  EnforcedStyle: comparison\n").unwrap();
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Style/NumericPredicate",
+                "-A",
+                "--format",
+                "json",
+                "bad.rb",
+                "good.rb",
+            ])
+            .assert()
+            .code(2)
+            .get_output()
+            .clone();
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["summary"]["target_file_count"], 2);
+        assert_eq!(report["summary"]["inspected_file_count"], 2);
+        assert_eq!(report["files"][0]["offenses"][0]["corrected"], false);
+        assert_eq!(report["files"][1]["offenses"][0]["corrected"], true);
+        assert_eq!(
+            fs::read(directory.path().join("bad.rb")).unwrap(),
+            original.as_bytes()
+        );
+        assert_eq!(
+            fs::read(directory.path().join("good.rb")).unwrap(),
+            "bar == 0\n".replace('\n', ending).as_bytes()
+        );
+        assert_eq!(
+            output.stderr,
+            b"Autocorrection was not written to bad.rb because it introduced a syntax error.\n"
+        );
+        command(directory.path())
+            .args(["--only", "Style/NumericPredicate", "-A", "good.rb"])
+            .assert()
+            .success();
+        assert_eq!(
+            fs::read(directory.path().join("good.rb")).unwrap(),
+            "bar == 0\n".replace('\n', ending).as_bytes()
+        );
+    }
+}

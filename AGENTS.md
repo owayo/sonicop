@@ -289,6 +289,13 @@ currently accepts it without an error node, so the general syntax guard cannot d
 the diagnostic compatible and withhold that correction; the intentional differences are recorded
 in `tests/conformance/known_divergences.yml` and covered by a CLI test that checks the file on disk.
 
+**NumericPredicate の send とブロックを分ける。** ブロック付き call の診断と置換は
+NumericPredicate 内の `send_range` で引数かメソッド名の終端までとし、行継続・縦タブと
+ブロックの本文を消さない。比較へ戻す設定では述語 send の親が
+ブロックなので、その外の否定を直接の親に数えない。本家は `foo.zero? { }` を `foo == 0 { }` に
+変えて構文を壊す。診断は一致させ、既存の main_script 検査でファイル全体の書き戻しを拒否する。
+#23 の実出力は `numeric_predicate_block_divergences` へ登録する。#17 の splat 等の差とは分ける。
+
 **A guard clause can change a local variable into a method call.** If the condition first assigns
 `error`, converting `if error = value; raise error; end` to `raise error if error = value` moves the
 read before Ruby has parsed the declaration. RuboCop's correction raises `NameError` at runtime;

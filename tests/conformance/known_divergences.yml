@@ -676,6 +676,141 @@ block_comment_error_divergences:
       Sonicop も診断なしで原本を維持し、本家の内部例外は作らず終了 0 とする。
       この終了コード差を本家との一致へ読み替えない。
 
+# #23: ブロック付き述語を比較へ戻す本家補正はブロックを残して構文を壊す。
+# #17 の splat 等とは原因が異なる。診断は send の実範囲に合わせ、既存の構文保護で原本を守る。
+numeric_predicate_block_divergences:
+  - id: numeric-predicate-block-comparison-1
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "foo.zero? { }\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "foo == 0 { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tLCURLY\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 10, "last_line": 1, "last_column": 10, "length": 1, "line": 1, "column": 10}}]
+    sonicop:
+      exit: 2
+      source: "foo.zero? { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本と補正バイトを実測した。
+      本家は send だけを比較へ置換し、残ったブロックとの組合せで新しい構文エラーを書く。
+      独立した設計レビューは、ブロックを削除して見かけの構文を直すのではなく、既存のファイル単位の構文保護を維持する判断を支持した。
+      Sonicop は原本と未補正の本家互換診断を返し、同じファイルの別の補正も書かない。
+      LF/CRLF・検査/-a/-A・再実行を CLI で監視し、別ファイルの有効な補正は続ける。
+  - id: numeric-predicate-block-comparison-2
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "!foo.zero? { }\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "!foo == 0 { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 2, "last_line": 1, "last_column": 10, "length": 9, "line": 1, "column": 2}}, {"severity": "fatal", "message": "unexpected token tLCURLY\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 11, "last_line": 1, "last_column": 11, "length": 1, "line": 1, "column": 11}}]
+    sonicop:
+      exit: 2
+      source: "!foo.zero? { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 2, "last_line": 1, "last_column": 10, "length": 9, "line": 1, "column": 2}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本と補正バイトを実測した。
+      本家は send だけを比較へ置換し、残ったブロックとの組合せで新しい構文エラーを書く。
+      独立した設計レビューは、ブロックを削除して見かけの構文を直すのではなく、既存のファイル単位の構文保護を維持する判断を支持した。
+      Sonicop は原本と未補正の本家互換診断を返し、同じファイルの別の補正も書かない。
+      LF/CRLF・検査/-a/-A・再実行を CLI で監視し、別ファイルの有効な補正は続ける。
+  - id: numeric-predicate-block-comparison-4
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "foo.positive? do\n  1\nend\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "foo > 0 do\n  1\nend\n"
+      offenses: [{"severity": "convention", "message": "Use `foo > 0` instead of `foo.positive?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 13, "length": 13, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token kDO\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 10, "length": 2, "line": 1, "column": 9}}]
+    sonicop:
+      exit: 2
+      source: "foo.positive? do\n  1\nend\n"
+      offenses: [{"severity": "convention", "message": "Use `foo > 0` instead of `foo.positive?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 13, "length": 13, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本と補正バイトを実測した。
+      本家は send だけを比較へ置換し、残ったブロックとの組合せで新しい構文エラーを書く。
+      独立した設計レビューは、ブロックを削除して見かけの構文を直すのではなく、既存のファイル単位の構文保護を維持する判断を支持した。
+      Sonicop は原本と未補正の本家互換診断を返し、同じファイルの別の補正も書かない。
+      LF/CRLF・検査/-a/-A・再実行を CLI で監視し、別ファイルの有効な補正は続ける。
+  - id: numeric-predicate-block-comparison-11
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "foo.zero? { x.zero? }\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "foo == 0 { x == 0 }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tLCURLY\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 10, "last_line": 1, "last_column": 10, "length": 1, "line": 1, "column": 10}}, {"severity": "convention", "message": "Use `x == 0` instead of `x.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 13, "last_line": 1, "last_column": 19, "length": 7, "line": 1, "column": 13}}]
+    sonicop:
+      exit: 2
+      source: "foo.zero? { x.zero? }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "convention", "message": "Use `x == 0` instead of `x.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 13, "last_line": 1, "last_column": 19, "length": 7, "line": 1, "column": 13}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本と補正バイトを実測した。
+      本家は send だけを比較へ置換し、残ったブロックとの組合せで新しい構文エラーを書く。
+      独立した設計レビューは、ブロックを削除して見かけの構文を直すのではなく、既存のファイル単位の構文保護を維持する判断を支持した。
+      Sonicop は原本と未補正の本家互換診断を返し、同じファイルの別の補正も書かない。
+      LF/CRLF・検査/-a/-A・再実行を CLI で監視し、別ファイルの有効な補正は続ける。
+  - id: numeric-predicate-block-comparison-12
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "foo.zero? { }\nbar.zero?\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "foo == 0 { }\nbar == 0\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tLCURLY\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 10, "last_line": 1, "last_column": 10, "length": 1, "line": 1, "column": 10}}, {"severity": "convention", "message": "Use `bar == 0` instead of `bar.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 2, "start_column": 1, "last_line": 2, "last_column": 9, "length": 9, "line": 2, "column": 1}}]
+    sonicop:
+      exit: 2
+      source: "foo.zero? { }\nbar.zero?\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "convention", "message": "Use `bar == 0` instead of `bar.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 2, "start_column": 1, "last_line": 2, "last_column": 9, "length": 9, "line": 2, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本と補正バイトを実測した。
+      本家は send だけを比較へ置換し、残ったブロックとの組合せで新しい構文エラーを書く。
+      独立した設計レビューは、ブロックを削除して見かけの構文を直すのではなく、既存のファイル単位の構文保護を維持する判断を支持した。
+      Sonicop は原本と未補正の本家互換診断を返し、同じファイルの別の補正も書かない。
+      LF/CRLF・検査/-a/-A・再実行を CLI で監視し、別ファイルの有効な補正は続ける。
+
+  - id: numeric-predicate-block-comparison-gap-1
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    enforced_style: comparison
+    source: "foo.zero? \\\n { }\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "foo == 0 \\\n { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tLCURLY\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 2, "start_column": 2, "last_line": 2, "last_column": 2, "length": 1, "line": 2, "column": 2}}]
+    sonicop:
+      exit: 2
+      source: "foo.zero? \\\n { }\n"
+      offenses: [{"severity": "convention", "message": "Use `foo == 0` instead of `foo.zero?`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の原本・診断・補正バイトを実測した。
+      本家は send とブロックの間の行継続・縦タブも残すが、比較とブロックの組合せは構文を壊す。
+      これらの区切りを置換で消すと、ブロックを別の式へ変えて構文保護をすり抜けるため、送信範囲だけを正しく置換する。
+      独立した設計レビューに従って既存のファイル単位の構文保護を維持し、原本と未補正の診断を返す。
 # 符号化宣言と矛盾する本家の補正を再現しない。tests/cli.rs が全入力を両モードで検査する。
 # 本家の出力は RuboCop 1.89.0 / Ruby 4.0.7 の実測から記録し、原本の保持と失敗報告を監視する。
 encoding_writeback_divergences:

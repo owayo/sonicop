@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use regex::Regex;
 use tree_sitter::Node;
 
@@ -51,23 +53,36 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 false => format!("{} {} 0", context.source.node_text(numeric), operator),
             },
         };
+        // ブロックは本家では send の親。診断も置換も send の範囲だけにし、ブロックを消さない。
+        let range = send_range(node);
         // 本家の SourceBuffer は CRLF を LF に正規化してメッセージへ埋め込む。
         let message = format!(
             "Use `{replacement}` instead of `{}`.",
-            context.source.node_text(node)
+            &context.source.text()[range.clone()]
         )
         .replace("\r\n", "\n");
         offenses.push(
             context
-                .offense(message, node.byte_range())
+                .offense(message, range.clone())
                 .corrected_by(Edit {
-                    start: node.start_byte(),
-                    end: node.end_byte(),
+                    start: range.start,
+                    end: range.end,
                     replacement,
                     safe: false,
                 }),
         );
     }
+}
+
+/// 本家の send は引数の閉じ括弧 (引数が無ければメソッド名) まで。ブロック手前の
+/// 空白を削って求めると、行継続や縦タブを診断へ含め、置換時にそれまで消してしまう。
+fn send_range(node: Node<'_>) -> Range<usize> {
+    if node.kind_str() == "call" && node.field("block").is_some()
+        && let Some(last) = node.field("arguments").or_else(|| node.field("method"))
+    {
+        return node.start_byte()..last.end_byte();
+    }
+    node.byte_range()
 }
 
 /// `comparison` and `inverted_comparison`: the operand that is not the literal zero, and the
@@ -344,6 +359,10 @@ fn line_breaks(content: &str, single_quoted: bool) -> usize {
 /// `negated?`: 書き戻す比較の、本家での親が `!` の send であること。`!x`・`not x`・`x.!` の
 /// どれでもよく、`x.!(y)` の引数でもよい。`&.!` は csend なので含まない。
 fn negated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    // `!foo.zero? { }` でも、述語 send の親は否定ではなくブロックになる。
+    if node.field("block").is_some() {
+        return false;
+    }
     upstream_parent(context, node)
         .is_some_and(|parent| send_node::negation(parent, context).is_some())
 }

@@ -13834,6 +13834,112 @@ mod numeric_predicate {
                 .run();
         }
     }
+
+    /// ブロックは本家では send の親であり、診断・置換する範囲に入らない (#23)。
+    /// 期待値は RuboCop 1.89.0 の実診断と補正後の本文。
+    #[test]
+    fn a_block_stays_outside_the_replaced_send() {
+        for (before, send, replacement, after) in [
+            ("x.>(0) { }\n", "x.>(0)", "x.positive?", "x.positive? { }\n"),
+            ("0.<(x) { }\n", "0.<(x)", "x.positive?", "x.positive? { }\n"),
+            ("x.==(0) { }\n", "x.==(0)", "x.zero?", "x.zero? { }\n"),
+            (
+                "x.<(0) do\n  1\nend\n",
+                "x.<(0)",
+                "x.negative?",
+                "x.negative? do\n  1\nend\n",
+            ),
+            (
+                "日本語.>(0) { 'é' }\n",
+                "日本語.>(0)",
+                "日本語.positive?",
+                "日本語.positive? { 'é' }\n",
+            ),
+            (
+                "x.>(0) \\\n { }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive? \\\n { }\n",
+            ),
+            (
+                "x.>(0)\\\n{ }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive?\\\n{ }\n",
+            ),
+            (
+                "x.>(0) \\\n\\\n { }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive? \\\n\\\n { }\n",
+            ),
+            (
+                "x.>(0)\u{b}{ }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive?\u{b}{ }\n",
+            ),
+            (
+                "x.>(0)\u{c}{ }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive?\u{c}{ }\n",
+            ),
+            (
+                "x.>(0)\t{ }\n",
+                "x.>(0)",
+                "x.positive?",
+                "x.positive?\t{ }\n",
+            ),
+        ] {
+            CopCase::new(
+                COP,
+                before,
+                vec![Annotation::new(
+                    1,
+                    1,
+                    send.chars().count(),
+                    format!("Use `{replacement}` instead of `{send}`."),
+                )],
+            )
+            .corrected_verbatim(after)
+            .run();
+        }
+    }
+
+    /// ブロックの中の比較にも独立した補正を残す。外の send を置換して飲み込まない。
+    #[test]
+    fn a_block_and_its_comparison_are_both_kept() {
+        expect_correction(COP, "x.>(0) { y == 0 }\n", "x.positive? { y.zero? }\n");
+        expect_correction(COP, "x.>(0) { }.to_s\n", "x.positive? { }.to_s\n");
+        expect_no_offenses(COP, "x&.>(0) { }\n");
+    }
+
+    /// 述語自身のブロックが親なので、その外側の否定は comparison の括弧を要求しない。
+    /// 本家の補正は構文を壊すため、ここでは一致する診断だけを検査し、書き戻しは CLI で守る。
+    #[test]
+    fn a_predicate_block_is_the_parent_seen_by_negation() {
+        for (source, column) in [
+            ("foo.zero? { }\n", 1),
+            ("!foo.zero? { }\n", 2),
+            ("not foo.zero? { }\n", 5),
+            ("foo.zero? { }.!\n", 1),
+            ("bar.!(foo.zero? { })\n", 7),
+        ] {
+            CopCase::new(
+                COP,
+                source,
+                vec![Annotation::new(
+                    1,
+                    column,
+                    9,
+                    "Use `foo == 0` instead of `foo.zero?`.",
+                )],
+            )
+            .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+            .run();
+        }
+    }
 }
 /// `Style/RescueStandardError`: 既定では例外クラスを省いた `rescue` を報告する。
 ///
