@@ -6081,3 +6081,89 @@ fn mixed_bare_cr_copied_data_survives_multiple_correction_passes() {
         }
     }
 }
+
+#[test]
+fn pure_crlf_preserves_original_bare_cr_through_correction_and_writeback() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/pure_cr_preservation.json")).unwrap();
+    let cases = fixture["records"].as_array().unwrap();
+    assert_eq!(cases.len(), 192);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for case in cases {
+        let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
+        let directory = project(&[]);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("example.rb"),
+            decode(case["source_hex"].as_str().unwrap()),
+        )
+        .unwrap();
+        let only = case["cops"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|cop| cop.as_str().unwrap())
+            .collect::<Vec<_>>()
+            .join(",");
+        for key in ["first", "repeated"] {
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                &only,
+                "--format",
+                "json",
+            ]);
+            if let Some(mode) = case["mode"].as_str() {
+                run.arg(mode);
+            }
+            let output = run
+                .arg("example.rb")
+                .assert()
+                .code(case[key]["exit"].as_i64().unwrap() as i32)
+                .get_output()
+                .clone();
+            assert!(output.stderr.is_empty(), "{label} / {key}");
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(
+                report["files"][0]["offenses"], case[key]["offenses"],
+                "{label} / {key}"
+            );
+            assert_eq!(report["summary"]["inspected_file_count"], 1, "{label}");
+            assert_eq!(report["summary"]["target_file_count"], 1, "{label}");
+            let actual = fs::read(directory.path().join("example.rb")).unwrap();
+            assert_eq!(
+                actual,
+                decode(case["after_hex"].as_str().unwrap()),
+                "{label} / {key}"
+            );
+            let marker = if case["pure"].as_bool().unwrap() {
+                b"__END__\r\n".as_slice()
+            } else {
+                b"__END__\n".as_slice()
+            };
+            let offset = actual
+                .windows(marker.len())
+                .position(|part| part == marker)
+                .unwrap()
+                + marker.len();
+            assert_eq!(
+                &actual[offset..],
+                decode(case["data_hex"].as_str().unwrap()),
+                "{label} / DATA"
+            );
+        }
+    }
+}

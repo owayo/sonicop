@@ -1594,6 +1594,19 @@ divergences:
       解析で隠したCRと可視の元単独CRを別に追跡し、後者が次passで隠れる場合も元byteを
       復元する。同じLFの複数CR・片側編集・元CRと新規LFの接続はunitで監視する。
       元からCRLFのみの連続CRで既存方針も元単独CRを失う差は、この修正の成功へ数えない。
+  - cop: Style/FrozenStringLiteralComment
+    case: crlf_autocorrect_preserves_original_bare_cr
+    kind: correction
+    source: "STDOUT.write(DATA.read.unpack1(\"H*\"))\r\n__END__\r\nx\r\r\ny\r\n"
+    upstream: "# frozen_string_literal: true\nSTDOUT.write(DATA.read.unpack1(\"H*\"))\n__END__\nx\r\ny\n"
+    sonicop: "# frozen_string_literal: true\r\nSTDOUT.write(DATA.read.unpack1(\"H*\"))\r\n__END__\r\nx\r\r\ny\r\n"
+    note: >-
+      全CRLFの既存保持方針は、元pairのCRだけでなくDATA内の元単独CRも守る。
+      本家1.89.0は補正後にLFを書き戻してDATA.readを変えるため、このbyte差は意図的に保つ。
+      全CRLFは各LFへdefault CRを付け、元pairを追加markerへ二重計数しない。
+      可視の元単独CRだけを追跡し、次passや書出し前の正規化で隠れる場合も追加の元CRとして
+      復元する。置換・挿入の同じCRへ由来を推測しない。1/2cop、2engine、検査/-a/-Aの
+      192条件と再実行で診断全項目・終了値・生bytesを比較し、DATA値を原本と照合する。
   - cop: Style/CaseLikeIf
     case: style_case_like_if_nested_else_safety
     kind: correction
