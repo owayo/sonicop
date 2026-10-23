@@ -1938,20 +1938,14 @@ fn covers(container: Node<'_>, node: Node<'_>) -> bool {
         || (container.start_byte() <= node.start_byte() && node.end_byte() <= container.end_byte())
 }
 
-/// Each heredoc's body, paired with the `<<~X` that opened it. Both appear in the same order in
-/// the file, which is what makes matching them by position sound.
+/// Each heredoc's body, paired with the `<<~X` that opened it, in the order Ruby reads the bodies
+/// in ([`crate::heredocs::pair`], computed once for the file's index).
 fn heredoc_bodies<'tree>(
     index: &super::super::AstIndex<'tree>,
 ) -> crate::rules::IdKeyed<Node<'tree>> {
-    // The index already groups the file's nodes by kind, so the recursive walk this used to make
-    // -- which allocated a vector of children at every node of the tree -- answers nothing new.
-    let mut beginnings: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_beginning").collect();
-    let mut bodies: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_body").collect();
-    beginnings.sort_by_key(|node: &Node<'_>| node.start_byte());
-    bodies.sort_by_key(|node: &Node<'_>| node.start_byte());
-    beginnings
-        .into_iter()
-        .zip(bodies)
-        .map(|(beginning, body)| (beginning.id(), body))
+    index
+        .heredocs()
+        .iter()
+        .map(|&(beginning, body)| (beginning.id(), body))
         .collect()
 }

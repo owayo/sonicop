@@ -84,14 +84,13 @@ impl Heredoc {
 ///
 /// tree-sitter splits a heredoc in two: the `heredoc_beginning` sits where the string was written
 /// and the `heredoc_body` follows the statement that holds it. The parser upstream keeps them in
-/// one node, so the two lists have to be paired back up, which their shared source order does --
-/// bodies close in the order their openings were written.
+/// one node, so the two lists have to be paired back up in the order Ruby reads the bodies in
+/// ([`crate::heredocs::pair`]).
 pub(super) fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
-    let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
     context
-        .nodes_of("heredoc_beginning")
-        .zip(bodies)
-        .filter_map(|(opening, body)| {
+        .heredocs()
+        .iter()
+        .filter_map(|&(opening, body)| {
             let _cursor = body.walk();
             let terminator = named_children_of(body, context)
                 .into_iter()

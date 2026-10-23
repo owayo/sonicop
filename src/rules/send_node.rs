@@ -254,16 +254,13 @@ pub(crate) fn has_interpolation(node: Node<'_>) -> bool {
         .any(|child| child.kind_str() == "interpolation")
 }
 
-/// The `heredoc_body` opened by `beginning`. Bodies appear after the statement in the same order as
-/// their openers, so the nth opener owns the nth body.
+/// The `heredoc_body` opened by `beginning`, paired in the order Ruby reads the bodies in
+/// ([`crate::heredocs::pair`]).
 pub(crate) fn heredoc_body<'a>(
     beginning: Node<'_>,
     context: &'a RuleContext<'_>,
 ) -> Option<Node<'a>> {
-    let position = context
-        .nodes_of("heredoc_beginning")
-        .position(|node| node.id() == beginning.id())?;
-    context.nodes_of("heredoc_body").nth(position)
+    context.ast_index().heredoc_body(beginning)
 }
 
 /// What makes two literals the same literal. Upstream compares the nodes themselves, and two

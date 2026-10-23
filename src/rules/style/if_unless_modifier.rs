@@ -758,7 +758,7 @@ fn unwrap_begin<'t>(node: Node<'t>) -> Option<Node<'t>> {
     }
 }
 
-/// The heredoc bodies of the file, paired with their openers in the order both appear.
+/// The heredoc bodies of the file, paired with their openers in the order Ruby reads the bodies in.
 struct HeredocIndex {
     beginnings: Vec<usize>,
     bodies: Vec<(usize, usize)>,
@@ -766,14 +766,15 @@ struct HeredocIndex {
 
 impl HeredocIndex {
     fn new(context: &RuleContext<'_>) -> Self {
+        let pairs = context.heredocs();
         Self {
-            beginnings: context
-                .nodes_of("heredoc_beginning")
-                .map(|node| node.start_byte())
+            beginnings: pairs
+                .iter()
+                .map(|(beginning, _)| beginning.start_byte())
                 .collect(),
-            bodies: context
-                .nodes_of("heredoc_body")
-                .map(|node| (node.start_byte(), node.end_byte()))
+            bodies: pairs
+                .iter()
+                .map(|(_, body)| (body.start_byte(), body.end_byte()))
                 .collect(),
         }
     }

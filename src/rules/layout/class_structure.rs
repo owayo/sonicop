@@ -442,7 +442,7 @@ fn heredoc_end(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     let end = node.end_byte();
     let opener = context
         .nodes_of("heredoc_beginning")
-        .position(|opener| opener.start_byte() >= start && opener.end_byte() <= end)?;
-    let body = context.nodes_of("heredoc_body").nth(opener)?;
+        .find(|opener| opener.start_byte() >= start && opener.end_byte() <= end)?;
+    let body = context.heredoc_body(opener)?;
     Some(body.end_byte() + 1)
 }

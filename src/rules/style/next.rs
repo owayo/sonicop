@@ -306,32 +306,18 @@ impl Cop<'_, '_> {
 
     /// `heredoc_lines`: `(body.line...body.last_line)` of every heredoc the node opens.
     fn heredoc_lines(&self, node: Node<'_>) -> Vec<usize> {
-        let beginnings: Vec<usize> = descendants(node, self.context)
+        let mut lines = Vec::new();
+        for beginning in descendants(node, self.context)
             .into_iter()
             .filter(|inner| inner.kind_str() == "heredoc_beginning")
-            .map(|inner| inner.start_byte())
-            .collect();
-        if beginnings.is_empty() {
-            return Vec::new();
-        }
-        let all: Vec<usize> = self
-            .context
-            .nodes_of("heredoc_beginning")
-            .map(|inner| inner.start_byte())
-            .collect();
-        let bodies: Vec<Node<'_>> = self.context.nodes_of("heredoc_body").collect();
-        let mut lines = Vec::new();
-        for start in beginnings {
-            let Some(index) = all.iter().position(|other| *other == start) else {
-                continue;
-            };
-            let Some(body) = bodies.get(index) else {
+        {
+            let Some(body) = self.context.heredoc_body(beginning) else {
                 continue;
             };
             // The grammar hangs the newline that closed the opener's line off the front of the
             // body, where upstream's `heredoc_body` starts on the line after it.
             let first = self.context.source.line_column(body.start_byte()).0 + 1;
-            lines.extend(first..last_line(*body));
+            lines.extend(first..last_line(body));
         }
         lines
     }

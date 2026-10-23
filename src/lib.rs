@@ -12,6 +12,7 @@ pub mod display_width;
 mod display_width_table;
 pub mod engine;
 mod formatter;
+mod heredocs;
 mod magic_comment;
 mod nul_bytes;
 mod parser;

@@ -12,14 +12,10 @@ use crate::rules::{RuleContext, push_named_children, walk_named};
 pub(super) fn heredoc_bodies<'a>(
     index: &'a super::super::AstIndex<'a>,
 ) -> crate::rules::IdKeyed<Node<'a>> {
-    let mut beginnings: Vec<_> = index.nodes_of_kind("heredoc_beginning").collect();
-    let mut bodies: Vec<_> = index.nodes_of_kind("heredoc_body").collect();
-    beginnings.sort_by_key(Node::start_byte);
-    bodies.sort_by_key(Node::start_byte);
-    beginnings
-        .into_iter()
-        .zip(bodies)
-        .map(|(beginning, body)| (beginning.id(), body))
+    index
+        .heredocs()
+        .iter()
+        .map(|&(beginning, body)| (beginning.id(), body))
         .collect()
 }
 
@@ -52,18 +48,17 @@ pub(super) enum LengthTarget<'tree> {
 ///
 /// RuboCop's AST gives a heredoc node the range of its opener alone, and `CodeLengthCalculator`
 /// reaches past that to `loc.heredoc_end` when a body holds one. tree-sitter instead hangs the
-/// content off a `heredoc_body` sibling, so the two have to be paired back up. Openers and bodies
-/// both appear in source order and Ruby stacks them in that same order, which is what makes
-/// pairing them by rank correct.
+/// content off a `heredoc_body` sibling, so the two have to be paired back up in the order Ruby
+/// reads the bodies in, which [`crate::heredocs::pair`] reproduces. Rank alone is not enough: a
+/// heredoc opened inside another one's interpolation is read before the next one on the outer line.
 pub(super) struct HeredocEnds(HashMap<usize, usize>);
 
 impl HeredocEnds {
     pub(super) fn new(context: &RuleContext<'_>) -> Self {
-        let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
         Self(
             context
-                .nodes_of("heredoc_beginning")
-                .zip(bodies)
+                .heredocs()
+                .iter()
                 .map(|(opener, body)| (opener.start_byte(), body.end_position().row))
                 .collect(),
         )

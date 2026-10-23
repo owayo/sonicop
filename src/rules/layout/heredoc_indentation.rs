@@ -90,18 +90,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The grammar draws those two differently -- its body reaches from the opener's own line and stops
 /// at the terminator *word*, leaving the terminator's indentation on the body's side -- so both are
 /// redrawn to whole lines here.
-fn heredocs<'ctx, 'tree>(
-    context: &'ctx RuleContext<'tree>,
-) -> Vec<(Node<'tree>, Range<usize>, Range<usize>)> {
-    let openers: Vec<Node<'tree>> = context.nodes_of("heredoc_beginning").collect();
-    if openers.is_empty() {
-        return Vec::new();
-    }
+fn heredocs<'tree>(context: &RuleContext<'tree>) -> Vec<(Node<'tree>, Range<usize>, Range<usize>)> {
     context
-        .nodes_of("heredoc_body")
-        .enumerate()
-        .filter_map(|(index, node)| {
-            let opener = *openers.get(index)?;
+        .heredocs()
+        .iter()
+        .filter_map(|&(opener, node)| {
             let _cursor = node.walk();
             let end = named_children_of(node, context)
                 .into_iter()
