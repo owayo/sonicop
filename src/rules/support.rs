@@ -23,7 +23,7 @@ pub(crate) fn final_pos(
     let mut position = move_pos(text, position, forward, true, |byte| {
         matches!(byte, b' ' | b'\t')
     });
-    position = move_pos_str(text, position, forward, continuations, "\\\n");
+    position = move_pos_continuations(text, position, forward, continuations);
     // **`\r\n` is one line ending, so the `\r` belongs to this step and not to the whitespace one.**
     // Stopping at the `\r` left an operator at the end of a CRLF line looking unspaced on its right,
     // and `Layout/SpaceAroundOperators` reported 35 lines of one corpus that upstream leaves alone.
@@ -148,29 +148,32 @@ pub(crate) fn is_ruby_blank(character: char) -> bool {
         )
 }
 
-/// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
-///
-/// The one caller wants `\` and a line break, which a class cannot express -- a backslash only ends
-/// the line when the break follows it, and eating it on its own would join two statements.
-fn move_pos_str(
-    text: &str,
-    mut position: usize,
-    forward: bool,
-    enabled: bool,
-    needle: &str,
-) -> usize {
+/// 本家の RangeHelp は CRLF を LF にした SourceBuffer を読み、継続をバックスラッシュと LF の組で探す。
+/// 原本のバイト範囲を使うこちらでは LF と CRLF の両方を 1 組ずつ越える。単独の CR は含めない。
+/// 空白・継続・改行・その他の空白という段階の順は変えず、隣接する継続だけを繰り返す。
+fn move_pos_continuations(text: &str, mut position: usize, forward: bool, enabled: bool) -> usize {
     if !enabled {
         return position;
     }
-    let width = needle.len();
     loop {
-        let found = match forward {
-            true => text.get(position..position + width) == Some(needle),
-            false => position >= width && text.get(position - width..position) == Some(needle),
+        let remaining = if forward {
+            text.get(position..)
+        } else {
+            text.get(..position)
         };
-        if !found {
+        let Some(remaining) = remaining else {
             return position;
-        }
+        };
+        let Some(width) = ["\\\r\n", "\\\n"].into_iter().find_map(|continuation| {
+            let found = if forward {
+                remaining.starts_with(continuation)
+            } else {
+                remaining.ends_with(continuation)
+            };
+            found.then_some(continuation.len())
+        }) else {
+            return position;
+        };
         position = if forward {
             position + width
         } else {
@@ -1427,4 +1430,65 @@ pub(crate) fn last_code_line(context: &RuleContext<'_>) -> usize {
         .next()
         .map_or(usize::MAX, |node| node.start_position().row + 1);
     context.source.line_count().min(data_line.saturating_sub(1))
+}
+
+#[cfg(test)]
+mod continuation_tests {
+    use super::final_pos;
+
+    /// 本家 1.89.0 の RangeHelp を LF の本文で実行し、結果を原文のバイト境界へ戻した記録。
+    /// 前後・混在する継続・無効な switch・段階を往復しないこと・単独 CR を監視する。
+    #[test]
+    fn line_continuations_match_upstream_at_physical_byte_boundaries() {
+        let cases = [
+            ("a\\\nb", 1, true, true, false, false, 3),
+            ("a\\\nb", 3, false, true, false, false, 1),
+            ("a\\\r\nb", 1, true, true, false, false, 4),
+            ("a\\\r\nb", 4, false, true, false, false, 1),
+            ("a\\\n\\\r\nb", 1, true, true, false, false, 6),
+            ("a\\\n\\\r\nb", 6, false, true, false, false, 1),
+            ("a\\\r\n\\\nb", 1, true, true, false, false, 6),
+            ("a\\\r\n\\\nb", 6, false, true, false, false, 1),
+            ("a \\\r\n  b", 7, false, false, false, false, 5),
+            ("a \\\r\n  b", 7, false, false, true, true, 3),
+            ("a \\\r\n  b", 7, false, true, false, false, 2),
+            ("a \\\r\n  b", 7, false, true, true, true, 1),
+            ("a \\\r\n  b", 7, false, true, true, false, 2),
+            ("a \\\r\n  b", 1, true, false, false, false, 2),
+            ("a \\\r\n  b", 1, true, false, true, true, 2),
+            ("a \\\r\n  b", 1, true, true, false, false, 5),
+            ("a \\\r\n  b", 1, true, true, true, true, 7),
+            ("a \\\r\n  b", 1, true, true, true, false, 5),
+            ("a\\\r\n \\\r\nb", 8, false, false, false, false, 8),
+            ("a\\\r\n \\\r\nb", 8, false, false, true, true, 6),
+            ("a\\\r\n \\\r\nb", 8, false, true, false, false, 5),
+            ("a\\\r\n \\\r\nb", 8, false, true, true, true, 2),
+            ("a\\\r\n \\\r\nb", 8, false, true, true, false, 5),
+            ("a\\\r b", 4, false, false, false, false, 3),
+            ("a\\\r b", 4, false, false, true, true, 2),
+            ("a\\\r b", 4, false, true, false, false, 3),
+            ("a\\\r b", 4, false, true, true, true, 2),
+            ("a\\\r b", 1, true, false, false, false, 1),
+            ("a\\\r b", 1, true, false, true, true, 1),
+            ("a\\\r b", 1, true, true, false, false, 1),
+            ("a\\\r b", 1, true, true, true, true, 1),
+            ("a\\xb", 1, true, false, false, false, 1),
+            ("a\\xb", 1, true, false, true, true, 1),
+            ("a\\xb", 1, true, true, false, false, 1),
+            ("a\\xb", 1, true, true, true, true, 1),
+            ("a\\xb", 1, true, true, true, false, 1),
+            ("a\\xb", 3, false, false, false, false, 3),
+            ("a\\xb", 3, false, false, true, true, 3),
+            ("a\\xb", 3, false, true, false, false, 3),
+            ("a\\xb", 3, false, true, true, true, 3),
+            ("a\\xb", 3, false, true, true, false, 3),
+        ];
+        for (text, position, forward, continuations, newlines, whitespace, expected) in cases {
+            assert_eq!(
+                final_pos(text, position, forward, continuations, newlines, whitespace),
+                expected,
+                "{text:?} {position} {forward} {continuations} {newlines} {whitespace}"
+            );
+        }
+    }
 }

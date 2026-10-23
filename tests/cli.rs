@@ -1445,6 +1445,117 @@ fn nested_call_messages_normalize_crlf_without_changing_disk_bytes() {
     }
 }
 
+/// CRLF を正規化する本家の RangeHelp と、原本のバイト位置を使う補正を照合する。
+/// 3 cop の全診断項目・終了コード・ディスク本文を、本家 1.89.0 の実 CLI 記録で検査する。
+#[test]
+fn crlf_continuations_are_corrected_at_the_original_byte_boundaries() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/crlf_continuations.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 16);
+    for case in cases {
+        let cop = case["cop"].as_str().unwrap();
+        for newline in ["\n", "\r\n"] {
+            let original = case["source"].as_str().unwrap().replace('\n', newline);
+            for mode in [None, Some("-a"), Some("-A")] {
+                let expected = &case[if mode.is_some() { "correct" } else { "inspect" }];
+                let directory = project(&[("example.rb", &original)]);
+                let mut invocation = command(directory.path());
+                invocation.args(["--cache", "false", "--only", cop, "--format", "json"]);
+                if let Some(mode) = mode {
+                    invocation.arg(mode);
+                }
+                let output = invocation
+                    .arg("example.rb")
+                    .assert()
+                    .code(expected["exit"].as_i64().unwrap() as i32)
+                    .get_output()
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                let mut actual = report["files"][0]["offenses"].as_array().unwrap().clone();
+                let mut expected_offenses = expected["offenses"].as_array().unwrap().clone();
+                actual.sort_by_key(serde_json::Value::to_string);
+                expected_offenses.sort_by_key(serde_json::Value::to_string);
+                assert_eq!(report["summary"]["target_file_count"], 1);
+                assert_eq!(report["summary"]["inspected_file_count"], 1);
+                assert_eq!(report["summary"]["offense_count"], actual.len());
+                assert_eq!(actual, expected_offenses, "{cop} {original:?} {mode:?}");
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected["source"]
+                        .as_str()
+                        .unwrap()
+                        .replace('\n', newline)
+                        .as_bytes(),
+                    "{cop} {original:?} {mode:?}"
+                );
+                assert!(output.stderr.is_empty(), "{cop} {original:?} {mode:?}");
+            }
+        }
+    }
+}
+
+/// 本家自身が壊す 3 形を記録する。2 形は原本を返し、1 形は本家の通常入力と同じ
+/// 有効な補正を行う。診断・corrected・終了コード・本文をその違いまで監視する。
+#[test]
+fn upstream_continuation_syntax_bugs_keep_safe_candidate_behavior() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["continuation_writeback_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 3);
+    for case in cases {
+        let cop = case["cop"].as_str().unwrap();
+        assert_ne!(case["source"], case["upstream"]["source"]);
+        assert!(
+            case["upstream"]["offenses"]
+                .as_sequence()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["cop_name"].as_str() == Some("Lint/Syntax"))
+        );
+        for newline in ["\n", "\r\n"] {
+            let original = case["source"].as_str().unwrap().replace('\n', newline);
+            for mode in [None, Some("-a"), Some("-A")] {
+                let expected = &case[if mode.is_some() { "sonicop" } else { "initial" }];
+                let directory = project(&[("example.rb", &original)]);
+                let mut invocation = command(directory.path());
+                invocation.args(["--cache", "false", "--only", cop, "--format", "json"]);
+                if let Some(mode) = mode {
+                    invocation.arg(mode);
+                }
+                let output = invocation
+                    .arg("example.rb")
+                    .assert()
+                    .code(expected["exit"].as_i64().unwrap() as i32)
+                    .get_output()
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["summary"]["target_file_count"], 1);
+                assert_eq!(report["summary"]["inspected_file_count"], 1);
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::to_value(&expected["offenses"]).unwrap(),
+                    "{original:?} {mode:?}"
+                );
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected["source"]
+                        .as_str()
+                        .unwrap()
+                        .replace('\n', newline)
+                        .as_bytes()
+                );
+                assert_eq!(
+                    output.stderr,
+                    expected["stderr"].as_str().unwrap_or("").as_bytes()
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn autocorrect_preserves_crlf_in_the_data_section() {
     let source = b"x=1\r\nputs DATA.read.bytes.join(',')\r\n__END__\r\na\r\nb\r\n";

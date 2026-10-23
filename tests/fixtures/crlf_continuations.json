@@ -1,0 +1,753 @@
+{
+  "provenance": "RuboCop 1.89.0 / Ruby 4.0.8; 2026-10-23; TargetRubyVersion 2.7; inspect/-a/-A and LF/CRLF were each measured.",
+  "cases": [
+    {
+      "id": "space",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo \\\n  bar { 1 })\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n  bar { 1 }`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 11,
+              "length": 17,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo \\\n  bar { 1 })\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n  bar { 1 }`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 11,
+              "length": 17,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar { 1 }))\n"
+      }
+    },
+    {
+      "id": "no_space",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo\\\n  bar { 1 })\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\\\n  bar { 1 }`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 11,
+              "length": 16,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo\\\n  bar { 1 })\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\\\n  bar { 1 }`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 11,
+              "length": 16,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar { 1 }))\n"
+      }
+    },
+    {
+      "id": "tab",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo\t\\\n\tbar)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\t\\\n\tbar`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 4,
+              "length": 10,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo\t\\\n\tbar)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\t\\\n\tbar`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 4,
+              "length": 10,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar))\n"
+      }
+    },
+    {
+      "id": "unicode",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(方法 \\\n  値 { |猫| 猫 })\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `方法 \\\n  値 { |猫| 猫 }`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 13,
+              "length": 18,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(方法 \\\n  値 { |猫| 猫 })\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `方法 \\\n  値 { |猫| 猫 }`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 13,
+              "length": 18,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(方法(値 { |猫| 猫 }))\n"
+      }
+    },
+    {
+      "id": "no_indent",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo \\\nbar)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\nbar`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 3,
+              "length": 9,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo \\\nbar)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\nbar`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 3,
+              "length": 9,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar))\n"
+      }
+    },
+    {
+      "id": "two_adjacent",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo \\\n\\\n  bar)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n\\\n  bar`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 3,
+              "last_column": 5,
+              "length": 13,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo \\\n\\\n  bar)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n\\\n  bar`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 3,
+              "last_column": 5,
+              "length": 13,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar))\n"
+      }
+    },
+    {
+      "id": "following_token",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "before; puts(foo \\\n  bar); after\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n  bar`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 14,
+              "last_line": 2,
+              "last_column": 5,
+              "length": 11,
+              "line": 1,
+              "column": 14
+            }
+          }
+        ],
+        "source": "before; puts(foo \\\n  bar); after\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \\\n  bar`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 14,
+              "last_line": 2,
+              "last_column": 5,
+              "length": 11,
+              "line": 1,
+              "column": 14
+            }
+          }
+        ],
+        "source": "before; puts(foo(bar)); after\n"
+      }
+    },
+    {
+      "id": "nested",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo bar(baz \\\n  qux))\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `baz \\\n  qux`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 14,
+              "last_line": 2,
+              "last_column": 5,
+              "length": 11,
+              "line": 1,
+              "column": 14
+            }
+          },
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo bar(baz \\\n  qux)`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 6,
+              "length": 20,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo bar(baz \\\n  qux))\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `baz \\\n  qux`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 14,
+              "last_line": 2,
+              "last_column": 5,
+              "length": 11,
+              "line": 1,
+              "column": 14
+            }
+          },
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo bar(baz \\\n  qux)`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 6,
+              "length": 20,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar(baz(qux))))\n"
+      }
+    },
+    {
+      "id": "quoted_slash",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo \"\\\\\nbar\")\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \"\\\\\nbar\"`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 4,
+              "length": 12,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo \"\\\\\nbar\")\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo \"\\\\\nbar\"`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 2,
+              "last_column": 4,
+              "length": 12,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(\"\\\\\nbar\"))\n"
+      }
+    },
+    {
+      "id": "already_closed",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo(\\\n  bar))\n",
+      "inspect": {
+        "exit": 0,
+        "offenses": [],
+        "source": "puts(foo(\\\n  bar))\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [],
+        "source": "puts(foo(\\\n  bar))\n"
+      }
+    },
+    {
+      "id": "normal_spaces",
+      "cop": "Style/NestedParenthesizedCalls",
+      "source": "puts(foo\t  bar)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\t  bar`.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 1,
+              "last_column": 14,
+              "length": 9,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo\t  bar)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/NestedParenthesizedCalls",
+            "message": "Add parentheses to nested method call `foo\t  bar`.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 6,
+              "last_line": 1,
+              "last_column": 14,
+              "length": 9,
+              "line": 1,
+              "column": 6
+            }
+          }
+        ],
+        "source": "puts(foo(bar))\n"
+      }
+    },
+    {
+      "id": "paren_continuation",
+      "cop": "Style/RedundantParentheses",
+      "source": "foo(\n  (\n    1\\\n  ),\n  2\n)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 12,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  (\n    1\\\n  ),\n  2\n)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 12,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  1,\n  2\n)\n"
+      }
+    },
+    {
+      "id": "paren_space_continuation",
+      "cop": "Style/RedundantParentheses",
+      "source": "foo(\n  (\n    1 \\\n  ),\n  2\n)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 13,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  (\n    1 \\\n  ),\n  2\n)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 13,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  1,\n  2\n)\n"
+      }
+    },
+    {
+      "id": "paren_no_continuation",
+      "cop": "Style/RedundantParentheses",
+      "source": "foo(\n  (\n    1\n  ),\n  2\n)\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 11,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  (\n    1\n  ),\n  2\n)\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/RedundantParentheses",
+            "message": "Don't use parentheses around a literal.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 11,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ],
+        "source": "foo(\n  1,\n  2\n)\n"
+      }
+    },
+    {
+      "id": "keywords_ordered",
+      "cop": "Style/KeywordParametersOrder",
+      "source": "def foo(required:, \\\n  optional: 1)\nend\n",
+      "inspect": {
+        "exit": 0,
+        "offenses": [],
+        "source": "def foo(required:, \\\n  optional: 1)\nend\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [],
+        "source": "def foo(required:, \\\n  optional: 1)\nend\n"
+      }
+    },
+    {
+      "id": "keywords_normal_control",
+      "cop": "Style/KeywordParametersOrder",
+      "source": "def foo(optional: 1,required:)\nend\n",
+      "inspect": {
+        "exit": 1,
+        "offenses": [
+          {
+            "cop_name": "Style/KeywordParametersOrder",
+            "message": "Place optional keyword parameters at the end of the parameters list.",
+            "severity": "convention",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 19,
+              "length": 11,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ],
+        "source": "def foo(optional: 1,required:)\nend\n"
+      },
+      "correct": {
+        "exit": 0,
+        "offenses": [
+          {
+            "cop_name": "Style/KeywordParametersOrder",
+            "message": "Place optional keyword parameters at the end of the parameters list.",
+            "severity": "convention",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 19,
+              "length": 11,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ],
+        "source": "def foo(required:, optional: 1)\nend\n"
+      }
+    }
+  ]
+}

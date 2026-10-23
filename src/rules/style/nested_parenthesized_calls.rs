@@ -142,32 +142,11 @@ fn reads_as_binary_and(
         && !context.source.text()[..only.start_byte()].ends_with([' ', '\t', '\n'])
 }
 
-/// `range_with_surrounding_space(first_arg.begin, side: :left, whitespace: true,
-/// continuations: true)`.
-///
-/// The line continuation is the part that matters: walking back over whitespace alone stops at the
-/// `\` and leaves it in the source, so the `(` that replaces the run lands after it and writes
-/// `foo \(bar)` -- which is not Ruby. The shared walk takes the `\` and its line break together,
-/// since a backslash only ends a line when the break follows it.
-///
-/// **No corpus exercises this** (as of 5 corpora / 18,251 files, 2026-08-17), but upstream's spec
-/// does. Across the five corpora the cop fires 17
-/// times and not one of those sits next to a line continuation, so a byte comparison of
-/// autocorrected output cannot tell a working version from a broken one here.
-/// `nested_parenthesized_calls_spec.rb:97` is a context named "backslash newline in method call"
-/// holding `puts(nex \` / `5)` -- the shape this walk exists for. The guard is upstream's own case
-/// as well as the ones written here by hand.
-///
-/// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
-/// works. `style/parens.rs::orphaned_comma_start` carries the same note for the same reason.
-///
-/// The two sites pay for a missing step differently, and it is worth knowing which one you are in
-/// before deciding how urgent a gap is. This cop does not reparse what it writes, so a step left
-/// out here reaches the user's file: that is exactly what happened in the release-critical case,
-/// where the walk stopped at the `\` and `-A` produced `foo \(bar)`. The cops that do reparse
-/// cannot corrupt anything -- the verification throws a bad correction away -- so the same
-/// omission surfaces there as an offense that is never reported, and reads like a detection bug
-/// with nothing wrong in the detection. Silent damage on one side, silent silence on the other.
+/// 本家の `range_with_surrounding_space(first_arg.begin, side: :left, whitespace: true,
+/// continuations: true)`。行継続はバックスラッシュと LF/CRLF を 1 組として取り込む。
+/// 改行だけを空白として消すとバックスラッシュが残り、補正の `(` がその後ろへ落ちる。
+/// 字下げを挟む複数の継続は本家も構文を壊すため、共通 walk の段階順は変えず、
+/// `continuation_writeback_divergences` と CLI テストで既存の原本保護を監視する。
 fn leading_space(context: &RuleContext<'_>, start: usize) -> usize {
     crate::rules::support::final_pos(context.source.text(), start, false, true, true, true)
 }
