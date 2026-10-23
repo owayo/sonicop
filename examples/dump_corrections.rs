@@ -44,9 +44,14 @@ fn main() -> anyhow::Result<()> {
             "[{}] {}..{} {}",
             offense.cop_name, offense.start, offense.end, offense.message
         );
-        for edit in &offense.corrections {
+        for (index, edit) in offense.corrections.iter().enumerate() {
+            // 挿入が掛かる範囲と向きを cop が指定していれば、それも出す。
+            let anchor = offense
+                .edit_anchor(index)
+                .map(|anchor| format!(" anchor={anchor:?}"))
+                .unwrap_or_default();
             println!(
-                "    {}..{} -> {:?} (safe={})",
+                "    {}..{} -> {:?} (safe={}){anchor}",
                 edit.start, edit.end, edit.replacement, edit.safe
             );
         }

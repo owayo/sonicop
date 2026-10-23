@@ -457,6 +457,11 @@ and the `end` beyond the range it reports and nothing anchored them there. `Styl
 under `Recursive: true` was withheld as unparsable, because a hash key is a `hash_key_symbol` here
 and was missing from the immutable list, so the second pass tried to append `.freeze` to it.
 
+複数の cop の補正が合流した結果を調べるときは `SONICOP_TRACE_CORRECTORS=1` を付ける。cop ごとの
+corrector を結合に渡す木の形 (範囲・`before`・置換・`after`、子は字下げ) で出し、取り込んだか・
+非互換の宣言で見送ったか・衝突で丸ごと捨てたかを添える。編集の一覧だけでは、空白を `(` に
+置換する補正と、空白を消してその前に `(` を挿す補正が同じに見える。
+
 **The same source can have two right answers.** `TargetRubyVersion` changes the tree upstream
 builds, not just which constructs it accepts: `a, b = 1, 2 rescue nil` puts the `rescue` around the
 whole assignment before 2.7 and around the right-hand side after it, and the correction differs
@@ -496,6 +501,14 @@ on disk after both correction modes.
 whitequark と Prism は空行・行継続・EOF のコメントに対する `tNL` の順序も異なるため、
 物理行や改行の個数だけで挿入位置を決めない。9,426 件の本家トークン記録と、
 57 件の 200 パス停止時の実ファイル出力、93 件の収束する入力を別々に検査する。
+
+**本家の corrector の呼び出しを畳まない。** 同じ範囲への `remove` と `insert_before` は、
+置換を `""` のまま持つ 1 つの action になる。`(` への置換 1 つに畳むと、同じ範囲を `(` に
+置換する別 cop と同じ置換として合流し、本家なら衝突で捨てられる側の `)` まで入る。
+`puts(foo bar { 1 })` では Lint/AmbiguousBlockAssociation と Style/NestedParenthesizedCalls が
+括弧を 2 組足し、構文の安全網が書き込みを止めていた。1 つの offense の挿入が別々の範囲に
+掛かるときは、`Offense::corrected_by_all_anchored` と `InsertionAnchor` で範囲と向きを編集ごとに
+渡す。空の範囲への `insert_after` (`Util#args_end`) は向きでしか表せない。
 
 **字下げの挿入アンカーは空範囲になる。** 本家の `AlignmentCorrector` は行頭への
 挿入を `start..start` にアンカーする。診断全体を使うと、同じパスの空白削除と

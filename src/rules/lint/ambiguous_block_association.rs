@@ -1,7 +1,7 @@
 use regex::Regex;
 use tree_sitter::Node;
 
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::{Edit, InsertionAnchor, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_iter;
@@ -112,37 +112,35 @@ fn check_brace_block_argument(
         context.source.node_text(last)
     );
     let offense = context.offense(message.replace("\r\n", "\n"), node.byte_range());
-    // Upstream replaces only the space before the argument list and hangs the closing paren off
-    // the last argument, rather than rewriting the whole list:
+    // 本家は引数リストを書き直さず、メソッド名の後ろの空白を消してその前に `(` を挿し、`)` は
+    // 最後の引数の後ろに掛ける:
     //
     //   range = node.loc.selector.end.join(node.first_argument.source_range.begin)
     //   corrector.remove(range); corrector.insert_before(range, '(')
     //   corrector.insert_after(node.last_argument, ')')
     //
-    // Re-emitting the list as one replacement would swallow whatever another cop wants to correct
-    // inside it -- on Rails that lost `Layout/IndentationWidth`'s dedent of a block body.
+    // 引数リストを 1 つの置換で出し直すと、その中を補正する別 cop の編集を飲み込む -- Rails では
+    // `Layout/IndentationWidth` のブロック本体の字下げが失われた。空白への 2 つの呼び出しを `(` への
+    // 置換 1 つに畳むのもいけない。同じ空白を `(` に置換する `Style/NestedParenthesizedCalls` と同じ
+    // 置換になって衝突せず、両方の `)` が入って構文を壊す。See `Offense::edit_anchors`.
     let correction = method.map(|method| {
+        let space = method.end_byte()..first.start_byte();
         [
-            Edit {
-                start: method.end_byte(),
-                end: first.start_byte(),
-                replacement: "(".to_owned(),
-                safe: true,
-            },
-            Edit {
-                start: arguments.end_byte(),
-                end: arguments.end_byte(),
-                replacement: ")".to_owned(),
-                safe: true,
-            },
+            (
+                Edit {
+                    start: space.start,
+                    end: space.end,
+                    replacement: String::new(),
+                    safe: true,
+                },
+                None,
+            ),
+            InsertionAnchor::Before(space).insert("("),
+            InsertionAnchor::After(last.byte_range()).insert(")"),
         ]
     });
     offenses.push(match correction {
-        // The closing paren is an `insert_after` on the last argument, so that is the range the
-        // insertion hangs off. See `Offense::correction_anchor`.
-        Some(edits) => offense
-            .corrected_by_all(edits)
-            .corrections_anchored_at(last.start_byte()..arguments.end_byte()),
+        Some(edits) => offense.corrected_by_all_anchored(edits),
         None => offense,
     });
 }
