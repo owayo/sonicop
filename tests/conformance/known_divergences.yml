@@ -512,36 +512,87 @@ blind_spots:
 # 測定条件: `TargetRubyVersion` を `-c` で固定し、移植版・本家・`ruby -c` の 3 者が
 # 版で割れる 4 通りに同じ答えを返すことを確認したうえで測っている。**`--force-default-config`
 # は版を固定しない** (cwd から推定する) ので、固定しないと数字が条件で動く。
-# **本家に合わせた結果、壊れ方まで一致している箇所がある。** 行継続が 2 つ続くと、
-# `Style/NestedParenthesizedCalls` の `-A` が両者とも構文エラーを吐く。
-#
-#   入力       method1(method2 \
-#                \
-#                 arg)                  ruby -c → Syntax OK
-#
-#   本家 -A    method1(method2 \(arg))  ruby -c → syntax error
-#   移植 -A    method1(method2 \(arg))  ruby -c → syntax error   ← バイト一致
-#
-# 経路: `RangeHelp#final_pos` は 4 段を 1 度ずつ通るだけで、段の間を往復しない。
-# 左へ歩くとき `[ \t]` → 継続 → `\n` → `\s` の順に送るが、継続が 2 つ並ぶと間に空白が挟まり、
-# 第 2 段 (`move_pos_str`) は隣接する継続しか繰り返せないのでそこで止まる。第 4 段 (`\s`) が
-# 残りの空白と改行を越えて `\` の手前まで来るが、**そこから第 2 段には戻れない。**
-# 結果、`\` が残ったまま `(` がその後ろに落ちる。
-#
-# **合わせない側に倒していない。本家と同じままにしている。** 直すには `final_pos` を
-# ループにする必要があり、**本家と構造の違う実装を抱えることになる。**
-#
-# コーパスでの件数 (2026-08-16 実測):
-#   5 コーパスで連続する行継続は 1 箇所のみ
-#     rubocop_rubocop spec/rubocop/cop/style/redundant_line_continuation_spec.rb:506
-#   その 1 箇所も到達しない。理由は 2 つあり、どちらか一方でも十分:
-#     - `<<~'RUBY'` (補間なし heredoc) の中身で、cop から見れば文字列の値でしかない
-#     - 形が `foo 'bar' \ \ 'baz'` という文字列連結で、括弧が 1 つも無い
-#   死守ライン (rubocop_rubocop の -A) がバイト一致で通ったので、被害が出ていないことは実測済み。
-#
-# **再挑戦する前にここを読むこと。** `ruby -c` に両者の出力を通せば 1 分で確かめられる。
-# 直すなら `final_pos` をループにする側の変更になるので、**実データで壊れている例を先に見つけること。**
-# 見つからないうちは、構造差を抱える理由がない。
+# ■ 行継続補正の既知差
+# 行継続の下記 3 入力を 2026-10-23 に本家 1.89.0 で再測定し、補正後の構文エラーを確認した。
+# NestedParenthesizedCalls は字下げを挟む 2 つの継続で、KeywordParametersOrder は引数を
+# 並べ替えた後の閉じ括弧の前で、バックスラッシュを残す。
+# final_pos の段階順序を繰り返す変更はせず、原本の LF/CRLF ペアを同じ継続として取り込む。
+# 前 2 形は既存の main_script 検査で拒否する。カンマと継続が隣接する 3 形目は本家の通常入力と
+# 同じ有効な並べ替えを行う。LF では既存の補正であり、CRLF も同じ補正へそろえる。
+# 原本保持と有効補正の差を明示し、通常対照を含む本家一致 102/114 と意図的差分 12 条件を混同しない。
+
+continuation_writeback_divergences:
+  - id: two_indented
+    cop: Style/NestedParenthesizedCalls
+    target_ruby: "2.7"
+    source: "puts(foo \\\n  \\\n  bar)\n"
+    endings: [lf, crlf]
+    modes: [safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: [{"cop_name": "Lint/Syntax", "message": "bare backslash only allowed before newline\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "severity": "fatal", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 10, "last_line": 1, "last_column": 10, "length": 1, "line": 1, "column": 10}}, {"cop_name": "Style/NestedParenthesizedCalls", "message": "Add parentheses to nested method call `foo \\\n  \\\n  bar`.", "severity": "convention", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 6, "last_line": 3, "last_column": 5, "length": 15, "line": 1, "column": 6}}]
+      source: "puts(foo \\(bar))\n"
+    initial:
+      exit: 1
+      offenses: [{"cop_name": "Style/NestedParenthesizedCalls", "message": "Add parentheses to nested method call `foo \\\n  \\\n  bar`.", "severity": "convention", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 6, "last_line": 3, "last_column": 5, "length": 15, "line": 1, "column": 6}}]
+      source: "puts(foo \\\n  \\\n  bar)\n"
+    sonicop:
+      exit: 2
+      offenses: [{"cop_name": "Style/NestedParenthesizedCalls", "message": "Add parentheses to nested method call `foo \\\n  \\\n  bar`.", "severity": "convention", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 6, "last_line": 3, "last_column": 5, "length": 15, "line": 1, "column": 6}}]
+      source: "puts(foo \\\n  \\\n  bar)\n"
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      本家の実 CLI は有効な原本を補正し、残ったバックスラッシュで新しい構文エラーを作る。
+      候補も同じ補正を作るため、既存の main_script 検査によるファイル単位の拒否を維持する。
+      原本の LF/CRLF と未補正の初期診断を返し、stderr に理由を示して終了 2 になる。
+  - id: keywords_continuation
+    cop: Style/KeywordParametersOrder
+    target_ruby: "2.7"
+    source: "def foo(optional: 1, \\\n  required:)\nend\n"
+    endings: [lf, crlf]
+    modes: [safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: [{"cop_name": "Lint/Syntax", "message": "bare backslash only allowed before newline\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "severity": "fatal", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 33, "last_line": 1, "last_column": 33, "length": 1, "line": 1, "column": 33}}, {"cop_name": "Lint/Syntax", "message": "unexpected token tRPAREN\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "severity": "fatal", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 34, "last_line": 1, "last_column": 34, "length": 1, "line": 1, "column": 34}}, {"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(required:, optional: 1, \\)\nend\n"
+    initial:
+      exit: 1
+      offenses: [{"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(optional: 1, \\\n  required:)\nend\n"
+    sonicop:
+      exit: 2
+      offenses: [{"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(optional: 1, \\\n  required:)\nend\n"
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      本家の実 CLI は有効な原本を補正し、残ったバックスラッシュで新しい構文エラーを作る。
+      候補も同じ補正を作るため、既存の main_script 検査によるファイル単位の拒否を維持する。
+      原本の LF/CRLF と未補正の初期診断を返し、stderr に理由を示して終了 2 になる。
+  - id: keywords_adjacent
+    cop: Style/KeywordParametersOrder
+    target_ruby: "2.7"
+    source: "def foo(optional: 1,\\\nrequired:)\nend\n"
+    endings: [lf, crlf]
+    modes: [safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: [{"cop_name": "Lint/Syntax", "message": "bare backslash only allowed before newline\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "severity": "fatal", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 32, "last_line": 1, "last_column": 32, "length": 1, "line": 1, "column": 32}}, {"cop_name": "Lint/Syntax", "message": "unexpected token tRPAREN\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "severity": "fatal", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 33, "last_line": 1, "last_column": 33, "length": 1, "line": 1, "column": 33}}, {"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(required:, optional: 1,\\)\nend\n"
+    initial:
+      exit: 1
+      offenses: [{"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(optional: 1,\\\nrequired:)\nend\n"
+    sonicop:
+      exit: 0
+      offenses: [{"cop_name": "Style/KeywordParametersOrder", "message": "Place optional keyword parameters at the end of the parameters list.", "severity": "convention", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 9, "last_line": 1, "last_column": 19, "length": 11, "line": 1, "column": 9}}]
+      source: "def foo(required:, optional: 1)\nend\n"
+      stderr: ""
+    note: >-
+      本家はカンマ直後の継続を取り残し、不正な Ruby を書く。候補は継続なしの通常入力に対する
+      本家の実補正と同じ順序へ並べ替え、LF/CRLF を保って終了 0 を返す。
+      合成した Ruby でキーワードの指定・既定値・arity・Method#parameters が一致することを確認した。
+      補正後の宣言順は本家の正常な補正と同じで、LF で以前から行っていた有効補正を CRLF でも維持する。
+      この有効な補正を、原本を返す構文保護の 2 形と分けて監視する。
 
 # 本家 1.89.0 が NumericPredicate の -A で新しい構文エラーを書き出す最小入力。
 # 既存のスクリプト構文保護は原本・未補正の診断・拒否理由・終了 2 を返す。
