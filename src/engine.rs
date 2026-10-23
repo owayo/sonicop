@@ -1691,6 +1691,35 @@ struct Action {
 // 補正の適用範囲と、値の文字が由来する範囲は別々に持つ。
 type Replacement<'a> = (usize, usize, &'a str, Option<CorrectionCharacterSource>);
 
+/// LF解析viewに隠した元CRと、まだ見える元bare CRの由来を分ける。
+/// CRが連続すると次passでさらに1つ隠れるため、同じLFの復元markerは重複できる。
+#[derive(Clone)]
+struct LineEndingProvenance {
+    hidden_cr: Vec<usize>,
+    visible_cr: Vec<usize>,
+    physical: bool,
+}
+
+impl LineEndingProvenance {
+    fn new(text: &str) -> Self {
+        let bytes = text.as_bytes();
+        Self {
+            hidden_cr: text
+                .match_indices("\r\n")
+                .map(|(offset, _)| offset + 1)
+                .collect(),
+            visible_cr: bytes
+                .iter()
+                .enumerate()
+                .filter_map(|(offset, byte)| {
+                    (*byte == b'\r' && bytes.get(offset + 1) != Some(&b'\n')).then_some(offset)
+                })
+                .collect(),
+            physical: true,
+        }
+    }
+}
+
 impl Action {
     /// The root upstream builds by widening the source range at both ends so that it contains every
     /// action, including the empty ranges at either end of the source. An unsigned offset cannot go
@@ -2099,10 +2128,24 @@ impl Action {
     }
 
     fn rewrite(&self, source: &str, introduced: Option<&[usize]>) -> (String, Option<Vec<usize>>) {
+        self.rewrite_with_line_endings(source, introduced, None)
+    }
+
+    fn rewrite_with_line_endings(
+        &self,
+        source: &str,
+        introduced: Option<&[usize]>,
+        retained_crlf: Option<&mut LineEndingProvenance>,
+    ) -> (String, Option<Vec<usize>>) {
         let mut replacements = Vec::new();
         self.ordered_replacements(&mut replacements);
         let mut text = String::with_capacity(source.len());
         let mut provenance = introduced.map(|_| Vec::new());
+        let mut next_crlf = retained_crlf.as_ref().map(|before| LineEndingProvenance {
+            hidden_cr: Vec::new(),
+            visible_cr: Vec::new(),
+            physical: before.physical,
+        });
         let mut last_end = 0;
         for (begin, end, replacement, characters_from) in replacements {
             debug_assert!(
@@ -2111,6 +2154,9 @@ impl Action {
             );
             if let (Some(before), Some(after)) = (introduced, &mut provenance) {
                 copy_provenance(before, last_end, begin, text.len(), after);
+            }
+            if let (Some(before), Some(after)) = (retained_crlf.as_deref(), &mut next_crlf) {
+                copy_line_endings(before, source, last_end, begin, text.len(), after);
             }
             text.push_str(&source[last_end..begin.max(last_end)]);
             if let (Some(before), Some(after)) = (introduced, &mut provenance) {
@@ -2171,9 +2217,50 @@ impl Action {
         if let (Some(before), Some(after)) = (introduced, &mut provenance) {
             copy_provenance(before, last_end, source.len(), text.len(), after);
         }
+        if let (Some(before), Some(after)) = (retained_crlf.as_deref(), &mut next_crlf) {
+            copy_line_endings(before, source, last_end, source.len(), text.len(), after);
+        }
         text.push_str(&source[last_end..]);
+        if let (Some(before), Some(after)) = (retained_crlf, next_crlf) {
+            *before = after;
+        }
         (text, provenance)
     }
+}
+
+/// 未変更のcopy区間だけが元の改行形式を引き継ぐ。置換の同じCR/LFから由来を推測しない。
+fn copy_line_endings(
+    before: &LineEndingProvenance,
+    source: &str,
+    begin: usize,
+    end: usize,
+    output_begin: usize,
+    after: &mut LineEndingProvenance,
+) {
+    let first = before
+        .hidden_cr
+        .partition_point(|position| *position < begin);
+    for &position in before.hidden_cr[first..]
+        .iter()
+        .take_while(|position| **position < end)
+    {
+        // 初回physicalのpairだけ両byteを要求する。LF-viewの前のCRは別の元bare CRである。
+        if source.as_bytes().get(position) == Some(&b'\n')
+            && (!before.physical
+                || position == 0
+                || source.as_bytes()[position - 1] != b'\r'
+                || position > begin)
+        {
+            after.hidden_cr.push(output_begin + position - begin);
+        }
+    }
+    copy_provenance(
+        &before.visible_cr,
+        begin,
+        end,
+        output_begin,
+        &mut after.visible_cr,
+    );
 }
 
 /// 変更していない範囲に残る文字の由来を、補正後のバイト位置へ移す。
@@ -2449,7 +2536,7 @@ pub fn corrected_text(
     mode: CorrectMode,
     correcting: Correcting,
 ) -> (String, usize) {
-    let (text, count, _) = corrected_text_with_provenance(report, mode, correcting, None);
+    let (text, count, _) = corrected_text_with_provenance(report, mode, correcting, None, None);
     (text, count)
 }
 
@@ -2458,6 +2545,7 @@ fn corrected_text_with_provenance(
     mode: CorrectMode,
     correcting: Correcting,
     introduced: Option<&[usize]>,
+    retained_crlf: Option<&mut LineEndingProvenance>,
 ) -> (String, usize, Option<Vec<usize>>) {
     if mode == CorrectMode::None {
         return (
@@ -2549,7 +2637,10 @@ fn corrected_text_with_provenance(
             report.offenses[*index].corrected = true;
         }
     }
-    let (text, provenance) = run.rewrite(source, introduced);
+    let (text, provenance) = match retained_crlf {
+        Some(retained) => run.rewrite_with_line_endings(source, introduced, Some(retained)),
+        None => run.rewrite(source, introduced),
+    };
     (text, applied, provenance)
 }
 
@@ -2969,11 +3060,82 @@ fn uses_crlf_only(text: &str) -> bool {
 }
 
 /// 本家と同じ LF の中間結果を、元ファイルの CRLF へ戻す。
-fn restore_crlf(mut outcome: CorrectionOutcome, preserve_crlf: bool) -> CorrectionOutcome {
-    if preserve_crlf && outcome.rewritten && outcome.rollback.is_none() {
-        outcome.text = outcome.text.replace("\r\n", "\n").replace('\n', "\r\n");
+fn restore_crlf(
+    mut outcome: CorrectionOutcome,
+    preserve_crlf: bool,
+    retained_crlf: Option<&[usize]>,
+) -> CorrectionOutcome {
+    if outcome.rewritten && outcome.rollback.is_none() {
+        if preserve_crlf {
+            outcome.text = outcome.text.replace("\r\n", "\n").replace('\n', "\r\n");
+        } else if let Some(positions) = retained_crlf {
+            outcome.text = restore_copied_crlf(&outcome.text, positions);
+        }
     }
     outcome
+}
+
+/// mixedの挿入LFやDATA内の元LFは変えず、copyした元CRLFだけを書出し時に戻す。
+fn restore_copied_crlf(text: &str, positions: &[usize]) -> String {
+    let mut output = String::with_capacity(text.len() + positions.len());
+    let mut last = 0;
+    for &position in positions {
+        debug_assert_eq!(text.as_bytes().get(position), Some(&b'\n'));
+        output.push_str(&text[last..position]);
+        output.push('\r');
+        last = position;
+    }
+    output.push_str(&text[last..]);
+    output
+}
+
+/// 解析viewのCR除去を、文字由来と元改行由来の両方のbyte位置へ同じように適用する。
+fn normalize_corrected_line_endings(
+    text: &mut String,
+    introduced: &mut Option<Vec<usize>>,
+    retained_crlf: &mut Option<LineEndingProvenance>,
+) {
+    let removed: Vec<_> = text
+        .match_indices("\r\n")
+        .map(|(offset, _)| offset)
+        .collect();
+    let shift = |positions: &mut Vec<usize>| {
+        let mut preceding = 0;
+        for position in positions {
+            while removed
+                .get(preceding)
+                .is_some_and(|offset| *offset < *position)
+            {
+                preceding += 1;
+            }
+            *position -= preceding;
+        }
+    };
+    if let Some(positions) = introduced {
+        shift(positions);
+    }
+    if let Some(state) = retained_crlf {
+        shift(&mut state.hidden_cr);
+        // 元bare CRが次passでCRLFのCRになっても、元byteを失わず復元markerへ移す。
+        // 同じLFに既存markerがあっても相殺しない。copy LF自体の削除/置換だけが消す。
+        state.visible_cr.retain_mut(|position| {
+            if removed.binary_search(position).is_ok() {
+                let lf = *position + 1;
+                state
+                    .hidden_cr
+                    .push(lf - removed.partition_point(|offset| *offset < lf));
+                false
+            } else {
+                *position -= removed.partition_point(|offset| *offset < *position);
+                true
+            }
+        });
+        state.hidden_cr.sort_unstable();
+        state.physical = false;
+    }
+    if !removed.is_empty() {
+        *text = text.replace("\r\n", "\n");
+    }
 }
 
 pub fn correct_file(
@@ -3015,6 +3177,9 @@ pub(crate) fn correct_file_with_original(
 
     let original = text.clone();
     let preserve_crlf = uses_crlf_only(&original);
+    // LFだけの通常入力には由来表を作らない。元bare CRが後からLFへ接する場合も追跡する。
+    let mut retained_crlf =
+        (!preserve_crlf && original.contains('\r')).then(|| LineEndingProvenance::new(&original));
     // 本家は無効な入力も補正するため、元から有効だったファイルだけを保護する。
     let started_valid = !holds_fatal_syntax(&report);
     let path = report.path.clone();
@@ -3032,11 +3197,14 @@ pub(crate) fn correct_file_with_original(
     // 本家は 201 パス目の要求時に止めるため、実際には 200 回だけ補正する。
     // ファイルを増やす cop では一回のずれが残る内容を変える。
     for pass in 0..MAX_CORRECTION_PASSES {
+        // 補正前のscript検査には現在の位置表が必要。次passの由来で上書きしない。
+        let mut next_retained_crlf = retained_crlf.clone();
         let (mut corrected, mut count, mut next_provenance) = corrected_text_with_provenance(
             &mut report,
             mode,
             Correcting::ExceptDirectives,
             provenance.as_deref(),
+            next_retained_crlf.as_mut(),
         );
         let mut directive_pass = false;
         if count == 0 && directives_pending {
@@ -3047,6 +3215,7 @@ pub(crate) fn correct_file_with_original(
                 mode,
                 Correcting::DirectivesOnly,
                 provenance.as_deref(),
+                next_retained_crlf.as_mut(),
             );
         }
         if count == 0 {
@@ -3065,6 +3234,9 @@ pub(crate) fn correct_file_with_original(
                         rollback: None,
                     },
                     preserve_crlf,
+                    retained_crlf
+                        .as_ref()
+                        .map(|state| state.hidden_cr.as_slice()),
                 ),
                 &original,
                 original_bytes,
@@ -3077,23 +3249,12 @@ pub(crate) fn correct_file_with_original(
         log.record_pass(&mut report, directive_pass);
         // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
         // 最終的な書き戻しだけは元の改行形式へ戻し、DATA のバイト列を守る。
-        if preserve_crlf {
-            if let Some(positions) = &mut next_provenance {
-                let mut removed = corrected
-                    .match_indices("\r\n")
-                    .map(|(offset, _)| offset)
-                    .peekable();
-                let mut preceding = 0;
-                for position in positions {
-                    while removed.peek().is_some_and(|offset| *offset < *position) {
-                        preceding += 1;
-                        removed.next();
-                    }
-                    *position -= preceding;
-                }
-            }
-            corrected = corrected.replace("\r\n", "\n");
-        }
+        normalize_corrected_line_endings(
+            &mut corrected,
+            &mut next_provenance,
+            &mut next_retained_crlf,
+        );
+        retained_crlf = next_retained_crlf;
         provenance = next_provenance;
         rewritten |= corrected != text;
 
@@ -3121,6 +3282,9 @@ pub(crate) fn correct_file_with_original(
                         rollback: None,
                     },
                     preserve_crlf,
+                    retained_crlf
+                        .as_ref()
+                        .map(|state| state.hidden_cr.as_slice()),
                 ),
                 &original,
                 original_bytes,
@@ -4374,9 +4538,221 @@ mod tests {
         assert!(report.offenses.iter().all(|offense| offense.corrected));
     }
 
-    /// Every expectation below is what `Parser::Source::TreeRewriter` produces under the policies
-    /// RuboCop's `Corrector` sets (`crossing_deletions: :accept`, `different_replacements: :raise`,
-    /// `swallowed_insertions: :raise`), merged one cop at a time the way `Team` merges them.
+    #[test]
+    fn copied_crlf_view_distinguishes_visible_cr_from_hidden_markers() {
+        // 最初の正規化後のx\r\nは、原本x\r\r\nのbare CRと隠したpairを表す。
+        // 可視CRだけの削除は隠したCRを消さず、LFの置換は古いhidden markerを消す。
+        for (start, end, replacement, expected) in [
+            (1, 2, "", "x\r\n"),
+            (2, 3, "", "x\r"),
+            (2, 3, "\n", "x\r\n"),
+            (1, 2, "\r", "x\r\n"),
+            (2, 2, "_", "x\r_\r\n"),
+        ] {
+            let mut retained = super::LineEndingProvenance {
+                hidden_cr: vec![2],
+                visible_cr: vec![1],
+                physical: false,
+            };
+            let action = super::Action::from_edit(
+                &Edit {
+                    start,
+                    end,
+                    replacement: replacement.to_owned(),
+                    safe: true,
+                },
+                (start, end),
+            );
+            let (mut text, mut introduced) =
+                action.rewrite_with_line_endings("x\r\n", None, Some(&mut retained));
+            let mut retained = Some(retained);
+            super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+            assert_eq!(
+                super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+                expected,
+                "{start}..{end} / {replacement:?}"
+            );
+        }
+        // 同じLFのmarkerは複数あってよいが、そのLFを置換したら全部脱落する。
+        for (start, end, replacement, expected) in [
+            (0, 0, "_", "_x\r\r\n"),
+            (1, 2, "\n", "x\n"),
+            (1, 2, "", "x"),
+        ] {
+            let mut retained = super::LineEndingProvenance {
+                hidden_cr: vec![1, 1],
+                visible_cr: Vec::new(),
+                physical: false,
+            };
+            let action = super::Action::from_edit(
+                &Edit {
+                    start,
+                    end,
+                    replacement: replacement.to_owned(),
+                    safe: true,
+                },
+                (start, end),
+            );
+            let (mut text, mut introduced) =
+                action.rewrite_with_line_endings("x\n", None, Some(&mut retained));
+            let mut retained = Some(retained);
+            super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+            assert_eq!(
+                super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn copied_bare_cr_can_become_crlf_after_inserting_or_exposing_lf() {
+        for (original, first_start, first_end, first_replacement) in
+            [("x\r", 2, 2, "\n"), ("x\r_\n", 2, 3, "")]
+        {
+            let mut retained = Some(super::LineEndingProvenance::new(original));
+            let mut text = original.to_owned();
+            let mut introduced = None;
+            for (start, end, replacement) in
+                [(first_start, first_end, first_replacement), (0, 0, "_\n")]
+            {
+                let action = super::Action::from_edit(
+                    &Edit {
+                        start,
+                        end,
+                        replacement: replacement.to_owned(),
+                        safe: true,
+                    },
+                    (start, end),
+                );
+                (text, introduced) = action.rewrite_with_line_endings(
+                    &text,
+                    introduced.as_deref(),
+                    retained.as_mut(),
+                );
+                super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+            }
+            assert_eq!(
+                super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+                "_\nx\r\n"
+            );
+        }
+    }
+
+    #[test]
+    fn copied_crlf_keeps_original_bare_cr_across_two_normalizations() {
+        let original = "x\r\r\ny\n";
+        let mut text = original.to_owned();
+        let mut retained = Some(super::LineEndingProvenance::new(original));
+        let mut introduced = None;
+        for prefix in ["a\n", "b\n"] {
+            let action = super::Action::from_edit(
+                &Edit {
+                    start: 0,
+                    end: 0,
+                    replacement: prefix.to_owned(),
+                    safe: true,
+                },
+                (0, 0),
+            );
+            (text, introduced) =
+                action.rewrite_with_line_endings(&text, introduced.as_deref(), retained.as_mut());
+            super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+        }
+        assert_eq!(
+            super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+            format!("b\na\n{original}")
+        );
+    }
+
+    #[test]
+    fn copied_crlf_follows_only_whole_surviving_pairs() {
+        let source = "a\r\nb\n";
+        // CR/LF片側の削除・置換、間への挿入は元pairの由来を残さない。
+        // 一方、直前への挿入や後続行の変更はcopyされたpairを保つ。
+        for (start, end, replacement, expected) in [
+            (0, 0, "#\n", "#\na\r\nb\n"),
+            (1, 2, "", "a\nb\n"),
+            (2, 3, "", "a\rb\n"),
+            (2, 3, "\n\n", "a\n\nb\n"),
+            (2, 3, "\n", "a\nb\n"),
+            (2, 2, "x", "a\rx\nb\n"),
+            (1, 1, "x", "ax\r\nb\n"),
+            (0, 3, "x\n", "x\nb\n"),
+            (3, 4, "x", "a\r\nx\n"),
+            (5, 5, "c\n", "a\r\nb\nc\n"),
+        ] {
+            let action = super::Action::from_edit(
+                &Edit {
+                    start,
+                    end,
+                    replacement: replacement.to_owned(),
+                    safe: true,
+                },
+                (start, end),
+            );
+            let mut retained = super::LineEndingProvenance::new(source);
+            let (mut text, mut introduced) =
+                action.rewrite_with_line_endings(source, None, Some(&mut retained));
+            let mut retained = Some(retained);
+            super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+            assert_eq!(
+                super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+                expected,
+                "{start}..{end} / {replacement:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn copied_crlf_and_legacy_positions_survive_multiple_lf_passes() {
+        let mut retained = super::LineEndingProvenance::new("a\r\né\n");
+        let action = super::Action::from_edit(
+            &Edit {
+                start: 0,
+                end: 0,
+                replacement: "€\n".to_owned(),
+                safe: true,
+            },
+            (0, 0),
+        );
+        let (mut text, mut introduced) =
+            action.rewrite_with_line_endings("a\r\né\n", Some(&[]), Some(&mut retained));
+        assert_eq!(introduced, Some(vec![0]));
+        let mut retained = Some(retained);
+        super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+        assert_eq!(text, "€\na\né\n");
+        assert_eq!(retained.as_ref().unwrap().hidden_cr, vec![5]);
+        assert_eq!(introduced, Some(vec![0]));
+        let action = super::Action::from_edit(
+            &Edit {
+                start: 0,
+                end: 4,
+                replacement: String::new(),
+                safe: true,
+            },
+            (0, 4),
+        );
+        let (mut text, mut introduced) =
+            action.rewrite_with_line_endings(&text, introduced.as_deref(), retained.as_mut());
+        super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+        assert_eq!(introduced, Some(Vec::new()));
+        assert_eq!(retained.as_ref().unwrap().hidden_cr, vec![1]);
+        assert_eq!(
+            super::restore_copied_crlf(&text, &retained.as_ref().unwrap().hidden_cr),
+            "a\r\né\n"
+        );
+        // Unicodeの後ろの新規文字位置も、CR除去数だけbyte単位で詰める。
+        let mut text = "a\r\né€\n".to_owned();
+        let mut introduced = Some(vec![5]);
+        let mut retained = Some(super::LineEndingProvenance::new(&text));
+        super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+        assert_eq!(introduced, Some(vec![4]));
+        assert_eq!(retained.as_ref().unwrap().hidden_cr, vec![1]);
+        assert_eq!(text, "a\né€\n");
+    }
+
+    /// 本家Correctorのclobber方針を使い、Teamと同じcopごとの結合順を固定する。
+    /// crossing_deletionsだけを許し、異なる置換とswallowed_insertionsは拒む。
     #[test]
     fn legacy_character_provenance_follows_surviving_edits_across_passes() {
         let action = |start, end, replacement: &str| {

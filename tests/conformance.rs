@@ -6725,6 +6725,15 @@ fn catalogue() -> Vec<CopCase> {
         .id("nul_truncated_tokens_limit_the_line_ending_inspection")
         .without_offense_check()
         .corrected_verbatim("a = 1\0ignored\ntrailing\n"),
+        CopCase::new(
+            "Style/FrozenStringLiteralComment",
+            "STDOUT.write(DATA.read.unpack1(\"H*\"))\r\n__END__\nalpha\r\nbeta\n",
+            Vec::new(),
+        )
+        .id("mixed_crlf_reinspection_preserves_copied_endings")
+        .target_ruby("2.7")
+        .without_offense_check()
+        .corrected_verbatim("# frozen_string_literal: true\nSTDOUT.write(DATA.read.unpack1(\"H*\"))\n__END__\nalpha\nbeta\n"),
         CopCase::annotated(
             "Style/ItBlockParameter",
             "outer do |transaction|\n  real = transaction\n         ^^^^^^^^^^^ Use `it` block parameter.\n  inner do |transaction|\n    save = transaction\n           ^^^^^^^^^^^ Use `it` block parameter.\n  end\nend\n",

@@ -1,0 +1,5348 @@
+{
+  "rubocop_version": "1.89.0",
+  "ruby_version": "4.0.8",
+  "records": [
+    {
+      "name": "mixed_data_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_data_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_data_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 39,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 39,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 31,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_lf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "all_lf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "all_lf",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232000206b6570740a",
+      "after_hex": "61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232000206b6570740a",
+      "after_hex": "61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232000206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a70757473203c3c7e544558540a626f64790a544558540a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 14,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a61203d20310a61203d20310a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_data_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_data_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_data_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_code_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 39,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_alternating",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 39,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_crlf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290d0a5f5f454e445f5f0d0a616c7068610d0a626574610d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 31,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610d0a"
+    },
+    {
+      "name": "all_lf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "all_lf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "all_lf",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "after_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0a616c7068610a626574610a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a232001206b6570740a5354444f55542e777269746528444154412e726561642e756e7061636b312822482a2229290a5f5f454e445f5f0d0a616c7068610d0a626574610a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": "616c7068610d0a626574610a"
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232000206b6570740a",
+      "after_hex": "61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a232000206b6570740a",
+      "after_hex": "61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_comment_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a232000206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232000206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a232000206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "after_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_code_nul",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310069676e6f7265640a23206b6570740d0a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a23206b6570740d0a",
+      "repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "after_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 14,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_heredoc",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a70757473203c3c7e544558540a626f64790a544558540a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a70757473203c3c7e544558540d0a626f64790a544558540d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 14,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": null,
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-a",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "after_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "data_hex": null
+    },
+    {
+      "name": "mixed_duplicate_lines",
+      "target": "3.4",
+      "engine": "parser_prism",
+      "mode": "-A",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: lf\n",
+      "source_hex": "61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "first": {
+        "exit": 0,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a61203d20310a61203d20310a23206b6570740a",
+      "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310d0a61203d20310a61203d20310d0a23206b6570740a",
+      "repeated": {
+        "exit": 1,
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 7,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      "reference_repeated": {
+        "exit": 0,
+        "offenses": []
+      },
+      "data_hex": null
+    }
+  ]
+}

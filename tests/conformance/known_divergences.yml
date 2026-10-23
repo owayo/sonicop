@@ -1576,6 +1576,24 @@ divergences:
       本家1.89.0の-a/-AはSourceBufferの正規化で無関係なCRを消すが、Sonicopは
       原本のNULと後続本文を保持し、補正対象外のCRLFを変更しない。3組の対象Ruby/
       ParserEngineで診断全項目・終了値と本家の生出力を記録し、CLIで原本の行と照合する。
+  - cop: Style/FrozenStringLiteralComment
+    case: mixed_crlf_reinspection_preserves_copied_endings
+    kind: correction
+    source: "STDOUT.write(DATA.read.unpack1(\"H*\"))\r\n__END__\nalpha\r\nbeta\n"
+    upstream: "# frozen_string_literal: true\nSTDOUT.write(DATA.read.unpack1(\"H*\"))\n__END__\nalpha\nbeta\n"
+    sonicop: "# frozen_string_literal: true\nSTDOUT.write(DATA.read.unpack1(\"H*\"))\r\n__END__\nalpha\r\nbeta\n"
+    note: >-
+      既存CRLF保持方針をmixedの未変更copy区間にも適用する。本家1.89.0の-Aは
+      DATA内のCRLFもLFへ変えてDATA.readの実値を変えるため、元pairの由来を各passへ
+      移して最終書出しだけ復元する。解析viewはLFなので初回の補正後診断は本家と一致する。
+      mixedの挿入LFと元のLF・単独CRは一律にCRLFへしない。物理出力を再入力した場合は
+      EndOfLineが再びCRを報告し得るため、その実診断も本家へ同じ保存予定bytesを与えて
+      別に測定する。この再実行差を本家と原本からの完全一致へ数えない。
+      10入力×白2.7/Prism3.4×検査/-a/-Aの60条件と再実行に加え、連続CRを含むDATAの
+      6入力×同2engine×同3modeの36条件で2copが別passで前置する補正を測定する。
+      解析で隠したCRと可視の元単独CRを別に追跡し、後者が次passで隠れる場合も元byteを
+      復元する。同じLFの複数CR・片側編集・元CRと新規LFの接続はunitで監視する。
+      元からCRLFのみの連続CRで既存方針も元単独CRを失う差は、この修正の成功へ数えない。
   - cop: Style/CaseLikeIf
     case: style_case_like_if_nested_else_safety
     kind: correction

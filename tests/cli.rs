@@ -5927,3 +5927,157 @@ fn euc_jp_alias_reports_and_raw_bytes_match_recorded_upstream() {
         }
     }
 }
+
+#[test]
+fn mixed_crlf_reinspection_preserves_copied_endings() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/mixed_reinspection.json")).unwrap();
+    let cases = fixture["records"].as_array().unwrap();
+    assert_eq!(cases.len(), 60);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for case in cases {
+        let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
+        let directory = project(&[]);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("example.rb"),
+            decode(case["source_hex"].as_str().unwrap()),
+        )
+        .unwrap();
+        for key in ["first", "repeated"] {
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                "Layout/EndOfLine,Style/FrozenStringLiteralComment",
+                "--format",
+                "json",
+            ]);
+            if let Some(mode) = case["mode"].as_str() {
+                run.arg(mode);
+            }
+            let output = run
+                .arg("example.rb")
+                .assert()
+                .code(case[key]["exit"].as_i64().unwrap() as i32)
+                .get_output()
+                .clone();
+            assert!(output.stderr.is_empty(), "{label} / {key}");
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(
+                report["files"][0]["offenses"], case[key]["offenses"],
+                "{label} / {key}"
+            );
+            assert_eq!(
+                report["summary"]["inspected_file_count"], 1,
+                "{label} / {key}"
+            );
+            let actual = fs::read(directory.path().join("example.rb")).unwrap();
+            assert_eq!(
+                actual,
+                decode(case["after_hex"].as_str().unwrap()),
+                "{label} / {key}"
+            );
+            if let Some(expected) = case["data_hex"].as_str() {
+                let marker = actual
+                    .windows(7)
+                    .position(|part| part == b"__END__")
+                    .unwrap();
+                let newline = actual[marker..]
+                    .iter()
+                    .position(|byte| *byte == b'\n')
+                    .unwrap();
+                assert_eq!(
+                    &actual[marker + newline + 1..],
+                    decode(expected),
+                    "{label} / DATA"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn mixed_bare_cr_copied_data_survives_multiple_correction_passes() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/mixed_bare_cr.json")).unwrap();
+    let cases = fixture["records"].as_array().unwrap();
+    assert_eq!(cases.len(), 36);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for case in cases {
+        let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
+        let directory = project(&[]);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            directory.path().join("example.rb"),
+            decode(case["source_hex"].as_str().unwrap()),
+        )
+        .unwrap();
+        for key in ["first", "repeated"] {
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                fixture["only"].as_str().unwrap(),
+                "--format",
+                "json",
+            ]);
+            if let Some(mode) = case["mode"].as_str() {
+                run.arg(mode);
+            }
+            let output = run
+                .arg("example.rb")
+                .assert()
+                .code(case[key]["exit"].as_i64().unwrap() as i32)
+                .get_output()
+                .clone();
+            assert!(output.stderr.is_empty(), "{label} / {key}");
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(
+                report["files"][0]["offenses"], case[key]["offenses"],
+                "{label} / {key}"
+            );
+            assert_eq!(report["summary"]["inspected_file_count"], 1, "{label}");
+            assert_eq!(report["summary"]["target_file_count"], 1, "{label}");
+            let actual = fs::read(directory.path().join("example.rb")).unwrap();
+            assert_eq!(
+                actual,
+                decode(case["after_hex"].as_str().unwrap()),
+                "{label} / {key}"
+            );
+            let marker = actual
+                .windows(8)
+                .position(|part| part == b"__END__\n")
+                .unwrap();
+            assert_eq!(
+                &actual[marker + 8..],
+                decode(case["data_hex"].as_str().unwrap()),
+                "{label} / DATA"
+            );
+        }
+    }
+}
