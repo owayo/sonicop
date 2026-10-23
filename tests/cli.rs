@@ -5574,3 +5574,106 @@ fn nul_truncated_tokens_bound_the_semicolon_scan() {
         }
     }
 }
+
+#[test]
+fn logical_last_tokens_limit_the_line_ending_inspection() {
+    let records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/end_of_line_tokens.json")).unwrap();
+    let groups = records["groups"].as_array().unwrap();
+    assert_eq!(groups.len(), 6);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for group in groups {
+        // 本家のnativeもWindowsではcrlf分岐へ入るため、同じ明示設定の実測値を使う。
+        let expected = if cfg!(windows) && group["style"] == "native" {
+            groups
+                .iter()
+                .find(|candidate| {
+                    candidate["engine"] == group["engine"] && candidate["style"] == "crlf"
+                })
+                .unwrap()
+        } else {
+            group
+        };
+        let files = expected["files"].as_array().unwrap();
+        assert_eq!(
+            files.len(),
+            records["cases"].as_object().unwrap().len()
+                - if group["engine"] == "parser_whitequark" {
+                    2
+                } else {
+                    0
+                }
+        );
+        let directory = project(&[]);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            group["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        for mode in [None, Some("-a"), Some("-A")] {
+            let label = format!("{} / {} / {mode:?}", group["engine"], group["style"]);
+            for file in files {
+                let name = file["path"].as_str().unwrap();
+                fs::write(
+                    directory.path().join(name),
+                    decode(records["cases"][name].as_str().unwrap()),
+                )
+                .unwrap();
+            }
+            // EndOfLineは補正しない。再実行しても診断・終了値・原本全bytesが変わらない。
+            for repeat in 0..2 {
+                let mut run = command(directory.path());
+                run.args([
+                    "--config",
+                    ".rubocop.yml",
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Layout/EndOfLine",
+                    "--format",
+                    "json",
+                ]);
+                if let Some(mode) = mode {
+                    run.arg(mode);
+                }
+                run.args(files.iter().map(|file| file["path"].as_str().unwrap()));
+                let output = run
+                    .assert()
+                    .code(expected["exit"].as_i64().unwrap() as i32)
+                    .get_output()
+                    .clone();
+                assert!(output.stderr.is_empty(), "{label} / {repeat}");
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["files"], expected["files"], "{label} / {repeat}");
+                assert_eq!(
+                    report["summary"]["target_file_count"],
+                    files.len(),
+                    "{label}"
+                );
+                assert_eq!(
+                    report["summary"]["inspected_file_count"],
+                    files.len(),
+                    "{label}"
+                );
+                let count: usize = files
+                    .iter()
+                    .map(|file| file["offenses"].as_array().unwrap().len())
+                    .sum();
+                assert_eq!(report["summary"]["offense_count"], count, "{label}");
+                for file in files {
+                    let name = file["path"].as_str().unwrap();
+                    assert_eq!(
+                        fs::read(directory.path().join(name)).unwrap(),
+                        decode(records["cases"][name].as_str().unwrap()),
+                        "{label} / {name} / {repeat}"
+                    );
+                }
+            }
+        }
+    }
+}
