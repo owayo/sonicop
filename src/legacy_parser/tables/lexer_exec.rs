@@ -2268,7 +2268,10 @@ impl Lexer {
                                     format!(
                                         "unexpected `{}'",
                                         str_slice(
-                                            &ruby_inspect(&self.tok(self.ts, self.te)),
+                                            &ruby_inspect(
+                                                &self.tok(self.ts, self.te),
+                                                self.encoding
+                                            ),
                                             1,
                                             -2
                                         )
@@ -2489,7 +2492,10 @@ impl Lexer {
                                     format!(
                                         "unexpected `{}'",
                                         str_slice(
-                                            &ruby_inspect(&self.tok(self.ts, self.te)),
+                                            &ruby_inspect(
+                                                &self.tok(self.ts, self.te),
+                                                self.encoding
+                                            ),
                                             1,
                                             -2
                                         )
@@ -2570,7 +2576,10 @@ impl Lexer {
                                     format!(
                                         "unexpected `{}'",
                                         str_slice(
-                                            &ruby_inspect(&self.tok(self.ts, self.te)),
+                                            &ruby_inspect(
+                                                &self.tok(self.ts, self.te),
+                                                self.encoding
+                                            ),
                                             1,
                                             -2
                                         )

@@ -679,7 +679,7 @@ pub(crate) fn str_char_at(text: &str, index: i64) -> String {
 }
 
 /// `String#inspect` (二重引用符を含む)。`unexpected` の診断が `[1..-2]` で引用符を外して使う。
-pub(crate) fn ruby_inspect(text: &str) -> String {
+pub(crate) fn ruby_inspect(text: &str, encoding: crate::engine::LiteralEncoding) -> String {
     let mut out = String::from("\"");
     for c in text.chars() {
         match c {
@@ -695,7 +695,13 @@ pub(crate) fn ruby_inspect(text: &str) -> String {
             '\u{1b}' => out.push_str("\\e"),
             '#' => out.push('#'),
             c if (c as u32) < 0x20 || c as u32 == 0x7f => {
-                out.push_str(&format!("\\x{:02X}", c as u32));
+                // Buffer は BINARY 以外を UTF-8 に復号するため、Ruby の inspect も Unicode 表記になる。
+                // BINARY の token まで変えると、本家が保つ byte escape を壊す。
+                if encoding == crate::engine::LiteralEncoding::Binary {
+                    out.push_str(&format!("\\x{:02X}", c as u32));
+                } else {
+                    out.push_str(&format!("\\u{:04X}", c as u32));
+                }
             }
             c => out.push(c),
         }

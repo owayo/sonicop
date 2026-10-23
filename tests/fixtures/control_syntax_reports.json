@@ -1,0 +1,5352 @@
+{
+  "reference": "RuboCop 1.89.0 / parser 3.3.12.0 / Prism 1.8.2 / Ruby 4.0.8; actual CLI inspection and correction, each recorded for LF and CRLF; only Lint/Syntax.",
+  "cases": [
+    {
+      "name": "implicit-01",
+      "source": "a=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0001# kept\n"
+    },
+    {
+      "name": "implicit-02",
+      "source": "a=1\n\u0002# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0002'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0002# kept\n"
+    },
+    {
+      "name": "implicit-03",
+      "source": "a=1\n\u0003# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0003'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0003# kept\n"
+    },
+    {
+      "name": "implicit-05",
+      "source": "a=1\n\u0005# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0005'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0005# kept\n"
+    },
+    {
+      "name": "implicit-06",
+      "source": "a=1\n\u0006# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0006'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0006# kept\n"
+    },
+    {
+      "name": "implicit-07",
+      "source": "a=1\n\u0007# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\a'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0007# kept\n"
+    },
+    {
+      "name": "implicit-08",
+      "source": "a=1\n\b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\b'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\b# kept\n"
+    },
+    {
+      "name": "implicit-0e",
+      "source": "a=1\n\u000e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u000E'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u000e# kept\n"
+    },
+    {
+      "name": "implicit-0f",
+      "source": "a=1\n\u000f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u000F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u000f# kept\n"
+    },
+    {
+      "name": "implicit-10",
+      "source": "a=1\n\u0010# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0010'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0010# kept\n"
+    },
+    {
+      "name": "implicit-11",
+      "source": "a=1\n\u0011# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0011'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0011# kept\n"
+    },
+    {
+      "name": "implicit-12",
+      "source": "a=1\n\u0012# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0012'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0012# kept\n"
+    },
+    {
+      "name": "implicit-13",
+      "source": "a=1\n\u0013# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0013'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0013# kept\n"
+    },
+    {
+      "name": "implicit-14",
+      "source": "a=1\n\u0014# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0014'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0014# kept\n"
+    },
+    {
+      "name": "implicit-15",
+      "source": "a=1\n\u0015# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0015'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0015# kept\n"
+    },
+    {
+      "name": "implicit-16",
+      "source": "a=1\n\u0016# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0016'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0016# kept\n"
+    },
+    {
+      "name": "implicit-17",
+      "source": "a=1\n\u0017# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0017'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0017# kept\n"
+    },
+    {
+      "name": "implicit-18",
+      "source": "a=1\n\u0018# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0018'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0018# kept\n"
+    },
+    {
+      "name": "implicit-19",
+      "source": "a=1\n\u0019# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0019'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0019# kept\n"
+    },
+    {
+      "name": "implicit-1b",
+      "source": "a=1\n\u001b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\e'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001b# kept\n"
+    },
+    {
+      "name": "implicit-1c",
+      "source": "a=1\n\u001c# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u001C'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001c# kept\n"
+    },
+    {
+      "name": "implicit-1d",
+      "source": "a=1\n\u001d# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u001D'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001d# kept\n"
+    },
+    {
+      "name": "implicit-1e",
+      "source": "a=1\n\u001e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u001E'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001e# kept\n"
+    },
+    {
+      "name": "implicit-1f",
+      "source": "a=1\n\u001f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u001F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001f# kept\n"
+    },
+    {
+      "name": "implicit-7f",
+      "source": "a=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n# kept\n"
+    },
+    {
+      "name": "BINARY-01",
+      "source": "# encoding: BINARY\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "BINARY-02",
+      "source": "# encoding: BINARY\na=1\n\u0002# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x02'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0002# kept\n"
+    },
+    {
+      "name": "BINARY-03",
+      "source": "# encoding: BINARY\na=1\n\u0003# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x03'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0003# kept\n"
+    },
+    {
+      "name": "BINARY-05",
+      "source": "# encoding: BINARY\na=1\n\u0005# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x05'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0005# kept\n"
+    },
+    {
+      "name": "BINARY-06",
+      "source": "# encoding: BINARY\na=1\n\u0006# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x06'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0006# kept\n"
+    },
+    {
+      "name": "BINARY-07",
+      "source": "# encoding: BINARY\na=1\n\u0007# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\a'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0007# kept\n"
+    },
+    {
+      "name": "BINARY-08",
+      "source": "# encoding: BINARY\na=1\n\b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\b'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\b# kept\n"
+    },
+    {
+      "name": "BINARY-0e",
+      "source": "# encoding: BINARY\na=1\n\u000e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x0E'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u000e# kept\n"
+    },
+    {
+      "name": "BINARY-0f",
+      "source": "# encoding: BINARY\na=1\n\u000f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x0F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u000f# kept\n"
+    },
+    {
+      "name": "BINARY-10",
+      "source": "# encoding: BINARY\na=1\n\u0010# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x10'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0010# kept\n"
+    },
+    {
+      "name": "BINARY-11",
+      "source": "# encoding: BINARY\na=1\n\u0011# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x11'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0011# kept\n"
+    },
+    {
+      "name": "BINARY-12",
+      "source": "# encoding: BINARY\na=1\n\u0012# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x12'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0012# kept\n"
+    },
+    {
+      "name": "BINARY-13",
+      "source": "# encoding: BINARY\na=1\n\u0013# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x13'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0013# kept\n"
+    },
+    {
+      "name": "BINARY-14",
+      "source": "# encoding: BINARY\na=1\n\u0014# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x14'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0014# kept\n"
+    },
+    {
+      "name": "BINARY-15",
+      "source": "# encoding: BINARY\na=1\n\u0015# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x15'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0015# kept\n"
+    },
+    {
+      "name": "BINARY-16",
+      "source": "# encoding: BINARY\na=1\n\u0016# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x16'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0016# kept\n"
+    },
+    {
+      "name": "BINARY-17",
+      "source": "# encoding: BINARY\na=1\n\u0017# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x17'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0017# kept\n"
+    },
+    {
+      "name": "BINARY-18",
+      "source": "# encoding: BINARY\na=1\n\u0018# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x18'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0018# kept\n"
+    },
+    {
+      "name": "BINARY-19",
+      "source": "# encoding: BINARY\na=1\n\u0019# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x19'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0019# kept\n"
+    },
+    {
+      "name": "BINARY-1b",
+      "source": "# encoding: BINARY\na=1\n\u001b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\e'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u001b# kept\n"
+    },
+    {
+      "name": "BINARY-1c",
+      "source": "# encoding: BINARY\na=1\n\u001c# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x1C'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u001c# kept\n"
+    },
+    {
+      "name": "BINARY-1d",
+      "source": "# encoding: BINARY\na=1\n\u001d# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x1D'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u001d# kept\n"
+    },
+    {
+      "name": "BINARY-1e",
+      "source": "# encoding: BINARY\na=1\n\u001e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x1E'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u001e# kept\n"
+    },
+    {
+      "name": "BINARY-1f",
+      "source": "# encoding: BINARY\na=1\n\u001f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x1F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u001f# kept\n"
+    },
+    {
+      "name": "BINARY-7f",
+      "source": "# encoding: BINARY\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n# kept\n"
+    },
+    {
+      "name": "prism-00",
+      "source": "a=1\n\u0000# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0000# kept\n"
+    },
+    {
+      "name": "prism-01",
+      "source": "a=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x01' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0001# kept\n"
+    },
+    {
+      "name": "prism-02",
+      "source": "a=1\n\u0002# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x02' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0002# kept\n"
+    },
+    {
+      "name": "prism-03",
+      "source": "a=1\n\u0003# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x03' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0003# kept\n"
+    },
+    {
+      "name": "prism-04",
+      "source": "a=1\n\u0004# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0004# kept\n"
+    },
+    {
+      "name": "prism-05",
+      "source": "a=1\n\u0005# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x05' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0005# kept\n"
+    },
+    {
+      "name": "prism-06",
+      "source": "a=1\n\u0006# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x06' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0006# kept\n"
+    },
+    {
+      "name": "prism-07",
+      "source": "a=1\n\u0007# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x07' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0007# kept\n"
+    },
+    {
+      "name": "prism-08",
+      "source": "a=1\n\b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x08' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\b# kept\n"
+    },
+    {
+      "name": "prism-09",
+      "source": "a=1\n\t# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\t# kept\n"
+    },
+    {
+      "name": "prism-0a",
+      "source": "a=1\n\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\n# kept\n"
+    },
+    {
+      "name": "prism-0b",
+      "source": "a=1\n\u000b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u000b# kept\n"
+    },
+    {
+      "name": "prism-0c",
+      "source": "a=1\n\f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\f# kept\n"
+    },
+    {
+      "name": "prism-0d",
+      "source": "a=1\n\r# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\r# kept\n"
+    },
+    {
+      "name": "prism-0e",
+      "source": "a=1\n\u000e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x0E' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u000e# kept\n"
+    },
+    {
+      "name": "prism-0f",
+      "source": "a=1\n\u000f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x0F' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u000f# kept\n"
+    },
+    {
+      "name": "prism-10",
+      "source": "a=1\n\u0010# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x10' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0010# kept\n"
+    },
+    {
+      "name": "prism-11",
+      "source": "a=1\n\u0011# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x11' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0011# kept\n"
+    },
+    {
+      "name": "prism-12",
+      "source": "a=1\n\u0012# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x12' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0012# kept\n"
+    },
+    {
+      "name": "prism-13",
+      "source": "a=1\n\u0013# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x13' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0013# kept\n"
+    },
+    {
+      "name": "prism-14",
+      "source": "a=1\n\u0014# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x14' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0014# kept\n"
+    },
+    {
+      "name": "prism-15",
+      "source": "a=1\n\u0015# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x15' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0015# kept\n"
+    },
+    {
+      "name": "prism-16",
+      "source": "a=1\n\u0016# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x16' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0016# kept\n"
+    },
+    {
+      "name": "prism-17",
+      "source": "a=1\n\u0017# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x17' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0017# kept\n"
+    },
+    {
+      "name": "prism-18",
+      "source": "a=1\n\u0018# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x18' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0018# kept\n"
+    },
+    {
+      "name": "prism-19",
+      "source": "a=1\n\u0019# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x19' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u0019# kept\n"
+    },
+    {
+      "name": "prism-1a",
+      "source": "a=1\n\u001a# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001a# kept\n"
+    },
+    {
+      "name": "prism-1b",
+      "source": "a=1\n\u001b# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x1B' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001b# kept\n"
+    },
+    {
+      "name": "prism-1c",
+      "source": "a=1\n\u001c# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x1C' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001c# kept\n"
+    },
+    {
+      "name": "prism-1d",
+      "source": "a=1\n\u001d# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x1D' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001d# kept\n"
+    },
+    {
+      "name": "prism-1e",
+      "source": "a=1\n\u001e# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x1E' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001e# kept\n"
+    },
+    {
+      "name": "prism-1f",
+      "source": "a=1\n\u001f# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x1F' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n\u001f# kept\n"
+    },
+    {
+      "name": "prism-7f",
+      "source": "a=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x7F' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 1,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "a=1\n# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-UTF-8-01--a",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-UTF-8-01--A",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-UTF-8-7f--a",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-UTF-8-7f--A",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-UTF-8-comment",
+      "source": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-BINARY-01--a",
+      "source": "# encoding: BINARY\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-BINARY-01--A",
+      "source": "# encoding: BINARY\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-BINARY-7f--a",
+      "source": "# encoding: BINARY\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-BINARY-7f--A",
+      "source": "# encoding: BINARY\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n# kept\n"
+    },
+    {
+      "name": "2.7-parser_whitequark-BINARY-comment",
+      "source": "# encoding: BINARY\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-UTF-8-01--a",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-UTF-8-01--A",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-UTF-8-7f--a",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-UTF-8-7f--A",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-UTF-8-comment",
+      "source": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-BINARY-01--a",
+      "source": "# encoding: BINARY\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-BINARY-01--A",
+      "source": "# encoding: BINARY\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-BINARY-7f--a",
+      "source": "# encoding: BINARY\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-BINARY-7f--A",
+      "source": "# encoding: BINARY\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_whitequark-BINARY-comment",
+      "source": "# encoding: BINARY\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n"
+    },
+    {
+      "name": "3.4-parser_prism-UTF-8-01--a",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x01' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_prism-UTF-8-01--A",
+      "source": "# encoding: UTF-8\na=1\n\u0001# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x01' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n\u0001# kept\n"
+    },
+    {
+      "name": "3.4-parser_prism-UTF-8-7f--a",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x7F' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_prism-UTF-8-7f--A",
+      "source": "# encoding: UTF-8\na=1\n# kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "Invalid char '\\x7F' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\na=1\n# kept\n"
+    },
+    {
+      "name": "3.4-parser_prism-UTF-8-comment",
+      "source": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\") # \u0001\u0002\u0003\u0005\u0006\u0007\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001b\u001c\u001d\u001e\u001f kept\n"
+    },
+    {
+      "name": "alias-UTF-8-soh",
+      "source": "# encoding: UTF-8\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-UTF-8-del",
+      "source": "# encoding: UTF-8\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-UTF-8-eof",
+      "source": "# encoding: UTF-8\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-UTF-8-comment",
+      "source": "# encoding: UTF-8\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-US-ASCII-soh",
+      "source": "# encoding: US-ASCII\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: US-ASCII\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-US-ASCII-del",
+      "source": "# encoding: US-ASCII\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: US-ASCII\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-US-ASCII-eof",
+      "source": "# encoding: US-ASCII\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: US-ASCII\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-US-ASCII-comment",
+      "source": "# encoding: US-ASCII\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: US-ASCII\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-EUC-JP-soh",
+      "source": "# encoding: EUC-JP\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: EUC-JP\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-EUC-JP-del",
+      "source": "# encoding: EUC-JP\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: EUC-JP\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-EUC-JP-eof",
+      "source": "# encoding: EUC-JP\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: EUC-JP\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-EUC-JP-comment",
+      "source": "# encoding: EUC-JP\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: EUC-JP\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-Windows-31J-soh",
+      "source": "# encoding: Windows-31J\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Windows-31J\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-Windows-31J-del",
+      "source": "# encoding: Windows-31J\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Windows-31J\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-Windows-31J-eof",
+      "source": "# encoding: Windows-31J\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Windows-31J\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-Windows-31J-comment",
+      "source": "# encoding: Windows-31J\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Windows-31J\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-CP932-soh",
+      "source": "# encoding: CP932\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: CP932\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-CP932-del",
+      "source": "# encoding: CP932\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: CP932\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-CP932-eof",
+      "source": "# encoding: CP932\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: CP932\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-CP932-comment",
+      "source": "# encoding: CP932\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: CP932\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-Shift_JIS-soh",
+      "source": "# encoding: Shift_JIS\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Shift_JIS\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-Shift_JIS-del",
+      "source": "# encoding: Shift_JIS\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Shift_JIS\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-Shift_JIS-eof",
+      "source": "# encoding: Shift_JIS\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Shift_JIS\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-Shift_JIS-comment",
+      "source": "# encoding: Shift_JIS\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: Shift_JIS\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-SJIS-soh",
+      "source": "# encoding: SJIS\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: SJIS\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-SJIS-del",
+      "source": "# encoding: SJIS\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: SJIS\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-SJIS-eof",
+      "source": "# encoding: SJIS\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: SJIS\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-SJIS-comment",
+      "source": "# encoding: SJIS\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: SJIS\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-ISO-8859-1-soh",
+      "source": "# encoding: ISO-8859-1\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ISO-8859-1\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-ISO-8859-1-del",
+      "source": "# encoding: ISO-8859-1\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ISO-8859-1\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-ISO-8859-1-eof",
+      "source": "# encoding: ISO-8859-1\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ISO-8859-1\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-ISO-8859-1-comment",
+      "source": "# encoding: ISO-8859-1\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ISO-8859-1\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-ASCII-8BIT-soh",
+      "source": "# encoding: ASCII-8BIT\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ASCII-8BIT\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-ASCII-8BIT-del",
+      "source": "# encoding: ASCII-8BIT\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ASCII-8BIT\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-ASCII-8BIT-eof",
+      "source": "# encoding: ASCII-8BIT\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ASCII-8BIT\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-ASCII-8BIT-comment",
+      "source": "# encoding: ASCII-8BIT\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: ASCII-8BIT\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "alias-BINARY-soh",
+      "source": "# encoding: BINARY\nputs(\"ok\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x01'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\");\u0001\n"
+    },
+    {
+      "name": "alias-BINARY-del",
+      "source": "# encoding: BINARY\nputs(\"ok\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\x7F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 12,
+                  "last_line": 2,
+                  "last_column": 12,
+                  "length": 1,
+                  "line": 2,
+                  "column": 12
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\");\n"
+    },
+    {
+      "name": "alias-BINARY-eof",
+      "source": "# encoding: BINARY\nputs(\"ok\"\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 3,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\"\n"
+    },
+    {
+      "name": "alias-BINARY-comment",
+      "source": "# encoding: BINARY\nputs(\"ok\") # \u0001 kept\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: BINARY\nputs(\"ok\") # \u0001 kept\n"
+    },
+    {
+      "name": "utf8-range-01",
+      "source": "# encoding: UTF-8\nputs(\"あ\");\u0001\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u0001'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 11,
+                  "last_line": 2,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 2,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"あ\");\u0001\n"
+    },
+    {
+      "name": "utf8-range-07",
+      "source": "# encoding: UTF-8\nputs(\"あ\");\u0007\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\a'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 11,
+                  "last_line": 2,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 2,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"あ\");\u0007\n"
+    },
+    {
+      "name": "utf8-range-7f",
+      "source": "# encoding: UTF-8\nputs(\"あ\");\n",
+      "yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected `\\u007F'\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 11,
+                  "last_line": 2,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 2,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "# encoding: UTF-8\nputs(\"あ\");\n"
+    }
+  ]
+}
