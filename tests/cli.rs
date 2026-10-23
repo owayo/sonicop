@@ -4377,3 +4377,195 @@ fn numeric_predicate_keeps_the_original_when_upstream_writes_invalid_ruby() {
         }
     }
 }
+
+/// whitequark が入れ子 heredoc を重複して読む形でも、物理 Ruby の変数束縛を保つ。
+/// 本家 Prism の実出力を物理ソースの期待値とし、whitequark との診断・補正の差は
+/// conformance のマニフェストで別に監視する。Ruby のない環境でも全フィールドとバイトを検査する。
+#[test]
+fn nested_heredocs_preserve_physical_reads_across_parser_settings() {
+    let fixture = support::nested_heredocs::fixture();
+    assert_eq!(fixture["cases"].as_array().unwrap().len(), 7);
+    assert_eq!(fixture["profiles"].as_array().unwrap().len(), 9);
+    let mut checked = 0;
+    for profile in fixture["profiles"].as_array().unwrap() {
+        let target = profile["target"].as_str().unwrap();
+        let engine = profile["engine"].as_str().unwrap();
+        for (index, case) in fixture["cases"].as_array().unwrap().iter().enumerate() {
+            let unsupported = profile["effective"].is_null();
+            if unsupported && index != 0 {
+                continue;
+            }
+            let id = case["id"].as_str().unwrap();
+            for (ending, newline) in [("lf", "\n"), ("crlf", "\r\n")] {
+                let source = case["source"].as_str().unwrap().replace('\n', newline);
+                let directory = project_with_ruby(&[("example.rb", &source)], target);
+                fs::write(
+                    directory.path().join(".rubocop.yml"),
+                    profile["yaml"].as_str().unwrap(),
+                )
+                .unwrap();
+                for mode in ["inspect", "-a", "-A"] {
+                    let label = format!("{id}/{target}/{engine}/{ending}/{mode}");
+                    fs::write(directory.path().join("example.rb"), source.as_bytes()).unwrap();
+                    let mut invocation = command(directory.path());
+                    invocation.env("PATH", "").args([
+                        "--cache",
+                        "false",
+                        "--only",
+                        fixture["only"].as_str().unwrap(),
+                        "--format",
+                        "json",
+                        "example.rb",
+                    ]);
+                    if mode != "inspect" {
+                        invocation.arg(mode);
+                    }
+                    let expected = if unsupported {
+                        let key = fixture["unsupported"][ending][mode].as_str().unwrap();
+                        &fixture["records"][key]
+                    } else {
+                        support::nested_heredocs::record(&fixture, case, "prism", ending, mode)
+                    };
+                    let output = invocation
+                        .assert()
+                        .code(expected["exit"].as_i64().unwrap() as i32)
+                        .get_output()
+                        .clone();
+                    if unsupported {
+                        assert!(
+                            String::from_utf8_lossy(&output.stderr)
+                                .contains(expected["error"].as_str().unwrap()),
+                            "{label}"
+                        );
+                        assert!(output.stdout.is_empty(), "{label}");
+                    } else {
+                        let found: serde_json::Value =
+                            serde_json::from_slice(&output.stdout).unwrap();
+                        assert_eq!(found["summary"]["target_file_count"], 1, "{label}");
+                        assert_eq!(found["summary"]["inspected_file_count"], 1, "{label}");
+                        assert_eq!(
+                            found["files"][0]["offenses"], expected["offenses"],
+                            "{label}"
+                        );
+                        // 記録を入れ替えて危険な本家補正へ寄せる変更も拒む。実行可能な原本を保持する。
+                        assert_eq!(
+                            expected["after"].as_str().unwrap().as_bytes(),
+                            source.as_bytes(),
+                            "{label}"
+                        );
+                        assert_eq!(expected["execution"]["syntax_valid"], true, "{label}");
+                        if case["run"] == true {
+                            assert_eq!(expected["execution"]["exit"], 0, "{label}");
+                        }
+                    }
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        source.as_bytes(),
+                        "{label}"
+                    );
+                    checked += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(checked, 342);
+    let used = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "used_assignment")
+        .unwrap();
+    for ending in ["lf", "crlf"] {
+        for mode in ["-a", "-A"] {
+            let reference =
+                support::nested_heredocs::record(&fixture, used, "whitequark", ending, mode);
+            assert_eq!(reference["execution"]["syntax_valid"], true);
+            assert_eq!(reference["execution"]["exit"], 1);
+            assert_eq!(reference["execution"]["error_class"], "NameError");
+        }
+    }
+}
+
+/// Metrics の違反が残る終了 1 で、UselessAssignment 単独の診断・補正の差を隠さない。
+#[test]
+fn a_nested_heredoc_assignment_stays_bound_after_both_correction_modes() {
+    let fixture = support::nested_heredocs::fixture();
+    let case = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "used_assignment")
+        .unwrap();
+    let mut checked = 0;
+    for profile in fixture["profiles"].as_array().unwrap() {
+        if profile["effective"].is_null() {
+            continue;
+        }
+        for (ending, newline) in [("lf", "\n"), ("crlf", "\r\n")] {
+            let source = case["source"].as_str().unwrap().replace('\n', newline);
+            let directory = project_with_ruby(
+                &[("example.rb", &source)],
+                profile["target"].as_str().unwrap(),
+            );
+            fs::write(
+                directory.path().join(".rubocop.yml"),
+                profile["yaml"].as_str().unwrap(),
+            )
+            .unwrap();
+            for mode in ["inspect", "-a", "-A"] {
+                let label = format!(
+                    "{}/{}/{ending}/{mode}",
+                    profile["target"], profile["engine"]
+                );
+                fs::write(directory.path().join("example.rb"), source.as_bytes()).unwrap();
+                let mut invocation = command(directory.path());
+                invocation.env("PATH", "").args([
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Lint/UselessAssignment",
+                    "--format",
+                    "json",
+                    "example.rb",
+                ]);
+                if mode != "inspect" {
+                    invocation.arg(mode);
+                }
+                let output = invocation.assert().success().get_output().stdout.clone();
+                let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                let physical = support::nested_heredocs::variable_record(
+                    &fixture, case, "prism", ending, mode,
+                );
+                assert_eq!(physical["exit"], 0);
+                assert_eq!(found["summary"]["target_file_count"], 1, "{label}");
+                assert_eq!(found["summary"]["inspected_file_count"], 1, "{label}");
+                assert_eq!(
+                    found["files"][0]["offenses"], physical["offenses"],
+                    "{label}"
+                );
+                assert!(physical["offenses"].as_array().unwrap().is_empty());
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    source.as_bytes(),
+                    "{label}"
+                );
+                let whitequark = support::nested_heredocs::variable_record(
+                    &fixture,
+                    case,
+                    "whitequark",
+                    ending,
+                    mode,
+                );
+                assert_eq!(whitequark["exit"], if mode == "inspect" { 1 } else { 0 });
+                assert_eq!(whitequark["offenses"].as_array().unwrap().len(), 1);
+                assert_eq!(whitequark["offenses"][0]["corrected"], mode != "inspect");
+                assert_eq!(
+                    whitequark["execution"]["exit"],
+                    if mode == "inspect" { 0 } else { 1 }
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert_eq!(checked, 48);
+}

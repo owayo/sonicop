@@ -47,6 +47,7 @@ pub mod case;
 pub mod diff;
 pub mod divergence;
 pub mod manifest;
+pub mod nested_heredocs;
 pub mod project;
 
 /// `.rubocop.yml` 相当の YAML へ `AllCops/TargetRubyVersion` を差し込む。

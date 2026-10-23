@@ -1,0 +1,26 @@
+入れ子 heredoc の parser engine による診断・補正の差 (#20)。
+
+RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI を記録した。候補の出力を期待値へ写していない。
+再録: mise exec -- ruby scripts/record_nested_heredoc_divergences.rb
+
+7 入力は fixture の cases.source に LF で格納する。
+2.7 / 3.3 / 3.4 × default / parser_whitequark / parser_prism の9設定について、
+LF / CRLF × 検査 / -a / -A を実行する。2.7 + Prism の設定拒否は同じ理由なので先頭入力だけを使う。
+4 cop の342実行に加え、used_assignment を Lint/UselessAssignment 単独で48実行する。
+計390実行の結果が重複するときはSHA256由来のキーで共有し、32個の実記録として保持する。
+設定も profiles.yaml に実際に渡した形で保存する。cop は only にある4個、Max はすべて0。
+全対象・全診断フィールド、終了コード、補正後の実バイト列を記録し、検査が1ファイル完了したことを確認する。
+
+各入力の reference.whitequark / prism が records のキーを参照する。
+used_assignment の variable_reference は単独 cop の記録。同時に残る Metrics 違反で終了コードの差を隠さない。
+default は TargetRubyVersion 2.7 では whitequark、3.3以上では Prism。
+明示した engine が優先し、3.3 / 3.4 の whitequark も重複を再現する。
+CLI 回帰の物理ソースの期待値は本家 Prism の記録、conformance の期待値は whitequark の記録。
+後者との差分は既知差分マニフェストへ理由を付けて登録し、一致・未実装のいずれにも読み替えない。
+
+execution.syntax_valid は書き込み予定と同じバイト列に対する ruby -c の成功。
+run=true の2入力は Ruby 4.0.8 で実行した終了コード・stdout・例外のクラスも持つ。
+used_assignment は原本の実行が成功するが、whitequark の -a/-A は y の宣言を消し、
+後続 heredoc の #{y} をメソッド呼び出しへ変える。書き込み後も Syntax OK だが NameError になる。
+設定の TargetRubyVersion は parser の選択であり、Ruby 2.7 / 3.3 / 3.4 の各処理系で実行したという意味ではない。
+ネイティブの CLI 回帰は Ruby を起動せず、上記の記録と原本バイトを検査する。
