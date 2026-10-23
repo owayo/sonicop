@@ -1,0 +1,3011 @@
+{
+  "provenance": "RuboCop 1.89.0 CLI / Ruby 4.0.8, TargetRubyVersion 2.7; recorded 2026-10-23. Every offense field, summary, exit and corrected byte is compared. CRLF preserves Sonicop line endings.",
+  "cases": [
+    {
+      "name": "unknown_plus-inspect",
+      "source": "unknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b+1\n"
+    },
+    {
+      "name": "unknown_plus--a",
+      "source": "unknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b+1\n"
+    },
+    {
+      "name": "unknown_plus--A",
+      "source": "unknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b+1\n"
+    },
+    {
+      "name": "unknown_minus-inspect",
+      "source": "unknown\u000b-1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b-1\n"
+    },
+    {
+      "name": "unknown_minus--a",
+      "source": "unknown\u000b-1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b-1\n"
+    },
+    {
+      "name": "unknown_minus--A",
+      "source": "unknown\u000b-1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b-1\n"
+    },
+    {
+      "name": "unknown_splat-inspect",
+      "source": "unknown\u000b*args\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b*args\n"
+    },
+    {
+      "name": "unknown_splat--a",
+      "source": "unknown\u000b*args\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b*args\n"
+    },
+    {
+      "name": "unknown_splat--A",
+      "source": "unknown\u000b*args\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b*args\n"
+    },
+    {
+      "name": "unknown_kwsplat-inspect",
+      "source": "unknown\u000b**kwargs\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b**kwargs\n"
+    },
+    {
+      "name": "unknown_kwsplat--a",
+      "source": "unknown\u000b**kwargs\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b**kwargs\n"
+    },
+    {
+      "name": "unknown_kwsplat--A",
+      "source": "unknown\u000b**kwargs\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b**kwargs\n"
+    },
+    {
+      "name": "unknown_blockarg-inspect",
+      "source": "unknown\u000b&blk\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b&blk\n"
+    },
+    {
+      "name": "unknown_blockarg--a",
+      "source": "unknown\u000b&blk\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b&blk\n"
+    },
+    {
+      "name": "unknown_blockarg--A",
+      "source": "unknown\u000b&blk\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b&blk\n"
+    },
+    {
+      "name": "unknown_regexp-inspect",
+      "source": "unknown\u000b/re/\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b/re/\n"
+    },
+    {
+      "name": "unknown_regexp--a",
+      "source": "unknown\u000b/re/\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b/re/\n"
+    },
+    {
+      "name": "unknown_regexp--A",
+      "source": "unknown\u000b/re/\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "unknown\u000b/re/\n"
+    },
+    {
+      "name": "bound_plus-inspect",
+      "source": "x = 1\nx\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1\n"
+    },
+    {
+      "name": "bound_plus--a",
+      "source": "x = 1\nx\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b + 1\n"
+    },
+    {
+      "name": "bound_plus--A",
+      "source": "x = 1\nx\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b + 1\n"
+    },
+    {
+      "name": "bound_percent-inspect",
+      "source": "x = 1\nx\u000b%(1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b%(1)\n"
+    },
+    {
+      "name": "bound_percent--a",
+      "source": "x = 1\nx\u000b%(1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b % (1)\n"
+    },
+    {
+      "name": "bound_percent--A",
+      "source": "x = 1\nx\u000b%(1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b % (1)\n"
+    },
+    {
+      "name": "bound_index-inspect",
+      "source": "x = []\nx\u000b[0]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx\u000b[0]\n"
+    },
+    {
+      "name": "bound_index--a",
+      "source": "x = []\nx\u000b[0]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx\u000b[0]\n"
+    },
+    {
+      "name": "bound_index--A",
+      "source": "x = []\nx\u000b[0]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx\u000b[0]\n"
+    },
+    {
+      "name": "bound_ternary-inspect",
+      "source": "x = 1\nputs(x\u000b?2:3)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 8,
+                  "last_line": 2,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 2,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 2,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nputs(x\u000b?2:3)\n"
+    },
+    {
+      "name": "bound_ternary--a",
+      "source": "x = 1\nputs(x\u000b?2:3)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 8,
+                  "last_line": 2,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 2,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 2,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nputs(x\u000b ? 2 : 3)\n"
+    },
+    {
+      "name": "bound_ternary--A",
+      "source": "x = 1\nputs(x\u000b?2:3)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 8,
+                  "last_line": 2,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 2,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 10,
+                  "last_line": 2,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 2,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nputs(x\u000b ? 2 : 3)\n"
+    },
+    {
+      "name": "predicate_empty-inspect",
+      "source": "foo.zero?\u000b{}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000b{}\n"
+    },
+    {
+      "name": "predicate_empty--a",
+      "source": "foo.zero?\u000b{}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000b{}\n"
+    },
+    {
+      "name": "predicate_empty--A",
+      "source": "foo.zero?\u000b{}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000b{}\n"
+    },
+    {
+      "name": "predicate_block-inspect",
+      "source": "foo.zero?\u000b{\n  work\n}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Avoid using `{...}` for multi-line blocks.",
+                "cop_name": "Style/BlockDelimiters",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 11,
+                  "last_line": 1,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 1,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000b{\n  work\n}\n"
+    },
+    {
+      "name": "predicate_block--a",
+      "source": "foo.zero?\u000b{\n  work\n}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Avoid using `{...}` for multi-line blocks.",
+                "cop_name": "Style/BlockDelimiters",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 11,
+                  "last_line": 1,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 1,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000bdo\n  work\nend\n"
+    },
+    {
+      "name": "predicate_block--A",
+      "source": "foo.zero?\u000b{\n  work\n}\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Avoid using `{...}` for multi-line blocks.",
+                "cop_name": "Style/BlockDelimiters",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 11,
+                  "last_line": 1,
+                  "last_column": 11,
+                  "length": 1,
+                  "line": 1,
+                  "column": 11
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "foo.zero?\u000bdo\n  work\nend\n"
+    },
+    {
+      "name": "literal_and_code-inspect",
+      "source": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n"
+    },
+    {
+      "name": "literal_and_code--a",
+      "source": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n"
+    },
+    {
+      "name": "literal_and_code--A",
+      "source": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "s = \"a\u000bb\"; r = /a\u000bb/ # comment\u000bkept\nunknown\u000b+1\n"
+    },
+    {
+      "name": "heredoc_terminator-inspect",
+      "source": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n"
+    },
+    {
+      "name": "heredoc_terminator--a",
+      "source": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n"
+    },
+    {
+      "name": "heredoc_terminator--A",
+      "source": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts <<'A\u000bB'\nA B\nA\u000bB\nunknown\u000b+1\n"
+    },
+    {
+      "name": "word_separator-inspect",
+      "source": "puts %w[a\u000bb]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts %w[a\u000bb]\n"
+    },
+    {
+      "name": "word_separator--a",
+      "source": "puts %w[a\u000bb]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts %w[a\u000bb]\n"
+    },
+    {
+      "name": "word_separator--A",
+      "source": "puts %w[a\u000bb]\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "puts %w[a\u000bb]\n"
+    },
+    {
+      "name": "invalid_comma-inspect",
+      "source": "x = 1\nx\u000b+1, 2\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tCOMMA\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 5,
+                  "last_line": 2,
+                  "last_column": 5,
+                  "length": 1,
+                  "line": 2,
+                  "column": 5
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1, 2\n"
+    },
+    {
+      "name": "invalid_comma--a",
+      "source": "x = 1\nx\u000b+1, 2\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tCOMMA\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 5,
+                  "last_line": 2,
+                  "last_column": 5,
+                  "length": 1,
+                  "line": 2,
+                  "column": 5
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1, 2\n"
+    },
+    {
+      "name": "invalid_comma--A",
+      "source": "x = 1\nx\u000b+1, 2\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tCOMMA\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 5,
+                  "last_line": 2,
+                  "last_column": 5,
+                  "length": 1,
+                  "line": 2,
+                  "column": 5
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1, 2\n"
+    },
+    {
+      "name": "invalid_do-inspect",
+      "source": "x = 1\nx\u000b+1 do\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token kDO\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 6,
+                  "last_line": 2,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 2,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1 do\nend\n"
+    },
+    {
+      "name": "invalid_do--a",
+      "source": "x = 1\nx\u000b+1 do\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token kDO\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 6,
+                  "last_line": 2,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 2,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1 do\nend\n"
+    },
+    {
+      "name": "invalid_do--A",
+      "source": "x = 1\nx\u000b+1 do\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token kDO\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 6,
+                  "last_line": 2,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 2,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b+1 do\nend\n"
+    },
+    {
+      "name": "real_newline-inspect",
+      "source": "x = 1\nx\u000b\n+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b\n+1\n"
+    },
+    {
+      "name": "real_newline--a",
+      "source": "x = 1\nx\u000b\n+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b\n+1\n"
+    },
+    {
+      "name": "real_newline--A",
+      "source": "x = 1\nx\u000b\n+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = 1\nx\u000b\n+1\n"
+    },
+    {
+      "name": "mixed_hints-inspect",
+      "source": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b+1\n値\\\n+2\nputs(値\u000b?3:4)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 8,
+                  "last_line": 6,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 6,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 10,
+                  "last_line": 6,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 6,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 3,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b+1\n値\\\n+2\nputs(値\u000b?3:4)\n"
+    },
+    {
+      "name": "mixed_hints--a",
+      "source": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b+1\n値\\\n+2\nputs(値\u000b?3:4)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 8,
+                  "last_line": 6,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 6,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 10,
+                  "last_line": 6,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 6,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 3,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b + 1\n値\\\n+2\nputs(値\u000b ? 3 : 4)\n"
+    },
+    {
+      "name": "mixed_hints--A",
+      "source": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b+1\n値\\\n+2\nputs(値\u000b?3:4)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `?`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 8,
+                  "last_line": 6,
+                  "last_column": 8,
+                  "length": 1,
+                  "line": 6,
+                  "column": 8
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `:`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 6,
+                  "start_column": 10,
+                  "last_line": 6,
+                  "last_column": 10,
+                  "length": 1,
+                  "line": 6,
+                  "column": 10
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 3,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "値 = 1\n文字 = \"a\u000bb\"; 正規 = /a\fb/ # コメント\u000b保持\n値\u000b + 1\n値\\\n+2\nputs(値\u000b ? 3 : 4)\n"
+    },
+    {
+      "name": "reclassified-inspect",
+      "source": "x = []\nx <<EOS\ny\u000b+1\nEOS\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx <<EOS\ny\u000b+1\nEOS\n"
+    },
+    {
+      "name": "reclassified--a",
+      "source": "x = []\nx <<EOS\ny\u000b+1\nEOS\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx << EOS\ny\u000b+1\nEOS\n"
+    },
+    {
+      "name": "reclassified--A",
+      "source": "x = []\nx <<EOS\ny\u000b+1\nEOS\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx << EOS\ny\u000b+1\nEOS\n"
+    },
+    {
+      "name": "withdrawn-inspect",
+      "source": "x = []\nx <<EOS\n#{y = 1}\nEOS\ny\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx <<EOS\n#{y = 1}\nEOS\ny\u000b+1\n"
+    },
+    {
+      "name": "withdrawn--a",
+      "source": "x = []\nx <<EOS\n#{y = 1}\nEOS\ny\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx << EOS\n#{y = 1}\nEOS\ny\u000b+1\n"
+    },
+    {
+      "name": "withdrawn--A",
+      "source": "x = []\nx <<EOS\n#{y = 1}\nEOS\ny\u000b+1\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `<<`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 4,
+                  "length": 2,
+                  "line": 2,
+                  "column": 3
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "x = []\nx << EOS\n#{y = 1}\nEOS\ny\u000b+1\n"
+    },
+    {
+      "name": "guard-configured-2.7-default-inspect",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-2.7-default--a",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-2.7-default--A",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_whitequark-inspect",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_whitequark\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_whitequark--a",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_whitequark\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_whitequark--A",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_whitequark\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_prism-inspect",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_prism\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_prism--a",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_prism\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured-3.3-parser_prism--A",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  NewCops: enable\n  ParserEngine: parser_prism\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-configured_ff-2.7-default-inspect",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y %Q\f+ 1\f\n"
+    },
+    {
+      "name": "guard-configured_ff-2.7-default--a",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y % Q\f + 1\f\n"
+    },
+    {
+      "name": "guard-configured_ff-2.7-default--A",
+      "source": "/#{'a'}(?<y>.)/ =~ text; y %Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 28,
+                  "last_line": 1,
+                  "last_column": 28,
+                  "length": 1,
+                  "line": 1,
+                  "column": 28
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 31,
+                  "last_line": 1,
+                  "last_column": 31,
+                  "length": 1,
+                  "line": 1,
+                  "column": 31
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "/#{'a'}(?<y>.)/ =~ text; y % Q\f + 1\f\n"
+    },
+    {
+      "name": "guard-ghost_assignment-2.7-default-inspect",
+      "source": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ghost_assignment-2.7-default--a",
+      "source": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ghost_assignment-2.7-default--A",
+      "source": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000by = 1\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ghost_parameter-2.7-default-inspect",
+      "source": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ghost_parameter-2.7-default--a",
+      "source": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ghost_parameter-2.7-default--A",
+      "source": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "%Q\u000bdef m(y); end\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-real_prior_ghost-2.7-default-inspect",
+      "source": "y = 1\n%Q\u000by = 2\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 6,
+                  "last_line": 3,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 3,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y = 1\n%Q\u000by = 2\u000b\ny %Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-real_prior_ghost-2.7-default--a",
+      "source": "y = 1\n%Q\u000by = 2\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 6,
+                  "last_line": 3,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 3,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y = 1\n%Q\u000by = 2\u000b\ny % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-real_prior_ghost-2.7-default--A",
+      "source": "y = 1\n%Q\u000by = 2\u000b\ny %Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `%`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 3,
+                  "last_line": 3,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 3,
+                  "column": 3
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 6,
+                  "last_line": 3,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 3,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y = 1\n%Q\u000by = 2\u000b\ny % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-hard_scope-2.7-default-inspect",
+      "source": "y=1\ndef m\ny %Q\u000b+ 1\u000b\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y=1\ndef m\ny %Q\u000b+ 1\u000b\nend\n"
+    },
+    {
+      "name": "guard-hard_scope-2.7-default--a",
+      "source": "y=1\ndef m\ny %Q\u000b+ 1\u000b\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y = 1\ndef m\ny %Q\u000b+ 1\u000b\nend\n"
+    },
+    {
+      "name": "guard-hard_scope-2.7-default--A",
+      "source": "y=1\ndef m\ny %Q\u000b+ 1\u000b\nend\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y = 1\ndef m\ny %Q\u000b+ 1\u000b\nend\n"
+    },
+    {
+      "name": "guard-ordinary_code_vt-2.7-default-inspect",
+      "source": "y % Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\u000b+ 1\u000b\n"
+    },
+    {
+      "name": "guard-ordinary_code_vt-2.7-default--a",
+      "source": "y % Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-ordinary_code_vt-2.7-default--A",
+      "source": "y % Q\u000b+ 1\u000b\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\u000b + 1\u000b\n"
+    },
+    {
+      "name": "guard-ordinary_code_ff-2.7-default-inspect",
+      "source": "y % Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": null,
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\f+ 1\f\n"
+    },
+    {
+      "name": "guard-ordinary_code_ff-2.7-default--a",
+      "source": "y % Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-a",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\f + 1\f\n"
+    },
+    {
+      "name": "guard-ordinary_code_ff-2.7-default--A",
+      "source": "y % Q\f+ 1\f\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: enable\n",
+      "mode": "-A",
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after": "y % Q\f + 1\f\n"
+    }
+  ]
+}

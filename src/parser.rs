@@ -16,10 +16,12 @@
 //! 2 文字続く場合は三項演算子なので、同じ手がかりを置く。先頭 Unicode の複数字は
 //! Prism と whitequark で解釈が違うので、設定された engine の規則を使う。
 //!
-//! 改ページは grammar への手がかりなので、本文にもともとある改ページのうち、字句の空白にあるもの
-//! (Ruby も空白として読む) は空白に置き換えて読む。文字列・heredoc の終端語・コメントのように
-//! トークンの中にある改ページは文字そのものなので残す (`<<'A\fB'` の終端語を変えると本文の
-//! 終わりが変わる)。
+//! 改ページは grammar への手がかりで、VT は演算子前の空白として grammar が読めないので、
+//! 本文にもともとある両方の制御文字のうち、字句の空白にあるものは空白に置き換えて読む。
+//! 文字列・heredoc の終端語・コメントのようにトークンの中にある制御文字は残す (`<<'A\fB'` の終端語を変えると本文の
+//! 終わりが変わる)。character と percent literal の区切りは grammar が制御文字をトークン外へ
+//! 落とすこともあるので、原本の Prism token で補う。現在の木で同じ開始が演算子で、その直前の
+//! 名前が字句束縛済みなら、終了側も一緒にこの保護を撤回する。回復した binary だけを根拠にしない。
 //!
 //! どちらも読み方しだいで変わる。`x <<EOS` の `<<` を手がかりでシフトと読むと、heredoc だった
 //! 本文はコードやコメントになり、そこにあった代入も改ページも意味が変わる。そこで「手がかりの
@@ -29,7 +31,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 
-use tree_sitter::{InputEdit, Parser, Point, Tree};
+use tree_sitter::{InputEdit, Node, Parser, Point, Tree};
 
 use crate::lexical_locals::Hint;
 
@@ -57,11 +59,21 @@ pub(crate) fn parse_configured(
 }
 
 fn parse_with_semantics(text: &str, semantics: crate::regexp_ast::Semantics) -> Option<Tree> {
-    let form_feeds: Vec<usize> = text
+    let controls: Vec<usize> = text
         .bytes()
         .enumerate()
-        .filter_map(|(position, byte)| (byte == b'\x0c').then_some(position))
+        .filter_map(|(position, byte)| matches!(byte, b'\x0b' | b'\x0c').then_some(position))
         .collect();
+    // grammar が character や percent literal の制御文字を葉外へ落とす場合だけ補う。
+    // 通常の本文には Prism の追加解析を行わない。
+    let literals = if controls.is_empty() {
+        Vec::new()
+    } else {
+        sonicop_prism_compat::control_literals(text.as_bytes())
+    };
+    let mut probes: Vec<_> = literals.iter().map(|literal| literal.start).collect();
+    probes.sort_unstable();
+    probes.dedup();
     // percent literal の中の式のように、読み直して初めて呼び出しに見える位置もあるので、
     // 状態が変わらなくなるまで回す。
     settle(State::default(), |state| {
@@ -70,14 +82,30 @@ fn parse_with_semantics(text: &str, semantics: crate::regexp_ast::Semantics) -> 
         // `x = 1; x +1, 2` は Ruby でも構文エラーで、手がかりのない木はそれを隠す。
         let mut tree = parse_raw(readable.text())?;
         readable.restore_coordinates(&mut tree);
-        let next = State {
-            blanked: whitespace_form_feeds(&tree, &form_feeds),
-            hints: crate::lexical_locals::binary_operator_hints(
+        let (hints, bound_positions) = if probes.is_empty() {
+            (
+                crate::lexical_locals::binary_operator_hints(
+                    tree.root_node(),
+                    &readable.analysis,
+                    &state.hints,
+                    semantics,
+                ),
+                Vec::new(),
+            )
+        } else {
+            let analysis = crate::lexical_locals::operator_analysis(
                 tree.root_node(),
                 &readable.analysis,
                 &state.hints,
                 semantics,
-            ),
+                &probes,
+                &literals,
+            );
+            (analysis.hints, analysis.bound_positions)
+        };
+        let next = State {
+            blanked: whitespace_controls(&tree, &controls, &literals, &bound_positions),
+            hints,
         };
         Some((tree, next))
     })
@@ -109,7 +137,7 @@ fn settle<S: Clone + Eq, T>(mut state: S, mut step: impl FnMut(&S) -> Option<(T,
 /// 読み直すたびに計算し直す、本文の置き換え方。どちらも原文のバイト位置の昇順。
 #[derive(Clone, Default, PartialEq, Eq)]
 struct State {
-    /// 空白に置き換える、元の本文の改ページの位置。
+    /// 空白に置き換える、元の本文の VT と改ページの位置。
     blanked: Vec<usize>,
     /// 二項・三項演算を伝える手がかり。置き換えは `blanked` と重なれば手がかりが勝つ。
     hints: Vec<Hint>,
@@ -208,15 +236,35 @@ impl Readable<'_> {
     }
 }
 
-/// `form_feeds` (元の本文の改ページ) のうち、`tree` の葉 (トークン) の外にあるもの。
-fn whitespace_form_feeds(tree: &Tree, form_feeds: &[usize]) -> Vec<usize> {
-    if form_feeds.is_empty() {
+/// 元の VT・改ページのうち、いまのトークンと literal 区切りの外にあるもの。
+fn whitespace_controls(
+    tree: &Tree,
+    controls: &[usize],
+    literals: &[sonicop_prism_compat::ControlLiteral],
+    bound_positions: &[usize],
+) -> Vec<usize> {
+    if controls.is_empty() {
         return Vec::new();
     }
     let mut tokens = Vec::new();
+    let mut operators = Vec::new();
     let mut cursor = tree.walk();
     'walk: loop {
         let node = cursor.node();
+        if node.kind() == "binary" {
+            if let Some(operator) = node.child_by_field_name("operator")
+                && operator.kind() == "%"
+            {
+                operators.push(operator.start_byte());
+            }
+        } else if node.kind() == "conditional" {
+            let mut children = node.walk();
+            operators.extend(
+                node.children(&mut children)
+                    .filter(|child| child.kind() == "?")
+                    .map(|child| child.start_byte()),
+            );
+        }
         if node.child_count() == 0 {
             tokens.push(node.byte_range());
         }
@@ -230,16 +278,56 @@ fn whitespace_form_feeds(tree: &Tree, form_feeds: &[usize]) -> Vec<usize> {
         }
     }
     tokens.sort_by_key(|range| range.start);
-    form_feeds
+    operators.sort_unstable();
+    // grammar は未知名の literal も binary+ERROR へ回復するため、形だけで保護を撤回しない。
+    // 同じ字句位置で束縛が成立した場合だけ終了側も外し、次の State.blanked へ反映する。
+    let mut protected: Vec<_> = literals
+        .iter()
+        .filter(|literal| protected_literal(literal.start, &operators, bound_positions))
+        .flat_map(|literal| literal.positions.iter().copied())
+        .collect();
+    protected.sort_unstable();
+    controls
         .iter()
         .copied()
         .filter(|&position| {
+            if protected.binary_search(&position).is_ok() {
+                return false;
+            }
             let next = tokens.partition_point(|range| range.end <= position);
             !tokens
                 .get(next)
                 .is_some_and(|range| range.start <= position)
         })
         .collect()
+}
+
+fn protected_literal(start: usize, operators: &[usize], bound_positions: &[usize]) -> bool {
+    operators.binary_search(&start).is_err() || bound_positions.binary_search(&start).is_err()
+}
+
+/// 同じ来歴付き束縛で、literal 開始を偽の演算子として補正することだけを防ぐ。
+/// 本文・補間コードの operator を範囲全体で除外せず、未対応の AST 自体も書き換えない。
+pub(crate) fn protected_control_starts(
+    root: Node<'_>,
+    text: &str,
+    semantics: crate::regexp_ast::Semantics,
+    operators: &[usize],
+) -> Vec<usize> {
+    if !text.bytes().any(|byte| matches!(byte, b'\x0b' | b'\x0c')) {
+        return Vec::new();
+    }
+    let literals = sonicop_prism_compat::control_literals(text.as_bytes());
+    if literals.is_empty() {
+        return Vec::new();
+    }
+    let mut probes: Vec<_> = literals.iter().map(|literal| literal.start).collect();
+    probes.sort_unstable();
+    probes.dedup();
+    let analysis =
+        crate::lexical_locals::operator_analysis(root, text, &[], semantics, &probes, &literals);
+    probes.retain(|&start| protected_literal(start, operators, &analysis.bound_positions));
+    probes
 }
 
 fn parse_raw(text: &str) -> Option<Tree> {
@@ -852,6 +940,207 @@ mod tests {
                     );
                     assert_original_coordinates(&tree, &source);
                 }
+            }
+        }
+    }
+
+    /// Ruby の水平空白 VT は束縛を変えず、literal とコメント内の VT も同じ本文に残す。
+    #[test]
+    fn vertical_tabs_are_whitespace_between_tokens_only() {
+        for (source, snippet, kind) in [
+            ("unknown\x0b+1\n", "unknown\x0b+1", "call"),
+            ("unknown\x0b*args\n", "unknown\x0b*args", "call"),
+            ("unknown\x0b**kwargs\n", "unknown\x0b**kwargs", "call"),
+            ("unknown\x0b&blk\n", "unknown\x0b&blk", "call"),
+            ("unknown\x0b/re/\n", "unknown\x0b/re/", "call"),
+            ("%w[a\x0bb]\n", "%w[a\x0bb]", "string_array"),
+            ("x = 1\nx\x0b+1\n", "x\x0b+1", "binary"),
+            ("x = 1\nx\x0b**opts\n", "x\x0b**opts", "binary"),
+            ("unknown\x0b+1, 2\n", "unknown\x0b+1, 2", "call"),
+            ("x = 1\nx\x0b\\\n+1\n", "x\x0b\\\n+1", "binary"),
+            ("foo.zero?\x0b{}\n", "foo.zero?\x0b{}", "call"),
+            ("x = 1\nputs(x\x0b?2:3)\n", "x\x0b?2:3", "conditional"),
+            ("s = \"a\x0bb\"\nunknown\x0b+1\n", "unknown\x0b+1", "call"),
+            ("r = /a\x0bb/\nunknown\x0b+1\n", "unknown\x0b+1", "call"),
+            (
+                "# comment\x0bkept\nunknown\x0b+1\n",
+                "unknown\x0b+1",
+                "call",
+            ),
+            (
+                "puts <<'A\x0bB'\nA B\nA\x0bB\nunknown\x0b+1\n",
+                "unknown\x0b+1",
+                "call",
+            ),
+            (
+                "値 = 1\n文字 = \"a\x0bb\"; 正規 = /a\x0cb/ # コメント\x0b保持\n値\x0b+1\n値\\\n+2\nputs(値\x0b?3:4)\n",
+                "値\x0b+1",
+                "binary",
+            ),
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{text:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                assert_original_coordinates(&tree, &text);
+                let original_snippet =
+                    snippet.replace('\n', if text.contains("\r\n") { "\r\n" } else { "\n" });
+                assert_eq!(kind_of(&text, &original_snippet), kind, "{text:?}");
+                if source.starts_with("%w") {
+                    assert_eq!(
+                        kinds(&tree)
+                            .iter()
+                            .filter(|kind| *kind == "bare_string")
+                            .count(),
+                        2,
+                        "{text:?}"
+                    );
+                }
+                if source.starts_with("foo.zero?") {
+                    assert!(
+                        tree.root_node()
+                            .named_child(0)
+                            .unwrap()
+                            .child_by_field_name("block")
+                            .is_some(),
+                        "{text:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// 水平空白 VT が後ろの通常改行を消したり、無効な引数を有効な call に戻したりしない。
+    #[test]
+    fn vertical_tabs_keep_line_breaks_and_invalid_bound_arguments() {
+        for ending in ["\n", "\r\n"] {
+            let source = format!("x = 1{ending}x\x0b{ending}+1{ending}");
+            let tree = parse(&source).unwrap();
+            assert!(!tree.root_node().has_error(), "{source:?}");
+            assert_eq!(
+                tree.root_node().named_child(1).unwrap().kind(),
+                "identifier"
+            );
+            assert_original_coordinates(&tree, &source);
+            for invalid in ["x = 1\nx\x0b+1, 2\n", "x = 1\nx\x0b+1 do\nend\n"] {
+                let source = invalid.replace('\n', ending);
+                let tree = parse(&source).unwrap();
+                assert!(
+                    tree.root_node().has_error(),
+                    "{source:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                assert_original_coordinates(&tree, &source);
+            }
+        }
+    }
+
+    /// heredoc がシフトと読まれれば、本文だった VT の字句分類とその中の束縛も計算し直す。
+    #[test]
+    fn vertical_tabs_are_reclassified_after_literal_recovery() {
+        for source in [
+            "x = []\nx <<EOS\ny\x0b+1\nEOS\n",
+            "x = []\nx <<EOS\n#{y = 1}\nEOS\ny\x0b+1\n",
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{text:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                assert_eq!(kind_of(&text, "y\x0b+1"), "call", "{text:?}");
+                assert_original_coordinates(&tree, &text);
+            }
+        }
+    }
+
+    /// grammar が葉外へ落とす既存の literal 制約では、元の VT/FF を空白と誤分類しない。
+    /// この保護自体を、grammar が character 全範囲や control 区切りを読める証拠にはしない。
+    #[test]
+    fn control_literal_boundaries_are_preserved_despite_grammar_recovery() {
+        for control in ['\x0b', '\x0c'] {
+            for source in [
+                format!("puts ?\\{control}\n"),
+                format!("%Q{control}a b{control}\n"),
+                format!("%Q{control}#{{ {{ \"a\": :b }}; obj.`(1) }}{control}\n"),
+            ] {
+                let tree = super::parse_raw(&source).unwrap();
+                let controls: Vec<_> = source
+                    .bytes()
+                    .enumerate()
+                    .filter_map(|(i, b)| matches!(b, b'\x0b' | b'\x0c').then_some(i))
+                    .collect();
+                let literals = sonicop_prism_compat::control_literals(source.as_bytes());
+                assert!(
+                    super::whitespace_controls(&tree, &controls, &literals, &[]).is_empty(),
+                    "{source:?}: {literals:?}"
+                );
+                assert_original_coordinates(&parse(&source).unwrap(), &source);
+            }
+        }
+    }
+
+    /// 実 Ruby と本家の対象版で異なる capture 束縛も、同じ Walk の位置情報で保護を選ぶ。
+    #[test]
+    fn control_literal_protection_follows_configured_bindings() {
+        for (target, engine, bound) in [
+            ("2.7", "default", true),
+            ("3.3", "parser_whitequark", false),
+            ("3.3", "parser_prism", false),
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            let path = directory.path().join(".rubocop.yml");
+            std::fs::write(
+                &path,
+                format!("AllCops:\n  TargetRubyVersion: {target}\n  ParserEngine: {engine}\n"),
+            )
+            .unwrap();
+            let config = crate::config::Config::load(Some(&path), directory.path()).unwrap();
+            let semantics = crate::regexp_ast::Semantics::from_config(&config);
+            for control in ['\x0b', '\x0c'] {
+                for ending in ["\n", "\r\n"] {
+                    let text =
+                        format!("/#{{'a'}}(?<y>.)/ =~ text; y %Q{control}+ 1{control}{ending}");
+                    let tree = super::parse_configured(&text, semantics).unwrap();
+                    if bound {
+                        assert!(
+                            !tree.root_node().has_error(),
+                            "{text:?}: {}",
+                            tree.root_node().to_sexp()
+                        );
+                    } else {
+                        // unsupported literal の元木を保ち、新しい valid binary へ偽装修復しない。
+                        assert_eq!(
+                            tree.root_node().to_sexp(),
+                            super::parse_raw(&text).unwrap().root_node().to_sexp(),
+                            "{target}/{engine} {text:?}"
+                        );
+                    }
+                    assert_original_coordinates(&tree, &text);
+                }
+            }
+        }
+    }
+
+    /// literal 本文で回復した偽の宣言が、後続の未知名の literal 保護を撤回しない。
+    #[test]
+    fn ghost_literal_bindings_do_not_add_an_operator() {
+        for source in [
+            "%Q\x0by = 1\x0b\ny %Q\x0b+ 1\x0b\n",
+            "%Q\x0bdef m(y); end\x0b\ny %Q\x0b+ 1\x0b\n",
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert_eq!(
+                    tree.root_node().to_sexp(),
+                    super::parse_raw(&text).unwrap().root_node().to_sexp(),
+                    "{text:?}"
+                );
+                assert_original_coordinates(&tree, &text);
             }
         }
     }

@@ -252,6 +252,19 @@ byte 範囲と TSPoint を保つ。未宣言の名前や明示した receiver �
 `yield`・`super` も先頭 keyword から同じ複数識別文字の規則を調べる。読み直しで束縛が消えた
 手がかりは撤回する。colon 欠落は原本を読む backend で診断し、有効なコードへすり替えない。
 
+**VT は Ruby の水平空白。** 元の VT と改ページは、現在の木のトークン外にある位置だけ同じ長さの
+空白へ置換する。文字列・正規表現・コメント・heredoc の終端名の中では原文の文字を保つ。
+character の escape や percent literal の制御文字区切りは grammar が葉外へ落とすこともあるため、
+原本の Prism token で開始と終了を対応付けて補う。現時点の木が同じ開始を `%` や `?` の演算子として
+読み、その直前名がその字句位置で束縛済みの場合だけ、終了側も一緒に補助保護を撤回する。
+回復した literal 内の代入・仮引数・scope は、この追加判定の根拠にしない。範囲は宣言の来歴だけに
+使い、本文や補間コード全体を空白化から除外しない。`%w[a\v b]` の WORDS_SEP は保護しない。
+SpaceAroundOperators も同じ根拠で保護中の開始だけを除外する。最初の誤 `%` 補正で literal 開始を
+壊すと次の pass が本文を code と読み、新しい診断と補正を足すため。本文や補間の演算子を範囲ごと
+沈黙させず、VT/FF のない通常ファイルでは追加の字句解析を行わない。
+control 区切り等を読む grammar 自体の既存制約は残る。元の文字を保護したことを、その不完全な木が
+Ruby を正しく表す証拠にしない。診断・補正バイトを元版と比較し、新しい受理や補正の成功へ数えない。
+
 **source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
 `build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。
 `cargo metadata` の `target_directory` を使い、取得失敗時は Makefile の生成前に止める。

@@ -5112,13 +5112,11 @@ fn ambiguous_arguments_keep_ruby_whitespace_and_reference_correction_bytes() {
     }
 }
 
-/// 本家 1.89.0 の実 CLI で記録した三項演算子・文字リテラルの診断全項目と補正バイト。
+/// 本家 1.89.0 の実 CLI で記録した parser 回帰の診断全項目と補正バイト。
 /// CRLF は既存の意図的差分に従ってディスクでも保つ。colon 欠落などは原本を読む診断 backend が
 /// 判定し、tree-sitter が回復した木を受理しても補正で原本を書き換えない。
-#[test]
-fn local_ternary_reports_and_corrections_match_recorded_upstream() {
-    let fixture: serde_json::Value =
-        serde_json::from_str(include_str!("fixtures/local_ternary_reports.json")).unwrap();
+fn assert_recorded_parser_reports(fixture: &str, only: &str) {
+    let fixture: serde_json::Value = serde_json::from_str(fixture).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     assert!(!cases.is_empty());
     for case in cases {
@@ -5136,7 +5134,7 @@ fn local_ternary_reports_and_corrections_match_recorded_upstream() {
                 "--cache",
                 "false",
                 "--only",
-                "Layout/SpaceAroundOperators,Lint/Syntax",
+                only,
                 "--format",
                 "json",
             ]);
@@ -5170,4 +5168,21 @@ fn local_ternary_reports_and_corrections_match_recorded_upstream() {
             );
         }
     }
+}
+
+#[test]
+fn local_ternary_reports_and_corrections_match_recorded_upstream() {
+    assert_recorded_parser_reports(
+        include_str!("fixtures/local_ternary_reports.json"),
+        "Layout/SpaceAroundOperators,Lint/Syntax",
+    );
+}
+
+/// 元 VT と通常の改行、literal 内容、文字区切りとブロックを同じ本家記録で照合する。
+#[test]
+fn vertical_tab_reports_and_corrections_match_recorded_upstream() {
+    assert_recorded_parser_reports(
+        include_str!("fixtures/vertical_tab_reports.json"),
+        "Lint/Syntax,Layout/SpaceAroundOperators,Style/BlockDelimiters",
+    );
 }
