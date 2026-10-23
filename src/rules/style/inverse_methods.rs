@@ -111,13 +111,12 @@ impl<'t> Call<'t> {
             // `a == b` is a `send` upstream, named after the operator.
             "binary" => {
                 let selector = node.field("operator")?;
-                // **`/re/ =~ str` is a `match_with_lvasgn`, not a `send`.** The pattern asks for a
-                // `send`, so a match written with the regexp on the left is outside this cop --
-                // only `str =~ /re/` reaches it.
+                // match_with_lvasgn は send パターンに一致しない。補間がある場合の
+                // 分類も版と engine の共通判定を使う。
                 if context.source.node_text(selector) == "=~"
                     && node
                         .field("left")
-                        .is_some_and(|left| left.kind_str() == "regex")
+                        .is_some_and(|left| context.static_regexp(left))
                 {
                     return None;
                 }

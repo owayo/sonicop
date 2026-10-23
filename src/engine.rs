@@ -1008,13 +1008,13 @@ fn inspect_planned(
     plan: &RulePlan,
     check_directives: bool,
 ) -> Result<FileReport> {
-    // Settled before the file is parsed, so every cop sees the source Ruby would have read rather
-    // than only the one that reports the parse.
+    // NUL の分類にも本体の parse と同じ束縛を使い、すべての cop に同じ本文を渡す。
     let length_as_read = text.len();
-    let text = crate::nul_bytes::as_ruby_reads_it(&text).unwrap_or(text);
+    let semantics = crate::regexp_ast::Semantics::from_config(config);
+    let text = crate::nul_bytes::as_ruby_reads_it_configured(&text, semantics).unwrap_or(text);
     let source = SourceFile::new(path, text).read_as_long_as(length_as_read);
     let tree = crate::profile::phase(crate::profile::Phase::Parse, || {
-        crate::parser::parse(source.text())
+        crate::parser::parse_configured(source.text(), semantics)
     })
     .context("Ruby parser returned no syntax tree")?;
     let ast = crate::profile::phase(crate::profile::Phase::Index, || {

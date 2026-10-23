@@ -157,10 +157,9 @@ fn collect_binary(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec<Ope
     if matches!(text, "+" | "-") && matches!(left.kind_str(), "return" | "break" | "next") {
         return;
     }
-    // `/re/ =~ str` is a `match_with_lvasgn`, not a send, because the match may bind the
-    // pattern's named captures as local variables. The cop has no handler for it, so the
-    // operator goes unchecked -- unlike `str =~ /re/` and `/re/ !~ str`, which stay sends.
-    if text == "=~" && left.kind_str() == "regex" {
+    // 本家が match_with_lvasgn と読む場合だけ、send 用の演算子検査から外す。
+    // 静的な文字列補間を畳み込むかは、選択した engine と対象版によって変わる。
+    if text == "=~" && context.static_regexp(left) {
         return;
     }
     // **`a +42` is a call carrying a signed argument, not an addition.** Ruby reads a sign as

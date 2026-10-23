@@ -363,6 +363,14 @@ error の合成 shift ではトークンを消費せず errstatus を減らさ�
 LF/CRLF、文字単位の EOF 範囲、同範囲で先の診断を残す順序、-a/-A が原本を変更しないことを
 実 CLI の記録で検査する。中間ノードも rayon worker の小さいスタックで反復して解放する。
 
+**正規表現の AST 分類と安全な束縛を分ける。** whitequark は 3.3 未満の対象で、文字列だけの
+補間や空 begin まで連結し、`=~` を `match_with_lvasgn` にする。3.3 以上は明示 whitequark でも
+補間があれば send。`regexp_ast::Semantics` の分類を cop 間で共有する。名前の宣言は同じ条件だけで
+決めず、本家と Ruby 2.7 の畳み込みの両方に残る capture だけを使う。空 begin・先行空文・捨てる str の
+架空の宣言に追従すると、空白補正だけで y(+1) を y() + 1 へ変えて実行を壊す。
+一方、普通の単一 str 補間は実 Ruby 2.7 でも宣言するため、Ruby 4 の実行を根拠に拒否しない。
+版・engine 別の実 CLI、旧 Ruby 本体での実行と陰性対照は `docs/regexp-semantics.md` に記録する。
+
 ## Adding a cop test
 
 `tests/cops.rs` uses upstream's caret notation: the annotation points at the preceding source line,

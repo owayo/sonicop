@@ -5,7 +5,6 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 use super::ambiguity::scan;
-use crate::rules::send_node::named_children_of;
 use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a \
@@ -44,14 +43,6 @@ fn matches_a_static_regexp(owner: Node<'_>, context: &RuleContext<'_>) -> bool {
     {
         return false;
     }
-    // An interpolating regexp is not known until the program runs and stays an ordinary call.
-    first
-        .field("left")
-        .filter(|left| left.kind_str() == "regex")
-        .is_some_and(|left| {
-            let _cursor = left.walk();
-            !named_children_of(left, context)
-                .into_iter()
-                .any(|part| part.kind_str() == "interpolation")
-        })
+    // `match_with_lvasgn` の条件は選択した engine と版で決まる。
+    first.field("left").is_some_and(|left| context.static_regexp(left))
 }

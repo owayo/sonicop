@@ -110,6 +110,7 @@ pub(super) enum Order {
 pub(super) struct Walk<'a> {
     source: &'a SourceFile,
     target_ruby: RubyVersion,
+    semantics: crate::regexp_ast::Semantics,
     /// The file's node index. The walk asks for a parent on every identifier it meets, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
@@ -129,6 +130,7 @@ impl<'a> Walk<'a> {
         Self {
             source: context.source,
             target_ruby: context.target_ruby_version(),
+            semantics: context.regexp_semantics(),
             index: context.ast_index(),
             heredocs: super::support::heredoc_bodies(context.ast_index()),
             locals,
@@ -139,6 +141,16 @@ impl<'a> Walk<'a> {
 
     pub(super) fn run<F: FnMut(Emit<'a>)>(&self, body: Node<'a>, sink: &mut F) {
         self.visit(body, sink);
+    }
+
+    fn static_regexp_match(&self, node: Node<'_>) -> bool {
+        operator(node) == Some("=~")
+            && node.field("left").is_some_and(|left| {
+                self.semantics
+                    .is_static(left, self.source.text(), |beginning| {
+                        self.heredocs.get(&beginning.id()).copied()
+                    })
+            })
     }
 
     fn text(&self, node: Node<'_>) -> &'a str {
@@ -435,7 +447,7 @@ impl<'a> Walk<'a> {
             return;
         }
         // `/…/ =~ text` is a `match_with_lvasgn`, not a call.
-        if symbol == "=~" && static_regexp_match(node) {
+        if symbol == "=~" && self.static_regexp_match(node) {
             self.children(node, sink);
             return;
         }
@@ -824,7 +836,7 @@ impl<'a> Walk<'a> {
             "identifier" => self.receiverless_call(node),
             "binary" => {
                 !matches!(operator(node), Some("&&" | "||" | "and" | "or"))
-                    && !static_regexp_match(node)
+                    && !self.static_regexp_match(node)
             }
             "unary" => !folds_into_literal(node, operator(node).unwrap_or("")),
             "assignment" => node
@@ -1076,19 +1088,6 @@ fn setter_kind(target: Node<'_>) -> Kind {
     } else {
         Kind::Send
     }
-}
-
-/// Whether `=~` is applied to a regexp the parser can compile while it reads the file, which it
-/// turns into a `match_with_lvasgn` rather than a call. One holding an interpolation is not known
-/// until the program runs and stays an ordinary call.
-fn static_regexp_match(node: Node<'_>) -> bool {
-    node.field("left")
-        .filter(|left| left.kind_str() == "regex")
-        .is_some_and(|left| {
-            !named_children(left)
-                .iter()
-                .any(|part| part.kind_str() == "interpolation")
-        })
 }
 
 /// The targets of a multiple assignment, flattened the way `MasgnNode#assignments` flattens them.

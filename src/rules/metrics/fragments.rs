@@ -70,7 +70,8 @@ impl Fragments {
             operators.insert(part.id());
         }
         Self {
-            tree: blanked.parse(),
+            // 回復した断片でも、外側と同じ対象版の capture 束縛を使う。
+            tree: blanked.parse(context.regexp_semantics()),
             hosts,
             operators,
         }
@@ -170,12 +171,12 @@ impl<'a> Blanked<'a> {
         self.used = true;
     }
 
-    fn parse(self) -> Option<Tree> {
+    fn parse(self, semantics: crate::regexp_ast::Semantics) -> Option<Tree> {
         if !self.used {
             return None;
         }
         let text = String::from_utf8(self.bytes).ok()?;
-        crate::parser::parse(&text)
+        crate::parser::parse_configured(&text, semantics)
     }
 }
 

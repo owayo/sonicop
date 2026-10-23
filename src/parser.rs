@@ -39,6 +39,21 @@ thread_local! {
 /// `None` means the parser produced no tree at all, which is not the same as a tree holding
 /// errors: a source the grammar cannot read still comes back as a tree with `ERROR` nodes.
 pub(crate) fn parse(text: &str) -> Option<Tree> {
+    parse_with_semantics(text, crate::regexp_ast::Semantics::default())
+}
+
+/// 検査と補正後の再検査では、選択した engine と版の正規表現の束縛規則を使う。
+pub(crate) fn parse_configured(
+    text: &str,
+    semantics: crate::regexp_ast::Semantics,
+) -> Option<Tree> {
+    if semantics == crate::regexp_ast::Semantics::default() {
+        return parse(text);
+    }
+    parse_with_semantics(text, semantics)
+}
+
+fn parse_with_semantics(text: &str, semantics: crate::regexp_ast::Semantics) -> Option<Tree> {
     let form_feeds: Vec<usize> = text
         .bytes()
         .enumerate()
@@ -58,6 +73,7 @@ pub(crate) fn parse(text: &str) -> Option<Tree> {
                 tree.root_node(),
                 &readable.analysis,
                 &state.hints,
+                semantics,
             ),
         };
         Some((tree, next))

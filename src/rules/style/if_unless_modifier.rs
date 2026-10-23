@@ -221,7 +221,7 @@ impl Cop<'_, '_> {
                 .is_some_and(|operator| self.source(operator) == "=~")
             && condition
                 .field("left")
-                .is_some_and(|left| left.kind_str() == "regex" && is_static_regexp(left))
+                .is_some_and(|left| self.context.static_regexp(left))
     }
 
     fn single_line_as_modifier(&self, conditional: &Conditional<'_>) -> bool {
@@ -814,11 +814,3 @@ static DISABLES_COP: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"#(?-u:\s)*rubocop(?-u:\s)*:(?-u:\s)*(?:disable|todo)(?-u:\s)*(?:[^,],)*(?-u:\s)*(?:all|Style/IfUnlessModifier)")
         .unwrap()
 });
-
-/// `static_regexp_node`: a regexp the parser can compile while parsing, which is any literal whose
-/// parts are all plain text.
-fn is_static_regexp(regexp: Node<'_>) -> bool {
-    let mut cursor = regexp.walk();
-    regexp.named_children(&mut cursor)
-        .all(|part| part.kind_str() != "interpolation")
-}

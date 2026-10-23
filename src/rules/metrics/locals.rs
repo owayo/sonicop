@@ -11,6 +11,7 @@
 //! read afterwards, and whether it is ever read at all, belong to `Lint/UselessAssignment` and are
 //! deliberately not tracked here.
 
+use std::borrow::Cow;
 use std::collections::HashSet;
 
 use tree_sitter::Node;
@@ -31,6 +32,7 @@ impl Locals {
         let mut walker = Walker {
             source: context.source,
             target_ruby: context.target_ruby_version(),
+            semantics: context.regexp_semantics(),
             index: context.ast_index(),
             heredocs: super::support::heredoc_bodies(context.ast_index()),
             fragments,
@@ -52,7 +54,8 @@ impl Locals {
 /// One static scope. A block sees the names of the scope around it; a method, class or module
 /// starts from nothing.
 struct Frame<'a> {
-    names: HashSet<&'a str>,
+    // 復号・補間した捕捉名は、原本の連続した部分文字列とは限らない。
+    names: HashSet<Cow<'a, str>>,
     block: bool,
 }
 
@@ -68,6 +71,7 @@ impl Frame<'_> {
 struct Walker<'a> {
     source: &'a SourceFile,
     target_ruby: RubyVersion,
+    semantics: crate::regexp_ast::Semantics,
     /// The file's node index: `is_variable_read` asks for a parent on every identifier, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
@@ -86,7 +90,7 @@ impl<'a> Walker<'a> {
 
     fn declare(&mut self, name: &'a str) {
         if let Some(frame) = self.stack.last_mut() {
-            frame.names.insert(name);
+            frame.names.insert(Cow::Borrowed(name));
         }
     }
 
@@ -419,24 +423,31 @@ impl<'a> Walker<'a> {
         }
     }
 
-    /// `/(?<name>…)/ =~ text` declares one local per named capture. Only a regexp the parser can
-    /// compile does so; one holding an interpolation stays an ordinary `=~` call.
+    /// 型の分類だけでなく、共通の名前抽出で安全に宣言できる capture を使う。
     fn visit_binary(&mut self, node: Node<'_>) {
         let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
             self.visit_children(node);
             return;
         };
         if operator(node) != Some("=~")
-            || left.kind_str() != "regex"
-            || named_children(left)
-                .iter()
-                .any(|part| part.kind_str() == "interpolation")
+            || !self
+                .semantics
+                .is_static(left, self.source.text(), |beginning| {
+                    self.heredocs.get(&beginning.id()).copied()
+                })
         {
             self.visit_children(node);
             return;
         }
-        for name in named_captures(self.text(left)) {
-            self.declare(name);
+        for name in self
+            .semantics
+            .named_groups(left, self.source.text(), |beginning| {
+                self.heredocs.get(&beginning.id()).copied()
+            })
+        {
+            if let Some(frame) = self.stack.last_mut() {
+                frame.names.insert(Cow::Owned(name));
+            }
         }
         self.visit(left);
         self.visit(right);
@@ -585,38 +596,3 @@ fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool 
 
 /// The names a block written without parameters can reach for, which the parser declares for it.
 const NUMBERED_PARAMETERS: [&str; 9] = ["_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9"];
-
-/// The names a regexp literal captures, in the order they are written.
-pub(super) fn named_captures(source: &str) -> Vec<&str> {
-    let bytes = source.as_bytes();
-    let mut names = Vec::new();
-    let mut index = 0;
-    while index + 3 < bytes.len() {
-        if bytes[index] == b'\\' {
-            index += 2;
-            continue;
-        }
-        if bytes[index] == b'('
-            && bytes[index + 1] == b'?'
-            && matches!(bytes[index + 2], b'<' | b'\'')
-        {
-            let close = if bytes[index + 2] == b'<' {
-                b'>'
-            } else {
-                b'\''
-            };
-            // `(?<=` and `(?<!` are look-behind, not a capture.
-            if close == b'>' && matches!(bytes[index + 3], b'=' | b'!') {
-                index += 4;
-                continue;
-            }
-            if let Some(end) = source[index + 3..].find(close as char) {
-                names.push(&source[index + 3..index + 3 + end]);
-                index += 3 + end + 1;
-                continue;
-            }
-        }
-        index += 1;
-    }
-    names
-}
