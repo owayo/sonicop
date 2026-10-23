@@ -4475,6 +4475,23 @@ mod semicolon_shapes {
 
     const SEMICOLON: &str = "Style/Semicolon";
 
+    /// 本家の AST は空文・コメント・DATA を式として持たず、cop の入口で検査を終える。
+    #[test]
+    fn a_source_without_an_expression_keeps_its_empty_statements() {
+        for source in [
+            ";",
+            ";;;\n",
+            " \t; \n",
+            ";\n;\n",
+            "; # note\n",
+            "# note\n;\n",
+            ";\n__END__\nkept;\n",
+            ";\0kept;\n",
+        ] {
+            expect_no_offenses(SEMICOLON, source);
+        }
+    }
+
     /// 本家は式の分割まで直す。`;` を改行に置き換えるので、後ろの空白はそのまま残る。
     #[test]
     fn a_separator_between_expressions_is_corrected_into_a_line_break() {
