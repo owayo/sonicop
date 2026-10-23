@@ -1,0 +1,4088 @@
+{
+  "reference": "RuboCop 1.89.0 / Ruby 4.0.8",
+  "verified_targets": [
+    "2.7",
+    "3.4"
+  ],
+  "verified_runs": 12,
+  "cases": [
+    {
+      "name": "space-+1",
+      "source": "unknown +1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(+1)\n"
+    },
+    {
+      "name": "space--1",
+      "source": "unknown -1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(-1)\n"
+    },
+    {
+      "name": "space-*args",
+      "source": "unknown *args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(*args)\n"
+    },
+    {
+      "name": "space-**kwargs",
+      "source": "unknown **kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(**kwargs)\n"
+    },
+    {
+      "name": "space-&blk",
+      "source": "unknown &blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(&blk)\n"
+    },
+    {
+      "name": "space-/re/",
+      "source": "unknown /re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(/re/)\n"
+    },
+    {
+      "name": "spaces-+1",
+      "source": "unknown  +1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( +1)\n"
+    },
+    {
+      "name": "spaces--1",
+      "source": "unknown  -1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( -1)\n"
+    },
+    {
+      "name": "spaces-*args",
+      "source": "unknown  *args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( *args)\n"
+    },
+    {
+      "name": "spaces-**kwargs",
+      "source": "unknown  **kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 2,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 2,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( **kwargs)\n"
+    },
+    {
+      "name": "spaces-&blk",
+      "source": "unknown  &blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( &blk)\n"
+    },
+    {
+      "name": "spaces-/re/",
+      "source": "unknown  /re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 1,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "unknown( /re/)\n"
+    },
+    {
+      "name": "tabs-+1",
+      "source": "unknown\t \t+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t+1)\n"
+    },
+    {
+      "name": "tabs--1",
+      "source": "unknown\t \t-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t-1)\n"
+    },
+    {
+      "name": "tabs-*args",
+      "source": "unknown\t \t*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t*args)\n"
+    },
+    {
+      "name": "tabs-**kwargs",
+      "source": "unknown\t \t**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t**kwargs)\n"
+    },
+    {
+      "name": "tabs-&blk",
+      "source": "unknown\t \t&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t&blk)\n"
+    },
+    {
+      "name": "tabs-/re/",
+      "source": "unknown\t \t/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 1,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "unknown( \t/re/)\n"
+    },
+    {
+      "name": "ff-+1",
+      "source": "unknown\f+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(+1)\n"
+    },
+    {
+      "name": "ff--1",
+      "source": "unknown\f-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(-1)\n"
+    },
+    {
+      "name": "ff-*args",
+      "source": "unknown\f*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(*args)\n"
+    },
+    {
+      "name": "ff-**kwargs",
+      "source": "unknown\f**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(**kwargs)\n"
+    },
+    {
+      "name": "ff-&blk",
+      "source": "unknown\f&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(&blk)\n"
+    },
+    {
+      "name": "ff-/re/",
+      "source": "unknown\f/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(/re/)\n"
+    },
+    {
+      "name": "cr-+1",
+      "source": "unknown\r+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(+1)\n"
+    },
+    {
+      "name": "cr--1",
+      "source": "unknown\r-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(-1)\n"
+    },
+    {
+      "name": "cr-*args",
+      "source": "unknown\r*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(*args)\n"
+    },
+    {
+      "name": "cr-**kwargs",
+      "source": "unknown\r**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(**kwargs)\n"
+    },
+    {
+      "name": "cr-&blk",
+      "source": "unknown\r&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(&blk)\n"
+    },
+    {
+      "name": "cr-/re/",
+      "source": "unknown\r/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(/re/)\n"
+    },
+    {
+      "name": "continued-+1",
+      "source": "unknown\\\n+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n+1)\n"
+    },
+    {
+      "name": "continued--1",
+      "source": "unknown\\\n-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n-1)\n"
+    },
+    {
+      "name": "continued-*args",
+      "source": "unknown\\\n*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n*args)\n"
+    },
+    {
+      "name": "continued-**kwargs",
+      "source": "unknown\\\n**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n**kwargs)\n"
+    },
+    {
+      "name": "continued-&blk",
+      "source": "unknown\\\n&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n&blk)\n"
+    },
+    {
+      "name": "continued-/re/",
+      "source": "unknown\\\n/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n/re/)\n"
+    },
+    {
+      "name": "space_continued-+1",
+      "source": "unknown \\\n+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n+1)\n"
+    },
+    {
+      "name": "space_continued--1",
+      "source": "unknown \\\n-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n-1)\n"
+    },
+    {
+      "name": "space_continued-*args",
+      "source": "unknown \\\n*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n*args)\n"
+    },
+    {
+      "name": "space_continued-**kwargs",
+      "source": "unknown \\\n**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n**kwargs)\n"
+    },
+    {
+      "name": "space_continued-&blk",
+      "source": "unknown \\\n&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n&blk)\n"
+    },
+    {
+      "name": "space_continued-/re/",
+      "source": "unknown \\\n/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\\\n/re/)\n"
+    },
+    {
+      "name": "indent_continued-+1",
+      "source": "unknown\\\n  +1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  +1)\n"
+    },
+    {
+      "name": "indent_continued--1",
+      "source": "unknown\\\n  -1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  -1)\n"
+    },
+    {
+      "name": "indent_continued-*args",
+      "source": "unknown\\\n  *args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  *args)\n"
+    },
+    {
+      "name": "indent_continued-**kwargs",
+      "source": "unknown\\\n  **kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 4,
+            "length": 2,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 4,
+            "length": 2,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  **kwargs)\n"
+    },
+    {
+      "name": "indent_continued-&blk",
+      "source": "unknown\\\n  &blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  &blk)\n"
+    },
+    {
+      "name": "indent_continued-/re/",
+      "source": "unknown\\\n  /re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n  /re/)\n"
+    },
+    {
+      "name": "twice_continued-+1",
+      "source": "unknown\\\n\\\n+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n+1)\n"
+    },
+    {
+      "name": "twice_continued--1",
+      "source": "unknown\\\n\\\n-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n-1)\n"
+    },
+    {
+      "name": "twice_continued-*args",
+      "source": "unknown\\\n\\\n*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n*args)\n"
+    },
+    {
+      "name": "twice_continued-**kwargs",
+      "source": "unknown\\\n\\\n**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n**kwargs)\n"
+    },
+    {
+      "name": "twice_continued-&blk",
+      "source": "unknown\\\n\\\n&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n&blk)\n"
+    },
+    {
+      "name": "twice_continued-/re/",
+      "source": "unknown\\\n\\\n/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n\\\n/re/)\n"
+    },
+    {
+      "name": "receiver-ff-+1",
+      "source": "object.unknown\f+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(+1)\n"
+    },
+    {
+      "name": "safe-receiver-ff-+1",
+      "source": "object&.unknown\f+1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "object&.unknown\f+1\n"
+    },
+    {
+      "name": "yield-ff-+1",
+      "source": "def run\n  yield\f+1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  yield\f+1\nend\n"
+    },
+    {
+      "name": "super-ff-+1",
+      "source": "def run\n  super\f+1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  super\f+1\nend\n"
+    },
+    {
+      "name": "receiver-ff--1",
+      "source": "object.unknown\f-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(-1)\n"
+    },
+    {
+      "name": "safe-receiver-ff--1",
+      "source": "object&.unknown\f-1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "object&.unknown\f-1\n"
+    },
+    {
+      "name": "yield-ff--1",
+      "source": "def run\n  yield\f-1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  yield\f-1\nend\n"
+    },
+    {
+      "name": "super-ff--1",
+      "source": "def run\n  super\f-1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  super\f-1\nend\n"
+    },
+    {
+      "name": "receiver-ff-*args",
+      "source": "object.unknown\f*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(*args)\n"
+    },
+    {
+      "name": "safe-receiver-ff-*args",
+      "source": "object&.unknown\f*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(*args)\n"
+    },
+    {
+      "name": "yield-ff-*args",
+      "source": "def run\n  yield\f*args\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(*args)\nend\n"
+    },
+    {
+      "name": "super-ff-*args",
+      "source": "def run\n  super\f*args\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(*args)\nend\n"
+    },
+    {
+      "name": "receiver-ff-**kwargs",
+      "source": "object.unknown\f**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 2,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 2,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(**kwargs)\n"
+    },
+    {
+      "name": "safe-receiver-ff-**kwargs",
+      "source": "object&.unknown\f**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(**kwargs)\n"
+    },
+    {
+      "name": "yield-ff-**kwargs",
+      "source": "def run\n  yield\f**kwargs\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 10,
+            "length": 2,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 10,
+            "length": 2,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(**kwargs)\nend\n"
+    },
+    {
+      "name": "super-ff-**kwargs",
+      "source": "def run\n  super\f**kwargs\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 10,
+            "length": 2,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 10,
+            "length": 2,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(**kwargs)\nend\n"
+    },
+    {
+      "name": "receiver-ff-&blk",
+      "source": "object.unknown\f&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(&blk)\n"
+    },
+    {
+      "name": "safe-receiver-ff-&blk",
+      "source": "object&.unknown\f&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(&blk)\n"
+    },
+    {
+      "name": "super-ff-&blk",
+      "source": "def run\n  super\f&blk\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(&blk)\nend\n"
+    },
+    {
+      "name": "receiver-ff-/re/",
+      "source": "object.unknown\f/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 16,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 1,
+            "line": 1,
+            "column": 16
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(/re/)\n"
+    },
+    {
+      "name": "safe-receiver-ff-/re/",
+      "source": "object&.unknown\f/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 1,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(/re/)\n"
+    },
+    {
+      "name": "yield-ff-/re/",
+      "source": "def run\n  yield\f/re/\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(/re/)\nend\n"
+    },
+    {
+      "name": "super-ff-/re/",
+      "source": "def run\n  super\f/re/\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 9,
+            "length": 1,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(/re/)\nend\n"
+    },
+    {
+      "name": "local-ff-+1",
+      "source": "unknown = 1\nunknown\f+1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f+1\n"
+    },
+    {
+      "name": "local-ff--1",
+      "source": "unknown = 1\nunknown\f-1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f-1\n"
+    },
+    {
+      "name": "local-ff-*args",
+      "source": "unknown = 1\nunknown\f*args\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f*args\n"
+    },
+    {
+      "name": "local-ff-**kwargs",
+      "source": "unknown = 1\nunknown\f**kwargs\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f**kwargs\n"
+    },
+    {
+      "name": "local-ff-&blk",
+      "source": "unknown = 1\nunknown\f&blk\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f&blk\n"
+    },
+    {
+      "name": "local-ff-/2",
+      "source": "unknown = 1\nunknown\f/2\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\f/2\n"
+    },
+    {
+      "name": "later-local-ff",
+      "source": "unknown\f+1\nunknown = 1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "unknown(+1)\nunknown = 1\n"
+    },
+    {
+      "name": "receiver-continued-+1",
+      "source": "object.unknown\\\n+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n+1)\n"
+    },
+    {
+      "name": "safe-receiver-continued-+1",
+      "source": "object&.unknown\\\n+1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "object&.unknown\\\n+1\n"
+    },
+    {
+      "name": "yield-continued-+1",
+      "source": "def run\n  yield\\\n+1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  yield\\\n+1\nend\n"
+    },
+    {
+      "name": "super-continued-+1",
+      "source": "def run\n  super\\\n+1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  super\\\n+1\nend\n"
+    },
+    {
+      "name": "receiver-continued--1",
+      "source": "object.unknown\\\n-1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous negative number operator. Parenthesize the method arguments if it's surely a negative number operator, or add a whitespace to the right of the `-` if it should be a subtraction.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n-1)\n"
+    },
+    {
+      "name": "safe-receiver-continued--1",
+      "source": "object&.unknown\\\n-1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "object&.unknown\\\n-1\n"
+    },
+    {
+      "name": "yield-continued--1",
+      "source": "def run\n  yield\\\n-1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  yield\\\n-1\nend\n"
+    },
+    {
+      "name": "super-continued--1",
+      "source": "def run\n  super\\\n-1\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  super\\\n-1\nend\n"
+    },
+    {
+      "name": "receiver-continued-*args",
+      "source": "object.unknown\\\n*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n*args)\n"
+    },
+    {
+      "name": "safe-receiver-continued-*args",
+      "source": "object&.unknown\\\n*args\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(\n*args)\n"
+    },
+    {
+      "name": "yield-continued-*args",
+      "source": "def run\n  yield\\\n*args\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(\n*args)\nend\n"
+    },
+    {
+      "name": "super-continued-*args",
+      "source": "def run\n  super\\\n*args\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(\n*args)\nend\n"
+    },
+    {
+      "name": "receiver-continued-**kwargs",
+      "source": "object.unknown\\\n**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n**kwargs)\n"
+    },
+    {
+      "name": "safe-receiver-continued-**kwargs",
+      "source": "object&.unknown\\\n**kwargs\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 2,
+            "length": 2,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(\n**kwargs)\n"
+    },
+    {
+      "name": "yield-continued-**kwargs",
+      "source": "def run\n  yield\\\n**kwargs\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(\n**kwargs)\nend\n"
+    },
+    {
+      "name": "super-continued-**kwargs",
+      "source": "def run\n  super\\\n**kwargs\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 2,
+            "length": 2,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(\n**kwargs)\nend\n"
+    },
+    {
+      "name": "receiver-continued-&blk",
+      "source": "object.unknown\\\n&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n&blk)\n"
+    },
+    {
+      "name": "safe-receiver-continued-&blk",
+      "source": "object&.unknown\\\n&blk\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(\n&blk)\n"
+    },
+    {
+      "name": "super-continued-&blk",
+      "source": "def run\n  super\\\n&blk\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous block operator. Parenthesize the method arguments if it's surely a block operator, or add a whitespace to the right of the `&` if it should be a binary AND.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(\n&blk)\nend\n"
+    },
+    {
+      "name": "receiver-continued-/re/",
+      "source": "object.unknown\\\n/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object.unknown(\n/re/)\n"
+    },
+    {
+      "name": "safe-receiver-continued-/re/",
+      "source": "object&.unknown\\\n/re/\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "object&.unknown(\n/re/)\n"
+    },
+    {
+      "name": "yield-continued-/re/",
+      "source": "def run\n  yield\\\n/re/\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  yield(\n/re/)\nend\n"
+    },
+    {
+      "name": "super-continued-/re/",
+      "source": "def run\n  super\\\n/re/\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "def run\n  super(\n/re/)\nend\n"
+    },
+    {
+      "name": "local-continued-+1",
+      "source": "unknown = 1\nunknown\\\n+1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n+1\n"
+    },
+    {
+      "name": "local-continued--1",
+      "source": "unknown = 1\nunknown\\\n-1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n-1\n"
+    },
+    {
+      "name": "local-continued-*args",
+      "source": "unknown = 1\nunknown\\\n*args\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n*args\n"
+    },
+    {
+      "name": "local-continued-**kwargs",
+      "source": "unknown = 1\nunknown\\\n**kwargs\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n**kwargs\n"
+    },
+    {
+      "name": "local-continued-&blk",
+      "source": "unknown = 1\nunknown\\\n&blk\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n&blk\n"
+    },
+    {
+      "name": "local-continued-/2",
+      "source": "unknown = 1\nunknown\\\n/2\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown = 1\nunknown\\\n/2\n"
+    },
+    {
+      "name": "later-local-continued",
+      "source": "unknown\\\n+1\nunknown = 1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n+1)\nunknown = 1\n"
+    },
+    {
+      "name": "ordinary-newline",
+      "source": "unknown\n+1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown\n+1\n"
+    },
+    {
+      "name": "indented-newline",
+      "source": "unknown\n  +1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown\n  +1\n"
+    },
+    {
+      "name": "comment-newline",
+      "source": "unknown\\\n# comment\n  +1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown\\\n# comment\n  +1\n"
+    },
+    {
+      "name": "regexp-newline",
+      "source": "unknown\n  /re/\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown\n  /re/\n"
+    },
+    {
+      "name": "parentheses",
+      "source": "unknown(+1)\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown(+1)\n"
+    },
+    {
+      "name": "spaced-binary",
+      "source": "unknown + 1\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown + 1\n"
+    },
+    {
+      "name": "lambda",
+      "source": "unknown ->x { x }\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "unknown ->x { x }\n"
+    },
+    {
+      "name": "keyword-return",
+      "source": "def run\n  return *args\nend\n",
+      "inspected_offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "def run\n  return *args\nend\n"
+    },
+    {
+      "name": "unicode",
+      "source": "名前\\\n+1\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "名前(\n+1)\n"
+    },
+    {
+      "name": "static-regexp-match",
+      "source": "unknown\\\n/re/ =~ text\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown\\\n(/re/ =~ text)\n"
+    },
+    {
+      "name": "indented-static-regexp-match",
+      "source": "unknown\\\n  /re/ =~ text\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.",
+          "cop_name": "Lint/AmbiguousRegexpLiteral",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "corrected_source": "unknown\\\n  (/re/ =~ text)\n"
+    },
+    {
+      "name": "block",
+      "source": "unknown\\\n*args do |value|\n  value\nend\n",
+      "inspected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ],
+      "corrected_source": "unknown(\n*args) do |value|\n  value\nend\n"
+    }
+  ]
+}

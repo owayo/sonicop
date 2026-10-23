@@ -5022,3 +5022,92 @@ fn numeric_predicate_block_rejection_does_not_stop_other_files() {
         );
     }
 }
+
+#[test]
+fn ambiguous_arguments_keep_ruby_whitespace_and_reference_correction_bytes() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/ambiguity_whitespace_cli.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 126);
+    // 本家 1.89.0 の2版・2改行・3実行を記録し、全項目が同じことを確かめた。
+    for target in ["2.7", "3.4"] {
+        for ending in ["\n", "\r\n"] {
+            for correction in [None, Some("-a"), Some("-A")] {
+                let directory = project_with_ruby(&[], target);
+                fs::write(
+                    directory.path().join(".rubocop.yml"),
+                    format!("AllCops:\n  TargetRubyVersion: {target}\n  NewCops: disable\n"),
+                )
+                .unwrap();
+                for (index, case) in cases.iter().enumerate() {
+                    fs::write(
+                        directory.path().join(format!("input_{index:03}.rb")),
+                        case["source"].as_str().unwrap().replace('\n', ending),
+                    )
+                    .unwrap();
+                }
+                let mut run = command(directory.path());
+                run.args([
+                    "--config",
+                    ".rubocop.yml",
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+                    "--format",
+                    "json",
+                ]);
+                if let Some(flag) = correction {
+                    run.arg(flag);
+                }
+                let output = run
+                    .arg(".")
+                    .assert()
+                    .code(if correction.is_some() { 0 } else { 1 })
+                    .get_output()
+                    .stdout
+                    .clone();
+                let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                assert_eq!(found["summary"]["inspected_file_count"], cases.len());
+                assert_eq!(found["summary"]["target_file_count"], cases.len());
+                assert_eq!(found["files"].as_array().unwrap().len(), cases.len());
+                assert_eq!(found["summary"]["offense_count"], 94);
+                for (index, case) in cases.iter().enumerate() {
+                    let filename = format!("input_{index:03}.rb");
+                    let file = found["files"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|file| file["path"] == filename)
+                        .unwrap();
+                    let mode = if correction.is_some() {
+                        "corrected_offenses"
+                    } else {
+                        "inspected_offenses"
+                    };
+                    assert_eq!(
+                        file["offenses"], case[mode],
+                        "{} / {target} / {ending:?} / {correction:?}",
+                        case["name"]
+                    );
+                    let source = if correction.is_some() {
+                        "corrected_source"
+                    } else {
+                        "source"
+                    };
+                    // CRLF保持は既存の意図的差分。挿入した改行も元の形式へ戻す。
+                    assert_eq!(
+                        fs::read(directory.path().join(&filename)).unwrap(),
+                        case[source]
+                            .as_str()
+                            .unwrap()
+                            .replace('\n', ending)
+                            .as_bytes(),
+                        "{} / {target} / {ending:?} / {correction:?}",
+                        case["name"]
+                    );
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,12 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI 出力。
+
+再生成:
+  mise exec -- python3 scripts/record_ambiguity_whitespace.py
+
+126入力を、TargetRubyVersion 2.7 / 3.4、LF / CRLF、検査 / -a / -A の
+12実行で検査した。各実行で対象数・完了数126を確認し、診断全項目と
+補正本文の一致を検査してから同じ記録を畳み込んだ。
+構文エラーになる yield &blk はこの cop の有効な対照へ混ぜていない。
+
+CRLFの書き戻しは既存の意図的差分としてSonicopが原本の形式を保つ。
+記録中の裸のCRはこの正規化へ含めない。

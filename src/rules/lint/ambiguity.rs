@@ -27,6 +27,8 @@ pub(super) struct Ambiguity<'tree> {
     pub owner: Node<'tree>,
     /// The span the parentheses go around: the arguments as written.
     arguments: Range<usize>,
+    // 本家 Util#args_begin は、引数直前でなく selector 直後の1文字を置き換える。
+    opening: usize,
 }
 
 /// Keywords whose arguments the lexer never reads from `expr_arg`.
@@ -47,6 +49,35 @@ fn is_keyword_call(owner: Node<'_>) -> bool {
         || owner
             .field("method")
             .is_some_and(|method| KEYWORD_CALLS.contains(&method.kind_str()))
+}
+
+/// 通常の改行やコメントを越えず、Ruby の空白と行継続だけで引数へ達する位置。
+fn argument_opening(owner: Node<'_>, start: usize, bytes: &[u8]) -> Option<usize> {
+    let opening = owner
+        .field("method")
+        .or_else(|| owner.field("left"))
+        .map(|selector| selector.end_byte())
+        .or_else(|| {
+            KEYWORD_CALLS
+                .contains(&owner.kind_str())
+                .then(|| owner.start_byte() + owner.kind_str().len())
+        })?;
+    if opening >= start {
+        return None;
+    }
+    let gap = bytes.get(opening..start)?;
+    let mut offset = 0;
+    while offset < gap.len() {
+        offset += match gap[offset] {
+            b' ' | b'\t' | b'\r' | 0x0b | 0x0c => 1,
+            b'\\' if gap.get(offset + 1) == Some(&b'\n') => 2,
+            b'\\' if gap.get(offset + 1) == Some(&b'\r') && gap.get(offset + 2) == Some(&b'\n') => {
+                3
+            }
+            _ => return None,
+        };
+    }
+    Some(opening)
 }
 
 /// Every argument list written without parentheses whose first argument opens with `prefixes`.
@@ -80,10 +111,9 @@ pub(super) fn scan<'tree>(
         else {
             continue;
         };
-        // `super -1` and `yield -1`: a keyword cannot be the left operand of a subtraction, so the
-        // lexer raises no `ambiguous_prefix` for a leading `-` after one. Every other prefix still
-        // can be -- `super *a` is a multiplication as readily as a splat.
-        if prefix == "-" && is_keyword_call(owner) {
+        // yield / super は加減算の左辺にならないので、符号の +/- は曖昧でない。
+        // splat や regexp の警告は通常の呼び出しと同じく残す。
+        if matches!(prefix, "+" | "-") && is_keyword_call(owner) {
             continue;
         }
         let start = first.start_byte();
@@ -92,14 +122,14 @@ pub(super) fn scan<'tree>(
         if prefix == "-" && bytes.get(start + 1) == Some(&b'>') {
             continue;
         }
-        // A space in front and none behind is what makes the operator ambiguous.
-        if start == 0 || !matches!(bytes[start - 1], b' ' | b'\t') {
+        // 字下げの直前が通常の改行なら別の文。直前1byteだけでは区別できない。
+        let Some(opening) = argument_opening(owner, start, bytes) else {
             continue;
-        }
+        };
         let after = start + prefix.len();
         if bytes
             .get(after)
-            .is_none_or(|byte| byte.is_ascii_whitespace())
+            .is_none_or(|byte| byte.is_ascii_whitespace() || *byte == 0x0b)
         {
             continue;
         }
@@ -107,6 +137,7 @@ pub(super) fn scan<'tree>(
             operator: start..after,
             owner,
             arguments: list.byte_range(),
+            opening,
         });
     }
     found.extend(binary_operands(context, prefixes));
@@ -147,12 +178,12 @@ fn binary_operands<'tree>(
             continue;
         }
         let start = operator.start_byte();
-        if start == 0 || !matches!(bytes[start - 1], b' ' | b'\t') {
+        let Some(opening) = argument_opening(node, start, bytes) else {
             continue;
-        }
+        };
         if bytes
             .get(operator.end_byte())
-            .is_none_or(|byte| byte.is_ascii_whitespace())
+            .is_none_or(|byte| byte.is_ascii_whitespace() || *byte == 0x0b)
         {
             continue;
         }
@@ -160,6 +191,7 @@ fn binary_operands<'tree>(
             operator: operator.byte_range(),
             owner: node,
             arguments: operator.start_byte()..right.end_byte(),
+            opening,
         });
     }
     found
@@ -191,10 +223,9 @@ impl Ambiguity<'_> {
         ]
     }
 
-    pub(super) fn parenthesize(&self, context: &RuleContext<'_>) -> Vec<Edit> {
-        let opening = self.arguments.start - 1;
+    pub(super) fn parenthesize(&self, _context: &RuleContext<'_>) -> Vec<Edit> {
+        let opening = self.opening;
         let closing = self.arguments.end;
-        let _ = context;
         vec![
             Edit {
                 start: opening,
