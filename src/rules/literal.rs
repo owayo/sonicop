@@ -418,14 +418,7 @@ pub(super) fn decode_raw(body: &str, quoting: Quoting, delimiters: &[char]) -> V
 fn source_reading(context: &RuleContext<'_>) -> (bool, bool) {
     let binary_source = crate::engine::declared_literal_encoding(context.source.text())
         == crate::engine::LiteralEncoding::Binary;
-    let parser_whitequark = match context
-        .setting_of::<String>("AllCops", "ParserEngine")
-        .as_deref()
-    {
-        Some("parser_whitequark") => true,
-        Some("parser_prism") => false,
-        _ => context.target_ruby_version() < crate::ruby_version::RubyVersion::new(3, 3),
-    };
+    let parser_whitequark = context.parser_engine() == crate::rules::ParserEngine::Whitequark;
     (binary_source, parser_whitequark)
 }
 

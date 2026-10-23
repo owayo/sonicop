@@ -3,8 +3,8 @@ use std::ops::Range;
 use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::ruby_version::RubyVersion;
-use crate::rules::RuleContext;
 use crate::rules::layout::tokens::{Token, TokenKind};
+use crate::rules::{ParserEngine, RuleContext};
 
 const MSG_MISSING: &str = "Missing frozen string literal comment.";
 const MSG_MISSING_TRUE: &str = "Missing magic comment `# frozen_string_literal: true`.";
@@ -138,11 +138,7 @@ fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
                 return true;
             }
             let gap = context.source.slice(first.range.end..next.range.start);
-            let prism = match context.setting_of::<String>("AllCops", "ParserEngine").as_deref() {
-                Some("parser_whitequark") => false,
-                Some("parser_prism") => true,
-                _ => context.target_ruby_version() >= RubyVersion::new(3, 3),
-            };
+            let prism = context.parser_engine() == ParserEngine::Prism;
             let tail = &context.source.text()[next.range.end..];
             let terminated = tail.starts_with('\n') || tail.starts_with("\r\n");
             token_precedes_newline(gap, next.is_comment(), prism, terminated)

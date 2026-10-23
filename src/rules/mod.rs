@@ -437,10 +437,87 @@ impl<'a> RuleContext<'a> {
     /// Comment spans in source order. A cop that reasons about what a *line* holds needs these:
     /// RuboCop's token stream excludes comments, so a trailing comment must not change whether a
     /// line counts as ending in some token.
+    ///
+    /// 各範囲は本家の `Parser::Source::Comment` の範囲のうち本文に収まる部分で、`=begin` の
+    /// ブロックは `=end` の行の改行まで含む。どれも本文から切り出してよい。
     pub fn comment_ranges(&self) -> &[Range<usize>] {
         &self.ast.comment_ranges
     }
+
+    /// 本家の `Parser::Source::Comment` の範囲。`add_offense(comment)` が報告する範囲で、
+    /// `Style/BlockComments` が `=end` を測る `expr.end_pos` もこれを使う。
+    ///
+    /// [`Self::comment_ranges`] と違うのは、改行の無い EOF で閉じた `=begin` のブロックを
+    /// whitequark で読む場合だけ。whitequark の lexer は本文の 2 つ先まで読み
+    /// (`pe = @source_pts.size + 2`)、ブロックの `c_line*` がその 2 つを取り込む。`#` の
+    /// コメントは `emit_comment_from_range` が引き戻すので届かず、Prism は EOF で止まる。
+    /// 本文の外を指すので、切り出しや [`crate::diagnostic::Edit`] には渡さない。
+    pub fn parser_comment_range(&self, range: &Range<usize>) -> Range<usize> {
+        match self.comment_runs_past_the_text(range) {
+            true => range.start..range.end + WHITEQUARK_LOOKAHEAD,
+            false => range.clone(),
+        }
+    }
+
+    /// [`Self::parser_comment_range`] が本文の外まで届くか。
+    ///
+    /// コメント全体を置き換える補正は、本家ではこの範囲を扱えない。`corrector.replace(comment, …)`
+    /// が範囲外として例外を上げ、`add_offense` が診断を記録する前に cop ごと落ちる。そうした cop
+    /// は、このコメントを報告も補正もしない。
+    pub fn comment_runs_past_the_text(&self, range: &Range<usize>) -> bool {
+        let text = self.source.text();
+        range.end == text.len()
+            && !text.ends_with('\n')
+            && self.source.slice(range.clone()).starts_with("=begin")
+            && self.parser_engine() == ParserEngine::Whitequark
+    }
+
+    /// `add_offense(comment)`: コメント全体を [`Self::parser_comment_range`] で報告する。
+    ///
+    /// 本文の外の 2 文字は、桁は [`SourceFile::line_column`] が数えるが、長さは
+    /// `character_length` が本文の末尾で切り詰めるので、ここで足す。
+    pub fn comment_offense(&self, message: impl Into<String>, range: &Range<usize>) -> Offense {
+        let reported = self.parser_comment_range(range);
+        let past_the_text = reported.end - range.end;
+        let offense = self.offense(message, reported);
+        match past_the_text {
+            0 => offense,
+            _ => offense.with_length(
+                crate::diagnostic::character_length(self.source, range.start, range.end)
+                    + past_the_text,
+            ),
+        }
+    }
+
+    /// 本家がこのファイルを読むパーサ (`ProcessedSource#parser_engine`)。
+    ///
+    /// `AllCops/ParserEngine` が指定すればそれ、既定 (`default_parser_engine`) なら
+    /// TargetRubyVersion 3.3 以上で Prism、それ未満で whitequark。
+    pub fn parser_engine(&self) -> ParserEngine {
+        match self
+            .setting_of::<String>("AllCops", "ParserEngine")
+            .as_deref()
+        {
+            Some("parser_whitequark") => ParserEngine::Whitequark,
+            Some("parser_prism") => ParserEngine::Prism,
+            _ if self.target_ruby_version() < RubyVersion::new(3, 3) => ParserEngine::Whitequark,
+            _ => ParserEngine::Prism,
+        }
+    }
 }
+
+/// 本家がファイルを読むパーサ。文法は同じでも、EOF で閉じたコメントの範囲やリテラルの
+/// 読み方が違う。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ParserEngine {
+    /// `parser` gem (`Parser::RubyNN`)。
+    Whitequark,
+    /// `Prism::Translation::ParserNN`。
+    Prism,
+}
+
+/// whitequark の lexer が本文の末尾より先に読む位置の数 (`pe = @source_pts.size + 2`)。
+const WHITEQUARK_LOOKAHEAD: usize = 2;
 
 /// Node kinds whose byte range spans literal text rather than code. The
 /// byte-scanning cops (`Style/Semicolon`, `Layout/SpaceAfterComma`,
@@ -919,15 +996,32 @@ impl<'tree> AstIndex<'tree> {
             self.heredoc_ranges.push(node.byte_range());
         }
         if kind == "comment" && !inside_literal_text(node) {
-            let mut range = node.byte_range();
-            // tree-sitter は CRLF の CR まで comment に含めるが、本家の lexer は含めない。
-            if source_text.as_bytes().get(range.end.saturating_sub(1)) == Some(&b'\r')
-                && source_text.as_bytes().get(range.end) == Some(&b'\n')
-            {
-                range.end -= 1;
-            }
-            self.comment_ranges.push(range);
+            self.comment_ranges
+                .push(comment_token_range(node.byte_range(), source_text));
         }
+    }
+}
+
+/// 本家の lexer が出すコメントトークンの範囲。本文の中に収まる部分だけを持つ。
+///
+/// tree-sitter は CRLF の `#` コメントに行末の CR まで含めるが、本家の lexer は含めない。
+/// `=begin` のブロックは逆で、文法は `=end` の行の最後の文字で止まり、lexer の
+/// `'=end' c_line* c_nl_zlen` はその行を終える改行まで取る。CRLF の `\r\n` は、本家が LF に
+/// 正規化したバッファではその 1 つの改行に当たる。改行の無い EOF で閉じたブロックは EOF で
+/// 止め、パーサによってはその先まで届く分は [`RuleContext::parser_comment_range`] が足す。
+fn comment_token_range(range: Range<usize>, text: &str) -> Range<usize> {
+    if text[range.clone()].starts_with("=begin") {
+        let end = text[range.end..]
+            .find('\n')
+            .map_or(text.len(), |offset| range.end + offset + 1);
+        return range.start..end;
+    }
+    let bytes = text.as_bytes();
+    match bytes.get(range.end.saturating_sub(1)) == Some(&b'\r')
+        && bytes.get(range.end) == Some(&b'\n')
+    {
+        true => range.start..range.end - 1,
+        false => range,
     }
 }
 

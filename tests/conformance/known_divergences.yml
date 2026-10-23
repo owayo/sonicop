@@ -608,6 +608,74 @@ numeric_predicate_syntax_divergences:
       Sonicop は既存の main_script 検査でファイル単位に拒否し、原本と初期診断を返す。
       製品の拒否条件は変更せず、本家の構文破壊を再現しない差をここに明示する。
 
+# 本家のブロックコメント処理が診断の記録前に内部例外を上げる場合の CLI 差分。
+# RuboCop 1.89.0 / Ruby 4.0.8 の検査・-a・-A、LF / CRLF を実測した。
+# tests/cli.rs が本家の記録と候補の診断全項目・実ファイル・終了を照合する。
+block_comment_error_divergences:
+  - id: double-directive-eof-whitequark
+    cop: Style/DoubleCopDisableDirective
+    target_ruby: "2.7"
+    source: "x = 1\n=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end"
+    endings: [lf, crlf]
+    modes: [inspect, safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: []
+      source: "x = 1\n=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end"
+      error: IndexError
+    sonicop:
+      exit: 0
+      offenses: []
+      source: "x = 1\n=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end"
+    note: >-
+      whitequark の EOF に閉じたコメント範囲は本文の 2 文字先まで伸び、
+      本家の TreeRewriter#check_range_validity が本文外の置換を IndexError として拒む。
+      add_offense が記録される前に cop が失敗するため、診断は空で原本を維持し終了 1。
+      Sonicop は誤診断・誤補正を出さず原本を維持するが、本家の内部例外は作らず終了 0。
+      検査の終了 1 から 0 への変化は意図的差で、CLI の完全互換とは数えない。
+  - id: disable-directive-eof-whitequark
+    cop: Style/DisableCopsWithinSourceCodeDirective
+    target_ruby: "2.7"
+    source: "x = 1\n=begin\n# rubocop:disable Layout/LineLength\n=end"
+    endings: [lf, crlf]
+    modes: [inspect, safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: []
+      source: "x = 1\n=begin\n# rubocop:disable Layout/LineLength\n=end"
+      error: IndexError
+    sonicop:
+      exit: 0
+      offenses: []
+      source: "x = 1\n=begin\n# rubocop:disable Layout/LineLength\n=end"
+    note: >-
+      whitequark の EOF に閉じたコメント範囲は本文の 2 文字先まで伸び、
+      本家の TreeRewriter#check_range_validity が本文外の置換を IndexError として拒む。
+      add_offense が記録される前に cop が失敗するため、診断は空で原本を維持し終了 1。
+      Sonicop は誤診断・誤補正を出さず原本を維持するが、本家の内部例外は作らず終了 0。
+      検査の終了 1 から 0 への変化は意図的差で、CLI の完全互換とは数えない。
+  - id: empty-block-eof-prism
+    cop: Style/BlockComments
+    target_ruby: "3.4"
+    source: "=begin\n=end"
+    endings: [lf, crlf]
+    modes: [inspect, safe, unsafe]
+    upstream:
+      exit: 1
+      offenses: []
+      source: "=begin\n=end"
+      error: ArgumentError
+    sonicop:
+      exit: 0
+      offenses: []
+      source: "=begin\n=end"
+    note: >-
+      Prism が EOF で閉じる最小ブロックは、本家 BlockComments#parts の囲いの間が逆転し、
+      Parser::Source::Range が end_pos < begin_pos を ArgumentError として拒む。
+      診断の記録前の失敗なので本家は診断なし・原本維持・終了 1。
+      Sonicop も診断なしで原本を維持し、本家の内部例外は作らず終了 0 とする。
+      この終了コード差を本家との一致へ読み替えない。
+
 # 符号化宣言と矛盾する本家の補正を再現しない。tests/cli.rs が全入力を両モードで検査する。
 # 本家の出力は RuboCop 1.89.0 / Ruby 4.0.7 の実測から記録し、原本の保持と失敗報告を監視する。
 encoding_writeback_divergences:

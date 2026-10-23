@@ -10,10 +10,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<Vec<String>>("AllowedChars")
         .unwrap_or_default();
     for range in context.comment_ranges() {
-        let range = super::comments::parser_range(range, context);
-        // The parser's span for a block comment can run past a file with no final newline.
-        let range = range.start..range.end.min(context.source.text().len());
-        let comment = &context.source.text()[range.clone()];
+        let comment = context.source.slice(range.clone());
         if comment.is_ascii() {
             continue;
         }

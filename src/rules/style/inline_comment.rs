@@ -15,16 +15,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if text.trim_start().starts_with('#') {
             continue;
         }
-        // A `=begin` block is a comment too, and upstream's range for it takes in the newline
-        // after `=end`.
-        let reported = super::comments::parser_range(range, context);
-        // The reported span may run past the end of a file with no final newline; the text read
-        // from it must not.
-        let readable = reported.start..reported.end.min(context.source.text().len());
-        if is_directive(&context.source.text()[readable]) {
+        if is_directive(context.source.slice(range.clone())) {
             continue;
         }
-        offenses.push(context.offense(MSG, reported));
+        // `=begin` のブロックもコメントで、行頭が `#` でないので必ずここに来る。
+        offenses.push(context.comment_offense(MSG, range));
     }
 }
 

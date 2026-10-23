@@ -16965,8 +16965,7 @@ mod block_comments {
     }
 
     /// 本家は `=end` ではなくコメント末尾から 5 文字を数えるので、行末に何か
-    /// 書いてあるとそちらが消える。`=begin\n=end` は範囲が逆転して本家自身が
-    /// 落ちるため、何も報告しない。
+    /// 書いてあるとそちらが消える。
     #[test]
     fn the_end_fence_is_measured_from_the_comment_end() {
         expect_correction(
@@ -16974,8 +16973,103 @@ mod block_comments {
             "=begin extra\nfoo\n=end tail\nx=1\n",
             "# extra\n# foo\n# =end x=1\n",
         );
-        expect_correction(COP, "=begin\nx\n=end", "nd");
-        expect_no_offenses(COP, "=begin\n=end");
+    }
+
+    /// 本家は囲いを正規化済みの文字数で測る。CRLF と `=end` の日本語末尾でも同じ文字を消し、
+    /// UTF-8 の文字の途中を切らない。期待値は本家 1.89.0 のディスク出力と診断から取得した。
+    #[test]
+    fn block_comment_fences_use_normalized_character_offsets() {
+        for target in ["2.7", "3.4"] {
+            for ending in ["\n", "\r\n"] {
+                for (name, source, corrected, location, length) in [
+                    (
+                        "crlf",
+                        "x = 1\n=begin\nx\n=end\ny = 2\n",
+                        "x = 1\n# x\ny = 2\n",
+                        (2, 1, 5, 1),
+                        14,
+                    ),
+                    ("empty", "=begin\n=end\n", "", (1, 1, 3, 1), 12),
+                    (
+                        "japanese",
+                        "x = 1\n=begin\nx\n=end あいう\n",
+                        "x = 1\n# x\n# =end",
+                        (2, 1, 5, 1),
+                        18,
+                    ),
+                    (
+                        "japanese_eof",
+                        "x = 1\n=begin\nx\n=end あいう",
+                        if target == "2.7" {
+                            "x = 1\n# x\n# =end"
+                        } else {
+                            "x = 1\n# x\n# =eいう"
+                        },
+                        (2, 1, 4, if target == "2.7" { 10 } else { 8 }),
+                        if target == "2.7" { 19 } else { 17 },
+                    ),
+                ] {
+                    CopCase::new(COP, source.replace('\n', ending), Vec::new())
+                        .id(name)
+                        .target_ruby(target)
+                        .without_offense_check()
+                        .locations(&[location])
+                        .lengths(&[length])
+                        .corrected_verbatim(&corrected.replace('\n', ending))
+                        .run();
+                }
+            }
+        }
+    }
+
+    /// 改行の無い EOF で閉じると、コメント末尾がパーサで違い、報告も `=end` の測り方も変わる。
+    /// whitequark は EOF の 2 文字先を末尾にするので `=end` そのものが消え、`=begin\n=end` も
+    /// 直せる。Prism は EOF を末尾にするので 2 文字手前を消して `nd` が残り、`=begin\n=end` は
+    /// 範囲が逆転して本家自身が落ちるため、何も報告しない。
+    #[test]
+    fn a_comment_closed_by_the_end_of_the_file_follows_the_parser() {
+        CopCase::new(COP, "=begin\nx\n=end", Vec::new())
+            .id("eof_whitequark")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 6)])
+            .lengths(&[15])
+            .corrected_verbatim("# x\n")
+            .run();
+        CopCase::new(COP, "=begin\nx\n=end", Vec::new())
+            .id("eof_prism")
+            .target_ruby("3.4")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 4)])
+            .lengths(&[13])
+            .corrected_verbatim("nd")
+            .run();
+        CopCase::new(COP, "x = 1\n=begin\nfoo\n=end trailing", Vec::new())
+            .id("eof_text_whitequark")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 15)])
+            .lengths(&[26])
+            .corrected_verbatim("x = 1\n# foo\n# =end trai")
+            .run();
+        CopCase::new(COP, "x = 1\n=begin\nfoo\n=end trailing", Vec::new())
+            .id("eof_text_prism")
+            .target_ruby("3.4")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 13)])
+            .lengths(&[24])
+            .corrected_verbatim("x = 1\n# foo\n# =end trng")
+            .run();
+        CopCase::new(COP, "=begin\n=end", Vec::new())
+            .id("empty_eof_whitequark")
+            .without_offense_check()
+            .locations(&[(1, 1, 2, 6)])
+            .lengths(&[13])
+            .corrected_verbatim("")
+            .run();
+        CopCase::new(COP, "=begin\n=end", Vec::new())
+            .id("empty_eof_prism")
+            .target_ruby("3.4")
+            .corrected_verbatim("=begin\n=end")
+            .run();
     }
 }
 
@@ -17529,6 +17623,58 @@ mod double_cop_disable_directive {
     fn a_single_directive_is_left_alone() {
         expect_no_offenses(COP, "def f # rubocop:disable Style/For\nend\n");
         expect_no_offenses(COP, "# rubocop:disable Style/For\n");
+    }
+
+    /// `=begin` のブロックコメントは `=end` の行の改行までが 1 つのコメントで、範囲は次の行の頭で
+    /// 終わる。`=end` の後ろの文字も、`__END__` の前の改行も同じ。補正はその改行ごと置き換える
+    /// ので、改行は残る。
+    #[test]
+    fn a_block_comment_reaches_the_newline_after_end() {
+        CopCase::new(
+            COP,
+            "=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end\nx = 1\n",
+            Vec::new(),
+        )
+        .id("block")
+        .without_offense_check()
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[74])
+        .corrected_verbatim("=begin\n# rubocop:disable Style/For, Metrics/AbcSize\n=end\nx = 1\n")
+        .run();
+        CopCase::new(
+            COP,
+            "=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end tail\n__END__\ndata\n",
+            Vec::new(),
+        )
+        .id("block_end_text_data")
+        .without_offense_check()
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[79])
+        .corrected_verbatim(
+            "=begin\n# rubocop:disable Style/For, Metrics/AbcSize\n=end tail\n__END__\ndata\n",
+        )
+        .run();
+    }
+
+    /// 改行の無い EOF で閉じたブロックコメントは、範囲の終わりがパーサで違う。whitequark は EOF の
+    /// 2 文字先まで伸ばし、本家の補正がその範囲を置き換えられずに cop ごと落ちるので、何も報告せず
+    /// 何も直さない。Prism は EOF で止まり、報告して直す。
+    #[test]
+    fn a_block_comment_closed_by_the_end_of_the_file_follows_the_parser() {
+        let source =
+            "x = 1\n=begin\n# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\n=end";
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_whitequark")
+            .corrected_verbatim(source)
+            .run();
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_prism")
+            .target_ruby("3.4")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 4)])
+            .lengths(&[73])
+            .corrected_verbatim("x = 1\n=begin\n# rubocop:disable Style/For, Metrics/AbcSize\n=end")
+            .run();
     }
 }
 
@@ -27177,6 +27323,32 @@ mod style_inline_comment {
             .without_offense_check()
             .locations(&[(1, 1, 4, 1)])
             .lengths(&[19])
+            .run();
+        CopCase::new(COP, "x = 1\n=begin\nfoo\n=end\n__END__\ndata\n", Vec::new())
+            .id("block_data")
+            .without_offense_check()
+            .locations(&[(2, 1, 5, 1)])
+            .lengths(&[16])
+            .run();
+    }
+
+    /// 改行の無い EOF で閉じたブロックコメントは、whitequark の範囲が EOF の 2 文字先まで届き、
+    /// 長さもその 2 文字を数える。Prism の範囲は EOF で止まる。
+    #[test]
+    fn a_block_comment_closed_by_the_end_of_the_file_follows_the_parser() {
+        let source = "x = 1\n=begin\nfoo\n=end";
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_whitequark")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 6)])
+            .lengths(&[17])
+            .run();
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_prism")
+            .target_ruby("3.4")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 4)])
+            .lengths(&[15])
             .run();
     }
 
@@ -37768,6 +37940,46 @@ mod style_disable_cops_within_source_code_directive {
             "x = 0\n# rubocop:disable Metrics/AbcSize\ndef foo\nend\n# rubocop:enable Metrics/AbcSize\n",
             "x = 0\n\ndef foo\nend\n\n",
         );
+    }
+
+    /// `=begin` のブロックコメントに書いた指示も、ブロック全体を 1 つのコメントとして報告する。
+    /// 範囲は `=end` の行の改行までで、補正はその改行ごと消すので空行は残らない。
+    #[test]
+    fn a_block_comment_goes_with_the_newline_after_end() {
+        CopCase::new(
+            COP,
+            "=begin\n# rubocop:disable Layout/LineLength\n=end\nx = 1\n",
+            Vec::new(),
+        )
+        .id("block")
+        .config(ON)
+        .without_offense_check()
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[48])
+        .corrected_verbatim("x = 1\n")
+        .run();
+    }
+
+    /// 改行の無い EOF で閉じたブロックコメントは、whitequark の範囲が EOF の 2 文字先まで届き、
+    /// 本家の補正がそれを消せずに cop ごと落ちるので、何も報告せず何も直さない。Prism の範囲は
+    /// EOF で止まり、報告して消す。
+    #[test]
+    fn a_block_comment_closed_by_the_end_of_the_file_follows_the_parser() {
+        let source = "x = 1\n=begin\n# rubocop:disable Layout/LineLength\n=end";
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_whitequark")
+            .config(ON)
+            .corrected_verbatim(source)
+            .run();
+        CopCase::new(COP, source, Vec::new())
+            .id("block_eof_prism")
+            .config(ON)
+            .target_ruby("3.4")
+            .without_offense_check()
+            .locations(&[(2, 1, 4, 4)])
+            .lengths(&[47])
+            .corrected_verbatim("x = 1\n")
+            .run();
     }
 
     /// コードの後ろに書かれたものも同じ。位置はコメントだけで、コードは残る。
