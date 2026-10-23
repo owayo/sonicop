@@ -34,6 +34,10 @@ fn main() {
         .include(&root)
         .define("PRISM_EXPORT_SYMBOLS", "1")
         .warnings(false);
+    // 日本語コメントを既定コードページで誤読して失敗するため、原本の UTF-8 を明示する。
+    if build.get_compiler().is_like_msvc() {
+        build.flag("/utf-8");
+    }
     for (index, source) in sources.iter().enumerate() {
         let wrapper = output.join(format!("prism_{index}.c"));
         let include = source.to_string_lossy().replace('\\', "/");
