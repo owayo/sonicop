@@ -911,10 +911,7 @@ fn a_nested_call_with_a_do_block_is_not_a_nested_parenthesized_call() {
     let source = "# frozen_string_literal: true\n\nputs(foo bar do\n  1\nend)\n";
     for source in [source.to_owned(), source.replace('\n', "\r\n")] {
         for correction in [None, Some("-A")] {
-            let directory = project(&[
-                (".rubocop.yml", "AllCops:\n  TargetRubyVersion: 3.4\n"),
-                ("example.rb", &source),
-            ]);
+            let directory = project_with_ruby(&[("example.rb", &source)], "3.4");
             let mut run = command(directory.path());
             run.args([
                 "--only",
