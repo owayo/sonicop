@@ -5677,3 +5677,91 @@ fn logical_last_tokens_limit_the_line_ending_inspection() {
         }
     }
 }
+
+/// 本家の先頭token実測を、診断全項目・ディスクの原本バイト・同mode再実行で検査する。
+#[test]
+fn leading_empty_lines_matches_recorded_real_tokens() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/leading_empty_lines.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 56);
+    let groups = fixture["groups"].as_array().unwrap();
+    assert_eq!(groups.len(), 12);
+    let decode = |value: &str| {
+        (0..value.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&value[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for group in groups {
+        let ruby = group["ruby"].as_str().unwrap();
+        let directory = project_with_ruby(&[], ruby);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {ruby}\n  ParserEngine: {}\n",
+                group["engine"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let sources = group["source_hex"].as_array().unwrap();
+        assert_eq!(sources.len(), cases.len());
+        for (index, source) in sources.iter().enumerate() {
+            fs::write(
+                directory.path().join(format!("input_{index:03}.rb")),
+                decode(source.as_str().unwrap()),
+            )
+            .unwrap();
+        }
+        for pass in ["first", "second"] {
+            let label = format!(
+                "{} / {} / {} / {} / {pass}",
+                group["ruby"], group["engine"], group["ending"], group["mode"]
+            );
+            let expected = &group[pass];
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                "Layout/LeadingEmptyLines",
+                "--format",
+                "json",
+            ]);
+            if group["mode"] != "inspect" {
+                run.arg(group["mode"].as_str().unwrap());
+            }
+            let output = run
+                .arg(".")
+                .assert()
+                .code(expected["exit"].as_i64().unwrap() as i32)
+                .get_output()
+                .clone();
+            assert!(output.stderr.is_empty(), "{label}: {:?}", output.stderr);
+            let mut report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            report.as_object_mut().unwrap().remove("metadata");
+            assert_eq!(report, expected["report"], "{label}");
+            let after = expected["after_hex"].as_array().unwrap();
+            assert_eq!(after.len(), cases.len());
+            for (index, value) in after.iter().enumerate() {
+                let mut bytes = decode(value.as_str().unwrap());
+                // 本家の生出力は保ち、既存のCRLF保持方針だけを期待値へ反映する。
+                if group["ending"] == "CRLF" {
+                    bytes = String::from_utf8(bytes)
+                        .unwrap()
+                        .replace("\r\n", "\n")
+                        .replace('\n', "\r\n")
+                        .into_bytes();
+                }
+                assert_eq!(
+                    fs::read(directory.path().join(format!("input_{index:03}.rb"))).unwrap(),
+                    bytes,
+                    "{label} / {}",
+                    cases[index]
+                );
+            }
+        }
+    }
+}

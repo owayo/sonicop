@@ -1,0 +1,10 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLI出力。
+
+56原本を Ruby2.7/whitequark・3.4/Prism × LF/CRLF × 検査/-a/-A の12組で記録。
+診断全項目・summary・終了値・実ファイル全バイトと、同じmodeの2回目実行を保存する。
+行継続・NULだけのtoken無し入力、コメント・空文・通常コード・heredoc・DATA・
+BOM・引用文字列・補間・元SOHを陽性/陰性対照とする。本家の生CRLF書き戻しも保持し、
+CLI回帰だけが既存のCRLF保持方針に従って期待値を復元する。
+
+再生成:
+  mise exec -- python3 scripts/record_leading_empty_lines.py tests/fixtures/leading_empty_lines.json

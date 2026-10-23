@@ -572,6 +572,12 @@ A root constant behaves differently: `::Foo [0]` is rejected at `[` even without
 Compare both the rejection and the accepted controls with the pinned gem, and inspect the file
 on disk after both correction modes.
 
+**先頭空行の診断には実トークンを使う。** コメントや空文はASTがなくてもtokenを持つが、
+行継続・BOM・コードNUL・DATAだけの入力は持たない。空programの範囲をtokenとして報告しない。
+通常の単一引用・二重引用は文字列全体が先頭tokenになる。raw NULがあるとwhitequarkは
+引用符を分け、Prismは文字列全体を保つ。二重引用の行継続は物理行をまたいでも単一tokenで、
+単一引用の行継続や通常の複数行文字列とは診断範囲が異なる。
+
 **先頭コメントの位置は本家のトークン列で決まる。** `Style/FrozenStringLiteralComment`
 はコメントだけでなく、先頭の通常文字列の復号済みバイトも shebang・符号化宣言として扱う。
 `\xFF` のような非 UTF-8 バイトを Unicode 文字へ置き換えると判定が変わる。
