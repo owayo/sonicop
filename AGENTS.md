@@ -230,8 +230,14 @@ call の直下へ移る。receiver と arguments だけの走査では補間を�
 引数の位置から処理し、本文の本来の位置では二重に数えない。ローカル変数の宣言と safe navigation
 の割引も同じ順序を使う。同じ開始行の後続引数と、終端後のチェーンの引数を両方検査する。
 本文の補間で開いた heredoc は grammar v26.10.103 で読めるようになった (owayo/tree-sitter-ruby#8)。
-本家の parser gem は内側の本文を外側の本文にも重ねて含め、内側の補間を 2 回数えるので、Metrics の
-値が食い違う (#20)。この重複を本家の期待値として固定しない。
+本家の whitequark/parser は内側の本文を外側の本文にも重ねて含め、Metrics の値が食い違う (#20)。
+3 段では末端の補間が 4 回になり、内側の単一引用の本文も外側で補間として読まれる。
+この重複を製品の評価順へ持ち込まない。whitequark の実診断は共有 fixture に保存し、物理ソースと
+本家 Prism に従う移植版との差を `known_divergences.yml` で毎回監視する。
+重複した代入を根拠に `Lint/UselessAssignment` へ寄せると、実際には後続の heredoc が読む変数の
+宣言を本家の `-a` / `-A` が消し、構文は有効なまま `NameError` になる。診断も補正も意図的な差とする。
+`ParserEngine` の明示値が優先し、既定は Ruby 2.7 で whitequark、3.3 以上で Prism。
+CLI 回帰は全フィールド・LF/CRLF の原本バイトと、2.7 + Prism の設定拒否を検査する。
 
 **source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
 `build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。

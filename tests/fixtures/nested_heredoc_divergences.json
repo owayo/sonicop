@@ -1,0 +1,1929 @@
+{
+  "reference": "RuboCop 1.89.0 / Ruby 4.0.8",
+  "profiles": [
+    {
+      "target": "2.7",
+      "engine": "default",
+      "effective": "whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: default\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "2.7",
+      "engine": "parser_whitequark",
+      "effective": "whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "2.7",
+      "engine": "parser_prism",
+      "effective": null,
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_prism\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.3",
+      "engine": "default",
+      "effective": "prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.3",
+      "engine": "parser_whitequark",
+      "effective": "whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_whitequark\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.3",
+      "engine": "parser_prism",
+      "effective": "prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.4",
+      "engine": "default",
+      "effective": "prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.4",
+      "engine": "parser_whitequark",
+      "effective": "whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    },
+    {
+      "target": "3.4",
+      "engine": "parser_prism",
+      "effective": "prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n  NewCops: enable\nMetrics/AbcSize:\n  Enabled: true\n  Max: 0\nMetrics/CyclomaticComplexity:\n  Enabled: true\n  Max: 0\nMetrics/PerceivedComplexity:\n  Enabled: true\n  Max: 0\nLint/UselessAssignment:\n  Enabled: true\n"
+    }
+  ],
+  "cases": [
+    {
+      "id": "double",
+      "source": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n",
+      "run": false,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "156a9437fc8ed6fe",
+            "-a": "156a9437fc8ed6fe",
+            "-A": "156a9437fc8ed6fe"
+          },
+          "crlf": {
+            "inspect": "989952b5f881c665",
+            "-a": "989952b5f881c665",
+            "-A": "989952b5f881c665"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "49e7dd9e2aaaf33e",
+            "-a": "49e7dd9e2aaaf33e",
+            "-A": "49e7dd9e2aaaf33e"
+          },
+          "crlf": {
+            "inspect": "2dd97bec101a3141",
+            "-a": "2dd97bec101a3141",
+            "-A": "2dd97bec101a3141"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditional",
+      "source": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux if quux}\n    B\n  A\nend\n",
+      "run": false,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "8336e977b37aa6e9",
+            "-a": "8336e977b37aa6e9",
+            "-A": "8336e977b37aa6e9"
+          },
+          "crlf": {
+            "inspect": "18b6a816b6176ee2",
+            "-a": "18b6a816b6176ee2",
+            "-A": "18b6a816b6176ee2"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "094e7612d5332dd1",
+            "-a": "094e7612d5332dd1",
+            "-A": "094e7612d5332dd1"
+          },
+          "crlf": {
+            "inspect": "2692ea1fde003b19",
+            "-a": "2692ea1fde003b19",
+            "-A": "2692ea1fde003b19"
+          }
+        }
+      }
+    },
+    {
+      "id": "triple",
+      "source": "def example\n  foo(<<~A)\n    #{bar(<<~B)}\n      #{baz(<<~C)}\n        #{qux if quux}\n      C\n    B\n  A\nend\n",
+      "run": false,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "6a5f6fc04616cb67",
+            "-a": "6a5f6fc04616cb67",
+            "-A": "6a5f6fc04616cb67"
+          },
+          "crlf": {
+            "inspect": "8ec4d0bda7fe8b8c",
+            "-a": "8ec4d0bda7fe8b8c",
+            "-A": "8ec4d0bda7fe8b8c"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "a1d8c2c2baf082a9",
+            "-a": "a1d8c2c2baf082a9",
+            "-A": "a1d8c2c2baf082a9"
+          },
+          "crlf": {
+            "inspect": "b872dae2c9dde963",
+            "-a": "b872dae2c9dde963",
+            "-A": "b872dae2c9dde963"
+          }
+        }
+      }
+    },
+    {
+      "id": "inner_single",
+      "source": "def example\n  foo(<<~A)\n    #{baz(<<~'B')}\n      #{qux}\n    B\n  A\nend\n",
+      "run": false,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "1062f2db7391d5c2",
+            "-a": "1062f2db7391d5c2",
+            "-A": "1062f2db7391d5c2"
+          },
+          "crlf": {
+            "inspect": "3d715170c6f3769b",
+            "-a": "3d715170c6f3769b",
+            "-A": "3d715170c6f3769b"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "ad30b292e47fd796",
+            "-a": "ad30b292e47fd796",
+            "-A": "ad30b292e47fd796"
+          },
+          "crlf": {
+            "inspect": "ba1e94ea91bed8e6",
+            "-a": "ba1e94ea91bed8e6",
+            "-A": "ba1e94ea91bed8e6"
+          }
+        }
+      }
+    },
+    {
+      "id": "outer_single",
+      "source": "def example\n  foo(<<~'A')\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n",
+      "run": false,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "9414670eecb33c70",
+            "-a": "9414670eecb33c70",
+            "-A": "9414670eecb33c70"
+          },
+          "crlf": {
+            "inspect": "521f71dbe1b8e0a6",
+            "-a": "521f71dbe1b8e0a6",
+            "-A": "521f71dbe1b8e0a6"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "9414670eecb33c70",
+            "-a": "9414670eecb33c70",
+            "-A": "9414670eecb33c70"
+          },
+          "crlf": {
+            "inspect": "521f71dbe1b8e0a6",
+            "-a": "521f71dbe1b8e0a6",
+            "-A": "521f71dbe1b8e0a6"
+          }
+        }
+      }
+    },
+    {
+      "id": "used_assignment",
+      "source": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "run": true,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "7092e666a8ff3a5c",
+            "-a": "6d675500e62b7411",
+            "-A": "6d675500e62b7411"
+          },
+          "crlf": {
+            "inspect": "9050ca2e86a8ed32",
+            "-a": "6d675500e62b7411",
+            "-A": "6d675500e62b7411"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "7ed676f2ed40fb6b",
+            "-a": "7ed676f2ed40fb6b",
+            "-A": "7ed676f2ed40fb6b"
+          },
+          "crlf": {
+            "inspect": "070dde5a0becdef6",
+            "-a": "070dde5a0becdef6",
+            "-A": "070dde5a0becdef6"
+          }
+        }
+      },
+      "variable_reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "64e583a9edbdc09e",
+            "-a": "c25a5e2c6bb661d5",
+            "-A": "c25a5e2c6bb661d5"
+          },
+          "crlf": {
+            "inspect": "d074489776e4bc6e",
+            "-a": "c25a5e2c6bb661d5",
+            "-A": "c25a5e2c6bb661d5"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "9f11c7e33b7dfdba",
+            "-a": "9f11c7e33b7dfdba",
+            "-A": "9f11c7e33b7dfdba"
+          },
+          "crlf": {
+            "inspect": "c6e0a409b6e11ba1",
+            "-a": "c6e0a409b6e11ba1",
+            "-A": "c6e0a409b6e11ba1"
+          }
+        }
+      }
+    },
+    {
+      "id": "separate_assignment",
+      "source": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{y = 2}\n  A\n    #{y}\n  B\nend\nrun\n",
+      "run": true,
+      "reference": {
+        "whitequark": {
+          "lf": {
+            "inspect": "52fa71e2b829c806",
+            "-a": "52fa71e2b829c806",
+            "-A": "52fa71e2b829c806"
+          },
+          "crlf": {
+            "inspect": "207b2aa5ee600f90",
+            "-a": "207b2aa5ee600f90",
+            "-A": "207b2aa5ee600f90"
+          }
+        },
+        "prism": {
+          "lf": {
+            "inspect": "52fa71e2b829c806",
+            "-a": "52fa71e2b829c806",
+            "-A": "52fa71e2b829c806"
+          },
+          "crlf": {
+            "inspect": "207b2aa5ee600f90",
+            "-a": "207b2aa5ee600f90",
+            "-A": "207b2aa5ee600f90"
+          }
+        }
+      }
+    }
+  ],
+  "records": {
+    "156a9437fc8ed6fe": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 4, 0> 4/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "989952b5f881c665": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 4, 0> 4/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~B)}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "e5a3c6d8e05c317c": {
+      "exit": 2,
+      "error": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7",
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n"
+    },
+    "e460ae9947951cf6": {
+      "exit": 2,
+      "error": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7",
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~B)}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n"
+    },
+    "49e7dd9e2aaaf33e": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "2dd97bec101a3141": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 67,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~B)}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "8336e977b37aa6e9": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 6, 2> 6.32/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [3/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [3/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux if quux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "18b6a816b6176ee2": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 6, 2> 6.32/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [3/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [3/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~B)}\r\n      #{qux if quux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "094e7612d5332dd1": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 4, 1> 4.12/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~B)}\n      #{qux if quux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "2692ea1fde003b19": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 4, 1> 4.12/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 75,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~B)}\r\n      #{qux if quux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "6a5f6fc04616cb67": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 12, 4> 12.65/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [5/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [5/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{bar(<<~B)}\n      #{baz(<<~C)}\n        #{qux if quux}\n      C\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "8ec4d0bda7fe8b8c": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 12, 4> 12.65/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [5/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [5/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{bar(<<~B)}\r\n      #{baz(<<~C)}\r\n        #{qux if quux}\r\n      C\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "a1d8c2c2baf082a9": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 5, 1> 5.1/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{bar(<<~B)}\n      #{baz(<<~C)}\n        #{qux if quux}\n      C\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "b872dae2c9dde963": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 5, 1> 5.1/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [2/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 104,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{bar(<<~B)}\r\n      #{baz(<<~C)}\r\n        #{qux if quux}\r\n      C\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "1062f2db7391d5c2": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~'B')}\n      #{qux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "3d715170c6f3769b": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~'B')}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "ad30b292e47fd796": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 2, 0> 2/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~A)\n    #{baz(<<~'B')}\n      #{qux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "ba1e94ea91bed8e6": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 2, 0> 2/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~A)\r\n    #{baz(<<~'B')}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "9414670eecb33c70": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 1, 0> 1/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\n  foo(<<~'A')\n    #{baz(<<~B)}\n      #{qux}\n    B\n  A\nend\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "521f71dbe1b8e0a6": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `example` is too high. [<0, 1, 0> 1/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `example` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 7,
+            "last_column": 3,
+            "length": 69,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ],
+      "after": "def example\r\n  foo(<<~'A')\r\n    #{baz(<<~B)}\r\n      #{qux}\r\n    B\r\n  A\r\nend\r\n",
+      "execution": {
+        "syntax_valid": true
+      }
+    },
+    "7092e666a8ff3a5c": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<2, 2, 0> 2.83/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "6d675500e62b7411": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<0, 3, 0> 3/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 82,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 82,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 82,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 1,
+        "stdout": "2\n",
+        "error_class": "NameError"
+      }
+    },
+    "9050ca2e86a8ed32": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<2, 2, 0> 2.83/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\r\n\r\ndef run\r\n  puts(<<~A, <<~B)\r\n    #{puts(<<~C)}\r\n      #{y = 2}\r\n    C\r\n  A\r\n    #{y}\r\n  B\r\nend\r\nrun\r\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "7ed676f2ed40fb6b": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<1, 2, 0> 2.24/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "070dde5a0becdef6": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<1, 2, 0> 2.24/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 11,
+            "last_column": 3,
+            "length": 86,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\r\n\r\ndef run\r\n  puts(<<~A, <<~B)\r\n    #{puts(<<~C)}\r\n      #{y = 2}\r\n    C\r\n  A\r\n    #{y}\r\n  B\r\nend\r\nrun\r\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "64e583a9edbdc09e": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "c25a5e2c6bb661d5": {
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 1,
+        "stdout": "2\n",
+        "error_class": "NameError"
+      }
+    },
+    "d074489776e4bc6e": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Useless assignment to variable - `y`.",
+          "cop_name": "Lint/UselessAssignment",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 9,
+            "last_line": 6,
+            "last_column": 9,
+            "length": 1,
+            "line": 6,
+            "column": 9
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\r\n\r\ndef run\r\n  puts(<<~A, <<~B)\r\n    #{puts(<<~C)}\r\n      #{y = 2}\r\n    C\r\n  A\r\n    #{y}\r\n  B\r\nend\r\nrun\r\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "9f11c7e33b7dfdba": {
+      "exit": 0,
+      "offenses": [],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "c6e0a409b6e11ba1": {
+      "exit": 0,
+      "offenses": [],
+      "after": "# frozen_string_literal: true\r\n\r\ndef run\r\n  puts(<<~A, <<~B)\r\n    #{puts(<<~C)}\r\n      #{y = 2}\r\n    C\r\n  A\r\n    #{y}\r\n  B\r\nend\r\nrun\r\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n\n2\n",
+        "error_class": null
+      }
+    },
+    "52fa71e2b829c806": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<1, 1, 0> 1.41/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{y = 2}\n  A\n    #{y}\n  B\nend\nrun\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n2\n",
+        "error_class": null
+      }
+    },
+    "207b2aa5ee600f90": {
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Assignment Branch Condition size for `run` is too high. [<1, 1, 0> 1.41/0]",
+          "cop_name": "Metrics/AbcSize",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Cyclomatic complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/CyclomaticComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Perceived complexity for `run` is too high. [1/0]",
+          "cop_name": "Metrics/PerceivedComplexity",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 9,
+            "last_column": 3,
+            "length": 60,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ],
+      "after": "# frozen_string_literal: true\r\n\r\ndef run\r\n  puts(<<~A, <<~B)\r\n    #{y = 2}\r\n  A\r\n    #{y}\r\n  B\r\nend\r\nrun\r\n",
+      "execution": {
+        "syntax_valid": true,
+        "exit": 0,
+        "stdout": "2\n2\n",
+        "error_class": null
+      }
+    }
+  },
+  "only": "Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Lint/UselessAssignment",
+  "unsupported": {
+    "lf": {
+      "inspect": "e5a3c6d8e05c317c",
+      "-a": "e5a3c6d8e05c317c",
+      "-A": "e5a3c6d8e05c317c"
+    },
+    "crlf": {
+      "inspect": "e460ae9947951cf6",
+      "-a": "e460ae9947951cf6",
+      "-A": "e460ae9947951cf6"
+    }
+  }
+}

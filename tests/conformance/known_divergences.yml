@@ -1893,3 +1893,96 @@ divergences:
       2026-10-15 の ai-second-opinion / Claude は、実バイト列で原本と出力を検査し、この書き戻しを拒否する判断を支持した。
       診断の解析条件は維持し、宣言・別名・BOM は Prism 自身に解釈させる。
       原本が有効で出力だけが無効なら、全補正を戻して元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+
+  # #20: whitequark が重複して読む heredoc の診断と補正を、意図的な差として監視する。
+  - cop: Metrics/AbcSize
+    case: nested_heredoc_double_metrics_abcsize
+    kind: message
+    upstream: "Assignment Branch Condition size for `example` is too high. [<0, 4, 0> 4/0]"
+    sonicop: "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/AbcSize
+    case: nested_heredoc_conditional_metrics_abcsize
+    kind: message
+    upstream: "Assignment Branch Condition size for `example` is too high. [<0, 6, 2> 6.32/0]"
+    sonicop: "Assignment Branch Condition size for `example` is too high. [<0, 4, 1> 4.12/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/CyclomaticComplexity
+    case: nested_heredoc_conditional_metrics_cyclomaticcomplexity
+    kind: message
+    upstream: "Cyclomatic complexity for `example` is too high. [3/0]"
+    sonicop: "Cyclomatic complexity for `example` is too high. [2/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/PerceivedComplexity
+    case: nested_heredoc_conditional_metrics_perceivedcomplexity
+    kind: message
+    upstream: "Perceived complexity for `example` is too high. [3/0]"
+    sonicop: "Perceived complexity for `example` is too high. [2/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/AbcSize
+    case: nested_heredoc_triple_metrics_abcsize
+    kind: message
+    upstream: "Assignment Branch Condition size for `example` is too high. [<0, 12, 4> 12.65/0]"
+    sonicop: "Assignment Branch Condition size for `example` is too high. [<0, 5, 1> 5.1/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/CyclomaticComplexity
+    case: nested_heredoc_triple_metrics_cyclomaticcomplexity
+    kind: message
+    upstream: "Cyclomatic complexity for `example` is too high. [5/0]"
+    sonicop: "Cyclomatic complexity for `example` is too high. [2/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/PerceivedComplexity
+    case: nested_heredoc_triple_metrics_perceivedcomplexity
+    kind: message
+    upstream: "Perceived complexity for `example` is too high. [5/0]"
+    sonicop: "Perceived complexity for `example` is too high. [2/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/AbcSize
+    case: nested_heredoc_inner_single_metrics_abcsize
+    kind: message
+    upstream: "Assignment Branch Condition size for `example` is too high. [<0, 3, 0> 3/0]"
+    sonicop: "Assignment Branch Condition size for `example` is too high. [<0, 2, 0> 2/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Metrics/AbcSize
+    case: nested_heredoc_used_assignment_metrics_abcsize
+    kind: message
+    upstream: "Assignment Branch Condition size for `run` is too high. [<2, 2, 0> 2.83/0]"
+    sonicop: "Assignment Branch Condition size for `run` is too high. [<1, 2, 0> 2.24/0]"
+    note: >-
+      意図的な差 (#20)。whitequark/parser は内側の heredoc 本文を外側の本文にも含め、補間を重複して数える。3段では末端が4回になり、内側の単一引用中の補間まで外側で読み直す。Sonicop は Ruby の物理ソースと本家 Prism の実出力に従い、重複した評価を作らない。ParserEngine の明示値と既定値を含む LF/CRLF・検査/-a/-A は共有 fixture の CLI 回帰で監視する。
+  - cop: Lint/UselessAssignment
+    case: nested_heredoc_used_assignment_lint_uselessassignment_safe
+    kind: false_negative
+    upstream: "6:9-10 (1 chars) Useless assignment to variable - `y`."
+    sonicop: "(検出なし)"
+    note: >-
+      意図的な差 (#20)。whitequark/parser の同一範囲の架空の再代入が、実際に後続 heredoc から読む y を未使用と誤認させる。本家 -a/-A は宣言を消し、後続の y をメソッド呼び出しへ変える。Ruby 4.0.8 で原本の実行は成功し、本家補正は Syntax OK のまま NameError になることを実測した。Sonicop は物理ソースの束縛に従ってこの診断と削除を行わず、本文を保持する。構文安全網による拒否ではない。
+  - cop: Lint/UselessAssignment
+    case: nested_heredoc_used_assignment_lint_uselessassignment_safe
+    kind: correction
+    upstream: "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n"
+    sonicop: "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n"
+    note: >-
+      意図的な差 (#20)。whitequark/parser の同一範囲の架空の再代入が、実際に後続 heredoc から読む y を未使用と誤認させる。本家 -a/-A は宣言を消し、後続の y をメソッド呼び出しへ変える。Ruby 4.0.8 で原本の実行は成功し、本家補正は Syntax OK のまま NameError になることを実測した。Sonicop は物理ソースの束縛に従ってこの診断と削除を行わず、本文を保持する。構文安全網による拒否ではない。
+  - cop: Lint/UselessAssignment
+    case: nested_heredoc_used_assignment_lint_uselessassignment_unsafe
+    kind: false_negative
+    upstream: "6:9-10 (1 chars) Useless assignment to variable - `y`."
+    sonicop: "(検出なし)"
+    note: >-
+      意図的な差 (#20)。whitequark/parser の同一範囲の架空の再代入が、実際に後続 heredoc から読む y を未使用と誤認させる。本家 -a/-A は宣言を消し、後続の y をメソッド呼び出しへ変える。Ruby 4.0.8 で原本の実行は成功し、本家補正は Syntax OK のまま NameError になることを実測した。Sonicop は物理ソースの束縛に従ってこの診断と削除を行わず、本文を保持する。構文安全網による拒否ではない。
+  - cop: Lint/UselessAssignment
+    case: nested_heredoc_used_assignment_lint_uselessassignment_unsafe
+    kind: correction
+    upstream: "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n"
+    sonicop: "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n"
+    note: >-
+      意図的な差 (#20)。whitequark/parser の同一範囲の架空の再代入が、実際に後続 heredoc から読む y を未使用と誤認させる。本家 -a/-A は宣言を消し、後続の y をメソッド呼び出しへ変える。Ruby 4.0.8 で原本の実行は成功し、本家補正は Syntax OK のまま NameError になることを実測した。Sonicop は物理ソースの束縛に従ってこの診断と削除を行わず、本文を保持する。構文安全網による拒否ではない。

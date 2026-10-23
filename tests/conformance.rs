@@ -6780,6 +6780,7 @@ fn catalogue() -> Vec<CopCase> {
             .corrected_verbatim("# coding: 646\n\"/\\u1234\\x80/\"\n"),
         );
     }
+    cases.extend(support::nested_heredocs::conformance_cases());
     cases
 }
 
