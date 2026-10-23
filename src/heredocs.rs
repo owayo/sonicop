@@ -118,11 +118,43 @@ mod tests {
         row_of(source, position) + 1
     }
 
+    /// 同じ行の heredoc は開いた順に、本文の補間で開いた heredoc はその行の次から読む。
+    /// 開始は A・B・C の順、本文は A・C・B の順に並ぶ。
+    #[test]
+    fn bodies_pair_in_the_order_ruby_reads_them() {
+        let source = "puts(<<~A, <<~B)\n  #{puts(<<~C)}\n    #{x}\n  C\nA\n  #{y}\nB\n";
+        assert_eq!(pairs(source), [(0, 4), (0, 6), (1, 3)]);
+        let crlf = source.replace('\n', "\r\n");
+        assert_eq!(pairs(&crlf), [(0, 4), (0, 6), (1, 3)]);
+    }
+
+    /// 同じ終端語を使い回しても、外側と内側を読む順で組にする。
+    #[test]
+    fn a_reused_terminator_pairs_by_reading_order() {
+        let source = "puts(<<~E, <<~F)\n  #{puts(<<~E)}\n    inner\n  E\nE\n  second\nF\n";
+        assert_eq!(pairs(source), [(0, 4), (0, 6), (1, 3)]);
+    }
+
     /// 1 行に 3 つ以上開いても、前の本文が終わった後から順に読む。
     #[test]
     fn many_heredocs_on_one_line_are_read_one_after_another() {
         let source = "puts(<<~A, <<~B, <<~C, <<~D)\n  a\nA\n  b\nB\n  c\nC\n  d\nD\n";
         assert_eq!(pairs(source), [(0, 2), (0, 4), (0, 6), (0, 8)]);
+    }
+
+    /// 1 つの補間で 2 つ開くと、その行の次から 2 つの本文を順に読み、外側の本文はその後に続く。
+    #[test]
+    fn heredocs_opened_together_in_an_interpolation_follow_that_line() {
+        let source = "puts(<<~A)\n  #{foo(<<~B, <<~C)}\n  b\n  B\n  c\n  C\n  a\nA\n";
+        assert_eq!(pairs(source), [(0, 7), (1, 3), (1, 5)]);
+    }
+
+    /// 入れ子が何段あっても、内側の本文は開いた行の次から読む。
+    #[test]
+    fn nested_heredocs_pair_at_every_depth() {
+        let source =
+            "puts(<<~A)\n  #{foo(<<~B)}\n    #{bar(<<~C)}\n      c\n    C\n    b\n  B\n  a\nA\n";
+        assert_eq!(pairs(source), [(0, 8), (1, 6), (2, 4)]);
     }
 
     /// 終端の無い heredoc も、その行の次から始まる本文と組にする。本文は 1 度しか使わない。

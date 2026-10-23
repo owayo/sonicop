@@ -36,9 +36,9 @@ serde_yaml_ng = "0.10"
 shell-words = "1.1.1"
 sonicop-prism-compat = { path = "crates/sonicop-prism-compat" }
 tempfile = "3.27.0"
-# 0.27.1 の回復木は有効なリテラルに tSTAR を追加する。文法側の修正まで退行を防ぐ (owayo/tree-sitter-ruby#6)。
-tree-sitter = "=0.27.0"
-tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", tag = "v26.10.101" }
+# 0.27.1 の percent literal の回復は文法 v26.10.103 と組で検証する (owayo/tree-sitter-ruby#6)。
+tree-sitter = "=0.27.1"
+tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", tag = "v26.10.103" }
 ureq = { version = "3.5.0", default-features = false, features = ["native-tls"] }
 unsafe-libyaml = "0.2.11"
 

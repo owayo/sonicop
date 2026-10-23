@@ -1219,7 +1219,7 @@ impl<'tree> Force<'tree, '_> {
             self.process_children(node);
             return;
         }
-        let names = named_captures(self.text(left));
+        let names = super::literal_named_groups(self.text(left));
         if names.is_empty() {
             self.process_children(node);
             return;
@@ -1875,41 +1875,6 @@ fn assignment_shape(assignment: &Assignment<'_>, source: &SourceFile) -> String 
 /// still compare equal.
 fn collapse(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-/// The names a regexp literal captures, in the order they are written.
-fn named_captures(source: &str) -> Vec<String> {
-    let bytes = source.as_bytes();
-    let mut names = Vec::new();
-    let mut index = 0;
-    while index + 3 < bytes.len() {
-        if bytes[index] == b'\\' {
-            index += 2;
-            continue;
-        }
-        if bytes[index] == b'('
-            && bytes[index + 1] == b'?'
-            && matches!(bytes[index + 2], b'<' | b'\'')
-        {
-            let close = if bytes[index + 2] == b'<' {
-                b'>'
-            } else {
-                b'\''
-            };
-            // `(?<=` and `(?<!` are look-behind, not a capture.
-            if close == b'>' && matches!(bytes[index + 3], b'=' | b'!') {
-                index += 4;
-                continue;
-            }
-            if let Some(end) = source[index + 3..].find(close as char) {
-                names.push(source[index + 3..index + 3 + end].to_owned());
-                index += 3 + end + 1;
-                continue;
-            }
-        }
-        index += 1;
-    }
-    names
 }
 
 /// `in_modifier_conditional?`: 条件内の初回代入より左にある参照は、その値を読めない。

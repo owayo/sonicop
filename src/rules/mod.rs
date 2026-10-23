@@ -62,6 +62,7 @@ mod style;
 pub(crate) mod support;
 mod visibility;
 
+pub(crate) use lint::literal_named_groups;
 pub(crate) use support::{push_named_children, push_named_children_in, walk_named};
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that

@@ -23,6 +23,10 @@ pub(crate) mod literals;
 /// Reachable from `style` too: whether a bare identifier reads a local variable is a question
 /// several Style cops ported from node patterns have to answer the same way.
 pub(crate) mod locals;
+/// 名前付きキャプチャが作るローカル変数の名前は、構文解析の束縛判定 ([`crate::lexical_locals`]) も
+/// 同じものを使う。
+mod named_captures;
+pub(crate) use named_captures::literal_named_groups;
 /// Reachable from `style` too: `Style/SafeNavigation` measures a chained call against the same
 /// `nil.methods` list that the `NilMethods` mixin gives the Lint cops.
 pub(crate) mod nil_methods;

@@ -360,7 +360,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         let config =
             Config::load_with_options(cli.config.as_deref(), &cwd, cli.force_default_config)?;
         println!(
-            "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby owayo@88a64c6, analyzing as Ruby {}) [{} {}]",
+            "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby owayo@849a9a8, analyzing as Ruby {}) [{} {}]",
             config.target_ruby_version(),
             std::env::consts::OS,
             std::env::consts::ARCH

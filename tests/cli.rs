@@ -884,11 +884,23 @@ fn guard_clause_can_move_a_read_of_an_existing_local() {
 
 #[test]
 fn local_variable_before_plus_is_not_an_ambiguous_call() {
-    let directory = project(&[("example.rb", "def run\n  [1].collect { |i| i +'1' }\nend\n")]);
-    command(directory.path())
-        .args(["--only", "Lint/AmbiguousOperator", "example.rb"])
-        .assert()
-        .success();
+    let source = "def run\n  [1].collect { |i| i +'1' }\nend\n";
+    for source in [source.to_owned(), source.replace('\n', "\r\n")] {
+        for correction in [None, Some("-a"), Some("-A")] {
+            let directory = project(&[("example.rb", &source)]);
+            let mut run = command(directory.path());
+            run.args(["--only", "Lint/AmbiguousOperator", "--cache", "false"]);
+            if let Some(flag) = correction {
+                run.arg(flag);
+            }
+            run.arg("example.rb").assert().success();
+            // 本家は曖昧性を報告せず、補正でも LF / CRLF の原本を変更しない。
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+        }
+    }
 }
 
 /// ブロック付きの呼び出しは本家では `send` ではなく `block` ノードなので、括弧付きの引数の中に
@@ -920,6 +932,226 @@ fn a_nested_call_with_a_do_block_is_not_a_nested_parenthesized_call() {
             );
         }
     }
+}
+
+/// 本家が報告した cop と、その開始の行・桁。
+type UpstreamOffense = (&'static str, u64, u64);
+
+/// 既定設定で検査した診断 (cop・行・桁) と、`-A` で補正した本文を、本家 1.89.0 の実出力と比べる。
+/// LF と CRLF の両方で動かす。`Layout/EndOfLine` の native は OS に従うため、Windows では LF、
+/// それ以外では CRLF の原本に診断が出る。補正後も原本の改行を保つのは既存の意図的差分。
+fn assert_matches_upstream(cases: &[(&str, &[UpstreamOffense], &str)]) {
+    for (source, offenses, corrected) in cases {
+        for ending in ["\n", "\r\n"] {
+            let original = source.replace('\n', ending);
+            let directory = project(&[("example.rb", &original)]);
+            let output = command(directory.path())
+                .args([
+                    "--force-default-config",
+                    "--cache",
+                    "false",
+                    "--format",
+                    "json",
+                    "example.rb",
+                ])
+                .output()
+                .unwrap();
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            let mut actual: Vec<(String, u64, u64)> = report["files"][0]["offenses"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|offense| {
+                    (
+                        offense["cop_name"].as_str().unwrap().to_owned(),
+                        offense["location"]["start_line"].as_u64().unwrap(),
+                        offense["location"]["start_column"].as_u64().unwrap(),
+                    )
+                })
+                .collect();
+            actual.sort();
+            let mut expected: Vec<(String, u64, u64)> = offenses
+                .iter()
+                .map(|&(cop, line, column)| (cop.to_owned(), line, column))
+                .collect();
+            // 本家の native は Windows で CRLF、それ以外で LF。両設定を本家 CLI で実測した。
+            let native = if cfg!(windows) { "\r\n" } else { "\n" };
+            if ending != native {
+                expected.push(("Layout/EndOfLine".to_owned(), 1, 1));
+                expected.sort();
+            }
+            assert_eq!(actual, expected, "{original:?}");
+
+            let directory = project(&[("example.rb", &original)]);
+            command(directory.path())
+                .args([
+                    "--force-default-config",
+                    "--cache",
+                    "false",
+                    "-A",
+                    "example.rb",
+                ])
+                .output()
+                .unwrap();
+            assert_eq!(
+                fs::read_to_string(directory.path().join("example.rb")).unwrap(),
+                corrected.replace('\n', ending),
+                "{original:?}"
+            );
+        }
+    }
+}
+
+/// grammar が引数の始まりと読む `name +x` も、`name` がその位置でローカル変数なら二項演算。
+/// 束縛は字句の順に決まり (修飾子の本文は条件より先、heredoc の本文は開始の直後)、`def` は
+/// 外側の変数を見ない。全 cop を既定設定で動かし、変数の改名・代入の削除・括弧の追加で
+/// ローカル変数をメソッド呼び出しへ変えないことを確かめる。期待値は本家 1.89.0 の既定設定での
+/// 診断 (cop・行・桁) と `-A` の補正後の本文。CRLF は補正後も CRLF を保つ既存の意図的差分に従う。
+#[test]
+fn operators_after_local_variables_read_as_binary_in_every_cop() {
+    let cases: &[(&str, &[UpstreamOffense], &str)] = &[
+        (
+            "# frozen_string_literal: true\n\n%w[1].collect { |i| i +'1' }\n",
+            &[
+                ("Layout/SpaceAroundOperators", 3, 23),
+                ("Style/StringConcatenation", 3, 21),
+            ],
+            "# frozen_string_literal: true\n\n%w[1].collect { |i| \"#{i}1\" }\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run(count)\n  count +1\nend\n",
+            &[("Layout/SpaceAroundOperators", 4, 9)],
+            "# frozen_string_literal: true\n\ndef run(count)\n  count + 1\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\n[1].collect { |i| i -1 }\n",
+            &[("Layout/SpaceAroundOperators", 3, 21)],
+            "# frozen_string_literal: true\n\n[1].collect { |i| i - 1 }\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run(args)\n  foo = 2\n  foo *args\nend\n",
+            &[("Layout/SpaceAroundOperators", 5, 7)],
+            "# frozen_string_literal: true\n\ndef run(args)\n  foo = 2\n  foo * args\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run\n  total = 1\n  puts(total +1)\nend\n",
+            &[("Layout/SpaceAroundOperators", 5, 14)],
+            "# frozen_string_literal: true\n\ndef run\n  total = 1\n  puts(total + 1)\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run\n  puts(<<~TEXT, value +1)\n    #{value = 2}\n  TEXT\nend\n",
+            &[("Layout/SpaceAroundOperators", 4, 23)],
+            "# frozen_string_literal: true\n\ndef run\n  puts(<<~TEXT, value + 1)\n    #{value = 2}\n  TEXT\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run\n  value = 1 if value +1\nend\n",
+            &[
+                ("Layout/SpaceAroundOperators", 4, 22),
+                ("Lint/UselessAssignment", 4, 3),
+            ],
+            "# frozen_string_literal: true\n\ndef run\n  1 if value + 1\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\ndef run\n  value +1 if (value = 2)\nend\n",
+            &[
+                ("Lint/AmbiguousOperator", 4, 9),
+                ("Lint/UselessAssignment", 4, 16),
+            ],
+            "# frozen_string_literal: true\n\ndef run\n  value(+1)\nend\n",
+        ),
+        (
+            "# frozen_string_literal: true\n\nvalue = 1\ndef run\n  value +1\nend\nputs value\n",
+            &[("Lint/AmbiguousOperator", 5, 9)],
+            "# frozen_string_literal: true\n\nvalue = 1\ndef run\n  value(+1)\nend\nputs value\n",
+        ),
+        // 新しい grammar は `.ref_for('HEAD')` を括弧付きの引数と読む。ブロック付きの呼び出しは
+        // 本家では `block` ノードなので、`Style/NestedParenthesizedCalls` の入れ子にならない。
+        (
+            "# frozen_string_literal: true\n\nref = update_git 'bar', gemspec: false do |s|\n  s.write 1\nend.ref_for('HEAD')\nputs ref\n",
+            &[],
+            "# frozen_string_literal: true\n\nref = update_git 'bar', gemspec: false do |s|\n  s.write 1\nend.ref_for('HEAD')\nputs ref\n",
+        ),
+        // 演算子が行継続の直後でも、ローカル変数の後なら二項演算。
+        (
+            "# frozen_string_literal: true\n\ncount = 1\ncount \\\n+1\n",
+            &[],
+            "# frozen_string_literal: true\n\ncount = 1\ncount \\\n+1\n",
+        ),
+        // 名前と行継続が接して空白が無くても、仮想の手がかりで二項演算として読む。
+        (
+            "# frozen_string_literal: true\n\ncount = 1\ncount\\\n+1\n",
+            &[],
+            "# frozen_string_literal: true\n\ncount = 1\ncount\\\n+1\n",
+        ),
+    ];
+    assert_matches_upstream(cases);
+}
+
+/// ローカル変数の後の `+1` に `do` が続く形は、Ruby では `i + 1` の後に `do` がある構文エラー。
+/// ブロック付きのメソッド呼び出しと読んで変数を使っていないと報告したり、補正したりしない。
+/// 本家は `Lint/Syntax` を `do` の位置 (4:6) に報告する。sonicop の構文エラーの位置は main の時点
+/// から本家と違うので、ここでは構文エラーだけが報告されることを確かめる。
+#[test]
+fn a_block_after_an_operator_on_a_local_variable_is_a_syntax_error() {
+    let source = "# frozen_string_literal: true\n\ni = 1\ni +1 do\nend\n";
+    let continued = source.replace("i +1", "i\\\n+1");
+    for source in [source.to_owned(), continued]
+        .into_iter()
+        .flat_map(|source| {
+            let crlf = source.replace('\n', "\r\n");
+            [source, crlf]
+        })
+    {
+        let directory = project(&[("example.rb", &source)]);
+        let output = command(directory.path())
+            .args([
+                "--force-default-config",
+                "--cache",
+                "false",
+                "--format",
+                "json",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let cops: Vec<&str> = report["files"][0]["offenses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|offense| offense["cop_name"].as_str().unwrap())
+            .filter(|cop| *cop != "Layout/EndOfLine")
+            .collect();
+        assert_eq!(cops, ["Lint/Syntax"], "{source:?}");
+
+        command(directory.path())
+            .args([
+                "--force-default-config",
+                "--cache",
+                "false",
+                "-A",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(directory.path().join("example.rb")).unwrap(),
+            source,
+            "{source:?}"
+        );
+    }
+}
+
+/// 本文の補間で開いた heredoc は、同じ行で後から開いた heredoc より先に読まれる。開始の順と
+/// 本文の順が食い違うので、n 番目どうしで組にすると、字下げの補正が別の本文を書き換えたり、
+/// 変数の読み取りを取り違えたりする。期待値は本家 1.89.0 の実出力。
+#[test]
+fn heredocs_pair_with_their_openers_in_reading_order() {
+    assert_matches_upstream(&[(
+        "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{x}\n    C\n  A\n    #{x = 1}\n  B\nend\n",
+        &[("Lint/UselessAssignment", 9, 7)],
+        "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{x}\n    C\n  A\n    1\n  B\nend\n",
+    )]);
 }
 
 #[test]
