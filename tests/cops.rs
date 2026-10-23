@@ -13486,6 +13486,185 @@ mod numeric_predicate {
         expect_correction(COP, "a = -b == 0\n", "a = -b.zero?\n");
     }
 
+    /// 添字代入は `:[]=` の send で、本家の `binary_operation?` が真になる。包まないと述語が
+    /// 代入する値の側に付き、`list[0]` へ真偽値を代入する式に変わる (#17)。
+    #[test]
+    fn an_index_assignment_gains_parentheses() {
+        expect_offense(
+            COP,
+            r#"
+            def run(list)
+              0 < list[0] = [list[0], 1].min
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `(list[0] = [list[0], 1].min).positive?` instead of `0 < list[0] = [list[0], 1].min`.
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def run(list)\n  0 < list[0] = [list[0], 1].min\nend\n",
+            "def run(list)\n  (list[0] = [list[0], 1].min).positive?\nend\n",
+        );
+        expect_correction(COP, "0 > b[0] = c\n", "(b[0] = c).negative?\n");
+        expect_correction(COP, "0 == b[0] = c\n", "(b[0] = c).zero?\n");
+        expect_correction(COP, "0 < self[0] = c\n", "(self[0] = c).positive?\n");
+        expect_correction(COP, "0 < b[] = c\n", "(b[] = c).positive?\n");
+        expect_correction(
+            COP,
+            "0 < b[0] = c[0] = d\n",
+            "(b[0] = c[0] = d).positive?\n",
+        );
+        expect_correction(COP, "0 < b[0] =\n  c\n", "(b[0] =\n  c).positive?\n");
+        expect_correction(COP, "foo(0 < b[0] = c)\n", "foo((b[0] = c).positive?)\n");
+        // 明示呼び出しの括弧は begin を作らないので、括弧の無い代入がそのまま受け手になる。
+        expect_correction(COP, "0.<(b[0] = c)\n", "(b[0] = c).positive?\n");
+        // heredoc の本文は包む範囲の外に残る。
+        expect_correction(
+            COP,
+            "0 < b[0] = <<~TEXT\n  x\nTEXT\n",
+            "(b[0] = <<~TEXT).positive?\n  x\nTEXT\n",
+        );
+    }
+
+    /// 本家の SourceBuffer は CRLF を LF に正規化してからメッセージへ埋め込む。複数行の受け手を
+    /// 写したメッセージにも `\r` は入らず、補正は CRLF のまま書き戻す。
+    #[test]
+    fn a_receiver_spanning_lines_is_quoted_with_lf() {
+        for ending in ["\n", "\r\n"] {
+            let report = CopCase::new(COP, format!("0 < b[0] ={ending}  c{ending}"), Vec::new())
+                .without_offense_check()
+                .corrected_verbatim(&format!("(b[0] ={ending}  c).positive?{ending}"))
+                .run();
+            let messages: Vec<&str> = report
+                .offenses
+                .iter()
+                .map(|offense| offense.message.as_str())
+                .collect();
+            assert_eq!(
+                messages,
+                ["Use `(b[0] =\n  c).positive?` instead of `0 < b[0] =\n  c`."],
+                "{ending:?}"
+            );
+        }
+    }
+
+    /// 包むのは send の二項演算だけで、ほかの代入は本家も包まない。代入する値は変わるが、
+    /// それが本家の補正なので揃える。
+    #[test]
+    fn other_assignments_stay_bare() {
+        expect_correction(COP, "0 < b = c\n", "b = c.positive?\n");
+        // `c=` は演算子メソッドではない。
+        expect_correction(COP, "0 < b.c = d\n", "b.c = d.positive?\n");
+        // 自己代入は `op_asgn` で、send ではない。
+        expect_correction(COP, "0 < b[0] += c\n", "b[0] += c.positive?\n");
+        // 括弧の付いた代入は begin。
+        expect_correction(COP, "0 < (b[0] = c)\n", "(b[0] = c).positive?\n");
+    }
+
+    /// `send_type?` は `&.` の呼び出し (`csend`) とブロック付きの呼び出し (`block`) を外し、
+    /// `parenthesized?` は呼び出し自身の括弧だけを数える。
+    #[test]
+    fn only_a_bare_operator_send_gains_parentheses() {
+        expect_correction(COP, "0 < a.!\n", "(a.!).positive?\n");
+        expect_correction(COP, "0 < a::!\n", "(a::!).positive?\n");
+        expect_correction(COP, "0 < a&.!\n", "a&.!.positive?\n");
+        expect_correction(COP, "0.<(a.+ b)\n", "(a.+ b).positive?\n");
+        expect_correction(COP, "0.<(a&.+ b)\n", "a&.+ b.positive?\n");
+        expect_correction(COP, "0 < a.! { }\n", "a.! { }.positive?\n");
+        expect_correction(COP, "0 < a.! do end\n", "a.! do end.positive?\n");
+        // `&b` はブロックではなく引数。
+        expect_correction(COP, "0.<(a.+ &b)\n", "(a.+ &b).positive?\n");
+        expect_correction(COP, "0.<(a.+(&b))\n", "a.+(&b).positive?\n");
+        // 空白や行継続を挟んだ `(b)` は引数の begin で、呼び出しの括弧ではない。
+        expect_correction(COP, "0.<(a.+ (b))\n", "(a.+ (b)).positive?\n");
+        expect_correction(COP, "0.<(a.+\\\n(b))\n", "(a.+\\\n(b)).positive?\n");
+        expect_correction(COP, "0.<(a.+(b))\n", "a.+(b).positive?\n");
+        expect_correction(COP, "0 < a.!()\n", "a.!().positive?\n");
+    }
+
+    /// 読む時点で組み立てられる正規表現リテラルを左に書いた `=~` は `match_with_lvasgn` で、send
+    /// ではない。括弧で包んだ正規表現 (begin)、メソッドとして呼んだ `=~`、式展開を含む正規表現の
+    /// `=~` は send。式展開は `0.<(…)` の引数でなければ受け手に届かない。
+    #[test]
+    fn a_regexp_built_while_reading_makes_no_send() {
+        expect_correction(COP, "0.<(/re/ =~ a)\n", "/re/ =~ a.positive?\n");
+        expect_correction(COP, "0.<((/re/) =~ a)\n", "((/re/) =~ a).positive?\n");
+        expect_correction(COP, "0.<(/re/.=~ a)\n", "(/re/.=~ a).positive?\n");
+        expect_correction(COP, "0.<(/#{b}/ =~ a)\n", "(/#{b}/ =~ a).positive?\n");
+        expect_correction(COP, "0.<(a =~ b)\n", "(a =~ b).positive?\n");
+        // 3.3 より前の parser は、`str` だけの式展開も読む時点で組み立てる。parser は本文を
+        // 1 行ずつの `str` に切るので、改行をまたぐ文字列、2 行以上の heredoc、連結した文字列は
+        // `dstr` で、バッククォートの heredoc は `xstr`。
+        for (source, corrected) in [
+            ("0.<(/#{\"a\"}/ =~ a)\n", "/#{\"a\"}/ =~ a.positive?\n"),
+            ("0.<(/#{}/ =~ a)\n", "/#{}/ =~ a.positive?\n"),
+            (
+                "0.<(/#{\"a\"; \"b\"}/ =~ a)\n",
+                "/#{\"a\"; \"b\"}/ =~ a.positive?\n",
+            ),
+            ("0.<(/#{(\"a\")}/ =~ a)\n", "/#{(\"a\")}/ =~ a.positive?\n"),
+            ("0.<(/#{?a}/ =~ a)\n", "/#{?a}/ =~ a.positive?\n"),
+            (
+                "0.<(/#{<<'R'}/ =~ a)\nre\nR\n",
+                "/#{<<'R'}/ =~ a.positive?\nre\nR\n",
+            ),
+            (
+                "0.<(/#{<<R}/ =~ a)\nre\\\nre\nR\n",
+                "/#{<<R}/ =~ a.positive?\nre\\\nre\nR\n",
+            ),
+            (
+                "0.<(/#{\"a\" \"b\"}/ =~ a)\n",
+                "(/#{\"a\" \"b\"}/ =~ a).positive?\n",
+            ),
+            (
+                "0.<(/#{\"a\nb\"}/ =~ a)\n",
+                "(/#{\"a\nb\"}/ =~ a).positive?\n",
+            ),
+            (
+                "0.<(/#{<<'R'}/ =~ a)\nre\nre\nR\n",
+                "(/#{<<'R'}/ =~ a).positive?\nre\nre\nR\n",
+            ),
+            // 単一引用符の heredoc の `\` は行をつながない。
+            (
+                "0.<(/#{<<'R'}/ =~ a)\nre\\\nre\nR\n",
+                "(/#{<<'R'}/ =~ a).positive?\nre\\\nre\nR\n",
+            ),
+            (
+                "0.<(/#{<<`R`}/ =~ a)\nls\nR\n",
+                "(/#{<<`R`}/ =~ a).positive?\nls\nR\n",
+            ),
+        ] {
+            expect_correction(COP, source, corrected);
+        }
+        CopCase::new(COP, "0.<(/#{\"a\"}/ =~ a)\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .target_ruby("3.3")
+            .corrected("(/#{\"a\"}/ =~ a).positive?\n")
+            .run();
+        // 二重引用符の側では行末の `\` が次の行をつなぎ、`str` のまま。本家は CRLF を LF に
+        // 正規化してから読むので、CRLF のファイルでも同じ。式展開のある heredoc は `dstr`。
+        for ending in ["\n", "\r\n"] {
+            for (source, corrected) in [
+                (
+                    format!("0.<(/#{{<<R}}/ =~ a){ending}re\\{ending}re{ending}R{ending}"),
+                    format!("/#{{<<R}}/ =~ a.positive?{ending}re\\{ending}re{ending}R{ending}"),
+                ),
+                (
+                    format!("0.<(/#{{\"a\\{ending}b\"}}/ =~ a){ending}"),
+                    format!("/#{{\"a\\{ending}b\"}}/ =~ a.positive?{ending}"),
+                ),
+                (
+                    format!("0.<(/#{{<<\"R\"}}/ =~ a){ending}#{{b}}{ending}R{ending}"),
+                    format!("(/#{{<<\"R\"}}/ =~ a).positive?{ending}#{{b}}{ending}R{ending}"),
+                ),
+            ] {
+                CopCase::new(COP, source, Vec::new())
+                    .without_offense_check()
+                    .corrected_verbatim(&corrected)
+                    .run();
+            }
+        }
+    }
+
     /// グローバル変数、`!=`、浮動小数点数は対象外。
     #[test]
     fn what_is_not_a_numeric_comparison() {
@@ -13522,6 +13701,138 @@ mod numeric_predicate {
         CopCase::new(COP, "a = foo&.zero?\n".to_owned(), Vec::new())
             .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
             .run();
+    }
+
+    /// `negated?` は本家の親が `!` の send かどうかだけを見る。`not x` と `x.!` も `!` の send で、
+    /// `!` の引数でもよい。`not(x)` の括弧はキーワードのもので begin を作らない。包まないと
+    /// `foo.zero?.!` は `foo == 0.!` になり、比べる値が変わる。
+    #[test]
+    fn the_comparison_style_parenthesizes_under_every_negation() {
+        for (annotated, corrected) in [
+            (
+                r#"
+                not foo.zero?
+                    ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "not (foo == 0)\n",
+            ),
+            (
+                r#"
+                not(foo.zero?)
+                    ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "not((foo == 0))\n",
+            ),
+            (
+                r#"
+                foo.zero?.!
+                ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "(foo == 0).!\n",
+            ),
+            (
+                r#"
+                bar.!(foo.zero?)
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0))\n",
+            ),
+            (
+                r#"
+                bar.! foo.zero?
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.! (foo == 0)\n",
+            ),
+            (
+                r#"
+                bar.!(foo.zero?, x)
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0), x)\n",
+            ),
+            (
+                r#"
+                foo.zero?::!
+                ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "(foo == 0)::!\n",
+            ),
+            (
+                r#"
+                not(
+                  foo.zero?
+                  ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                )
+                "#,
+                "not(\n  (foo == 0)\n)\n",
+            ),
+            // 空白を挟んだ `not (x)`、`!(x)`、`not((x))` の内側の括弧は begin で、親は `!` ではない。
+            (
+                r#"
+                not (foo.zero?)
+                     ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "not (foo == 0)\n",
+            ),
+            (
+                r#"
+                !(foo.zero?)
+                  ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "!(foo == 0)\n",
+            ),
+            (
+                r#"
+                not((foo.zero?))
+                     ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "not((foo == 0))\n",
+            ),
+            (
+                r#"
+                bar.!((foo.zero?))
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0))\n",
+            ),
+            // 親の `!` に付いたブロックは、引数の親が `!` の send であることを変えない。
+            (
+                r#"
+                bar.!(foo.zero?) { }
+                      ^^^^^^^^^ Use `(foo == 0)` instead of `foo.zero?`.
+                "#,
+                "bar.!((foo == 0)) { }\n",
+            ),
+            // splat の親は splat。
+            (
+                r#"
+                bar.!(*foo.zero?)
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar.!(*foo == 0)\n",
+            ),
+            // `&.!` は csend で、`send_type?` が偽。
+            (
+                r#"
+                foo.zero?&.!
+                ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "foo == 0&.!\n",
+            ),
+            (
+                r#"
+                bar&.!(foo.zero?)
+                       ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+                "#,
+                "bar&.!(foo == 0)\n",
+            ),
+        ] {
+            CopCase::annotated(COP, annotated)
+                .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+                .corrected(corrected)
+                .run();
+        }
     }
 }
 /// `Style/RescueStandardError`: 既定では例外クラスを省いた `rescue` を報告する。
