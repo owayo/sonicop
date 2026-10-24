@@ -62,8 +62,39 @@ mod style;
 pub(crate) mod support;
 mod visibility;
 
-pub(crate) use lint::{decode_regexp_fragment, literal_named_groups};
+pub(crate) use lint::{decode_regexp_compile_fragment, literal_named_groups};
 pub(crate) use support::{push_named_children, push_named_children_in, walk_named};
+
+/// 対象 cop の実際の opening 置換だけを、全文の物理的な捕捉変数と照合する。
+/// 明示的な call・receiver・宣言前の参照は is_variable_reference に含まれない。
+/// 一般の補正の意味保存を保証する解析ではない。
+pub(crate) fn capture_parentheses_change_bindings(
+    source: &SourceFile,
+    config: &Config,
+    openings: &[usize],
+) -> bool {
+    let normal = crate::regexp_ast::Semantics::from_config(config);
+    let physical = normal.physical_binding();
+    let Some(tree) = crate::parser::parse_configured(source.text(), physical) else {
+        return false;
+    };
+    let ast = AstIndex::new(tree.root_node(), source.text());
+    let analysis = Analysis::run(&ast, source, physical);
+    analysis.variables.iter().any(|variable| {
+        variable.assignments.iter().any(|assignment| {
+            assignment.kind == lint::variable_force::AssignmentKind::RegexpNamedCapture
+                && assignment.references.iter().any(|reference| {
+                    openings.contains(&reference.end_byte())
+                        && analysis.is_variable_reference(*reference)
+                })
+                && !normal
+                    .named_groups(assignment.name, source.text(), |beginning| {
+                        ast.heredoc_body(beginning)
+                    })
+                    .contains(&variable.name)
+        })
+    })
+}
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that
 /// inspects one file.

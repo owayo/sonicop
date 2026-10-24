@@ -23,6 +23,9 @@ Windows LLP64 でも暗黙の 32-bit 切り詰めをせず、escape/表示の本
 header・警告・GC・検索時の timeout であり、コンパイルの文法へ置換しない。
 Onigmo の内部コンパイラ・解放が再帰するため、専用 32 MiB worker 上で直列化する。
 検索や Ruby スクリプトの実行はしない。
+捕捉名 API も同じ worker を使い、`onig_get_encoding` と `onig_foreach_name` の
+生 byte を `onig_free` 前にコピーする。列挙順は最初の capture 番号で整え、
+名前の有効性や Symbol の符号化比較は呼出し側の Ruby モデルへ残す。
 
 ## 再現と更新
 

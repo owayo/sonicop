@@ -1,0 +1,14 @@
+RuboCop 1.89.0 / Ruby4.0.8、TargetRubyVersion2.7、parser_whitequark。
+自作の3最小原本 × inspect/-a/-A =9実CLI条件。全診断・終了・原本/書込byteは本家の実出力。
+元のregexp_semantics.json3768件は一切書き換えない。
+original/出力をMRI2.7.8p225(revision1f4d4558484b370999954f3ede7e3aa3a3a01ef3)で評価。
+成功値の型/encoding/byteと、失敗の例外型/nameSymbolだけを保存し、Objectアドレス/内部pathは除く。
+未補正 String78 → 本家の括弧後 NoMethodError。取得コーパスのプログラムは実行しない。
+旧3768の元入力は+1で原本もTypeErrorになる形があるため、ここは+空文字列で意味変化を独立に示す。
+Sonicopの出力を参照期待値に使わない。CLIの再現条件/元hex/書込hexはJSONに保持する。
+Target3.2 CLIとMRI2.7の実行値を同一版の証拠として扱わない。
+
+追加の独立環境: 公式 MRI3.2.0 revisiona528908271 の miniruby。
+Target3.2の補正byteと同一の自己完結sourceを直接実行した18条件を別配列へ保存する。
+元/rollbackはexit0・stdout "x"、親補正はexit1・NoMethodError。実sourcehexとstdoutを保持し、
+stderrは内部pathを公開しないため例外型だけを切り出す。2.7のeval9条件とは同じ測定に数えない。

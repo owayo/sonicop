@@ -39,8 +39,22 @@ int sonicop_onigmo_validate(const unsigned char *pattern, size_t length, int enc
 }
 
 /* Regexp.new は lexer の復号後にさらに非 ASCII escape と符号化を検査する。 */
-int sonicop_onigmo_check(const unsigned char *pattern, size_t length, int encoding,
-                        int extended, unsigned char *error, size_t capacity) {
+typedef void (*sonicop_name_callback)(const unsigned char *, size_t, int, void *);
+struct sonicop_name_context { sonicop_name_callback callback; void *context; };
+static int sonicop_collect_name(const unsigned char *name, const unsigned char *name_end,
+                                int back_num, int *back_refs, OnigRegex regex, void *context) {
+    (void)regex;
+    if (!name || !name_end || name_end < name || back_num <= 0 || !back_refs)
+        return ONIGERR_INVALID_ARGUMENT;
+    int first = back_refs[0];
+    for (int i = 1; i < back_num; ++i) if (back_refs[i] < first) first = back_refs[i];
+    struct sonicop_name_context *receiver = (struct sonicop_name_context *)context;
+    receiver->callback(name, (size_t)(name_end - name), first, receiver->context);
+    return 0;
+}
+int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int encoding,
+                          int extended, unsigned char *error, size_t capacity,
+                          int *compiled_encoding_out, sonicop_name_callback callback, void *context) {
     OnigEncoding enc;
     switch (encoding) {
       case 1: enc = ONIG_ENCODING_ASCII; break;
@@ -64,7 +78,21 @@ int sonicop_onigmo_check(const unsigned char *pattern, size_t length, int encodi
         result = onig_new(&regex, bytes, bytes + processed->length,
                           extended ? ONIG_OPTION_EXTEND : ONIG_OPTION_NONE,
                           compiled_encoding, ONIG_SYNTAX_RUBY, &info);
-        if (!result) onig_free(regex);
+        if (!result) {
+            if (compiled_encoding_out) {
+                OnigEncoding actual = onig_get_encoding(regex);
+                *compiled_encoding_out = actual == ONIG_ENCODING_UTF_8 ? 0 :
+                    actual == ONIG_ENCODING_ASCII ? 1 : actual == &OnigEncodingUS_ASCII ? 2 :
+                    actual == ONIG_ENCODING_EUC_JP ? 3 : actual == ONIG_ENCODING_WINDOWS_31J ? 4 : -1;
+            }
+            if (callback) {
+                struct sonicop_name_context receiver = { callback, context };
+                result = onig_foreach_name(regex, sonicop_collect_name, &receiver);
+                /* 列挙失敗では未設定の OnigErrorInfo をコンパイルエラーとして読まない。 */
+                if (result) errcpy(reason, "failed to collect regexp names");
+            }
+            onig_free(regex);
+        }
         else onig_error_code_to_str((unsigned char *)reason, result, &info);
     }
     if (allocation_failed) { errcpy(reason, "failed to allocate memory");result = ONIGERR_MEMORY; }
@@ -79,4 +107,10 @@ int sonicop_onigmo_check(const unsigned char *pattern, size_t length, int encodi
         } else error[0] = 0;
     }
     free_arena();return result;
+}
+
+int sonicop_onigmo_check(const unsigned char *pattern, size_t length, int encoding,
+                        int extended, unsigned char *error, size_t capacity) {
+    return sonicop_onigmo_compile(pattern, length, encoding, extended, error, capacity,
+                                  NULL, NULL, NULL);
 }

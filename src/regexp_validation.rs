@@ -8,28 +8,187 @@ mod tables;
 
 /// String#encode の変換不能エラーも RegexpError と同じ invalid_regexp になる。
 pub(crate) fn validate(bytes: &[u8], encoding: LiteralEncoding, flags: &str) -> Result<(), String> {
-    let original = match encoding {
-        LiteralEncoding::Binary => Encoding::Binary,
-        LiteralEncoding::SevenBit => Encoding::UsAscii,
-        LiteralEncoding::Text => Encoding::Utf8,
-    };
-    let target = if flags.contains('u') {
-        Encoding::Utf8
-    } else if flags.contains('e') {
-        Encoding::EucJp
-    } else if flags.contains('s') {
-        Encoding::Windows31J
-    } else if flags.contains('n') {
-        Encoding::Binary
-    } else {
-        original
-    };
-    let Some(source) = transcode(bytes, original, target)? else {
+    let Some(PreparedPattern { source, target }) = prepare(bytes, encoding, flags)? else {
         // parser が rescue しない InvalidByteSequenceError を Syntax 診断へ変換しない。
         return Ok(());
     };
     sonicop_onigmo_compat::check(&source, target, flags.contains('x'))
         .map_err(|message| decode_error(&message, target))
+}
+
+/// 未コンパイルの None と、正常成功した捕捉名 0 件を区別する。
+pub(crate) fn compile(
+    bytes: &[u8],
+    encoding: LiteralEncoding,
+    flags: &str,
+) -> Result<Option<sonicop_onigmo_compat::CompiledRegexp>, String> {
+    let Some(PreparedPattern { source, target }) = prepare(bytes, encoding, flags)? else {
+        return Ok(None);
+    };
+    sonicop_onigmo_compat::compile(&source, target, flags.contains('x'))
+        .map(Some)
+        .map_err(|message| decode_error(&message, target))
+}
+
+/// Parser::Source::Buffer の識別子と同じ Symbol になる捕捉名だけを共有する。
+/// 正規表現の option による変換後の符号化を、元の本文の符号化と取り違えない。
+pub(crate) fn named_groups(
+    bytes: &[u8],
+    encoding: LiteralEncoding,
+    flags: &str,
+    identifier_encoding: LiteralEncoding,
+) -> Option<Vec<String>> {
+    let compiled = compile(bytes, encoding, flags).ok()??;
+    referencable_names(
+        compiled,
+        match identifier_encoding {
+            LiteralEncoding::Binary => Encoding::Binary,
+            LiteralEncoding::SevenBit | LiteralEncoding::Text => Encoding::Utf8,
+        },
+    )
+}
+
+/// 診断互換の String#encode→Regexp.new と分けた、MRI のリテラル側の入口。
+/// parse.y の rb_reg_fragment_setenc は、非 ASCII の本文を option の符号化へ変換しない。
+/// また Unicode escape が固定した UTF-8 を、/e・/s・/n で上書きできない。
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum LiteralNames {
+    Valid(Vec<String>),
+    Invalid,
+    Unavailable,
+}
+
+pub(crate) fn literal_names(
+    bytes: &[u8],
+    encoding: Encoding,
+    flags: &str,
+    identifier_encoding: Encoding,
+) -> LiteralNames {
+    let forced = option_encoding(flags);
+    let target = if forced.is_none() && identifier_encoding == Encoding::UsAscii {
+        // rb_reg_fragment_setenc は p->enc を見る。補間の Unicode が UTF-8 String を作っても、
+        // US-ASCII ソースでは非 ASCII 本文を US-ASCII へ戻して拒否する。
+        if bytes.is_ascii() {
+            Encoding::Binary
+        } else {
+            Encoding::UsAscii
+        }
+    } else {
+        forced.unwrap_or(encoding)
+    };
+    if !bytes.is_ascii() && target != encoding {
+        return LiteralNames::Invalid;
+    }
+    let compiled = match sonicop_onigmo_compat::compile(bytes, target, flags.contains('x')) {
+        Ok(compiled) => compiled,
+        Err(reason) => {
+            // 資源不足を、正常にコンパイルして名前が無かった結果へ読み替えない。
+            return if reason.starts_with(b"failed to allocate memory") {
+                LiteralNames::Unavailable
+            } else {
+                LiteralNames::Invalid
+            };
+        }
+    };
+    if forced.is_some() && compiled.encoding != Encoding::UsAscii && compiled.encoding != target {
+        return LiteralNames::Invalid;
+    }
+    referencable_names(compiled, identifier_encoding)
+        .map_or(LiteralNames::Unavailable, LiteralNames::Valid)
+}
+
+fn option_encoding(flags: &str) -> Option<Encoding> {
+    if flags.contains('u') {
+        Some(Encoding::Utf8)
+    } else if flags.contains('e') {
+        Some(Encoding::EucJp)
+    } else if flags.contains('s') {
+        Some(Encoding::Windows31J)
+    } else if flags.contains('n') {
+        Some(Encoding::Binary)
+    } else {
+        None
+    }
+}
+
+/// ASCII の Symbol は全符号化で同一。非 ASCII の Symbol は byte と符号化がともに一致する。
+fn referencable_names(
+    compiled: sonicop_onigmo_compat::CompiledRegexp,
+    expected: Encoding,
+) -> Option<Vec<String>> {
+    compiled
+        .names
+        .into_iter()
+        .filter(|name| name.is_ascii() || compiled.encoding == expected)
+        .map(|name| decode_name(&name, expected))
+        .collect()
+}
+
+/// 識別子として再び参照するための復号なので、不正 byte を置換文字で成功させない。
+fn decode_name(bytes: &[u8], encoding: Encoding) -> Option<String> {
+    let codec = match encoding {
+        Encoding::Binary => return Some(bytes.iter().copied().map(char::from).collect()),
+        Encoding::Utf8 | Encoding::UsAscii => return String::from_utf8(bytes.to_vec()).ok(),
+        Encoding::EucJp => encoding_rs::EUC_JP,
+        Encoding::Windows31J => encoding_rs::SHIFT_JIS,
+    };
+    // 物理側の名前を SourceFile と同じ表示へ戻す。Ruby の error 表示用の変換とは分ける。
+    let text = codec.decode_without_bom_handling_and_without_replacement(bytes)?;
+    let (encoded, _, malformed) = codec.encode(&text);
+    (!malformed && encoded.as_ref() == bytes).then(|| text.into_owned())
+}
+
+/// UTF-8 へ復号して保持するソースの通常文字を、元のリテラルの byte へ戻す。
+/// byte escape は呼出側が直接保持し、ここへ通して二重に符号化しない。
+pub(crate) fn encode_fragment(text: &str, encoding: Encoding) -> Option<Vec<u8>> {
+    match encoding {
+        Encoding::Binary => Some(
+            text.chars()
+                .flat_map(|character| {
+                    u8::try_from(u32::from(character))
+                        .map_or_else(|_| character.to_string().into_bytes(), |byte| vec![byte])
+                })
+                .collect(),
+        ),
+        Encoding::Utf8 => Some(text.as_bytes().to_vec()),
+        Encoding::UsAscii => text.is_ascii().then(|| text.as_bytes().to_vec()),
+        Encoding::EucJp | Encoding::Windows31J => {
+            let codec = if encoding == Encoding::EucJp {
+                encoding_rs::EUC_JP
+            } else {
+                encoding_rs::SHIFT_JIS
+            };
+            let (bytes, _, malformed) = codec.encode(text);
+            if malformed
+                || codec
+                    .decode_without_bom_handling_and_without_replacement(&bytes)?
+                    .as_ref()
+                    != text
+            {
+                return None;
+            }
+            Some(bytes.into_owned())
+        }
+    }
+}
+
+struct PreparedPattern<'a> {
+    source: Cow<'a, [u8]>,
+    target: Encoding,
+}
+
+fn prepare<'a>(
+    bytes: &'a [u8],
+    encoding: LiteralEncoding,
+    flags: &str,
+) -> Result<Option<PreparedPattern<'a>>, String> {
+    let original = match encoding {
+        LiteralEncoding::Binary => Encoding::Binary,
+        LiteralEncoding::SevenBit => Encoding::UsAscii,
+        LiteralEncoding::Text => Encoding::Utf8,
+    };
+    let target = option_encoding(flags).unwrap_or(original);
+    Ok(transcode(bytes, original, target)?.map(|source| PreparedPattern { source, target }))
 }
 
 /// Ruby の error String の符号化を UTF-8 表示へ戻す。JIS の別名も生成した decode 表を使う。
@@ -149,6 +308,60 @@ fn transcode(bytes: &[u8], from: Encoding, to: Encoding) -> Result<Option<Cow<'_
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn physical_literal_names_match_the_recorded_ruby27_symbols() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/capture_binding_encodings.json"
+        ))
+        .unwrap();
+        assert_eq!(fixture["ruby"]["version"], "2.7.8");
+        let mut checked = 0;
+        let mut mismatches = Vec::new();
+        for case in fixture["cases"].as_array().unwrap() {
+            let pattern = case["pattern_hex"].as_str().unwrap();
+            let bytes: Vec<_> = pattern
+                .as_bytes()
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+                .collect();
+            // 静的補間の畳み込みは regexp_ast が行う。ここでは C 前処理後の符号化だけを検査する。
+            if bytes.windows(2).any(|pair| pair == b"#{") {
+                continue;
+            }
+            let source = case["source"].as_str().unwrap();
+            let encoding = crate::engine::regexp_source_encoding(source).unwrap();
+            let actual =
+                match literal_names(&bytes, encoding, case["flags"].as_str().unwrap(), encoding) {
+                    LiteralNames::Valid(names) => Some(names),
+                    LiteralNames::Invalid => None,
+                    LiteralNames::Unavailable => {
+                        panic!("unavailable recorded case: {}", case["id"])
+                    }
+                };
+            let expected = (case["mri27"]["status"] == "ok").then(|| {
+                case["encoding_matched_names"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_str().unwrap().to_owned())
+                    .collect::<Vec<_>>()
+            });
+            if actual != expected {
+                mismatches.push(format!("{}: {actual:?} / {expected:?}", case["id"]));
+            }
+            checked += 1;
+        }
+        assert_eq!(checked, 190);
+        assert!(
+            mismatches.is_empty(),
+            "{} differences:\n{}",
+            mismatches.len(),
+            mismatches.join("\n")
+        );
+    }
+
     #[test]
     fn ascii_binary_and_ruby_japanese_transcoding_keep_their_meaning() {
         assert!(validate(br"\x80", LiteralEncoding::Binary, "").is_ok());

@@ -208,6 +208,12 @@ pub(crate) fn would_invalidate(
     broken && !script_has_errors(original, version)
 }
 
+/// 対象括弧補正の保護でも、既存の main_script・元 byte の受理条件を共有する。
+/// 3.3 未満の下限への代用は、その旧版で有効だったことの証拠にはしない。
+pub(crate) fn script_is_valid(source: impl AsRef<[u8]>, target: RubyVersion) -> bool {
+    !script_has_errors(source, parser_version(target.max(RubyVersion::new(3, 3))))
+}
+
 fn script_has_errors(source: impl AsRef<[u8]>, version: &str) -> bool {
     !sonicop_prism_compat::parse_script(source.as_ref(), version)
         .expect("Prism supports every configured Ruby version")

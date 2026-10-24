@@ -1,0 +1,18 @@
+RuboCop 1.89.0 / Ruby 4.0.8、TargetRubyVersion 2.7、parser_whitequark。
+全入力は自作最小例。取得ソースの実行なし。
+原本・全診断フィールド・終了値・実書き戻し byte を記録した 36 危険/衝突条件、
+90 無害対照、48 逆方向 Symbol 条件（合計174条件）。LF/CRLF、inspect/-a/-A。
+upstream_exit は同じ条件の複数ファイルを検査した呼出しの終了値。
+
+再記録:
+  mise exec -- python3 scripts/capture_encoding/record_parentheses.py
+候補 Sonicop を一切実行しない。diagnostic と upstream_bytes_hex は実本家だけの記録。
+method_control_offenses は、逆方向の捕捉名だけ ASCII safe へ変えた本家の全非 Syntax 診断。
+expected_safe_hex は元符号化/CRLF 保存と元のメソッド呼出しの意図的意味保存を定める期待値。
+これを候補の現出力から自動更新してはいけない。
+
+実 MRI 2.7.8p225（revision 1f4d4558484b370999954f3ede7e3aa3a3a01ef3）では、
+危険 plus 原本は String x、本家の元符号化復元後は NoMethodError。
+逆方向は原本 Integer 1、本家の元符号化復元後は ArgumentError(given0, expected1)。
+raw 書き戻しは両方向とも legacy 宣言に UTF-8 byte が残って SyntaxError。
+MRI のソース/名前 Symbol の独立記録は capture_binding_encodings.json。

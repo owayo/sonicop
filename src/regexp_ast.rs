@@ -4,6 +4,7 @@
 //! 連結する。Ruby の実行時評価と異なり、複文の最後だけでなく全 `str` を連結する。
 //! 3.3 以降と Prism は、補間が 1 つでもあれば通常の send のままにする。
 
+use sonicop_onigmo_compat::Encoding;
 use tree_sitter::Node;
 
 use crate::config::Config;
@@ -14,6 +15,7 @@ use crate::ruby_version::RubyVersion;
 pub(crate) struct Semantics {
     static_interpolation: bool,
     prism_question_literals: bool,
+    physical_binding: bool,
 }
 
 impl Default for Semantics {
@@ -21,6 +23,7 @@ impl Default for Semantics {
         Self {
             static_interpolation: false,
             prism_question_literals: true,
+            physical_binding: false,
         }
     }
 }
@@ -34,6 +37,7 @@ impl Semantics {
             _ => config.target_ruby_version() >= RubyVersion::new(3, 3),
         };
         Self {
+            physical_binding: false,
             static_interpolation: config.target_ruby_version() < RubyVersion::new(3, 3)
                 && engine.as_deref() != Some("parser_prism"),
             prism_question_literals,
@@ -61,37 +65,83 @@ impl Semantics {
         })
     }
 
-    /// 本家の静的解析と対象 Ruby の畳み込みが、ともに宣言する名前だけを返す。
+    /// 補正の安全性だけは、Buffer の UTF-8 化前の物理 Ruby の束縛を別解析する。
+    pub(crate) fn physical_binding(self) -> Self {
+        Self {
+            physical_binding: true,
+            prism_question_literals: true,
+            ..self
+        }
+    }
+
+    /// 診断は本家の Symbol 同一性へ合わせ、補間では #31 の安全な名前の積集合を保つ。
     pub(crate) fn named_groups<'t>(
         self,
         regex: Node<'t>,
         source: &str,
         heredoc: impl Fn(Node<'t>) -> Option<Node<'t>>,
     ) -> Vec<String> {
+        let interpolated = children(regex)
+            .iter()
+            .any(|part| part.kind() == "interpolation");
+        // 非補間は既存の字句 scanner を候補の選別に使い、名前の確定だけ native へ渡す。
         if regex.kind() == "regex"
-            && children(regex)
-                .iter()
-                .all(|part| part.kind() != "interpolation")
+            && !interpolated
+            && crate::rules::literal_named_groups(&source[regex.byte_range()]).is_empty()
         {
-            return crate::rules::literal_named_groups(&source[regex.byte_range()]);
+            return Vec::new();
         }
-        let Some((pattern, extended)) = self.pattern(regex, source, &heredoc, false) else {
+        if self.physical_binding {
+            return match self.physical_groups(regex, source, heredoc) {
+                crate::regexp_validation::LiteralNames::Valid(names) => names,
+                crate::regexp_validation::LiteralNames::Invalid
+                | crate::regexp_validation::LiteralNames::Unavailable => Vec::new(),
+            };
+        }
+        let encoding = buffer_encoding(source);
+        let Some((pattern, flags)) = self.pattern(regex, source, &heredoc, false, encoding) else {
             return Vec::new();
         };
-        let Some((physical, _)) = self.pattern(regex, source, heredoc, true) else {
-            return Vec::new();
-        };
-        let physical: std::collections::HashSet<_> =
-            crate::regexp_names::named_groups(&physical, extended)
+        let mut safe = white_names(pattern, &flags, source).unwrap_or_default();
+        if interpolated {
+            let Some((physical, _)) = self.pattern(regex, source, &heredoc, true, encoding) else {
+                return Vec::new();
+            };
+            let physical: std::collections::HashSet<_> = white_names(physical, &flags, source)
+                .unwrap_or_default()
                 .into_iter()
                 .collect();
-        // whitequark は空 begin・複文 begin の全 str を連結する。本体は空 begin を
-        // EVSTR に残し、複文の先行 str を捨てる。架空の捕捉名を宣言すると、後続の呼び出しを
-        // 空白補正だけで引数なし呼び出しへ変え得るため、両方が宣言する名前だけを使う。
-        crate::regexp_names::named_groups(&pattern, extended)
-            .into_iter()
-            .filter(|name| physical.contains(name))
-            .collect()
+            // 空 begin・先行文を連結する差は、#31 の意味保存契約を先に保つ。
+            safe.retain(|name| physical.contains(name));
+        }
+        if let crate::regexp_validation::LiteralNames::Valid(physical) =
+            self.physical_groups(regex, source, heredoc)
+        {
+            // 非補間でも Unicode escape の捕捉 Symbol と元ソースの識別子が異なり得る。
+            // 有効な物理 literal の名前だけを残し、架空の local で method の引数を失わせない。
+            safe.retain(|name| physical.contains(name));
+        }
+        // 無効・未対応の物理入力には意味保存を新たに断定せず、本家診断側の判定を保つ。
+        safe
+    }
+
+    fn physical_groups<'t>(
+        self,
+        regex: Node<'t>,
+        source: &str,
+        heredoc: impl Fn(Node<'t>) -> Option<Node<'t>>,
+    ) -> crate::regexp_validation::LiteralNames {
+        use crate::regexp_validation::LiteralNames;
+        let Some(encoding) = crate::engine::regexp_source_encoding(source) else {
+            return LiteralNames::Unavailable;
+        };
+        if !self.is_static(regex, source, &heredoc) {
+            return LiteralNames::Valid(Vec::new());
+        }
+        let Some((pattern, flags)) = self.pattern(regex, source, heredoc, true, encoding) else {
+            return LiteralNames::Unavailable;
+        };
+        crate::regexp_validation::literal_names(&pattern.bytes, pattern.encoding, &flags, encoding)
     }
 
     fn pattern<'t>(
@@ -100,37 +150,83 @@ impl Semantics {
         source: &str,
         heredoc: impl Fn(Node<'t>) -> Option<Node<'t>>,
         physical: bool,
-    ) -> Option<(String, bool)> {
+        encoding: Encoding,
+    ) -> Option<(Encoded, String)> {
         if !self.is_static(regex, source, &heredoc) {
             return None;
         }
         let (opening, closing) = (regex.child(0)?, regex.child(regex.child_count() - 1)?);
         let close = source[closing.byte_range()].chars().next()?;
-        let extended = source[closing.byte_range()].contains('x');
-        let encoding = declared_literal_encoding(source);
-        let mut pattern = Encoded::new(encoding);
+        let flags = source[closing.byte_range()][close.len_utf8()..].to_owned();
+        let mut pattern = Joined::new();
         let mut position = opening.end_byte();
         for interpolation in children(regex)
             .into_iter()
             .filter(|part| part.kind() == "interpolation")
         {
+            if position < interpolation.start_byte() {
+                pattern.append(Encoded::raw(
+                    &crate::rules::decode_regexp_compile_fragment(
+                        &source[position..interpolation.start_byte()],
+                        close,
+                    ),
+                    encoding,
+                )?)?;
+            }
+            pattern.append(string_bytes(
+                interpolation,
+                source,
+                &heredoc,
+                physical,
+                encoding,
+            )?)?;
+            position = interpolation.end_byte();
+        }
+        if position < closing.start_byte() {
             pattern.append(Encoded::raw(
-                &crate::rules::decode_regexp_fragment(
-                    &source[position..interpolation.start_byte()],
+                &crate::rules::decode_regexp_compile_fragment(
+                    &source[position..closing.start_byte()],
                     close,
                 ),
                 encoding,
-            ))?;
-            pattern.append(string_bytes(interpolation, source, &heredoc, physical)?)?;
-            position = interpolation.end_byte();
+            )?)?;
         }
-        // 区切りの外の flags は本文へ含めない。
-        pattern.append(Encoded::raw(
-            &crate::rules::decode_regexp_fragment(&source[position..closing.start_byte()], close),
-            encoding,
-        ))?;
-        Some((pattern.text()?, extended))
+        Some((pattern.value, flags))
     }
+}
+
+fn buffer_encoding(source: &str) -> Encoding {
+    match declared_literal_encoding(source) {
+        LiteralEncoding::Text | LiteralEncoding::SevenBit => Encoding::Utf8,
+        LiteralEncoding::Binary => Encoding::Binary,
+    }
+}
+
+fn white_names(pattern: Encoded, flags: &str, source: &str) -> Option<Vec<String>> {
+    // ASCII escape は regexp の構文記号を作らないので、名前の開始記号が無ければ native は不要。
+    if !pattern
+        .bytes
+        .windows(3)
+        .any(|part| part == b"(?<" || part == b"(?'")
+    {
+        return Some(Vec::new());
+    }
+    let encoding = match pattern.encoding {
+        Encoding::Utf8 => LiteralEncoding::Text,
+        Encoding::UsAscii => LiteralEncoding::SevenBit,
+        Encoding::Binary => LiteralEncoding::Binary,
+        _ => return None,
+    };
+    crate::regexp_validation::named_groups(
+        &pattern.bytes,
+        encoding,
+        flags,
+        if declared_literal_encoding(source) == LiteralEncoding::Binary {
+            LiteralEncoding::Binary
+        } else {
+            LiteralEncoding::Text
+        },
+    )
 }
 
 fn children(node: Node<'_>) -> Vec<Node<'_>> {
@@ -257,14 +353,14 @@ fn character_end(source: &str, start: usize, model: StringModel) -> Option<usize
     Some(start + chars.peek().map_or(raw.len(), |(offset, _)| *offset))
 }
 
-fn character_bytes(raw: &str, encoding: LiteralEncoding, model: StringModel) -> Option<Encoded> {
+fn character_bytes(raw: &str, encoding: Encoding, model: StringModel) -> Option<Encoded> {
     let end = character_end(raw, 0, model)?;
     if end != raw.len() {
         return None;
     }
     let payload = raw.strip_prefix('?')?;
     let mut value = if payload == "\\\n" || payload == "\\\r\n" {
-        Encoded::raw("\n", encoding)
+        Encoded::raw("\n", encoding)?
     } else {
         decode_string(payload, false, None, encoding, model)?
     };
@@ -276,7 +372,7 @@ fn character_bytes(raw: &str, encoding: LiteralEncoding, model: StringModel) -> 
                     "\\a" | "\\b" | "\\e" | "\\f" | "\\n" | "\\r" | "\\s" | "\\t" | "\\v" | "\\\\"
                 ))
     {
-        value.encoding = LiteralEncoding::Text;
+        value.encoding = Encoding::Utf8;
     }
     Some(value)
 }
@@ -392,29 +488,22 @@ fn heredoc_content<'a, 't>(
 /// でも UTF-8 になるので、原本の符号化を結合後にかけ直してはいけない。
 struct Encoded {
     bytes: Vec<u8>,
-    encoding: LiteralEncoding,
+    encoding: Encoding,
 }
 
 impl Encoded {
-    fn new(encoding: LiteralEncoding) -> Self {
+    fn new(encoding: Encoding) -> Self {
         Self {
             bytes: Vec::new(),
             encoding,
         }
     }
 
-    fn raw(text: &str, encoding: LiteralEncoding) -> Self {
-        let bytes = if encoding == LiteralEncoding::Binary {
-            text.chars()
-                .flat_map(|character| {
-                    u8::try_from(u32::from(character))
-                        .map_or_else(|_| character.to_string().into_bytes(), |byte| vec![byte])
-                })
-                .collect()
-        } else {
-            text.as_bytes().to_vec()
-        };
-        Self { bytes, encoding }
+    fn raw(text: &str, encoding: Encoding) -> Option<Self> {
+        Some(Self {
+            bytes: crate::regexp_validation::encode_fragment(text, encoding)?,
+            encoding,
+        })
     }
 
     fn append(&mut self, other: Self) -> Option<()> {
@@ -427,13 +516,27 @@ impl Encoded {
         self.bytes.extend(other.bytes);
         Some(())
     }
+}
 
-    fn text(self) -> Option<String> {
-        if self.encoding == LiteralEncoding::Binary {
-            Some(self.bytes.into_iter().map(char::from).collect())
-        } else {
-            String::from_utf8(self.bytes).ok()
+// Array#join は全 ASCII でも先頭部品の符号化を保つ。String#<< の append と分ける。
+struct Joined {
+    value: Encoded,
+    first: bool,
+}
+
+impl Joined {
+    fn new() -> Self {
+        Self {
+            value: Encoded::new(Encoding::UsAscii),
+            first: true,
         }
+    }
+    fn append(&mut self, other: Encoded) -> Option<()> {
+        if self.first {
+            self.value.encoding = other.encoding;
+            self.first = false;
+        }
+        self.value.append(other)
     }
 }
 
@@ -448,16 +551,21 @@ fn string_bytes<'t>(
     source: &str,
     heredoc: &impl Fn(Node<'t>) -> Option<Node<'t>>,
     physical: bool,
+    encoding: Encoding,
 ) -> Option<Encoded> {
     if physical {
-        return physical_string_bytes(node, source, heredoc);
+        return physical_string_bytes(node, source, heredoc, encoding);
     }
-    let mut out = Encoded::new(declared_literal_encoding(source));
+    let mut out = Joined::new();
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
         match current.kind() {
             "interpolation" | "parenthesized_statements" => {
                 let mut parts = semantic_children(current, source)?;
+                if parts.is_empty() {
+                    // static_string([]) の空 join も、外側 Array#join の先頭部品になる。
+                    out.append(Encoded::new(Encoding::UsAscii))?;
+                }
                 parts.reverse();
                 stack.extend(parts);
             }
@@ -466,10 +574,11 @@ fn string_bytes<'t>(
                 source,
                 heredoc,
                 StringModel::Whitequark,
+                encoding,
             )?)?,
         }
     }
-    Some(out)
+    Some(out.value)
 }
 
 fn literal_bytes<'t>(
@@ -477,8 +586,8 @@ fn literal_bytes<'t>(
     source: &str,
     heredoc: &impl Fn(Node<'t>) -> Option<Node<'t>>,
     model: StringModel,
+    encoding: Encoding,
 ) -> Option<Encoded> {
-    let encoding = declared_literal_encoding(source);
     match node.kind() {
         _ if character_node(node, source) => {
             let end = character_end(source, node.start_byte(), model)?;
@@ -500,7 +609,7 @@ fn literal_bytes<'t>(
         _ => None,
     }
 }
-fn quoted_bytes(raw: &str, encoding: LiteralEncoding, model: StringModel) -> Option<Encoded> {
+fn quoted_bytes(raw: &str, encoding: Encoding, model: StringModel) -> Option<Encoded> {
     let (body, single) = if let Some(body) = raw.strip_prefix("%q") {
         (body, true)
     } else if let Some(body) = raw.strip_prefix("%Q") {
@@ -532,6 +641,7 @@ fn physical_string_bytes<'t>(
     node: Node<'t>,
     source: &str,
     heredoc: &impl Fn(Node<'t>) -> Option<Node<'t>>,
+    encoding: Encoding,
 ) -> Option<Encoded> {
     let mut stack = vec![(node, false)];
     let mut values = std::collections::HashMap::new();
@@ -563,7 +673,13 @@ fn physical_string_bytes<'t>(
         } else {
             values.insert(
                 current.id(),
-                PhysicalString::Str(literal_bytes(current, source, heredoc, StringModel::Mri27)?),
+                PhysicalString::Str(literal_bytes(
+                    current,
+                    source,
+                    heredoc,
+                    StringModel::Mri27,
+                    encoding,
+                )?),
             );
         }
     }
@@ -613,12 +729,12 @@ fn decode_string(
     content: &str,
     single: bool,
     closing: Option<char>,
-    encoding: LiteralEncoding,
+    encoding: Encoding,
     model: StringModel,
 ) -> Option<Encoded> {
     let normalized = content.replace("\r\n", "\n");
     if single && closing.is_none() {
-        return Some(Encoded::raw(&normalized, encoding));
+        return Encoded::raw(&normalized, encoding);
     }
     let chars: Vec<char> = normalized.chars().collect();
     let mut result = Encoded::new(encoding);
@@ -627,7 +743,7 @@ fn decode_string(
         let character = chars[at];
         at += 1;
         if character != '\\' || at == chars.len() {
-            result.append(Encoded::raw(&character.to_string(), encoding))?;
+            result.append(Encoded::raw(&character.to_string(), encoding)?)?;
             continue;
         }
         let next = chars[at];
@@ -642,7 +758,7 @@ fn decode_string(
                 })
             {
                 at += 1;
-                result.append(Encoded::raw(&next.to_string(), encoding))?;
+                result.append(Encoded::raw(&next.to_string(), encoding)?)?;
             } else {
                 result.bytes.push(b'\\');
             }
@@ -671,7 +787,7 @@ fn decode_string(
                 at += 4;
                 value.push(char::from_u32(u32::from_str_radix(&code, 16).ok()?)?);
             }
-            result.append(Encoded::raw(&value, LiteralEncoding::Text))?;
+            result.append(Encoded::raw(&value, Encoding::Utf8)?)?;
             continue;
         }
         let byte = if next == 'x' {
@@ -730,7 +846,7 @@ fn decode_string(
                         if matches!(model, StringModel::Whitequark) {
                             // lexer-strings.rb は nested hex を slash_c_char → slash_m_char の順で読む。
                             // 単一の非 ASCII UTF-8 byte に対する String#ord は例外であり、正常値にしない。
-                            if encoding == LiteralEncoding::Text && byte >= 0x80 {
+                            if encoding == Encoding::Utf8 && byte >= 0x80 {
                                 return None;
                             }
                             control = true;
@@ -800,7 +916,7 @@ fn decode_string(
                 'e' => 27,
                 's' => 32,
                 other => {
-                    result.append(Encoded::raw(&other.to_string(), encoding))?;
+                    result.append(Encoded::raw(&other.to_string(), encoding)?)?;
                     continue;
                 }
             }
@@ -813,6 +929,98 @@ fn decode_string(
 #[cfg(test)]
 mod tests {
     use super::Semantics;
+
+    #[test]
+    fn configured_capture_names_keep_the_recorded_symbol_identity_in_both_models() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/capture_binding_encodings.json"
+        ))
+        .unwrap();
+        let semantics = Semantics {
+            static_interpolation: true,
+            ..Semantics::default()
+        };
+        let mut checked = 0;
+        let mut mismatches = Vec::new();
+        for case in fixture["cases"].as_array().unwrap() {
+            let source = case["source"].as_str().unwrap();
+            let tree = crate::parser::parse(source).unwrap();
+            let mut pending = vec![tree.root_node()];
+            let mut regex = None;
+            while let Some(node) = pending.pop() {
+                if node.kind() == "regex" {
+                    regex = Some(node);
+                    break;
+                }
+                pending.extend(super::children(node).into_iter().rev());
+            }
+            let regex = regex.unwrap();
+            let buffer = case["white27"]["buffer_encoding"].as_str().unwrap();
+            let mut upstream = Vec::new();
+            for event in case["white27"]["trace"].as_array().unwrap() {
+                let Some(declared) = event.get("declare") else {
+                    continue;
+                };
+                let hex = declared["hex"].as_str().unwrap();
+                let bytes: Vec<_> = hex
+                    .as_bytes()
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+                    .collect();
+                if !bytes.is_ascii() && declared["encoding"] != buffer {
+                    continue;
+                }
+                let name = if buffer == "ASCII-8BIT" {
+                    bytes.into_iter().map(char::from).collect()
+                } else {
+                    String::from_utf8(bytes).unwrap()
+                };
+                if !upstream.contains(&name) {
+                    upstream.push(name);
+                }
+            }
+            let physical: Vec<String> = case["encoding_matched_names"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|name| name.as_str().unwrap().to_owned())
+                .collect();
+            // 物理的に有効な literal だけで積集合を証明する。無効原本の意味は保証しない。
+            let expected = if case["mri27"]["status"] == "ok" {
+                upstream
+                    .into_iter()
+                    .filter(|name| physical.contains(name))
+                    .collect()
+            } else {
+                upstream
+            };
+            let actual = semantics.named_groups(regex, source, |_| None);
+            if actual != expected {
+                mismatches.push(format!("{}: {actual:?} / {expected:?}", case["id"]));
+            }
+            if case["mri27"]["status"] == "ok" {
+                let actual = semantics
+                    .physical_binding()
+                    .named_groups(regex, source, |_| None);
+                if actual != physical {
+                    mismatches.push(format!(
+                        "{} physical: {actual:?} / {physical:?}",
+                        case["id"]
+                    ));
+                }
+            }
+            checked += 1;
+        }
+        assert_eq!(checked, 280);
+        assert!(
+            mismatches.is_empty(),
+            "{} differences:\n{}",
+            mismatches.len(),
+            mismatches.join("\n")
+        );
+    }
 
     #[test]
     fn character_recovery_consumes_only_the_measured_lexeme() {
@@ -880,7 +1088,7 @@ mod tests {
                 continue;
             }
             let source = case["source"].as_str().unwrap();
-            let encoding = crate::engine::declared_literal_encoding(source);
+            let encoding = super::buffer_encoding(source);
             for (key, model) in [
                 ("parser27", super::StringModel::Whitequark),
                 ("mri27", super::StringModel::Mri27),
@@ -895,7 +1103,7 @@ mod tests {
                     .iter()
                     .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
                     .collect();
-                let raw = if encoding == crate::engine::LiteralEncoding::Binary {
+                let raw = if encoding == sonicop_onigmo_compat::Encoding::Binary {
                     bytes.into_iter().map(char::from).collect::<String>()
                 } else {
                     String::from_utf8(bytes).unwrap()
@@ -912,7 +1120,7 @@ mod tests {
                             .iter()
                             .map(|byte| format!("{byte:02x}"))
                             .collect::<String>(),
-                        if value.encoding == crate::engine::LiteralEncoding::Binary {
+                        if value.encoding == sonicop_onigmo_compat::Encoding::Binary {
                             "ASCII-8BIT"
                         } else {
                             "UTF-8"

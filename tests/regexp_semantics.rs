@@ -72,6 +72,29 @@ fn static_regexps_follow_the_selected_parser_and_version() {
             .iter()
             .all(|entry| !entry.reason.trim().is_empty())
     );
+    let fold_guard = &manifest["regexp_capture_fold_guard_divergences"];
+    let guard_cases = fold_guard["cases"].as_sequence().unwrap();
+    let guard_targets = fold_guard["targets"].as_sequence().unwrap();
+    let guarded = |group: &Group, case: &Case| {
+        group.only == fold_guard["only"].as_str().unwrap()
+            && guard_targets
+                .iter()
+                .any(|target| target.as_str() == Some(group.target.as_str()))
+            && fold_guard["modes"]
+                .as_sequence()
+                .unwrap()
+                .iter()
+                .any(|mode| mode.as_str() == Some(group.mode.as_str()))
+            && fold_guard["endings"]
+                .as_sequence()
+                .unwrap()
+                .iter()
+                .any(|ending| ending.as_str() == Some(group.ending.as_str()))
+            && guard_cases
+                .iter()
+                .any(|id| id.as_str() == Some(case.id.as_str()))
+    };
+    let mut guarded_known = BTreeSet::new();
     let mut known = BTreeSet::new();
     let mut failures = Vec::new();
     for group in &groups {
@@ -117,19 +140,53 @@ fn static_regexps_follow_the_selected_parser_and_version() {
             .map(|file| (file["path"].as_str().unwrap(), &file["offenses"]))
             .collect();
         assert_eq!(files.len(), group.files.len(), "{}", group.id);
-        if output.status.code() != Some(group.exit) {
+        let expected_exit = if group.files.iter().any(|case| guarded(group, case)) {
+            fold_guard["candidate_exit"].as_i64().unwrap() as i32
+        } else {
+            group.exit
+        };
+        if output.status.code() != Some(expected_exit) {
             failures.push(format!(
                 "{}: exit {:?} / {}",
                 group.id,
                 output.status.code(),
-                group.exit
+                expected_exit
             ));
         }
         for case in &group.files {
             let intentional = divergences
                 .iter()
                 .find(|entry| entry.case == case.id && entry.targets.contains(&group.target));
-            let expected = if let Some(intentional) = intentional {
+            let expected = if guarded(group, case) {
+                // 旧記録の本家 inspect 診断と原本を使う。候補の未補正出力から期待値を作らない。
+                let original = groups
+                    .iter()
+                    .find(|reference| {
+                        reference.only == group.only
+                            && reference.target == group.target
+                            && reference.ending == group.ending
+                            && reference.mode == "inspect"
+                    })
+                    .unwrap()
+                    .files
+                    .iter()
+                    .find(|original| original.id == case.id)
+                    .unwrap();
+                assert_eq!(case.source, original.source);
+                assert_eq!(original.after, original.source);
+                assert_ne!(case.after, original.source);
+                assert!(String::from_utf8_lossy(&output.stderr).contains(&format!(
+                    "Autocorrection was not written to {} because parentheses would change a regexp capture variable into a method call.",
+                    case.path,
+                )));
+                assert!(guarded_known.insert((
+                    case.id.clone(),
+                    group.target.clone(),
+                    group.ending.clone(),
+                    group.mode.clone()
+                )));
+                original
+            } else if let Some(intentional) = intentional {
                 // 同じ入力の実 Prism 出力を使う。候補の出力を「物理 Ruby の期待値」にしてはならない。
                 let reference = groups
                     .iter()
@@ -183,6 +240,22 @@ fn static_regexps_follow_the_selected_parser_and_version() {
                     String::from_utf8_lossy(&after),
                     expected.after
                 ));
+            }
+        }
+    }
+    // 旧 #31 の72条件と別の24拒否を全IDs/版/改行/補正modeで取りこぼさず検査する。
+    assert_eq!(guarded_known.len(), 24);
+    for id in guard_cases {
+        for target in guard_targets {
+            for ending in ["lf", "crlf"] {
+                for mode in ["-a", "-A"] {
+                    assert!(guarded_known.contains(&(
+                        id.as_str().unwrap().to_owned(),
+                        target.as_str().unwrap().to_owned(),
+                        ending.to_owned(),
+                        mode.to_owned()
+                    )));
+                }
             }
         }
     }

@@ -1267,7 +1267,7 @@ impl Parser {
         n("send", vec![receiver, operator, arg], expr_loc(expression))
     }
 
-    /// `match_op`: 補間の無い正規表現の名前付きキャプチャはローカル変数になる。
+    /// `match_op`: 静的な正規表現の名前付きキャプチャはローカル変数になる。
     pub(crate) fn b_match_op(&mut self, receiver: Value, arg: Value) -> Value {
         let expression = join_exprs(&receiver, &arg);
         if let Some(names) = self.static_regexp_names(&receiver) {
@@ -1288,8 +1288,7 @@ impl Parser {
         }
     }
 
-    /// `static_regexp_node(node).names`。コンパイル診断は別の未対応項目だが、
-    /// 静的な binary 正規表現の捕捉名を UTF-8 の変換失敗で落とさない。
+    /// Regexp#names の Symbol は符号化も持つ。Source::Buffer の UTF-8 化とは分ける。
     fn static_regexp_names(&self, node: &Value) -> Option<Vec<String>> {
         let node = node.as_node().filter(|node| node.kind == "regexp")?;
         let (options, parts) = node.children.split_last()?;
@@ -1298,15 +1297,12 @@ impl Parser {
             return None;
         }
         let (bytes, encoding) = Self::static_string_bytes(parts)?;
-        regexp::validate(&bytes, encoding, &Self::regexp_flags(options)).ok()?;
-        // binary の source_pts は各バイトを1文字として保持するので、名前も同じ表現へ戻す。
-        // メタ文字は ASCII のままで、不正 UTF-8 バイトを動的補間と取り違えない。
-        let source = if encoding == LiteralEncoding::Binary {
-            bytes.into_iter().map(char::from).collect()
-        } else {
-            String::from_utf8(bytes).ok()?
-        };
-        Some(regexp::names(&source, &Self::regexp_flags(options)))
+        regexp::names(
+            &bytes,
+            encoding,
+            &Self::regexp_flags(options),
+            self.lexer.encoding,
+        )
     }
 
     pub(crate) fn b_unary_op(&mut self, op_t: Value, receiver: Value) -> Value {

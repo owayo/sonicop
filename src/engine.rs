@@ -1447,6 +1447,29 @@ pub(crate) fn declared_literal_encoding(text: &str) -> LiteralEncoding {
     }
 }
 
+/// 物理 Ruby の識別子の Symbol を比較するため、Source::Buffer の UTF-8 化前の符号化を保つ。
+/// 対応しない符号化を UTF-8 と推測して補正の安全性を保証しない。
+pub(crate) fn regexp_source_encoding(text: &str) -> Option<sonicop_onigmo_compat::Encoding> {
+    use sonicop_onigmo_compat::Encoding;
+    let Some(label) = declared_label(text.as_bytes()) else {
+        return Some(Encoding::Utf8);
+    };
+    if is_binary_label(&label) {
+        return Some(Encoding::Binary);
+    }
+    if is_seven_bit_label(&label) {
+        return Some(Encoding::UsAscii);
+    }
+    // Ruby 4.0.8 の Encoding.aliases で同一 index と確認した名前だけをまとめる。
+    // Shift_JIS や EUCJP-MS を WHATWG codec の近さだけで同一 Symbol にしない。
+    match label.to_ascii_lowercase().as_str() {
+        "utf-8" | "cp65001" => Some(Encoding::Utf8),
+        "euc-jp" | "eucjp" => Some(Encoding::EucJp),
+        "windows-31j" | "cswindows31j" | "sjis" | "pck" | "cp932" => Some(Encoding::Windows31J),
+        _ => None,
+    }
+}
+
 /// Ruby's names for "no encoding at all", where one byte is one character.
 fn is_binary_label(label: &str) -> bool {
     matches!(
@@ -2536,7 +2559,7 @@ pub fn corrected_text(
     mode: CorrectMode,
     correcting: Correcting,
 ) -> (String, usize) {
-    let (text, count, _) = corrected_text_with_provenance(report, mode, correcting, None, None);
+    let (text, count, _, _) = corrected_text_with_provenance(report, mode, correcting, None, None);
     (text, count)
 }
 
@@ -2546,17 +2569,32 @@ fn corrected_text_with_provenance(
     correcting: Correcting,
     introduced: Option<&[usize]>,
     retained_crlf: Option<&mut LineEndingProvenance>,
-) -> (String, usize, Option<Vec<usize>>) {
+) -> (String, usize, Option<Vec<usize>>, Vec<usize>) {
     if mode == CorrectMode::None {
         return (
             report.source.text().to_owned(),
             0,
             introduced.map(<[usize]>::to_vec),
+            Vec::new(),
         );
     }
     let source = report.source.text();
 
     let candidates = correction_candidates(report, mode, correcting, source);
+    let parenthesizing: HashSet<_> = candidates
+        .iter()
+        .filter_map(|&index| {
+            let offense = &report.offenses[index];
+            matches!(
+                offense.cop_name,
+                "Lint/AmbiguousOperator" | "Lint/AmbiguousRegexpLiteral"
+            )
+            .then_some(&offense.corrections)
+        })
+        .flatten()
+        .filter(|edit| edit.end == edit.start + 1 && edit.replacement == "(")
+        .map(|edit| (edit.start, edit.end))
+        .collect();
 
     let mut run = Action::root();
     // 本家は cop が編集を積んだ時点で corrected を立てるため、後で skip や衝突で
@@ -2637,11 +2675,21 @@ fn corrected_text_with_provenance(
             report.offenses[*index].corrected = true;
         }
     }
+    // corrected は本家の報告状態であり、skip・clash で捨てた編集にも立つ。
+    // 最終 Action 木に残った同一の opening 置換だけを、安全性の判定へ渡す。
+    let mut replacements = Vec::new();
+    run.ordered_replacements(&mut replacements);
+    let openings = replacements
+        .into_iter()
+        .filter_map(|(begin, end, replacement, _)| {
+            (replacement == "(" && parenthesizing.contains(&(begin, end))).then_some(begin)
+        })
+        .collect();
     let (text, provenance) = match retained_crlf {
         Some(retained) => run.rewrite_with_line_endings(source, introduced, Some(retained)),
         None => run.rewrite(source, introduced),
     };
-    (text, applied, provenance)
+    (text, applied, provenance, openings)
 }
 
 fn correction_candidates(
@@ -3021,26 +3069,40 @@ fn withhold_unparsable(
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
-    // 書かない補正後のソースではなく、ディスクに残る原本の診断を返す。
-    let report = inspect_planned(
-        path.clone(),
-        original.to_owned(),
+    let reason = format!(
+        "Autocorrection was not written to {} because it introduced a syntax error.",
+        path.display()
+    );
+    rollback_correction(
+        path,
+        original,
+        outcome.infinite_loop,
+        reason,
         config,
         selection,
         plan,
-        true,
-    )?;
+    )
+}
+
+fn rollback_correction(
+    path: PathBuf,
+    original: &str,
+    infinite_loop: Option<String>,
+    reason: String,
+    config: &Config,
+    selection: &Selection,
+    plan: &RulePlan,
+) -> Result<CorrectionOutcome> {
+    // 書かない補正後のソースではなく、ディスクに残る原本の診断を返す。
+    let report = inspect_planned(path, original.to_owned(), config, selection, plan, true)?;
     Ok(CorrectionOutcome {
         report,
         text: original.to_owned(),
         corrected_count: 0,
         rewritten: false,
         introduced_non_ascii: false,
-        infinite_loop: outcome.infinite_loop,
-        rollback: Some(format!(
-            "Autocorrection was not written to {} because it introduced a syntax error.",
-            path.display()
-        )),
+        infinite_loop,
+        rollback: Some(reason),
     })
 }
 
@@ -3066,20 +3128,32 @@ fn restore_crlf(
     retained_crlf: Option<&LineEndingProvenance>,
 ) -> CorrectionOutcome {
     if outcome.rewritten && outcome.rollback.is_none() {
-        if preserve_crlf {
-            // 旧書出し前の正規化でも、解析viewに残る元bare CRを捨てない。
-            // 元pairのCRは全LFへ付ける既存方針で戻し、markerは追加の元CRだけを表す。
-            let mut retained_crlf = retained_crlf.cloned();
-            normalize_corrected_line_endings(&mut outcome.text, &mut None, &mut retained_crlf);
-            if let Some(state) = retained_crlf {
-                outcome.text = restore_copied_crlf(&outcome.text, &state.hidden_cr);
-            }
-            outcome.text = outcome.text.replace('\n', "\r\n");
-        } else if let Some(state) = retained_crlf {
-            outcome.text = restore_copied_crlf(&outcome.text, &state.hidden_cr);
-        }
+        outcome.text = restored_line_endings(&outcome.text, preserve_crlf, retained_crlf);
     }
     outcome
+}
+
+/// 最終書出しと補正前script検査を、同じ物理改行の復元へ向ける。
+/// currentの位置表を次passへ変更しないよう、pureの最終正規化は複製へ適用する。
+fn restored_line_endings(
+    text: &str,
+    preserve_crlf: bool,
+    retained_crlf: Option<&LineEndingProvenance>,
+) -> String {
+    if preserve_crlf {
+        // 元pairは全LFのdefault CR、markerは追加の元bare CRだけを表す。
+        let mut text = text.to_owned();
+        let mut retained_crlf = retained_crlf.cloned();
+        normalize_corrected_line_endings(&mut text, &mut None, &mut retained_crlf);
+        if let Some(state) = retained_crlf {
+            text = restore_copied_crlf(&text, &state.hidden_cr);
+        }
+        text.replace('\n', "\r\n")
+    } else if let Some(state) = retained_crlf {
+        restore_copied_crlf(text, &state.hidden_cr)
+    } else {
+        text.to_owned()
+    }
 }
 
 /// mixedの挿入LFやDATA内の元LFは変えず、copyした元CRLFだけを書出し時に戻す。
@@ -3218,18 +3292,19 @@ pub(crate) fn correct_file_with_original(
     for pass in 0..MAX_CORRECTION_PASSES {
         // 補正前のscript検査には現在の位置表が必要。次passの由来で上書きしない。
         let mut next_retained_crlf = retained_crlf.clone();
-        let (mut corrected, mut count, mut next_provenance) = corrected_text_with_provenance(
-            &mut report,
-            mode,
-            Correcting::ExceptDirectives,
-            provenance.as_deref(),
-            next_retained_crlf.as_mut(),
-        );
+        let (mut corrected, mut count, mut next_provenance, mut openings) =
+            corrected_text_with_provenance(
+                &mut report,
+                mode,
+                Correcting::ExceptDirectives,
+                provenance.as_deref(),
+                next_retained_crlf.as_mut(),
+            );
         let mut directive_pass = false;
         if count == 0 && directives_pending {
             directives_pending = false;
             directive_pass = true;
-            (corrected, count, next_provenance) = corrected_text_with_provenance(
+            (corrected, count, next_provenance, openings) = corrected_text_with_provenance(
                 &mut report,
                 mode,
                 Correcting::DirectivesOnly,
@@ -3262,6 +3337,44 @@ pub(crate) fn correct_file_with_original(
                 selection,
                 &plan,
             );
+        }
+        if started_valid
+            && !openings.is_empty()
+            && crate::rules::capture_parentheses_change_bindings(&report.source, config, &openings)
+        {
+            let reconstructed = original_bytes.is_none().then(|| {
+                output_bytes(&original, declared_label(original.as_bytes()).as_deref())
+                    .unwrap_or_else(|_| original.as_bytes().to_vec())
+            });
+            let original_raw = original_bytes.unwrap_or_else(|| reconstructed.as_deref().unwrap());
+            let current_bytes = if pass == 0 {
+                Ok(original_raw.to_vec())
+            } else {
+                // openingは旧reportの座標で照合済み。実byteだけをcurrentの由来で復元する。
+                debug_assert!(retained_crlf.as_ref().is_none_or(|state| !state.physical));
+                let physical_text =
+                    restored_line_endings(&text, preserve_crlf, retained_crlf.as_ref());
+                correction_bytes(
+                    &physical_text,
+                    original_raw,
+                    Some(
+                        provenance
+                            .as_ref()
+                            .is_some_and(|positions| !positions.is_empty()),
+                    ),
+                )
+            };
+            if current_bytes.is_ok_and(|bytes| {
+                crate::prism::script_is_valid(bytes, config.target_ruby_version())
+            }) {
+                let reason = format!(
+                    "Autocorrection was not written to {} because parentheses would change a regexp capture variable into a method call.",
+                    path.display()
+                );
+                return rollback_correction(
+                    path, &original, None, reason, config, selection, &plan,
+                );
+            }
         }
         log.record_pass(&mut report, directive_pass);
         // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
@@ -4227,6 +4340,92 @@ mod tests {
     }
 
     #[test]
+    fn physical_regexp_encoding_uses_exact_ruby_aliases() {
+        use sonicop_onigmo_compat::Encoding;
+        // 実 Ruby 4.0.8 の Encoding.find で index を比較。WHATWG の UTF8 は Ruby の別名ではない。
+        for (label, expected) in [
+            ("UTF-8", Some(Encoding::Utf8)),
+            ("CP65001", Some(Encoding::Utf8)),
+            ("EUCJP", Some(Encoding::EucJp)),
+            ("SJIS", Some(Encoding::Windows31J)),
+            ("PCK", Some(Encoding::Windows31J)),
+            ("CP932", Some(Encoding::Windows31J)),
+            ("csWindows31J", Some(Encoding::Windows31J)),
+            ("UTF8", None),
+            ("Shift_JIS", None),
+            ("EUCJP-MS", None),
+        ] {
+            assert_eq!(
+                super::regexp_source_encoding(&format!("# encoding: {label}\n")),
+                expected,
+                "{label}",
+            );
+        }
+    }
+
+    #[test]
+    fn capture_parentheses_follow_applied_edits_across_a_spacing_clash() {
+        let directory = tempdir().unwrap();
+        std::fs::write(
+            directory.path().join(".rubocop.yml"),
+            "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+        )
+        .unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec![
+                "Layout/SpaceBeforeFirstArg".to_owned(),
+                "Lint/AmbiguousOperator".to_owned(),
+            ],
+            correcting: true,
+            ..Selection::default()
+        };
+        let original = "# encoding: EUC-JP\n/(?<あ>x)/e =~ 'x'\nあ    +''\n";
+        let mut report = inspect_source(
+            directory.path().join("example.rb"),
+            original.to_owned(),
+            &config,
+            &selection,
+        )
+        .unwrap();
+        let (first, _, _, openings) = super::corrected_text_with_provenance(
+            &mut report,
+            CorrectMode::Safe,
+            Correcting::Everything,
+            None,
+            None,
+        );
+        // 本家の corrected は衝突で捨てた括弧にも立つ。安全判定は適用した Action だけを見る。
+        assert!(
+            report.offenses.iter().any(|offense| {
+                offense.cop_name == "Lint/AmbiguousOperator" && offense.corrected
+            })
+        );
+        assert_eq!(first, original.replace("あ    +", "あ +"));
+        assert!(openings.is_empty());
+        let mut report = inspect_source(
+            directory.path().join("example.rb"),
+            first,
+            &config,
+            &selection,
+        )
+        .unwrap();
+        let (_, _, _, openings) = super::corrected_text_with_provenance(
+            &mut report,
+            CorrectMode::Safe,
+            Correcting::Everything,
+            None,
+            None,
+        );
+        assert_eq!(openings.len(), 1);
+        assert!(crate::rules::capture_parentheses_change_bindings(
+            &report.source,
+            &config,
+            &openings,
+        ));
+    }
+
+    #[test]
     fn autocorrect_support_covers_the_complete_registered_cop_set() {
         let support: Vec<(String, bool)> =
             serde_json::from_str(include_str!("../config/autocorrect_support.json")).unwrap();
@@ -4551,6 +4750,73 @@ mod tests {
         assert_eq!(applied, 4096);
         // 本家はチームの衝突で捨てた cop も corrected のまま報告する。
         assert!(report.offenses.iter().all(|offense| offense.corrected));
+    }
+
+    #[test]
+    fn current_line_endings_restore_copied_bytes_without_using_the_next_pass_map() {
+        for original in [
+            "# あ\r\nv\n",
+            "# あ\r\r\nv\n",
+            "# あ\r\nv\r\n",
+            "# あ\r\r\r\nv\r\n",
+        ] {
+            let pure = super::uses_crlf_only(original);
+            let mut state = Some(super::LineEndingProvenance::new(original));
+            if pure {
+                state.as_mut().unwrap().hidden_cr.clear();
+            }
+            let mut text = original.to_owned();
+            for pass in 1..=2 {
+                let mut next = state.clone();
+                let edit = super::Action::from_edit(
+                    &Edit {
+                        start: 0,
+                        end: 0,
+                        replacement: "p\n".to_owned(),
+                        safe: true,
+                    },
+                    (0, 0),
+                );
+                let (mut corrected, mut introduced) =
+                    edit.rewrite_with_line_endings(&text, None, next.as_mut());
+                // currentとnextの位置がずれる編集でも、旧textの復元へnext表を渡さない。
+                if pass > 1 {
+                    let expected = format!("{}{original}", if pure { "p\r\n" } else { "p\n" });
+                    assert_eq!(
+                        super::restored_line_endings(&text, pure, state.as_ref()),
+                        expected,
+                    );
+                }
+                super::normalize_corrected_line_endings(&mut corrected, &mut introduced, &mut next);
+                state = next;
+                text = corrected;
+                let before = state.as_ref().map(|state| {
+                    (
+                        state.hidden_cr.clone(),
+                        state.visible_cr.clone(),
+                        state.physical,
+                    )
+                });
+                let expected = format!(
+                    "{}{original}",
+                    if pure { "p\r\n" } else { "p\n" }.repeat(pass),
+                );
+                assert_eq!(
+                    super::restored_line_endings(&text, pure, state.as_ref()),
+                    expected,
+                );
+                assert_eq!(
+                    state.as_ref().map(|state| {
+                        (
+                            state.hidden_cr.clone(),
+                            state.visible_cr.clone(),
+                            state.physical,
+                        )
+                    }),
+                    before,
+                );
+            }
+        }
     }
 
     #[test]

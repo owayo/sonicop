@@ -1,0 +1,2457 @@
+{
+  "environment": {
+    "ruby": "ruby 4.0.7 (2026-09-15 revision 229531a6cf) +PRISM [x64-mingw-ucrt]",
+    "gems": {
+      "error_highlight": "0.7.2",
+      "did_you_mean": "2.0.0",
+      "syntax_suggest": "2.0.3",
+      "json": "2.18.0",
+      "language_server-protocol": "3.17.0.5",
+      "lint_roller": "1.1.0",
+      "parallel": "1.27.0",
+      "ast": "2.4.3",
+      "racc": "1.8.1",
+      "parser": "3.3.12.0",
+      "rainbow": "3.1.1",
+      "regexp_parser": "2.11.3",
+      "ruby-progressbar": "1.13.0",
+      "unicode-emoji": "4.3.0",
+      "unicode-display_width": "3.3.0",
+      "rubocop": "1.89.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "english": "0.8.1",
+      "fileutils": "1.8.0",
+      "stringio": "3.2.0",
+      "zlib": "3.2.3",
+      "forwardable": "1.4.0",
+      "delegate": "0.6.1",
+      "digest": "3.2.1",
+      "uri": "1.1.1",
+      "yaml": "0.4.0",
+      "date": "3.5.1",
+      "psych": "5.3.1",
+      "erb": "6.0.7",
+      "bundler": "4.0.20",
+      "find": "0.2.0",
+      "optparse": "0.8.1",
+      "net-http": "0.9.1",
+      "timeout": "0.6.0",
+      "net-protocol": "0.2.2",
+      "resolv": "0.7.2",
+      "securerandom": "0.4.1",
+      "time": "0.4.2"
+    },
+    "offense_comparison_attributes": [
+      "line",
+      "column",
+      "cop_name",
+      "message",
+      "severity"
+    ]
+  },
+  "raw_fixture_sha256": "6202aa87befe6d57edbb93352c35bd2442e0ef956e3ec02c932563967b155616",
+  "windows_text_write_lf_to_crlf": true,
+  "records": [
+    {
+      "id": "mixed_initial_control",
+      "mode": "-a",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f65203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+          "restored_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "mixed_initial_control",
+      "mode": "-A",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f65203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+          "restored_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "mixed_bare_later_control",
+      "mode": "-a",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 3,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "mixed_bare_later_control",
+      "mode": "-A",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 3,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0282b2727290a5f5f454e445f5f0d0a610d0d0a620a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "pure_bare_later_control",
+      "mode": "-a",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 3,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "pure_bare_later_control",
+      "mode": "-A",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "steps": [
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Put one space between the method name and the first argument.",
+                "cop_name": "Layout/SpaceBeforeFirstArg",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 2,
+                  "last_line": 8,
+                  "last_column": 5,
+                  "length": 4,
+                  "line": 8,
+                  "column": 2
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 6,
+                  "last_line": 8,
+                  "last_column": 6,
+                  "length": 1,
+                  "line": 8,
+                  "column": 6
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "convention",
+                      "message": "Put one space between the method name and the first argument.",
+                      "cop_name": "Layout/SpaceBeforeFirstArg",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 2,
+                        "last_line": 8,
+                        "last_column": 5,
+                        "length": 4,
+                        "line": 8,
+                        "column": 2
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 6,
+                        "last_line": 8,
+                        "last_column": 6,
+                        "length": 1,
+                        "line": 8,
+                        "column": 6
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 3,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": false,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 1,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 1,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 0,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "warning",
+                "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                "cop_name": "Lint/AmbiguousOperator",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 8,
+                  "start_column": 3,
+                  "last_line": 8,
+                  "last_column": 3,
+                  "length": 1,
+                  "line": 8,
+                  "column": 3
+                }
+              }
+            ],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": [
+                    {
+                      "severity": "fatal",
+                      "message": "\"\\x82\" followed by \">\" on windows-31j.",
+                      "cop_name": "Lint/Syntax",
+                      "corrected": false,
+                      "correctable": false,
+                      "location": {
+                        "start_line": 1,
+                        "start_column": 1,
+                        "last_line": 1,
+                        "last_column": 1,
+                        "length": 0,
+                        "line": 1,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "severity": "warning",
+                      "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+                      "cop_name": "Lint/AmbiguousOperator",
+                      "corrected": true,
+                      "correctable": true,
+                      "location": {
+                        "start_line": 8,
+                        "start_column": 3,
+                        "last_line": 8,
+                        "last_column": 3,
+                        "length": 1,
+                        "line": 8,
+                        "column": 3
+                      }
+                    }
+                  ]
+                }
+              ],
+              "summary": {
+                "offense_count": 2,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3ce381823e78292f73203d7e202778270d0a656e640d0a64656620e381822876616c7565290d0a202076616c75650d0a656e640d0ae38182282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        },
+        {
+          "input_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "inspection": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "correction": {
+            "exit": 0,
+            "offenses": [],
+            "report": {
+              "metadata": {
+                "rubocop_version": "1.89.0",
+                "ruby_engine": "ruby",
+                "ruby_version": "4.0.7",
+                "ruby_patchlevel": "0",
+                "ruby_platform": "x64-mingw-ucrt"
+              },
+              "files": [
+                {
+                  "path": "example.rb",
+                  "offenses": []
+                }
+              ],
+              "summary": {
+                "offense_count": 0,
+                "target_file_count": 1,
+                "inspected_file_count": 1
+              }
+            }
+          },
+          "written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+          "restored_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+        }
+      ],
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0282b2727290d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "expected_exit": 0,
+      "expected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ]
+    }
+  ]
+}
