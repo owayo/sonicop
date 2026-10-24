@@ -65,4 +65,27 @@ class ExtconfTest < Minitest::Test
       refute File.exist?(File.join(extension, 'Makefile'))
     end
   end
+
+  def test_installs_with_backslashes_in_the_windows_cargo_path
+    skip 'Windows の PATH 表記を使う実ビルド' unless Gem.win_platform?
+
+    git_bin = File.join(ENV.fetch('ProgramFiles', 'C:/Program Files'), 'Git/usr/bin')
+    skip 'Makefile の POSIX レシピに Git Bash が必要' unless File.file?(File.join(git_bin, 'sh.exe'))
+
+    fixture do |root, extension, env|
+      # native の find_executable が返す区切りを、Make と sh の両方へ通す。
+      env['PATH'] = ([git_bin] + ENV.fetch('PATH').split(File::PATH_SEPARATOR))
+                    .map { |path| path.tr('/', '\\') }.join(File::PATH_SEPARATOR)
+      output, error, status = Open3.capture3(env, 'cargo', 'generate-lockfile', '--offline', chdir: root)
+      assert status.success?, "#{output}\n#{error}"
+      output, error, status = Open3.capture3(env, RbConfig.ruby, 'extconf.rb', chdir: extension)
+      assert status.success?, "#{output}\n#{error}"
+      destination = File.join(root, 'installed')
+      output, error, status = Open3.capture3(env, 'make', 'install', "sitearchdir=#{destination}", chdir: extension)
+      assert status.success?, "#{output}\n#{error}"
+      output, error, status = Open3.capture3(File.join(destination, 'sonicop-bin.exe'))
+      assert status.success?, error
+      assert_equal "native fixture\n", output
+    end
+  end
 end

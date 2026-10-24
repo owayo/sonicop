@@ -8,6 +8,8 @@ require 'shellwords'
 
 cargo = find_executable('cargo')
 abort 'cargo is required to build the sonicop source gem' unless cargo
+# Windows の区切りを Make と sh が別々に解釈しないよう、Ruby の絶対パス表記へ揃える。
+cargo = File.expand_path(cargo)
 
 root = File.expand_path('../..', __dir__)
 executable = Gem.win_platform? ? 'sonicop.exe' : 'sonicop'
