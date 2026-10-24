@@ -155,7 +155,7 @@ The CLI accepts RuboCop's server/LSP/MCP and plugin flags to keep existing comma
 
 Set `AllCops/UseProjectIndex: true` to enable project-wide analysis, including `Lint/DeprecatedReference`, `Lint/NameTypo` and `Lint/UnusedPrivateMethod`. The native executable can index project sources without Ruby. With `AllCops/ProjectIndexIncludesGems: true`, the Ruby gem wrapper also indexes bundled gem sources when Bundler is loaded. Project-index runs bypass the result cache, since changes to another file can change a diagnostic in the inspected file.
 
-The cache flags are honoured rather than merely parsed. Sonicop keeps a result cache of its own and serves a stored report for a file whose size, modification time and permission bits have not moved since it was inspected.
+Sonicop reuses a stored report when the digest of the source content, file size, modification time, permissions, build, configuration and selected cops still match.
 
 - Caching is on by default. `--cache false` turns it off, as does `AllCops/MaxFilesInCache: 0` in a configuration file.
 - `--cache-root DIR` chooses where it lives. Without it the root is `$XDG_CACHE_HOME/sonicop`, or `~/Library/Caches/sonicop` on macOS, or `~/.cache/sonicop`. `--cache-root` cannot be combined with `--cache false`.
@@ -169,50 +169,54 @@ Cop *names* are checked: an unrecognised cop in a configuration file stops the r
 
 ## Conformance
 
-Sonicop implements **609 / 609** cop names from its RuboCop 1.89.0 specification, including project-index behavior. On five pinned Ruby projects (18,251 target files), both tools discover the same path sets. Their default-config JSON reports match offense by offense on RuboCop's own tree (5,766 offenses), Rails (167,760) and Mastodon (15,286). Homebrew differs only in `Lint/Syntax` recovery positions: both reject the same 569 files. Ruby still has parser and cop differences; it is not counted as exact.
+The 2026-10-24 Windows run used five existing public corpora with **18,670 target files**. The behavioral specification remains **RuboCop 1.89.0**, measured on Ruby 4.0.7 / Parser 3.3.12.0. All 609 cop names and their enabled 394 / pending 159 / disabled 56 groups agree. Default-config comparisons retain every offense field, duplicates and file order:
 
-Autocorrect is also compared on separate copies of each project. Some differences are deliberate safety decisions: RuboCop can write invalid Ruby, lose a value through assignment order, or turn a local-variable read into a `NameError`. Each known difference is pinned by corrected-file hashes in [the divergence manifest](tests/conformance/known_divergences.yml). For the pinned trees, `-a` has 0 new differences and `-A` has 0 new differences among the four corpora RuboCop can finish; Ruby's reference aborts before a complete correction tree exists. The corrected trees are byte-identical on Homebrew, while the other known differences remain visible in the gate.
+| Corpus | Files | RuboCop 1.89.0 | Sonicop | Missing | Extra | Field differences |
+| --- | --- | --- | --- | --- | --- | --- |
+| rails/rails | 3,588 | 176,909 | 176,909 | 0 | 0 | 0 |
+| rubocop/rubocop | 1,807 | 7,957 | 7,957 | 0 | 0 | 0 |
+| ruby/ruby | 7,522 / 7,524 | 776,604 | 776,679 | 3 | 78 | 3 |
+| Homebrew/brew | 2,397 | 60,799 | 60,799 | 0 | 0 | 0 |
+| mastodon/mastodon | 3,354 | 19,145 | 19,145 | 0 | 0 | 0 |
 
-The full Ruby corpus has not passed the idempotence gate. Like RuboCop, Sonicop can reach the 200-pass limit, report an infinite loop and write partial corrections that change again on the next invocation. This is not reported as successful convergence; see [the measured limits](CONFORMANCE.md#autocorrect-and-safety).
+Ruby's full reference exits 2. Two individually confirmed failing files are excluded from the verified chunked comparison. Four corpora match completely; Ruby's remaining differences affect seven files. Registry counts, real-source agreement and the separate [2026-10-22 per-cop sweep](#cop-conformance) measure different things.
 
-[CONFORMANCE.md](CONFORMANCE.md) records the corpus commits, reference versions, exact offense fields, measured counts and limitations. The [cop conformance table](#cop-conformance) is a separate measurement: all 609 cops fired and matched exactly on the measured inputs. This does not establish agreement on every Ruby program or configuration.
+Diagnostics and correction bytes were also measured separately against current RuboCop 1.92.1. Its added JSON `correction` property remains a strict difference, with differences in the older shared fields reported separately. Independent correction copies produced the following results. Byte differences count files; this newer-version matrix has not passed compatibility P.
+
+| Corpus | -a byte differences | -A byte differences | Candidate exit -a / -A | Second -A changes |
+| --- | --- | --- | --- | --- |
+| rails/rails | 3,212 | 3,301 | 2 / 2 | 0 |
+| rubocop/rubocop | 177 | 236 | 1 / 1 | 0 |
+| ruby/ruby | unavailable | unavailable | 2 / 2 | 1 |
+| Homebrew/brew | 1,582 | 1,608 | 1 / 1 | 0 |
+| mastodon/mastodon | 1,349 | 1,752 | 2 / 2 | 0 |
+
+Syntax checks of completed writes found no candidate-only invalid files. Rails, Mastodon and Ruby retain exit 2 for rejected writes or other errors, so there is no overall safety S pass. Ruby's corrected reference is unavailable, and changes made by its second candidate pass are reported separately. Differences that disappear only after CRLF normalization are not treated as unregistered conformance passes.
+
+See the [current conditions, residual differences and raw data](docs/maintenance/2026-10-24.md), [specification and historical evidence](CONFORMANCE.md), and [intentional-divergence manifest](tests/conformance/known_divergences.yml).
+
+An additional copy converts the RuboCop corpus's `.rb` files to CRLF. Its 1,807 files and 6,167 offenses match specification 1.89.0 in every field. Correction results remain separate in the [detailed record](docs/maintenance/2026-10-24.md#crlf-corpus-and-comparison-controls).
 
 ## Performance
 
-Measured on 2026-10-22 in a [dedicated GitHub Actions run](https://github.com/owayo/sonicop/actions/runs/39778331289) with Ruby 4.0.8 (`RUBYOPT=--yjit`), RuboCop 1.92.1 and Sonicop revision `4408950`. Hardware: AMD EPYC 7763 64-Core Processor (4 logical CPUs), x86_64-pc-linux, runner image `20261012.334.1`. [Conformance](#conformance) remains pinned to RuboCop 1.89.0. The newer gem has 613 cops; Sonicop implements 609. Each defaults to 394 enabled cops, with one different name. Timing excludes RuboCop's `Lint/CopDirectiveSyntax` and Sonicop's `Style/DoubleCopDisableDirective`, leaving **393 shared cop names**.
+Measured on 2026-10-24 with Windows 11 build 26300.9711 and an AMD Ryzen 7 5700X (8 cores, 16 logical CPUs). The runtime used Ruby **4.0.9**, RuboCop **1.92.1**, Parser **3.3.13.0** and rubocop-ast **1.50.0**. Latest Prism 2.0.0 conflicts with rubocop-ast's `~>1.7` requirement; the loaded version is **1.8.2**. Measurements with every component at its latest release remain incomplete. These results use the available combination. This Windows Ruby provides neither YJIT nor RuboCop parallel execution.
 
-Input copies live outside project directories. CLI probes require target Ruby 3.3 for Rails (`RAILS_VERSION=8.2.0.alpha`), 4.0 for Mastodon and 2.7 for the other corpora on both tools. Both use `--force-default-config` and the **JSON formatter**. Every timed run checks complete inspection, target path sets and all offense fields against its own baseline. Ruby's two files that abort the reference are omitted from both timing copies: 7,464 of 7,466 targets are measured. Times are **fastest / median**, in seconds, from two runs in alternating tool order. Parallel runs use all available logical CPUs, `--cache true` and a fresh real-path cache root. Single-process runs use `--cache false`, with `--no-parallel` on Sonicop. Every timed run exited 1 after reporting offenses. Cache-file counts are retained in the results; no warm-cache timings are claimed.
+Both tools receive the same external configuration (`NewCops: disable` and the verified target version). Caching is enabled: cold uses a fresh real-path root; warm reuses the corresponding cold run's populated cache. Two trials alternate tool order and reproduce each tool's own complete diagnostic baseline. Values are median wall seconds. The ratio is RuboCop ÷ Sonicop; **different diagnostics mean it is neither an equivalent-work speedup nor improvement over a previous build**.
 
-| Corpus | Revision | Files | RuboCop offenses | Sonicop offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| rails/rails | `62b5458` | 3,551 | 167,889 | 167,760 | 65.37 / 65.52 | 11.04 / 11.10 | 114.81 / 115.10 | 26.60 / 26.81 |
-| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 34.98 / 35.04 | 3.81 / 3.82 | 57.54 / 57.54 | 9.37 / 9.39 |
-| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 31.39 / 31.50 | 4.07 / 4.10 | 48.05 / 48.18 | 9.97 / 10.02 |
-| Homebrew/brew | `38ee325` | 2,179 | 49,921 | 49,326 | 34.59 / 35.10 | 3.72 / 3.74 | 54.61 / 55.22 | 8.61 / 8.70 |
-| ruby/ruby | `3349f41` | 7,464 | 763,132 | 761,186 | 152.94 / 153.27 | 22.81 / 23.48 | 283.86 / 300.06 | 56.00 / 56.92 |
+| Corpus | Files | Cache | RuboCop single(s) | Sonicop single(s) | Time ratio | Sonicop parallel(s) |
+| --- | --- | --- | --- | --- | --- | --- |
+| rails/rails | 3,588 | cold | 214.52 | 41.25 | 5.20 | 6.71 |
+| rails/rails | 3,588 | warm | 16.19 | 1.36 | 11.95 | 0.83 |
+| rubocop/rubocop | 1,807 | cold | 98.31 | 15.41 | 6.38 | 1.74 |
+| rubocop/rubocop | 1,807 | warm | 4.98 | 0.31 | 16.18 | 0.14 |
+| mastodon/mastodon | 3,354 | cold | 75.07 | 11.03 | 6.81 | 1.55 |
+| mastodon/mastodon | 3,354 | warm | 10.62 | 0.66 | 16.14 | 0.34 |
+| Homebrew/brew | 2,397 | cold | 78.93 | 13.23 | 5.96 | 1.92 |
+| Homebrew/brew | 2,397 | warm | 7.60 | 0.60 | 12.67 | 0.33 |
+| ruby/ruby | 7,522 | cold | 411.07 | 68.96 | 5.96 | 17.35 |
+| ruby/ruby | 7,522 | warm | 27.58 | 5.62 | 4.90 | 4.43 |
 
-The newer reference performs different work, as the offense counts show. These times do not establish equivalent-work speed ratios or improvement over a previous Sonicop build. Single-process CPU times use the same fastest / median format:
-
-| Corpus | RuboCop user CPU | Sonicop user CPU | RuboCop system CPU | Sonicop system CPU |
-| --- | ---: | ---: | ---: | ---: |
-| rails/rails | 111.00 / 111.31 | 26.38 / 26.59 | 3.68 / 3.70 | 0.22 / 0.22 |
-| rubocop/rubocop | 54.69 / 54.92 | 9.32 / 9.33 | 2.34 / 2.55 | 0.05 / 0.06 |
-| mastodon/mastodon | 45.61 / 45.61 | 9.90 / 9.94 | 2.39 / 2.51 | 0.07 / 0.07 |
-| Homebrew/brew | 51.61 / 52.28 | 8.51 / 8.61 | 2.80 / 2.87 | 0.09 / 0.09 |
-| ruby/ruby | 277.95 / 294.01 | 55.16 / 56.08 | 5.79 / 5.92 | 0.82 / 0.83 |
-
-One-minute load averages at the first and last timed run, and the highest recorded sample:
-
-| Corpus | First | Last | Highest sample |
-| --- | ---: | ---: | ---: |
-| rails/rails | 2.00 | 1.02 | 4.26 |
-| rubocop/rubocop | 1.01 | 1.34 | 4.22 |
-| mastodon/mastodon | 1.52 | 1.57 | 4.38 |
-| Homebrew/brew | 1.21 | 1.41 | 4.18 |
-| ruby/ruby | 1.72 | 1.00 | 5.27 |
-
-The [recorded results](docs/benchmarks/2026-10-22.json) include cop counts, diagnostic differences, exit codes, CPU time, cache-file counts and runtime versions. Reproduce with `make benchmark`; see [development notes](docs/development.md#corpus-gates-and-benchmarks).
-
+Each version enables 394 cops, with 393 shared names; these runs retain each version's enabled set. Target versions are Rails 3.3, Mastodon 4.0 and 2.7 for the others. Ruby timing copies omit only the two reference-aborting files, leaving 7,522 targets. Discovery times, fastest/maximum trials, child-inclusive user/system CPU, host activity, cache-file counts and exits are in the [raw results](docs/benchmarks/2026-10-24-windows.json) and [reproduction notes](docs/maintenance/2026-10-24.md). The [2026-10-22 Linux results](docs/benchmarks/2026-10-22.json) are historical measurements with different inputs and hardware.
 
 ## Development
 

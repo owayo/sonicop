@@ -44,3 +44,15 @@ Cop 名と既定 severity を書くのはこの 1 行だけです。Cop 本体�
 ## 依存
 
 依存更新には `depup --install --include-pinned` を使います。再現可能性のため、パーサとプロジェクト索引の依存は `Cargo.toml` で版または fork のコミットを固定しています。更新による挙動の変化は、採用前に仕様版の RuboCop と比較してください。
+
+## 2026-10-24 の既存入力での計測
+
+この回は再取得せず、許可された取得済み5コーパスを使った。[条件と結果](maintenance/2026-10-24.md)と
+[生データ](maintenance/2026-10-24.json)を参照する。計測時点の最新安定版を公式Ruby/RubyGemsで確認し、
+実際にロードされたRuby・RuboCop・Parser・rubocop-ast・Prismを保存する。miseの固定版はbuild/CI用で、
+最新版の証拠にはしない。互換制約で最新版を使えない項目は未完了とし、利用版を明示する。
+挙動の仕様は1.89.0のまま。既存 `make benchmark` の固定入力・環境と、この実行は条件が異なる。
+
+Windowsでは本家のfork並列が使えない。coldは空の実cache-root、warmは保存済みcacheを確認した
+対応rootで測り、実効対象版と対象集合・全診断を各回照合する。子プロセスを含むCPU時間を記録する。
+source gemのWindows回帰はbackslash付きCargoパスからMakeを生成し、build・install・起動まで実測する。

@@ -1,0 +1,4664 @@
+{
+  "parallel_unavailable_probe": {
+    "run": {
+      "start_utc": "2026-10-24T04:22:49.027430+00:00",
+      "end_utc": "2026-10-24T04:22:52.459873+00:00",
+      "host_start_100ns": {
+        "idle": 19422288437500,
+        "kernel": 23132307343750,
+        "user": 3033275625000
+      },
+      "host_end_100ns": {
+        "idle": 19422523906250,
+        "kernel": 23132616250000,
+        "user": 3033516718750
+      },
+      "host_busy_fraction": 0.571875,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark-preflight\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark-preflight\\reference-cache",
+        "-f",
+        "json",
+        "--parallel",
+        "."
+      ],
+      "cwd": "${RUN}\\path-order-repro",
+      "exit": 1,
+      "real_s": 3.4320354999799747,
+      "user_s": 1.125,
+      "system_s": 2.15625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "fca28689459bdda751cd09173d91dbf5de96cc0ddc79c09cb73e93e46d385d29"
+    },
+    "stderr": "parallel: Process.fork is not supported by this Ruby\n"
+  },
+  "cache_audit": [
+    {
+      "cache": "Homebrew_brew/caches/cold-parallel-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 26517342,
+      "native_saved_entries": 2397
+    },
+    {
+      "cache": "Homebrew_brew/caches/cold-parallel-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 26517342,
+      "native_saved_entries": 2397
+    },
+    {
+      "cache": "Homebrew_brew/caches/cold-single-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 26517342,
+      "native_saved_entries": 2397
+    },
+    {
+      "cache": "Homebrew_brew/caches/cold-single-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 26517342,
+      "native_saved_entries": 2397
+    },
+    {
+      "cache": "Homebrew_brew/caches/cold-single-reference-0",
+      "files": 2397,
+      "payload_files": 2397,
+      "payload_bytes": 18805261,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "Homebrew_brew/caches/cold-single-reference-1",
+      "files": 2397,
+      "payload_files": 2397,
+      "payload_bytes": 18805261,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-parallel-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 8856844,
+      "native_saved_entries": 3354
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-parallel-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 8856844,
+      "native_saved_entries": 3354
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-single-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 8856844,
+      "native_saved_entries": 3354
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-single-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 8856844,
+      "native_saved_entries": 3354
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-single-reference-0",
+      "files": 3354,
+      "payload_files": 3354,
+      "payload_bytes": 4846761,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "mastodon_mastodon/caches/cold-single-reference-1",
+      "files": 3354,
+      "payload_files": 3354,
+      "payload_bytes": 4846761,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "rails_rails/caches/cold-parallel-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 77597673,
+      "native_saved_entries": 3588
+    },
+    {
+      "cache": "rails_rails/caches/cold-parallel-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 77597673,
+      "native_saved_entries": 3588
+    },
+    {
+      "cache": "rails_rails/caches/cold-single-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 77597673,
+      "native_saved_entries": 3588
+    },
+    {
+      "cache": "rails_rails/caches/cold-single-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 77597673,
+      "native_saved_entries": 3588
+    },
+    {
+      "cache": "rails_rails/caches/cold-single-reference-0",
+      "files": 3588,
+      "payload_files": 3588,
+      "payload_bytes": 59239948,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "rails_rails/caches/cold-single-reference-1",
+      "files": 3588,
+      "payload_files": 3588,
+      "payload_bytes": 59239948,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-parallel-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 3607411,
+      "native_saved_entries": 1807
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-parallel-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 3607411,
+      "native_saved_entries": 1807
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-single-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 3607411,
+      "native_saved_entries": 1807
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-single-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 3607411,
+      "native_saved_entries": 1807
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-single-reference-0",
+      "files": 1807,
+      "payload_files": 1807,
+      "payload_bytes": 1477061,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "rubocop_rubocop/caches/cold-single-reference-1",
+      "files": 1807,
+      "payload_files": 1807,
+      "payload_bytes": 1477061,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-parallel-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 346588261,
+      "native_saved_entries": 7517
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-parallel-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 346588261,
+      "native_saved_entries": 7517
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-single-candidate-0",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 346588261,
+      "native_saved_entries": 7517
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-single-candidate-1",
+      "files": 3,
+      "payload_files": 2,
+      "payload_bytes": 346588261,
+      "native_saved_entries": 7517
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-single-reference-0",
+      "files": 7522,
+      "payload_files": 7522,
+      "payload_bytes": 238760647,
+      "reference_payload_json_validated": true
+    },
+    {
+      "cache": "ruby_ruby/caches/cold-single-reference-1",
+      "files": 7522,
+      "payload_files": 7522,
+      "payload_bytes": 238760647,
+      "reference_payload_json_validated": true
+    }
+  ],
+  "parent_environment": {
+    "RAYON_NUM_THREADS": null,
+    "RUBYOPT": null,
+    "RUBOCOP_OPTS": null,
+    "RUBOCOP_PARALLEL": null,
+    "RAILS_VERSION": null,
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "RUBYLIB": null,
+    "RUBYGEMS_GEMDEPS": null,
+    "BUNDLE_GEMFILE": null
+  },
+  "candidate_sha256": "904d59ef974ca7166e8680f231065f256725f4bc70778c0fff34c585c240a3db",
+  "source_sha": "142dcc29d0a88ed82ae74f8e5223f2eebb09a59a",
+  "summary": [
+    {
+      "corpus": "rails_rails",
+      "revision": "33748f4f60e68eeeed0d48ac566d345415dc78f4",
+      "condition": "cold-single",
+      "target_ruby": "3.3",
+      "files": 3588,
+      "reference": {
+        "real_s": {
+          "median": 214.52146810000704,
+          "fastest": 201.01800830001594,
+          "maximum": 228.02492789999815
+        },
+        "user_s": {
+          "median": 185.7890625,
+          "fastest": 178.34375,
+          "maximum": 193.234375
+        },
+        "system_s": {
+          "median": 19.7890625,
+          "fastest": 19.578125,
+          "maximum": 20.0
+        },
+        "offenses": 177013
+      },
+      "candidate": {
+        "real_s": {
+          "median": 41.24695590000192,
+          "fastest": 41.24137000000337,
+          "maximum": 41.25254180000047
+        },
+        "user_s": {
+          "median": 38.5546875,
+          "fastest": 37.796875,
+          "maximum": 39.3125
+        },
+        "system_s": {
+          "median": 1.53125,
+          "fastest": 1.328125,
+          "maximum": 1.734375
+        },
+        "offenses": 176909
+      },
+      "time_ratio": 5.200904246608828,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rails_rails",
+      "revision": "33748f4f60e68eeeed0d48ac566d345415dc78f4",
+      "condition": "cold-parallel",
+      "target_ruby": "3.3",
+      "files": 3588,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 6.7063698999991175,
+          "fastest": 6.620208299980732,
+          "maximum": 6.792531500017503
+        },
+        "user_s": {
+          "median": 59.515625,
+          "fastest": 58.53125,
+          "maximum": 60.5
+        },
+        "system_s": {
+          "median": 2.7109375,
+          "fastest": 2.359375,
+          "maximum": 3.0625
+        },
+        "offenses": 176909
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rails_rails",
+      "revision": "33748f4f60e68eeeed0d48ac566d345415dc78f4",
+      "condition": "warm-single",
+      "target_ruby": "3.3",
+      "files": 3588,
+      "reference": {
+        "real_s": {
+          "median": 16.19480530000874,
+          "fastest": 15.989328700001352,
+          "maximum": 16.400281900016125
+        },
+        "user_s": {
+          "median": 6.4375,
+          "fastest": 6.3125,
+          "maximum": 6.5625
+        },
+        "system_s": {
+          "median": 9.4765625,
+          "fastest": 9.40625,
+          "maximum": 9.546875
+        },
+        "offenses": 177013
+      },
+      "candidate": {
+        "real_s": {
+          "median": 1.3555968500149902,
+          "fastest": 1.3444489000248723,
+          "maximum": 1.3667448000051081
+        },
+        "user_s": {
+          "median": 0.625,
+          "fastest": 0.578125,
+          "maximum": 0.671875
+        },
+        "system_s": {
+          "median": 0.703125,
+          "fastest": 0.640625,
+          "maximum": 0.765625
+        },
+        "offenses": 176909
+      },
+      "time_ratio": 11.946623584902587,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rails_rails",
+      "revision": "33748f4f60e68eeeed0d48ac566d345415dc78f4",
+      "condition": "warm-parallel",
+      "target_ruby": "3.3",
+      "files": 3588,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.8298206999897957,
+          "fastest": 0.8214281999971718,
+          "maximum": 0.8382131999824196
+        },
+        "user_s": {
+          "median": 0.9140625,
+          "fastest": 0.828125,
+          "maximum": 1.0
+        },
+        "system_s": {
+          "median": 0.734375,
+          "fastest": 0.6875,
+          "maximum": 0.78125
+        },
+        "offenses": 176909
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rubocop_rubocop",
+      "revision": "8e4747746f8536ca3324df42ec77bc27883ee3b1",
+      "condition": "cold-single",
+      "target_ruby": "2.7",
+      "files": 1807,
+      "reference": {
+        "real_s": {
+          "median": 98.31320129999949,
+          "fastest": 95.00670739999623,
+          "maximum": 101.61969520000275
+        },
+        "user_s": {
+          "median": 88.5078125,
+          "fastest": 85.75,
+          "maximum": 91.265625
+        },
+        "system_s": {
+          "median": 8.2890625,
+          "fastest": 7.984375,
+          "maximum": 8.59375
+        },
+        "offenses": 7793
+      },
+      "candidate": {
+        "real_s": {
+          "median": 15.409410899999784,
+          "fastest": 14.838436999998521,
+          "maximum": 15.980384800001048
+        },
+        "user_s": {
+          "median": 14.3984375,
+          "fastest": 14.015625,
+          "maximum": 14.78125
+        },
+        "system_s": {
+          "median": 0.7109375,
+          "fastest": 0.53125,
+          "maximum": 0.890625
+        },
+        "offenses": 7957
+      },
+      "time_ratio": 6.380075262968091,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rubocop_rubocop",
+      "revision": "8e4747746f8536ca3324df42ec77bc27883ee3b1",
+      "condition": "cold-parallel",
+      "target_ruby": "2.7",
+      "files": 1807,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 1.7387166999978945,
+          "fastest": 1.6474626999988686,
+          "maximum": 1.8299706999969203
+        },
+        "user_s": {
+          "median": 21.2109375,
+          "fastest": 20.953125,
+          "maximum": 21.46875
+        },
+        "system_s": {
+          "median": 0.8203125,
+          "fastest": 0.75,
+          "maximum": 0.890625
+        },
+        "offenses": 7957
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rubocop_rubocop",
+      "revision": "8e4747746f8536ca3324df42ec77bc27883ee3b1",
+      "condition": "warm-single",
+      "target_ruby": "2.7",
+      "files": 1807,
+      "reference": {
+        "real_s": {
+          "median": 4.978180100006284,
+          "fastest": 4.975374200002989,
+          "maximum": 4.98098600000958
+        },
+        "user_s": {
+          "median": 1.625,
+          "fastest": 1.484375,
+          "maximum": 1.765625
+        },
+        "system_s": {
+          "median": 3.3125,
+          "fastest": 3.140625,
+          "maximum": 3.484375
+        },
+        "offenses": 7793
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.30772199999773875,
+          "fastest": 0.29961919999914244,
+          "maximum": 0.31582479999633506
+        },
+        "user_s": {
+          "median": 0.0546875,
+          "fastest": 0.046875,
+          "maximum": 0.0625
+        },
+        "system_s": {
+          "median": 0.234375,
+          "fastest": 0.203125,
+          "maximum": 0.265625
+        },
+        "offenses": 7957
+      },
+      "time_ratio": 16.177524194054588,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "rubocop_rubocop",
+      "revision": "8e4747746f8536ca3324df42ec77bc27883ee3b1",
+      "condition": "warm-parallel",
+      "target_ruby": "2.7",
+      "files": 1807,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.13822400000935886,
+          "fastest": 0.13782540001557209,
+          "maximum": 0.13862260000314564
+        },
+        "user_s": {
+          "median": 0.3125,
+          "fastest": 0.21875,
+          "maximum": 0.40625
+        },
+        "system_s": {
+          "median": 0.234375,
+          "fastest": 0.1875,
+          "maximum": 0.28125
+        },
+        "offenses": 7957
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "mastodon_mastodon",
+      "revision": "c4ca1bbbc5505372f22e69d6f97855b48f2a84ab",
+      "condition": "cold-single",
+      "target_ruby": "4.0",
+      "files": 3354,
+      "reference": {
+        "real_s": {
+          "median": 75.068049050009,
+          "fastest": 72.7514618000132,
+          "maximum": 77.38463630000479
+        },
+        "user_s": {
+          "median": 61.359375,
+          "fastest": 59.25,
+          "maximum": 63.46875
+        },
+        "system_s": {
+          "median": 12.9453125,
+          "fastest": 12.765625,
+          "maximum": 13.125
+        },
+        "offenses": 19251
+      },
+      "candidate": {
+        "real_s": {
+          "median": 11.029443999985233,
+          "fastest": 11.028934699977981,
+          "maximum": 11.029953299992485
+        },
+        "user_s": {
+          "median": 10.1953125,
+          "fastest": 10.171875,
+          "maximum": 10.21875
+        },
+        "system_s": {
+          "median": 0.7265625,
+          "fastest": 0.71875,
+          "maximum": 0.734375
+        },
+        "offenses": 19145
+      },
+      "time_ratio": 6.806149888435854,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "mastodon_mastodon",
+      "revision": "c4ca1bbbc5505372f22e69d6f97855b48f2a84ab",
+      "condition": "cold-parallel",
+      "target_ruby": "4.0",
+      "files": 3354,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 1.5494047999964096,
+          "fastest": 1.4979796999832615,
+          "maximum": 1.6008299000095576
+        },
+        "user_s": {
+          "median": 17.8203125,
+          "fastest": 17.75,
+          "maximum": 17.890625
+        },
+        "system_s": {
+          "median": 1.21875,
+          "fastest": 1.15625,
+          "maximum": 1.28125
+        },
+        "offenses": 19145
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "mastodon_mastodon",
+      "revision": "c4ca1bbbc5505372f22e69d6f97855b48f2a84ab",
+      "condition": "warm-single",
+      "target_ruby": "4.0",
+      "files": 3354,
+      "reference": {
+        "real_s": {
+          "median": 10.618713050003862,
+          "fastest": 10.532821800006786,
+          "maximum": 10.704604300000938
+        },
+        "user_s": {
+          "median": 2.8046875,
+          "fastest": 2.4375,
+          "maximum": 3.171875
+        },
+        "system_s": {
+          "median": 7.765625,
+          "fastest": 7.484375,
+          "maximum": 8.046875
+        },
+        "offenses": 19251
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.6579618999967352,
+          "fastest": 0.6546795000031125,
+          "maximum": 0.6612442999903578
+        },
+        "user_s": {
+          "median": 0.125,
+          "fastest": 0.109375,
+          "maximum": 0.140625
+        },
+        "system_s": {
+          "median": 0.53125,
+          "fastest": 0.515625,
+          "maximum": 0.546875
+        },
+        "offenses": 19145
+      },
+      "time_ratio": 16.138796258653507,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "mastodon_mastodon",
+      "revision": "c4ca1bbbc5505372f22e69d6f97855b48f2a84ab",
+      "condition": "warm-parallel",
+      "target_ruby": "4.0",
+      "files": 3354,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.33783089999633376,
+          "fastest": 0.3369945999875199,
+          "maximum": 0.3386672000051476
+        },
+        "user_s": {
+          "median": 0.5234375,
+          "fastest": 0.515625,
+          "maximum": 0.53125
+        },
+        "system_s": {
+          "median": 0.4296875,
+          "fastest": 0.34375,
+          "maximum": 0.515625
+        },
+        "offenses": 19145
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "Homebrew_brew",
+      "revision": "17a9eaaf09c861178803b15bbed4595cdb8219d2",
+      "condition": "cold-single",
+      "target_ruby": "2.7",
+      "files": 2397,
+      "reference": {
+        "real_s": {
+          "median": 78.93468799999391,
+          "fastest": 78.36724229998072,
+          "maximum": 79.50213370000711
+        },
+        "user_s": {
+          "median": 69.34375,
+          "fastest": 68.5625,
+          "maximum": 70.125
+        },
+        "system_s": {
+          "median": 9.1328125,
+          "fastest": 8.90625,
+          "maximum": 9.359375
+        },
+        "offenses": 60840
+      },
+      "candidate": {
+        "real_s": {
+          "median": 13.234928849997232,
+          "fastest": 13.222281700000167,
+          "maximum": 13.247575999994297
+        },
+        "user_s": {
+          "median": 12.59375,
+          "fastest": 12.515625,
+          "maximum": 12.671875
+        },
+        "system_s": {
+          "median": 0.5625,
+          "fastest": 0.4375,
+          "maximum": 0.6875
+        },
+        "offenses": 60799
+      },
+      "time_ratio": 5.964118802195935,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "Homebrew_brew",
+      "revision": "17a9eaaf09c861178803b15bbed4595cdb8219d2",
+      "condition": "cold-parallel",
+      "target_ruby": "2.7",
+      "files": 2397,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 1.9189954500034219,
+          "fastest": 1.8708704999880865,
+          "maximum": 1.9671204000187572
+        },
+        "user_s": {
+          "median": 22.40625,
+          "fastest": 22.328125,
+          "maximum": 22.484375
+        },
+        "system_s": {
+          "median": 1.21875,
+          "fastest": 1.09375,
+          "maximum": 1.34375
+        },
+        "offenses": 60799
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "Homebrew_brew",
+      "revision": "17a9eaaf09c861178803b15bbed4595cdb8219d2",
+      "condition": "warm-single",
+      "target_ruby": "2.7",
+      "files": 2397,
+      "reference": {
+        "real_s": {
+          "median": 7.600826249996317,
+          "fastest": 7.589560099993832,
+          "maximum": 7.612092399998801
+        },
+        "user_s": {
+          "median": 2.5703125,
+          "fastest": 2.5625,
+          "maximum": 2.578125
+        },
+        "system_s": {
+          "median": 5.015625,
+          "fastest": 5.0,
+          "maximum": 5.03125
+        },
+        "offenses": 60840
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.5997215999959735,
+          "fastest": 0.587951499997871,
+          "maximum": 0.611491699994076
+        },
+        "user_s": {
+          "median": 0.171875,
+          "fastest": 0.15625,
+          "maximum": 0.1875
+        },
+        "system_s": {
+          "median": 0.4140625,
+          "fastest": 0.390625,
+          "maximum": 0.4375
+        },
+        "offenses": 60799
+      },
+      "time_ratio": 12.673924451024188,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "Homebrew_brew",
+      "revision": "17a9eaaf09c861178803b15bbed4595cdb8219d2",
+      "condition": "warm-parallel",
+      "target_ruby": "2.7",
+      "files": 2397,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 0.3321094999992056,
+          "fastest": 0.32882039999822155,
+          "maximum": 0.3353986000001896
+        },
+        "user_s": {
+          "median": 0.453125,
+          "fastest": 0.421875,
+          "maximum": 0.484375
+        },
+        "system_s": {
+          "median": 0.328125,
+          "fastest": 0.328125,
+          "maximum": 0.328125
+        },
+        "offenses": 60799
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "ruby_ruby",
+      "revision": "0d83a93784090400ce38f0852ae11bc103765810",
+      "condition": "cold-single",
+      "target_ruby": "2.7",
+      "files": 7522,
+      "reference": {
+        "real_s": {
+          "median": 411.0691523500136,
+          "fastest": 382.28115570000955,
+          "maximum": 439.85714900001767
+        },
+        "user_s": {
+          "median": 358.875,
+          "fastest": 354.296875,
+          "maximum": 363.453125
+        },
+        "system_s": {
+          "median": 27.0859375,
+          "fastest": 26.078125,
+          "maximum": 28.09375
+        },
+        "offenses": 778156
+      },
+      "candidate": {
+        "real_s": {
+          "median": 68.95930610000505,
+          "fastest": 67.8700511000061,
+          "maximum": 70.04856110000401
+        },
+        "user_s": {
+          "median": 66.171875,
+          "fastest": 65.203125,
+          "maximum": 67.140625
+        },
+        "system_s": {
+          "median": 2.3203125,
+          "fastest": 2.25,
+          "maximum": 2.390625
+        },
+        "offenses": 776679
+      },
+      "time_ratio": 5.961039569538005,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "ruby_ruby",
+      "revision": "0d83a93784090400ce38f0852ae11bc103765810",
+      "condition": "cold-parallel",
+      "target_ruby": "2.7",
+      "files": 7522,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 17.34798179999052,
+          "fastest": 17.106320699997013,
+          "maximum": 17.589642899984028
+        },
+        "user_s": {
+          "median": 116.0625,
+          "fastest": 115.90625,
+          "maximum": 116.21875
+        },
+        "system_s": {
+          "median": 3.2421875,
+          "fastest": 3.03125,
+          "maximum": 3.453125
+        },
+        "offenses": 776679
+      },
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "ruby_ruby",
+      "revision": "0d83a93784090400ce38f0852ae11bc103765810",
+      "condition": "warm-single",
+      "target_ruby": "2.7",
+      "files": 7522,
+      "reference": {
+        "real_s": {
+          "median": 27.583023550003418,
+          "fastest": 27.045350800006418,
+          "maximum": 28.120696300000418
+        },
+        "user_s": {
+          "median": 14.4609375,
+          "fastest": 14.203125,
+          "maximum": 14.71875
+        },
+        "system_s": {
+          "median": 12.890625,
+          "fastest": 12.6875,
+          "maximum": 13.09375
+        },
+        "offenses": 778156
+      },
+      "candidate": {
+        "real_s": {
+          "median": 5.624040100010461,
+          "fastest": 5.607144300010987,
+          "maximum": 5.640935900009936
+        },
+        "user_s": {
+          "median": 1.703125,
+          "fastest": 1.640625,
+          "maximum": 1.765625
+        },
+        "system_s": {
+          "median": 1.5078125,
+          "fastest": 1.4375,
+          "maximum": 1.578125
+        },
+        "offenses": 776679
+      },
+      "time_ratio": 4.904485576116733,
+      "full_diagnostics_equal": false
+    },
+    {
+      "corpus": "ruby_ruby",
+      "revision": "0d83a93784090400ce38f0852ae11bc103765810",
+      "condition": "warm-parallel",
+      "target_ruby": "2.7",
+      "files": 7522,
+      "reference": {
+        "unmeasured": "Process.fork 非対応"
+      },
+      "candidate": {
+        "real_s": {
+          "median": 4.428118749987334,
+          "fastest": 4.404959999985294,
+          "maximum": 4.451277499989374
+        },
+        "user_s": {
+          "median": 2.4765625,
+          "fastest": 2.359375,
+          "maximum": 2.59375
+        },
+        "system_s": {
+          "median": 1.953125,
+          "fastest": 1.890625,
+          "maximum": 2.015625
+        },
+        "offenses": 776679
+      },
+      "full_diagnostics_equal": false
+    }
+  ],
+  "runs": [
+    {
+      "start_utc": "2026-10-24T06:02:22.542925+00:00",
+      "end_utc": "2026-10-24T06:02:24.413720+00:00",
+      "host_start_100ns": {
+        "idle": 19996851562500,
+        "kernel": 23817409062500,
+        "user": 3303893593750
+      },
+      "host_end_100ns": {
+        "idle": 19996899843750,
+        "kernel": 23817478281250,
+        "user": 3304124687500
+      },
+      "host_busy_fraction": 0.8392299687825182,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 1.8708704999880865,
+      "user_s": 22.328125,
+      "system_s": 1.09375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:24.988446+00:00",
+      "end_utc": "2026-10-24T06:02:26.955503+00:00",
+      "host_start_100ns": {
+        "idle": 19996979062500,
+        "kernel": 23817560625000,
+        "user": 3304132812500
+      },
+      "host_end_100ns": {
+        "idle": 19997035156250,
+        "kernel": 23817642500000,
+        "user": 3304366718750
+      },
+      "host_busy_fraction": 0.822365165759525,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 1.9671204000187572,
+      "user_s": 22.484375,
+      "system_s": 1.34375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:15.000333+00:00",
+      "end_utc": "2026-10-24T06:00:34.505048+00:00",
+      "host_start_100ns": {
+        "idle": 19970130468750,
+        "kernel": 23789907500000,
+        "user": 3301390312500
+      },
+      "host_end_100ns": {
+        "idle": 19981397500000,
+        "kernel": 23801520468750,
+        "user": 3302496718750
+      },
+      "host_busy_fraction": 0.11418357820254532,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 79.50213370000711,
+      "user_s": 70.125,
+      "system_s": 8.90625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "ede117fb0449db5371db5c6ba374f0a6055f1b857379a45f57697190e1ba8f65",
+      "stdout_bytes": 27318347,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-0",
+      "cache_files": 2397,
+      "files": 2397,
+      "offenses": 60840,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:00:35.562297+00:00",
+      "end_utc": "2026-10-24T06:00:48.810301+00:00",
+      "host_start_100ns": {
+        "idle": 19981551875000,
+        "kernel": 23801678593750,
+        "user": 3302508125000
+      },
+      "host_end_100ns": {
+        "idle": 19983465625000,
+        "kernel": 23803634843750,
+        "user": 3302673125000
+      },
+      "host_busy_fraction": 0.09781968179139655,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 13.247575999994297,
+      "user_s": 12.515625,
+      "system_s": 0.6875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:00:49.330411+00:00",
+      "end_utc": "2026-10-24T06:01:02.553125+00:00",
+      "host_start_100ns": {
+        "idle": 19983537812500,
+        "kernel": 23803710000000,
+        "user": 3302678593750
+      },
+      "host_end_100ns": {
+        "idle": 19985451718750,
+        "kernel": 23805667812500,
+        "user": 3302837656250
+      },
+      "host_busy_fraction": 0.09588131089459695,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 13.222281700000167,
+      "user_s": 12.671875,
+      "system_s": 0.4375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:01:03.075705+00:00",
+      "end_utc": "2026-10-24T06:02:21.445176+00:00",
+      "host_start_100ns": {
+        "idle": 19985527656250,
+        "kernel": 23805744062500,
+        "user": 3302843906250
+      },
+      "host_end_100ns": {
+        "idle": 19996691250000,
+        "kernel": 23817246250000,
+        "user": 3303881718750
+      },
+      "host_busy_fraction": 0.10976126395534291,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 78.36724229998072,
+      "user_s": 68.5625,
+      "system_s": 9.359375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "ede117fb0449db5371db5c6ba374f0a6055f1b857379a45f57697190e1ba8f65",
+      "stdout_bytes": 27318347,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-1",
+      "cache_files": 2397,
+      "files": 2397,
+      "offenses": 60840,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:05.730211+00:00",
+      "end_utc": "2026-10-24T05:59:10.385907+00:00",
+      "host_start_100ns": {
+        "idle": 19968857187500,
+        "kernel": 23788516875000,
+        "user": 3301297968750
+      },
+      "host_end_100ns": {
+        "idle": 19969502656250,
+        "kernel": 23789224843750,
+        "user": 3301334218750
+      },
+      "host_busy_fraction": 0.1326894814192736,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 0,
+      "real_s": 4.655731300008483,
+      "user_s": 1.09375,
+      "system_s": 3.328125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "9454d8309f3cb7bc2baff452f7241485ce9edec3df6465c713d8d26c439d79f0",
+      "stdout_bytes": 140784,
+      "side": "reference",
+      "repeat": 0,
+      "record": "Homebrew_brew/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:10.404905+00:00",
+      "end_utc": "2026-10-24T05:59:10.532909+00:00",
+      "host_start_100ns": {
+        "idle": 19969504375000,
+        "kernel": 23789226562500,
+        "user": 3301334375000
+      },
+      "host_end_100ns": {
+        "idle": 19969521875000,
+        "kernel": 23789245781250,
+        "user": 3301337187500
+      },
+      "host_busy_fraction": 0.2056737588652482,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 0,
+      "real_s": 0.12863310001557693,
+      "user_s": 0.0625,
+      "system_s": 0.0625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "8d98a2977895c64527d92e494128883b2eca23a490f3623b58aee291fdeb376e",
+      "stdout_bytes": 138387,
+      "side": "candidate",
+      "repeat": 0,
+      "record": "Homebrew_brew/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:10.542910+00:00",
+      "end_utc": "2026-10-24T05:59:10.671913+00:00",
+      "host_start_100ns": {
+        "idle": 19969523437500,
+        "kernel": 23789247968750,
+        "user": 3301337500000
+      },
+      "host_end_100ns": {
+        "idle": 19969538281250,
+        "kernel": 23789265156250,
+        "user": 3301340312500
+      },
+      "host_busy_fraction": 0.2578125,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 0,
+      "real_s": 0.12915600000997074,
+      "user_s": 0.046875,
+      "system_s": 0.078125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "8d98a2977895c64527d92e494128883b2eca23a490f3623b58aee291fdeb376e",
+      "stdout_bytes": 138387,
+      "side": "candidate",
+      "repeat": 1,
+      "record": "Homebrew_brew/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:10.680914+00:00",
+      "end_utc": "2026-10-24T05:59:14.983821+00:00",
+      "host_start_100ns": {
+        "idle": 19969538750000,
+        "kernel": 23789265625000,
+        "user": 3301341093750
+      },
+      "host_end_100ns": {
+        "idle": 19970128125000,
+        "kernel": 23789904843750,
+        "user": 3301389843750
+      },
+      "host_busy_fraction": 0.14331137860549625,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 0,
+      "real_s": 4.302776800002903,
+      "user_s": 1.015625,
+      "system_s": 3.265625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "9454d8309f3cb7bc2baff452f7241485ce9edec3df6465c713d8d26c439d79f0",
+      "stdout_bytes": 140784,
+      "side": "reference",
+      "repeat": 1,
+      "record": "Homebrew_brew/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:47.880384+00:00",
+      "end_utc": "2026-10-24T06:02:48.208972+00:00",
+      "host_start_100ns": {
+        "idle": 20000057187500,
+        "kernel": 23820850468750,
+        "user": 3304507500000
+      },
+      "host_end_100ns": {
+        "idle": 20000100625000,
+        "kernel": 23820898125000,
+        "user": 3304512343750
+      },
+      "host_busy_fraction": 0.17261904761904767,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 0.32882039999822155,
+      "user_s": 0.421875,
+      "system_s": 0.328125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:48.767219+00:00",
+      "end_utc": "2026-10-24T06:02:49.103257+00:00",
+      "host_start_100ns": {
+        "idle": 20000180000000,
+        "kernel": 23820980000000,
+        "user": 3304519375000
+      },
+      "host_end_100ns": {
+        "idle": 20000222656250,
+        "kernel": 23821027343750,
+        "user": 3304525625000
+      },
+      "host_busy_fraction": 0.20408163265306123,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 0.3353986000001896,
+      "user_s": 0.484375,
+      "system_s": 0.328125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:27.839717+00:00",
+      "end_utc": "2026-10-24T06:02:35.452287+00:00",
+      "host_start_100ns": {
+        "idle": 19997163750000,
+        "kernel": 23817776250000,
+        "user": 3304374218750
+      },
+      "host_end_100ns": {
+        "idle": 19998262968750,
+        "kernel": 23818950781250,
+        "user": 3304418593750
+      },
+      "host_busy_fraction": 0.0981925394180233,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 7.612092399998801,
+      "user_s": 2.578125,
+      "system_s": 5.0,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "ede117fb0449db5371db5c6ba374f0a6055f1b857379a45f57697190e1ba8f65",
+      "stdout_bytes": 27318347,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 2397,
+      "cache_payload_files_before": 2397,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-0",
+      "cache_files": 2397,
+      "files": 2397,
+      "offenses": 60840,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:36.546010+00:00",
+      "end_utc": "2026-10-24T06:02:37.134615+00:00",
+      "host_start_100ns": {
+        "idle": 19998417656250,
+        "kernel": 23819110312500,
+        "user": 3304431875000
+      },
+      "host_end_100ns": {
+        "idle": 19998504375000,
+        "kernel": 23819201875000,
+        "user": 3304435468750
+      },
+      "host_busy_fraction": 0.08866995073891626,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 0.587951499997871,
+      "user_s": 0.1875,
+      "system_s": 0.390625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:37.669163+00:00",
+      "end_utc": "2026-10-24T06:02:38.280695+00:00",
+      "host_start_100ns": {
+        "idle": 19998581718750,
+        "kernel": 23819281875000,
+        "user": 3304441093750
+      },
+      "host_end_100ns": {
+        "idle": 19998668750000,
+        "kernel": 23819377656250,
+        "user": 3304444218750
+      },
+      "host_busy_fraction": 0.1200631911532386,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 0.611491699994076,
+      "user_s": 0.15625,
+      "system_s": 0.4375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "cea61b78d7b30e8d2263bca0521b7102997939a4e158ac2c3e2b9922e0c46292",
+      "stdout_bytes": 18567860,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 2397,
+      "offenses": 60799,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:39.187641+00:00",
+      "end_utc": "2026-10-24T06:02:46.777780+00:00",
+      "host_start_100ns": {
+        "idle": 19998800312500,
+        "kernel": 23819514531250,
+        "user": 3304451093750
+      },
+      "host_end_100ns": {
+        "idle": 19999897500000,
+        "kernel": 23820684843750,
+        "user": 3304495625000
+      },
+      "host_busy_fraction": 0.09684887459807079,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\Homebrew_brew\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\Homebrew_brew",
+      "exit": 1,
+      "real_s": 7.589560099993832,
+      "user_s": 2.5625,
+      "system_s": 5.03125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "ede117fb0449db5371db5c6ba374f0a6055f1b857379a45f57697190e1ba8f65",
+      "stdout_bytes": 27318347,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 2397,
+      "cache_payload_files_before": 2397,
+      "cache_root_realpath": "${RUN}\\benchmark\\Homebrew_brew\\caches\\cold-single-reference-1",
+      "cache_files": 2397,
+      "files": 2397,
+      "offenses": 60840,
+      "verified_against_own_baseline": true,
+      "record": "Homebrew_brew/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:33.999309+00:00",
+      "end_utc": "2026-10-24T05:58:35.497008+00:00",
+      "host_start_100ns": {
+        "idle": 19964697968750,
+        "kernel": 23784006875000,
+        "user": 3300729687500
+      },
+      "host_end_100ns": {
+        "idle": 19964738593750,
+        "kernel": 23784065000000,
+        "user": 3300912968750
+      },
+      "host_busy_fraction": 0.8317152103559871,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 1.4979796999832615,
+      "user_s": 17.890625,
+      "system_s": 1.15625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:35.681047+00:00",
+      "end_utc": "2026-10-24T05:58:37.282144+00:00",
+      "host_start_100ns": {
+        "idle": 19964760000000,
+        "kernel": 23784089062500,
+        "user": 3300917031250
+      },
+      "host_end_100ns": {
+        "idle": 19964810781250,
+        "kernel": 23784161562500,
+        "user": 3301101406250
+      },
+      "host_busy_fraction": 0.8023114355231143,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 1.6008299000095576,
+      "user_s": 17.75,
+      "system_s": 1.28125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:40.572236+00:00",
+      "end_utc": "2026-10-24T05:56:57.959814+00:00",
+      "host_start_100ns": {
+        "idle": 19940452031250,
+        "kernel": 23758787812500,
+        "user": 3298202656250
+      },
+      "host_end_100ns": {
+        "idle": 19951102968750,
+        "kernel": 23769933906250,
+        "user": 3299437812500
+      },
+      "host_busy_fraction": 0.13975265017667848,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 77.38463630000479,
+      "user_s": 63.46875,
+      "system_s": 12.765625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "2c67ad70ed13a4c73c940e8759be872ac7e525b30538880a5416a129f24608ba",
+      "stdout_bytes": 7442947,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-0",
+      "cache_files": 3354,
+      "files": 3354,
+      "offenses": 19251,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:56:58.386026+00:00",
+      "end_utc": "2026-10-24T05:57:09.416077+00:00",
+      "host_start_100ns": {
+        "idle": 19951164062500,
+        "kernel": 23769997031250,
+        "user": 3299441562500
+      },
+      "host_end_100ns": {
+        "idle": 19952758125000,
+        "kernel": 23771631093750,
+        "user": 3299574218750
+      },
+      "host_busy_fraction": 0.09772707172547979,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 11.028934699977981,
+      "user_s": 10.21875,
+      "system_s": 0.734375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:57:09.591597+00:00",
+      "end_utc": "2026-10-24T05:57:20.622157+00:00",
+      "host_start_100ns": {
+        "idle": 19952781406250,
+        "kernel": 23771656093750,
+        "user": 3299576875000
+      },
+      "host_end_100ns": {
+        "idle": 19954332187500,
+        "kernel": 23773260937500,
+        "user": 3299737031250
+      },
+      "host_busy_fraction": 0.12137039660056659,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 11.029953299992485,
+      "user_s": 10.171875,
+      "system_s": 0.71875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:57:20.803162+00:00",
+      "end_utc": "2026-10-24T05:58:33.556271+00:00",
+      "host_start_100ns": {
+        "idle": 19954355781250,
+        "kernel": 23773284531250,
+        "user": 3299739062500
+      },
+      "host_end_100ns": {
+        "idle": 19964633750000,
+        "kernel": 23783940312500,
+        "user": 3300726250000
+      },
+      "host_busy_fraction": 0.11723813997181776,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 72.7514618000132,
+      "user_s": 59.25,
+      "system_s": 13.125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "2c67ad70ed13a4c73c940e8759be872ac7e525b30538880a5416a129f24608ba",
+      "stdout_bytes": 7442947,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-1",
+      "cache_files": 3354,
+      "files": 3354,
+      "offenses": 19251,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:24.266540+00:00",
+      "end_utc": "2026-10-24T05:55:32.329257+00:00",
+      "host_start_100ns": {
+        "idle": 19938283125000,
+        "kernel": 23756379843750,
+        "user": 3298000625000
+      },
+      "host_end_100ns": {
+        "idle": 19939380000000,
+        "kernel": 23757580625000,
+        "user": 3298089843750
+      },
+      "host_busy_fraction": 0.14970930232558144,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 0,
+      "real_s": 8.062764700007392,
+      "user_s": 1.46875,
+      "system_s": 6.3125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "128b87d1cc4cd7ac2b4a09bdd01553cb3a18671c50c434ff4e2f16a60a878002",
+      "stdout_bytes": 161805,
+      "side": "reference",
+      "repeat": 0,
+      "record": "mastodon_mastodon/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:32.350229+00:00",
+      "end_utc": "2026-10-24T05:55:32.543235+00:00",
+      "host_start_100ns": {
+        "idle": 19939382656250,
+        "kernel": 23757583593750,
+        "user": 3298090312500
+      },
+      "host_end_100ns": {
+        "idle": 19939411093750,
+        "kernel": 23757613750000,
+        "user": 3298091718750
+      },
+      "host_busy_fraction": 0.09900990099009899,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 0,
+      "real_s": 0.19252889999188483,
+      "user_s": 0.109375,
+      "system_s": 0.078125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "f41beaedc9bf43e96e069c3cafc41f1ef0e89c16775181a88c5e2144e426bd2e",
+      "stdout_bytes": 158451,
+      "side": "candidate",
+      "repeat": 0,
+      "record": "mastodon_mastodon/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:32.553236+00:00",
+      "end_utc": "2026-10-24T05:55:32.751588+00:00",
+      "host_start_100ns": {
+        "idle": 19939413281250,
+        "kernel": 23757615937500,
+        "user": 3298092031250
+      },
+      "host_end_100ns": {
+        "idle": 19939438750000,
+        "kernel": 23757643906250,
+        "user": 3298094062500
+      },
+      "host_busy_fraction": 0.15104166666666663,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 0,
+      "real_s": 0.19815380001091398,
+      "user_s": 0.09375,
+      "system_s": 0.09375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "f41beaedc9bf43e96e069c3cafc41f1ef0e89c16775181a88c5e2144e426bd2e",
+      "stdout_bytes": 158451,
+      "side": "candidate",
+      "repeat": 1,
+      "record": "mastodon_mastodon/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:32.762100+00:00",
+      "end_utc": "2026-10-24T05:55:40.559235+00:00",
+      "host_start_100ns": {
+        "idle": 19939440781250,
+        "kernel": 23757646093750,
+        "user": 3298094218750
+      },
+      "host_end_100ns": {
+        "idle": 19940450000000,
+        "kernel": 23758785468750,
+        "user": 3298202500000
+      },
+      "host_busy_fraction": 0.19110832811521605,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 0,
+      "real_s": 7.7971162000030745,
+      "user_s": 1.53125,
+      "system_s": 6.203125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "128b87d1cc4cd7ac2b4a09bdd01553cb3a18671c50c434ff4e2f16a60a878002",
+      "stdout_bytes": 161805,
+      "side": "reference",
+      "repeat": 1,
+      "record": "mastodon_mastodon/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:02.345037+00:00",
+      "end_utc": "2026-10-24T05:59:02.684151+00:00",
+      "host_start_100ns": {
+        "idle": 19968391406250,
+        "kernel": 23788010937500,
+        "user": 3301262031250
+      },
+      "host_end_100ns": {
+        "idle": 19968430312500,
+        "kernel": 23788056875000,
+        "user": 3301271093750
+      },
+      "host_busy_fraction": 0.29261363636363635,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 0.3386672000051476,
+      "user_s": 0.515625,
+      "system_s": 0.515625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:59:02.865687+00:00",
+      "end_utc": "2026-10-24T05:59:03.201918+00:00",
+      "host_start_100ns": {
+        "idle": 19968455937500,
+        "kernel": 23788082968750,
+        "user": 3301272500000
+      },
+      "host_end_100ns": {
+        "idle": 19968496406250,
+        "kernel": 23788130000000,
+        "user": 3301280468750
+      },
+      "host_busy_fraction": 0.2642045454545454,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 0.3369945999875199,
+      "user_s": 0.53125,
+      "system_s": 0.34375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:37.968936+00:00",
+      "end_utc": "2026-10-24T05:58:48.502848+00:00",
+      "host_start_100ns": {
+        "idle": 19964906875000,
+        "kernel": 23784264375000,
+        "user": 3301106718750
+      },
+      "host_end_100ns": {
+        "idle": 19966439843750,
+        "kernel": 23785902343750,
+        "user": 3301155625000
+      },
+      "host_busy_fraction": 0.09123749536865511,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 10.532821800006786,
+      "user_s": 2.4375,
+      "system_s": 8.046875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "2c67ad70ed13a4c73c940e8759be872ac7e525b30538880a5416a129f24608ba",
+      "stdout_bytes": 7442947,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 3354,
+      "cache_payload_files_before": 3354,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-0",
+      "cache_files": 3354,
+      "files": 3354,
+      "offenses": 19251,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:48.936857+00:00",
+      "end_utc": "2026-10-24T05:58:49.592362+00:00",
+      "host_start_100ns": {
+        "idle": 19966504375000,
+        "kernel": 23785968750000,
+        "user": 3301158593750
+      },
+      "host_end_100ns": {
+        "idle": 19966593593750,
+        "kernel": 23786067500000,
+        "user": 3301165468750
+      },
+      "host_busy_fraction": 0.1553254437869822,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 0.6546795000031125,
+      "user_s": 0.140625,
+      "system_s": 0.515625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:49.798368+00:00",
+      "end_utc": "2026-10-24T05:58:50.459605+00:00",
+      "host_start_100ns": {
+        "idle": 19966617812500,
+        "kernel": 23786093750000,
+        "user": 3301171093750
+      },
+      "host_end_100ns": {
+        "idle": 19966699375000,
+        "kernel": 23786188437500,
+        "user": 3301182031250
+      },
+      "host_busy_fraction": 0.22781065088757402,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 0.6612442999903578,
+      "user_s": 0.109375,
+      "system_s": 0.546875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bb94f3d117097fc0c2b435fed918a0398ec0c32da5697f2854b8d6c799d3dc45",
+      "stdout_bytes": 5518501,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 3354,
+      "offenses": 19145,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:58:51.190687+00:00",
+      "end_utc": "2026-10-24T05:59:01.896183+00:00",
+      "host_start_100ns": {
+        "idle": 19966793750000,
+        "kernel": 23786294062500,
+        "user": 3301193437500
+      },
+      "host_end_100ns": {
+        "idle": 19968326093750,
+        "kernel": 23787942500000,
+        "user": 3301257812500
+      },
+      "host_busy_fraction": 0.1053639846743295,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\mastodon_mastodon\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\mastodon_mastodon",
+      "exit": 1,
+      "real_s": 10.704604300000938,
+      "user_s": 3.171875,
+      "system_s": 7.484375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "2c67ad70ed13a4c73c940e8759be872ac7e525b30538880a5416a129f24608ba",
+      "stdout_bytes": 7442947,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 3354,
+      "cache_payload_files_before": 3354,
+      "cache_root_realpath": "${RUN}\\benchmark\\mastodon_mastodon\\caches\\cold-single-reference-1",
+      "cache_files": 3354,
+      "files": 3354,
+      "offenses": 19251,
+      "verified_against_own_baseline": true,
+      "record": "mastodon_mastodon/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:49:55.220381+00:00",
+      "end_utc": "2026-10-24T05:50:01.840555+00:00",
+      "host_start_100ns": {
+        "idle": 19901393437500,
+        "kernel": 23715827187500,
+        "user": 3285908281250
+      },
+      "host_end_100ns": {
+        "idle": 19901579218750,
+        "kernel": 23716117500000,
+        "user": 3286677968750
+      },
+      "host_busy_fraction": 0.8247346698113207,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 6.620208299980732,
+      "user_s": 58.53125,
+      "system_s": 3.0625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:50:04.117962+00:00",
+      "end_utc": "2026-10-24T05:50:10.910798+00:00",
+      "host_start_100ns": {
+        "idle": 19901819843750,
+        "kernel": 23716387187500,
+        "user": 3286770781250
+      },
+      "host_end_100ns": {
+        "idle": 19901985781250,
+        "kernel": 23716650156250,
+        "user": 3287595312500
+      },
+      "host_busy_fraction": 0.8474137931034482,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 6.792531500017503,
+      "user_s": 60.5,
+      "system_s": 2.359375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:41:10.437147+00:00",
+      "end_utc": "2026-10-24T05:44:58.467832+00:00",
+      "host_start_100ns": {
+        "idle": 19843692187500,
+        "kernel": 23651857500000,
+        "user": 3265915468750
+      },
+      "host_end_100ns": {
+        "idle": 19867174218750,
+        "kernel": 23678400312500,
+        "user": 3275855156250
+      },
+      "host_busy_fraction": 0.35634807784554234,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 228.02492789999815,
+      "user_s": 193.234375,
+      "system_s": 20.0,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "3c74fb7cde88f893af131255eb77e2da557d7c28ba21e10fea57196309531197",
+      "stdout_bytes": 89804944,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-0",
+      "cache_files": 3588,
+      "files": 3588,
+      "offenses": 177013,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:45:02.957324+00:00",
+      "end_utc": "2026-10-24T05:45:44.211579+00:00",
+      "host_start_100ns": {
+        "idle": 19867715781250,
+        "kernel": 23678979687500,
+        "user": 3275995781250
+      },
+      "host_end_100ns": {
+        "idle": 19872472656250,
+        "kernel": 23684116250000,
+        "user": 3277459218750
+      },
+      "host_busy_fraction": 0.27926136363636367,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 41.25254180000047,
+      "user_s": 37.796875,
+      "system_s": 1.734375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:45:46.236740+00:00",
+      "end_utc": "2026-10-24T05:46:27.479809+00:00",
+      "host_start_100ns": {
+        "idle": 19872707968750,
+        "kernel": 23684366406250,
+        "user": 3277534062500
+      },
+      "host_end_100ns": {
+        "idle": 19877194375000,
+        "kernel": 23689352968750,
+        "user": 3279145000000
+      },
+      "host_busy_fraction": 0.3199838954149299,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 41.24137000000337,
+      "user_s": 39.3125,
+      "system_s": 1.328125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:46:29.625984+00:00",
+      "end_utc": "2026-10-24T05:49:50.649574+00:00",
+      "host_start_100ns": {
+        "idle": 19877444375000,
+        "kernel": 23689621406250,
+        "user": 3279219062500
+      },
+      "host_end_100ns": {
+        "idle": 19900853281250,
+        "kernel": 23715244687500,
+        "user": 3285758906250
+      },
+      "host_busy_fraction": 0.27218184644682386,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 201.01800830001594,
+      "user_s": 178.34375,
+      "system_s": 19.578125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "3c74fb7cde88f893af131255eb77e2da557d7c28ba21e10fea57196309531197",
+      "stdout_bytes": 89804944,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-1",
+      "cache_files": 3588,
+      "files": 3588,
+      "offenses": 177013,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:40:53.556130+00:00",
+      "end_utc": "2026-10-24T05:41:01.982554+00:00",
+      "host_start_100ns": {
+        "idle": 19841695781250,
+        "kernel": 23649597187500,
+        "user": 3265473281250
+      },
+      "host_end_100ns": {
+        "idle": 19842697500000,
+        "kernel": 23650726875000,
+        "user": 3265693281250
+      },
+      "host_busy_fraction": 0.25781430886779344,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 0,
+      "real_s": 8.426167500001611,
+      "user_s": 1.15625,
+      "system_s": 6.734375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "578aeb35ca6054f506dc9fc6443191cfb66a570b17871b64ee7cd18b7b86175a",
+      "stdout_bytes": 190365,
+      "side": "reference",
+      "repeat": 0,
+      "record": "rails_rails/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:41:02.010084+00:00",
+      "end_utc": "2026-10-24T05:41:02.257527+00:00",
+      "host_start_100ns": {
+        "idle": 19842699531250,
+        "kernel": 23650729218750,
+        "user": 3265693750000
+      },
+      "host_end_100ns": {
+        "idle": 19842727500000,
+        "kernel": 23650761406250,
+        "user": 3265701562500
+      },
+      "host_busy_fraction": 0.30078125,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 0,
+      "real_s": 0.24753860000055283,
+      "user_s": 0.0625,
+      "system_s": 0.15625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c2fd86c6a1594474de80fa8c7526d6d4e8cc62b6c85ffe1ae53b51ae5c684fae",
+      "stdout_bytes": 186777,
+      "side": "candidate",
+      "repeat": 0,
+      "record": "rails_rails/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:41:02.266549+00:00",
+      "end_utc": "2026-10-24T05:41:02.507899+00:00",
+      "host_start_100ns": {
+        "idle": 19842729375000,
+        "kernel": 23650763437500,
+        "user": 3265702031250
+      },
+      "host_end_100ns": {
+        "idle": 19842758125000,
+        "kernel": 23650794687500,
+        "user": 3265708281250
+      },
+      "host_busy_fraction": 0.23333333333333328,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 0,
+      "real_s": 0.24180129999876954,
+      "user_s": 0.109375,
+      "system_s": 0.125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c2fd86c6a1594474de80fa8c7526d6d4e8cc62b6c85ffe1ae53b51ae5c684fae",
+      "stdout_bytes": 186777,
+      "side": "candidate",
+      "repeat": 1,
+      "record": "rails_rails/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:41:02.518921+00:00",
+      "end_utc": "2026-10-24T05:41:10.423128+00:00",
+      "host_start_100ns": {
+        "idle": 19842760468750,
+        "kernel": 23650797187500,
+        "user": 3265708281250
+      },
+      "host_end_100ns": {
+        "idle": 19843690625000,
+        "kernel": 23651855781250,
+        "user": 3265914687500
+      },
+      "host_busy_fraction": 0.2646986166007905,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 0,
+      "real_s": 7.903566299995873,
+      "user_s": 1.140625,
+      "system_s": 6.609375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "578aeb35ca6054f506dc9fc6443191cfb66a570b17871b64ee7cd18b7b86175a",
+      "stdout_bytes": 190365,
+      "side": "reference",
+      "repeat": 1,
+      "record": "rails_rails/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:02.971354+00:00",
+      "end_utc": "2026-10-24T05:51:03.809863+00:00",
+      "host_start_100ns": {
+        "idle": 19907933906250,
+        "kernel": 23723330781250,
+        "user": 3289244687500
+      },
+      "host_end_100ns": {
+        "idle": 19908017187500,
+        "kernel": 23723431875000,
+        "user": 3289278593750
+      },
+      "host_busy_fraction": 0.38310185185185186,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 0.8382131999824196,
+      "user_s": 1.0,
+      "system_s": 0.6875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:06.042066+00:00",
+      "end_utc": "2026-10-24T05:51:06.862938+00:00",
+      "host_start_100ns": {
+        "idle": 19908283437500,
+        "kernel": 23723716250000,
+        "user": 3289349218750
+      },
+      "host_end_100ns": {
+        "idle": 19908371250000,
+        "kernel": 23723819375000,
+        "user": 3289378593750
+      },
+      "host_busy_fraction": 0.33726415094339623,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 0.8214281999971718,
+      "user_s": 0.828125,
+      "system_s": 0.78125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:50:13.767906+00:00",
+      "end_utc": "2026-10-24T05:50:29.757538+00:00",
+      "host_start_100ns": {
+        "idle": 19902317187500,
+        "kernel": 23717011093750,
+        "user": 3287691875000
+      },
+      "host_end_100ns": {
+        "idle": 19904206562500,
+        "kernel": 23719128125000,
+        "user": 3288132343750
+      },
+      "host_busy_fraction": 0.2612414467253177,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 15.989328700001352,
+      "user_s": 6.3125,
+      "system_s": 9.40625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "3c74fb7cde88f893af131255eb77e2da557d7c28ba21e10fea57196309531197",
+      "stdout_bytes": 89804944,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 3588,
+      "cache_payload_files_before": 3588,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-0",
+      "cache_files": 3588,
+      "files": 3588,
+      "offenses": 177013,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:50:34.239978+00:00",
+      "end_utc": "2026-10-24T05:50:35.606771+00:00",
+      "host_start_100ns": {
+        "idle": 19904744218750,
+        "kernel": 23719701875000,
+        "user": 3288276093750
+      },
+      "host_end_100ns": {
+        "idle": 19904912187500,
+        "kernel": 23719888437500,
+        "user": 3288309531250
+      },
+      "host_busy_fraction": 0.23650568181818177,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 1.3667448000051081,
+      "user_s": 0.671875,
+      "system_s": 0.640625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:50:37.813059+00:00",
+      "end_utc": "2026-10-24T05:50:39.157723+00:00",
+      "host_start_100ns": {
+        "idle": 19905169843750,
+        "kernel": 23720162500000,
+        "user": 3288387968750
+      },
+      "host_end_100ns": {
+        "idle": 19905327968750,
+        "kernel": 23720335781250,
+        "user": 3288429687500
+      },
+      "host_busy_fraction": 0.26453488372093026,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 1.3444489000248723,
+      "user_s": 0.578125,
+      "system_s": 0.765625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "bc5beeeffab7994474c943494d138021bd4361383ff602b7ca3e91a01ec4148f",
+      "stdout_bytes": 53478508,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 3588,
+      "offenses": 176909,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:50:41.998267+00:00",
+      "end_utc": "2026-10-24T05:50:58.399301+00:00",
+      "host_start_100ns": {
+        "idle": 19905662968750,
+        "kernel": 23720700625000,
+        "user": 3288518593750
+      },
+      "host_end_100ns": {
+        "idle": 19907416250000,
+        "kernel": 23722761718750,
+        "user": 3289081250000
+      },
+      "host_busy_fraction": 0.3317651262505955,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rails_rails\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rails_rails",
+      "exit": 1,
+      "real_s": 16.400281900016125,
+      "user_s": 6.5625,
+      "system_s": 9.546875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "3c74fb7cde88f893af131255eb77e2da557d7c28ba21e10fea57196309531197",
+      "stdout_bytes": 89804944,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 3588,
+      "cache_payload_files_before": 3588,
+      "cache_root_realpath": "${RUN}\\benchmark\\rails_rails\\caches\\cold-single-reference-1",
+      "cache_files": 3588,
+      "files": 3588,
+      "offenses": 177013,
+      "verified_against_own_baseline": true,
+      "record": "rails_rails/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:06.102884+00:00",
+      "end_utc": "2026-10-24T05:55:07.751026+00:00",
+      "host_start_100ns": {
+        "idle": 19936234843750,
+        "kernel": 23754105156250,
+        "user": 3297370312500
+      },
+      "host_end_100ns": {
+        "idle": 19936252500000,
+        "kernel": 23754142500000,
+        "user": 3297595468750
+      },
+      "host_busy_fraction": 0.9327380952380953,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 1.6474626999988686,
+      "user_s": 21.46875,
+      "system_s": 0.75,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:07.837029+00:00",
+      "end_utc": "2026-10-24T05:55:09.666728+00:00",
+      "host_start_100ns": {
+        "idle": 19936265156250,
+        "kernel": 23754157031250,
+        "user": 3297595937500
+      },
+      "host_end_100ns": {
+        "idle": 19936305312500,
+        "kernel": 23754219687500,
+        "user": 3297825781250
+      },
+      "host_busy_fraction": 0.8627136752136753,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 1.8299706999969203,
+      "user_s": 20.953125,
+      "system_s": 0.890625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:17.978955+00:00",
+      "end_utc": "2026-10-24T05:52:59.601546+00:00",
+      "host_start_100ns": {
+        "idle": 19909684531250,
+        "kernel": 23725278593750,
+        "user": 3289696875000
+      },
+      "host_end_100ns": {
+        "idle": 19921170781250,
+        "kernel": 23737815625000,
+        "user": 3293419843750
+      },
+      "host_busy_fraction": 0.2935885608856088,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 101.61969520000275,
+      "user_s": 91.265625,
+      "system_s": 8.59375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "290cccc40d77f47ab522236ce0a55fbe5f7c910c5d3949cf95deb4e3b5714e6e",
+      "stdout_bytes": 2301893,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-0",
+      "cache_files": 1807,
+      "files": 1807,
+      "offenses": 7793,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:52:59.867482+00:00",
+      "end_utc": "2026-10-24T05:53:14.706630+00:00",
+      "host_start_100ns": {
+        "idle": 19921197031250,
+        "kernel": 23737845937500,
+        "user": 3293432031250
+      },
+      "host_end_100ns": {
+        "idle": 19923061562500,
+        "kernel": 23739834218750,
+        "user": 3293818750000
+      },
+      "host_busy_fraction": 0.21493421052631578,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 14.838436999998521,
+      "user_s": 14.015625,
+      "system_s": 0.53125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:53:14.799587+00:00",
+      "end_utc": "2026-10-24T05:53:30.779812+00:00",
+      "host_start_100ns": {
+        "idle": 19923073906250,
+        "kernel": 23739847343750,
+        "user": 3293820468750
+      },
+      "host_end_100ns": {
+        "idle": 19924845468750,
+        "kernel": 23741760468750,
+        "user": 3294462500000
+      },
+      "host_busy_fraction": 0.3066715587354002,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 15.980384800001048,
+      "user_s": 14.78125,
+      "system_s": 0.890625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:53:30.908288+00:00",
+      "end_utc": "2026-10-24T05:55:05.918025+00:00",
+      "host_start_100ns": {
+        "idle": 19924860625000,
+        "kernel": 23741778281250,
+        "user": 3294467187500
+      },
+      "host_end_100ns": {
+        "idle": 19936209062500,
+        "kernel": 23754077500000,
+        "user": 3297367812500
+      },
+      "host_busy_fraction": 0.2533845948251935,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 95.00670739999623,
+      "user_s": 85.75,
+      "system_s": 7.984375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "290cccc40d77f47ab522236ce0a55fbe5f7c910c5d3949cf95deb4e3b5714e6e",
+      "stdout_bytes": 2301893,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-1",
+      "cache_files": 1807,
+      "files": 1807,
+      "offenses": 7793,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:11.815887+00:00",
+      "end_utc": "2026-10-24T05:51:14.790430+00:00",
+      "host_start_100ns": {
+        "idle": 19908954062500,
+        "kernel": 23724453281250,
+        "user": 3289537187500
+      },
+      "host_end_100ns": {
+        "idle": 19909310312500,
+        "kernel": 23724855000000,
+        "user": 3289610468750
+      },
+      "host_busy_fraction": 0.25,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 0,
+      "real_s": 2.9742538000282366,
+      "user_s": 0.765625,
+      "system_s": 2.171875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d90c0b3e4d964088f43f60d3484d8c8c3029d2136673b7d9187119af93d1d7b7",
+      "stdout_bytes": 86928,
+      "side": "reference",
+      "repeat": 0,
+      "record": "rubocop_rubocop/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:14.813470+00:00",
+      "end_utc": "2026-10-24T05:51:14.890276+00:00",
+      "host_start_100ns": {
+        "idle": 19909314375000,
+        "kernel": 23724859687500,
+        "user": 3289610781250
+      },
+      "host_end_100ns": {
+        "idle": 19909324375000,
+        "kernel": 23724871093750,
+        "user": 3289611875000
+      },
+      "host_busy_fraction": 0.19999999999999996,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 0,
+      "real_s": 0.07648940000217408,
+      "user_s": 0.03125,
+      "system_s": 0.046875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "0552929c21a8addc58e8b6a116da81987f545d6c91bdb0c7f7eae2eb7fa0aff6",
+      "stdout_bytes": 85121,
+      "side": "candidate",
+      "repeat": 0,
+      "record": "rubocop_rubocop/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:14.901417+00:00",
+      "end_utc": "2026-10-24T05:51:14.973878+00:00",
+      "host_start_100ns": {
+        "idle": 19909325000000,
+        "kernel": 23724872656250,
+        "user": 3289612187500
+      },
+      "host_end_100ns": {
+        "idle": 19909333281250,
+        "kernel": 23724881718750,
+        "user": 3289613750000
+      },
+      "host_busy_fraction": 0.22058823529411764,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 0,
+      "real_s": 0.07202289998531342,
+      "user_s": 0.03125,
+      "system_s": 0.03125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "0552929c21a8addc58e8b6a116da81987f545d6c91bdb0c7f7eae2eb7fa0aff6",
+      "stdout_bytes": 85121,
+      "side": "candidate",
+      "repeat": 1,
+      "record": "rubocop_rubocop/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:51:14.984911+00:00",
+      "end_utc": "2026-10-24T05:51:17.913885+00:00",
+      "host_start_100ns": {
+        "idle": 19909335468750,
+        "kernel": 23724883906250,
+        "user": 3289614062500
+      },
+      "host_end_100ns": {
+        "idle": 19909678906250,
+        "kernel": 23725270625000,
+        "user": 3289694843750
+      },
+      "host_busy_fraction": 0.26537433155080214,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 0,
+      "real_s": 2.92914560000645,
+      "user_s": 0.8125,
+      "system_s": 2.046875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d90c0b3e4d964088f43f60d3484d8c8c3029d2136673b7d9187119af93d1d7b7",
+      "stdout_bytes": 86928,
+      "side": "reference",
+      "repeat": 1,
+      "record": "rubocop_rubocop/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:21.428145+00:00",
+      "end_utc": "2026-10-24T05:55:21.567148+00:00",
+      "host_start_100ns": {
+        "idle": 19937897500000,
+        "kernel": 23755959375000,
+        "user": 3297968593750
+      },
+      "host_end_100ns": {
+        "idle": 19937914531250,
+        "kernel": 23755979218750,
+        "user": 3297971250000
+      },
+      "host_busy_fraction": 0.24305555555555558,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 0.13862260000314564,
+      "user_s": 0.21875,
+      "system_s": 0.1875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:21.650657+00:00",
+      "end_utc": "2026-10-24T05:55:21.789190+00:00",
+      "host_start_100ns": {
+        "idle": 19937925625000,
+        "kernel": 23755990781250,
+        "user": 3297972187500
+      },
+      "host_end_100ns": {
+        "idle": 19937937500000,
+        "kernel": 23756007968750,
+        "user": 3297977500000
+      },
+      "host_busy_fraction": 0.4722222222222222,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 0.13782540001557209,
+      "user_s": 0.40625,
+      "system_s": 0.28125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:10.032311+00:00",
+      "end_utc": "2026-10-24T05:55:15.013596+00:00",
+      "host_start_100ns": {
+        "idle": 19936354531250,
+        "kernel": 23754273593750,
+        "user": 3297829375000
+      },
+      "host_end_100ns": {
+        "idle": 19937041093750,
+        "kernel": 23755015625000,
+        "user": 3297884843750
+      },
+      "host_busy_fraction": 0.13910658307210033,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 4.98098600000958,
+      "user_s": 1.765625,
+      "system_s": 3.140625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "290cccc40d77f47ab522236ce0a55fbe5f7c910c5d3949cf95deb4e3b5714e6e",
+      "stdout_bytes": 2301893,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 1807,
+      "cache_payload_files_before": 1807,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-0",
+      "cache_files": 1807,
+      "files": 1807,
+      "offenses": 7793,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:15.204797+00:00",
+      "end_utc": "2026-10-24T05:55:15.521321+00:00",
+      "host_start_100ns": {
+        "idle": 19937065625000,
+        "kernel": 23755042500000,
+        "user": 3297887968750
+      },
+      "host_end_100ns": {
+        "idle": 19937109531250,
+        "kernel": 23755090781250,
+        "user": 3297892187500
+      },
+      "host_busy_fraction": 0.16369047619047616,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 0.31582479999633506,
+      "user_s": 0.046875,
+      "system_s": 0.265625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:15.605323+00:00",
+      "end_utc": "2026-10-24T05:55:15.905355+00:00",
+      "host_start_100ns": {
+        "idle": 19937118906250,
+        "kernel": 23755101250000,
+        "user": 3297893281250
+      },
+      "host_end_100ns": {
+        "idle": 19937156406250,
+        "kernel": 23755143593750,
+        "user": 3297899375000
+      },
+      "host_busy_fraction": 0.22580645161290325,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 0.29961919999914244,
+      "user_s": 0.0625,
+      "system_s": 0.203125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "4d37004f45e70a4582871bcece72664ca9209db0120b6eed3ef1fed8ef7cb1c2",
+      "stdout_bytes": 2241985,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 1807,
+      "offenses": 7957,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T05:55:16.268387+00:00",
+      "end_utc": "2026-10-24T05:55:21.243863+00:00",
+      "host_start_100ns": {
+        "idle": 19937197343750,
+        "kernel": 23755193437500,
+        "user": 3297909531250
+      },
+      "host_end_100ns": {
+        "idle": 19937873593750,
+        "kernel": 23755932343750,
+        "user": 3297965468750
+      },
+      "host_busy_fraction": 0.14920385295852168,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\rubocop_rubocop\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${CORPUS}\\rubocop_rubocop",
+      "exit": 1,
+      "real_s": 4.975374200002989,
+      "user_s": 1.484375,
+      "system_s": 3.484375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "290cccc40d77f47ab522236ce0a55fbe5f7c910c5d3949cf95deb4e3b5714e6e",
+      "stdout_bytes": 2301893,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 1807,
+      "cache_payload_files_before": 1807,
+      "cache_root_realpath": "${RUN}\\benchmark\\rubocop_rubocop\\caches\\cold-single-reference-1",
+      "cache_files": 1807,
+      "files": 1807,
+      "offenses": 7793,
+      "verified_against_own_baseline": true,
+      "record": "rubocop_rubocop/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:19:58.985252+00:00",
+      "end_utc": "2026-10-24T06:20:16.092213+00:00",
+      "host_start_100ns": {
+        "idle": 20144174375000,
+        "kernel": 23970263906250,
+        "user": 3320065000000
+      },
+      "host_end_100ns": {
+        "idle": 20145522968750,
+        "kernel": 23971732343750,
+        "user": 3321334531250
+      },
+      "host_busy_fraction": 0.507447354904982,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 17.106320699997013,
+      "user_s": 115.90625,
+      "system_s": 3.453125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:20:24.082100+00:00",
+      "end_utc": "2026-10-24T06:20:41.671978+00:00",
+      "host_start_100ns": {
+        "idle": 20146589687500,
+        "kernel": 23972847187500,
+        "user": 3321498281250
+      },
+      "host_end_100ns": {
+        "idle": 20147990625000,
+        "kernel": 23974374218750,
+        "user": 3322786250000
+      },
+      "host_busy_fraction": 0.5023312611012434,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 17.589642899984028,
+      "user_s": 116.21875,
+      "system_s": 3.03125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:03:13.497260+00:00",
+      "end_utc": "2026-10-24T06:10:33.366876+00:00",
+      "host_start_100ns": {
+        "idle": 20003639531250,
+        "kernel": 23824739218750,
+        "user": 3304716250000
+      },
+      "host_end_100ns": {
+        "idle": 20064985781250,
+        "kernel": 23888320312500,
+        "user": 3311512656250
+      },
+      "host_busy_fraction": 0.12832581435828216,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 439.85714900001767,
+      "user_s": 363.453125,
+      "system_s": 28.09375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c27cbcd03f87bd267c4baa13949632bc8f044f3c3d96ca3e8fa554d31fa65441",
+      "stdout_bytes": 356603030,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-0",
+      "cache_files": 7522,
+      "files": 7522,
+      "offenses": 778156,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:10:48.533936+00:00",
+      "end_utc": "2026-10-24T06:11:58.584220+00:00",
+      "host_start_100ns": {
+        "idle": 20066830156250,
+        "kernel": 23890389687500,
+        "user": 3311870781250
+      },
+      "host_end_100ns": {
+        "idle": 20076164843750,
+        "kernel": 23900264843750,
+        "user": 3313203125000
+      },
+      "host_busy_fraction": 0.16710350211911662,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 70.04856110000401,
+      "user_s": 67.140625,
+      "system_s": 2.390625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:12:05.968557+00:00",
+      "end_utc": "2026-10-24T06:13:13.840523+00:00",
+      "host_start_100ns": {
+        "idle": 20077149531250,
+        "kernel": 23901300468750,
+        "user": 3313348750000
+      },
+      "host_end_100ns": {
+        "idle": 20086657343750,
+        "kernel": 23911123281250,
+        "user": 3314384687500
+      },
+      "host_busy_fraction": 0.12441003798779782,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 67.8700511000061,
+      "user_s": 65.203125,
+      "system_s": 2.25,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:13:21.541768+00:00",
+      "end_utc": "2026-10-24T06:19:43.831503+00:00",
+      "host_start_100ns": {
+        "idle": 20087730312500,
+        "kernel": 23912232500000,
+        "user": 3314507968750
+      },
+      "host_end_100ns": {
+        "idle": 20142019687500,
+        "kernel": 23968016718750,
+        "user": 3319888750000
+      },
+      "host_busy_fraction": 0.11241110111992147,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 382.28115570000955,
+      "user_s": 354.296875,
+      "system_s": 26.078125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c27cbcd03f87bd267c4baa13949632bc8f044f3c3d96ca3e8fa554d31fa65441",
+      "stdout_bytes": 356603030,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 0,
+      "cache_payload_files_before": 0,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-1",
+      "cache_files": 7522,
+      "files": 7522,
+      "offenses": 778156,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/cold-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:02:52.005895+00:00",
+      "end_utc": "2026-10-24T06:03:02.882520+00:00",
+      "host_start_100ns": {
+        "idle": 20000643437500,
+        "kernel": 23821471875000,
+        "user": 3304545468750
+      },
+      "host_end_100ns": {
+        "idle": 20002216562500,
+        "kernel": 23823162343750,
+        "user": 3304595625000
+      },
+      "host_busy_fraction": 0.09622980251346502,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 0,
+      "real_s": 10.87664489998133,
+      "user_s": 1.71875,
+      "system_s": 8.28125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "b1f762facd0af35986b511db800aa73572b738a685b8f365ba48c031d95738e5",
+      "stdout_bytes": 304393,
+      "side": "reference",
+      "repeat": 0,
+      "record": "ruby_ruby/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:03:02.915365+00:00",
+      "end_utc": "2026-10-24T06:03:03.199215+00:00",
+      "host_start_100ns": {
+        "idle": 20002221250000,
+        "kernel": 23823167031250,
+        "user": 3304595937500
+      },
+      "host_end_100ns": {
+        "idle": 20002262187500,
+        "kernel": 23823210312500,
+        "user": 3304597656250
+      },
+      "host_busy_fraction": 0.09027777777777779,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 0,
+      "real_s": 0.2835272999946028,
+      "user_s": 0.09375,
+      "system_s": 0.171875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "59bebd75923780fee94307fa47e5e7918bc9b9050be99fcc744bb4ae39922bbb",
+      "stdout_bytes": 296871,
+      "side": "candidate",
+      "repeat": 0,
+      "record": "ruby_ruby/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:03:03.210212+00:00",
+      "end_utc": "2026-10-24T06:03:03.487734+00:00",
+      "host_start_100ns": {
+        "idle": 20002264531250,
+        "kernel": 23823212656250,
+        "user": 3304597812500
+      },
+      "host_end_100ns": {
+        "idle": 20002305312500,
+        "kernel": 23823256250000,
+        "user": 3304599218750
+      },
+      "host_busy_fraction": 0.09375,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 0,
+      "real_s": 0.277433800016297,
+      "user_s": 0.09375,
+      "system_s": 0.1875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "59bebd75923780fee94307fa47e5e7918bc9b9050be99fcc744bb4ae39922bbb",
+      "stdout_bytes": 296871,
+      "side": "candidate",
+      "repeat": 1,
+      "record": "ruby_ruby/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:03:03.499736+00:00",
+      "end_utc": "2026-10-24T06:03:13.450255+00:00",
+      "host_start_100ns": {
+        "idle": 20002305781250,
+        "kernel": 23823256718750,
+        "user": 3304599218750
+      },
+      "host_end_100ns": {
+        "idle": 20003633750000,
+        "kernel": 23824732500000,
+        "user": 3304715468750
+      },
+      "host_busy_fraction": 0.16586514868976343,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "false",
+        "-L",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 0,
+      "real_s": 9.949579100008123,
+      "user_s": 1.796875,
+      "system_s": 8.09375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "b1f762facd0af35986b511db800aa73572b738a685b8f365ba48c031d95738e5",
+      "stdout_bytes": 304393,
+      "side": "reference",
+      "repeat": 1,
+      "record": "ruby_ruby/discovery.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:22:43.975516+00:00",
+      "end_utc": "2026-10-24T06:22:48.380556+00:00",
+      "host_start_100ns": {
+        "idle": 20164990468750,
+        "kernel": 23992314375000,
+        "user": 3324412343750
+      },
+      "host_end_100ns": {
+        "idle": 20165615000000,
+        "kernel": 23992979531250,
+        "user": 3324451562500
+      },
+      "host_busy_fraction": 0.11335403726708071,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 4.404959999985294,
+      "user_s": 2.359375,
+      "system_s": 2.015625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-0",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:22:56.098899+00:00",
+      "end_utc": "2026-10-24T06:23:00.550116+00:00",
+      "host_start_100ns": {
+        "idle": 20166739531250,
+        "kernel": 23994121093750,
+        "user": 3324544218750
+      },
+      "host_end_100ns": {
+        "idle": 20167381250000,
+        "kernel": 23994798281250,
+        "user": 3324581718750
+      },
+      "host_busy_fraction": 0.10209881941407961,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 4.451277499989374,
+      "user_s": 2.59375,
+      "system_s": 1.890625,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-parallel-candidate-1",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-parallel.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:20:50.708133+00:00",
+      "end_utc": "2026-10-24T06:21:17.754853+00:00",
+      "host_start_100ns": {
+        "idle": 20149284375000,
+        "kernel": 23975714531250,
+        "user": 3322890937500
+      },
+      "host_end_100ns": {
+        "idle": 20153193125000,
+        "kernel": 23979834062500,
+        "user": 3323098750000
+      },
+      "host_busy_fraction": 0.09673226214118069,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-0",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 27.045350800006418,
+      "user_s": 14.203125,
+      "system_s": 12.6875,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c27cbcd03f87bd267c4baa13949632bc8f044f3c3d96ca3e8fa554d31fa65441",
+      "stdout_bytes": 356603030,
+      "side": "reference",
+      "repeat": 0,
+      "cache_files_before": 7522,
+      "cache_payload_files_before": 7522,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-0",
+      "cache_files": 7522,
+      "files": 7522,
+      "offenses": 778156,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:21:32.535641+00:00",
+      "end_utc": "2026-10-24T06:21:38.177558+00:00",
+      "host_start_100ns": {
+        "idle": 20155194531250,
+        "kernel": 23981946250000,
+        "user": 3323351718750
+      },
+      "host_end_100ns": {
+        "idle": 20156011718750,
+        "kernel": 23982795625000,
+        "user": 3323404843750
+      },
+      "host_busy_fraction": 0.09452908587257614,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-0",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 5.640935900009936,
+      "user_s": 1.765625,
+      "system_s": 1.4375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 0,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-0",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:21:46.092887+00:00",
+      "end_utc": "2026-10-24T06:21:51.699345+00:00",
+      "host_start_100ns": {
+        "idle": 20157079531250,
+        "kernel": 23983912031250,
+        "user": 3323555937500
+      },
+      "host_end_100ns": {
+        "idle": 20157797187500,
+        "kernel": 23984698125000,
+        "user": 3323665937500
+      },
+      "host_busy_fraction": 0.19912816041848302,
+      "command": [
+        "${RUN}\\merged\\sonicop.exe",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-1",
+        "-f",
+        "json",
+        "--no-parallel",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 5.607144300010987,
+      "user_s": 1.640625,
+      "system_s": 1.578125,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "d4218673b69767a016227d18774fd697907124404540a2119884eb02026c6963",
+      "stdout_bytes": 225576765,
+      "side": "candidate",
+      "repeat": 1,
+      "cache_files_before": 3,
+      "cache_payload_files_before": 2,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-candidate-1",
+      "cache_files": 3,
+      "files": 7522,
+      "offenses": 776679,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-single.json"
+    },
+    {
+      "start_utc": "2026-10-24T06:22:00.747109+00:00",
+      "end_utc": "2026-10-24T06:22:28.869352+00:00",
+      "host_start_100ns": {
+        "idle": 20159082812500,
+        "kernel": 23986024062500,
+        "user": 3323786250000
+      },
+      "host_end_100ns": {
+        "idle": 20162878906250,
+        "kernel": 23990113750000,
+        "user": 3324196718750
+      },
+      "host_busy_fraction": 0.15645290094093955,
+      "command": [
+        "${RUN}\\runtime\\rubyinstaller-4.0.9-1-x64\\bin\\ruby.exe",
+        "${RUN}\\latest.rb",
+        "-c",
+        "${RUN}\\benchmark\\ruby_ruby\\config.yml",
+        "--cache",
+        "true",
+        "--cache-root",
+        "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-1",
+        "-f",
+        "json",
+        "."
+      ],
+      "cwd": "${RUN}\\benchmark-inputs\\ruby_ruby",
+      "exit": 1,
+      "real_s": 28.120696300000418,
+      "user_s": 14.71875,
+      "system_s": 13.09375,
+      "job_processes": 1,
+      "job_active_after_exit": 0,
+      "stdout_sha256": "c27cbcd03f87bd267c4baa13949632bc8f044f3c3d96ca3e8fa554d31fa65441",
+      "stdout_bytes": 356603030,
+      "side": "reference",
+      "repeat": 1,
+      "cache_files_before": 7522,
+      "cache_payload_files_before": 7522,
+      "cache_root_realpath": "${RUN}\\benchmark\\ruby_ruby\\caches\\cold-single-reference-1",
+      "cache_files": 7522,
+      "files": 7522,
+      "offenses": 778156,
+      "verified_against_own_baseline": true,
+      "record": "ruby_ruby/warm-single.json"
+    }
+  ],
+  "latest_versions": {
+    "checked_at": "2026-10-24T05:40:39.004208+00:00",
+    "gems": {
+      "rubocop": {
+        "url": "https://rubygems.org/api/v1/versions/rubocop/latest.json",
+        "response": {
+          "version": "1.92.1"
+        }
+      },
+      "parser": {
+        "url": "https://rubygems.org/api/v1/versions/parser/latest.json",
+        "response": {
+          "version": "3.3.13.0"
+        }
+      },
+      "rubocop-ast": {
+        "url": "https://rubygems.org/api/v1/versions/rubocop-ast/latest.json",
+        "response": {
+          "version": "1.50.0"
+        }
+      },
+      "prism": {
+        "url": "https://rubygems.org/api/v1/versions/prism/latest.json",
+        "response": {
+          "version": "2.0.0"
+        }
+      }
+    },
+    "ruby": {
+      "version": "4.0.9",
+      "source": "https://www.ruby-lang.org/en/downloads/",
+      "checked_at": "2026-10-24T05:40:41.211725+00:00",
+      "source_sha256": "715a026e022726c354786f2659ca64bffa699cc03782298d1a52c243a9d388dc"
+    }
+  },
+  "runtime": {
+    "ruby": "ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x64-mingw-ucrt]",
+    "executable": "${RUN}/runtime/rubyinstaller-4.0.9-1-x64/bin/ruby.exe",
+    "yjit": "unavailable",
+    "gems": {
+      "error_highlight": "0.7.2",
+      "did_you_mean": "2.0.0",
+      "syntax_suggest": "2.0.3",
+      "ast": "2.4.3",
+      "racc": "1.8.1",
+      "parser": "3.3.13.0",
+      "prism": "1.8.2",
+      "rubocop-ast": "1.50.0",
+      "json": "2.18.0",
+      "language_server-protocol": "3.17.0.6",
+      "lint_roller": "1.1.0",
+      "parallel": "2.3.0",
+      "rainbow": "3.1.1",
+      "regexp_parser": "2.13.1",
+      "ruby-progressbar": "1.13.0",
+      "unicode-emoji": "4.3.0",
+      "unicode-display_width": "3.3.0",
+      "rubocop": "1.92.1",
+      "english": "0.8.1",
+      "fileutils": "1.8.0",
+      "stringio": "3.2.0",
+      "zlib": "3.2.3",
+      "forwardable": "1.4.0",
+      "delegate": "0.6.1",
+      "digest": "3.2.1",
+      "open3": "0.2.1",
+      "uri": "1.1.1",
+      "yaml": "0.4.0",
+      "date": "3.5.1",
+      "psych": "5.3.1",
+      "erb": "6.0.7",
+      "bundler": "4.0.20",
+      "find": "0.2.0",
+      "openssl": "4.0.2",
+      "ipaddr": "1.2.8",
+      "securerandom": "0.4.1",
+      "optparse": "0.8.1",
+      "time": "0.4.2"
+    }
+  },
+  "unavailable": [
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "Homebrew_brew/cold-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "Homebrew_brew/warm-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "mastodon_mastodon/cold-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "mastodon_mastodon/warm-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "rails_rails/cold-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "rails_rails/warm-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "rubocop_rubocop/cold-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "rubocop_rubocop/warm-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "ruby_ruby/cold-parallel-reference-unmeasured.json"
+    },
+    {
+      "reason": "Windows Ruby の Process.fork 非対応。事前CLI確認で並列不可",
+      "record": "ruby_ruby/warm-parallel-reference-unmeasured.json"
+    }
+  ]
+}

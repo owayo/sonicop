@@ -44,3 +44,9 @@ Prefer `context.nodes_of("kind")` over walking every node: each cop runs on ever
 ## Dependencies
 
 Dependencies are updated with `depup --install --include-pinned`. Parser and project-index dependencies are pinned to exact versions or fork commits in `Cargo.toml` for reproducible builds. Compare behavioral changes against the pinned RuboCop before accepting an update.
+
+## Existing-checkout measurements on 2026-10-24
+
+This run used the five permitted existing inputs without fetching them again. See the [conditions](maintenance/2026-10-24.md) and [raw records](maintenance/2026-10-24.json). Check current stable releases with official Ruby/RubyGems sources and record the actually loaded Ruby, RuboCop, Parser, rubocop-ast and Prism versions. The mise pins serve builds and CI; they do not establish the latest measurement environment. Incompatible latest components remain explicitly unmeasured. Behavioral compatibility stays pinned to 1.89.0.
+
+The existing `make benchmark` command has its own fixed inputs and runtime; it does not reproduce this run unchanged. Windows RuboCop fork parallelism is unavailable. Cold roots start empty; warm roots must contain the paired cold run's saved cache. Verify target versions, complete path sets and full reports on every trial and include child-process CPU time. The Windows source-gem regression exercises a backslash Cargo path through real Make build, installation and command execution.

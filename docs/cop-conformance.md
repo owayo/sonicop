@@ -25,3 +25,7 @@ The grouped CLI sweep preserves each captured configuration rather than replacin
 YAML scalar types are also tested directly. Ruby's YAML 1.1 plain `yes`/`no`/`on`/`off` values differ from quoted strings; serializing a test configuration with a YAML 1.2 writer can silently remove the quotes and change the test input. Such tests write raw YAML to disk. Quoted values, explicit tags, anchors, Unicode and invalid input have positive and negative cases.
 
 Reproduce the table with `scripts/conformance_table.rb` and a JSON specification containing the 609-name registry and paired reports for each run. It fails if any cop is unexercised or differs, and rejects incomplete or malformed reports. Table counts are generated from reports rather than entered by hand.
+
+## Real-source update on 2026-10-24
+
+The [Windows corpus run](maintenance/2026-10-24.md) refreshes real-source diagnostic, correction and timing evidence. It confirms the specification registry names/groups and retains Ruby residuals. It does not re-run or change the 2026-10-22 generated 609-cop sweep above. Newer-reference JSON fields and changed cop sets are recorded separately from specification conformance.

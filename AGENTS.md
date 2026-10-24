@@ -434,6 +434,15 @@ compiled byte/encoding が元識別子と一致する名前だけを通常束縛
 元の本家記録を改変せず、既存72安全差分と追加24拒否の件数・版・実行環境を分けて残す。
 
 
+**Windowsの表示パスは区切り文字を揃えて並べる。** ディレクトリ内の実Pathをbackslashのまま
+ソートすると `foo1/bar.rb` が `foo/bar.rb` より前になる。本家の表示と同じslash表記のキーを
+一度だけ作り、明示引数の順は保つ。補正ゲートのdiff読取りもdrive/UNCの区切りを扱い、
+POSIX絶対パス内のbackslashまでWindowsの区切りとして変換しない。
+
+**source gemのCargoパスはMakeへ出す前に展開する。** Windowsの `find_executable` は
+backslash付きパスを返し、GNU Makeからshを通すと区切りが消える。`File.expand_path` で
+絶対slash表記へ揃え、実際のMakeによるbuild・install・導入済みコマンド起動まで確認する。
+
 ## Adding a cop test
 
 `tests/cops.rs` uses upstream's caret notation: the annotation points at the preceding source line,
@@ -633,11 +642,20 @@ whitequark と Prism は空行・行継続・EOF のコメントに対する `tN
 
 ## Conformance measurement
 
+2026-10-24 の Windows 実コード計測は計18,670対象。仕様版1.89.0との既定診断は
+RuboCop・Rails・Homebrew・Mastodonで全項目と順序が一致し、Rubyは比較可能7,522件で
+欠落3・追加78・同位置項目差3が残る。最新版との診断・補正・速度は別に記録する。
+正本は `docs/maintenance/2026-10-24.json` と同名Markdown、速度は
+`docs/benchmarks/2026-10-24-windows.json`。テストはRust実行2,498 / 一意2,466、
+Ruby 83（15skip）、Python18で一意計2,567。この回の追加はPython3・Ruby 1、Rust既存1件を拡張した。
+最新Prism2.0.0は依存条件に合わず実ロード1.8.2で、全構成要素が最新版の条件は未完了。
+元コーパスはLFで未変更。Windows参照のLF→CRLF書出し差を、未登録の互換成功にしない。
+
 2026-10-22 の CLI 掃引は **登録 609 / 発火 609 / 全項目一致 609**。
 測定可能な 42,433 入力・1,543 設定群に、索引 174 ケースとファイル名依存 2 ケースを加えた。
 本家 CLI が設定を拒む 6 設定群・161 入力は未測定として分ける。
-テスト関数は Rust 2,328・Ruby 82・検証ツール 15 の計 2,425 件。
-このメンテナンスで追加したものは 15 件で、fixture 内の入力数とは分けて数える。
+当時のテスト関数は Rust 2,328・Ruby 82・検証ツール 15 の計 2,425 件。
+当時の追加15件はfixture内の入力数とは分けた過去記録とする。
 実コードの既知差分まで解消したという意味ではない。固定 SHA と数値の正本は
 `CONFORMANCE.md` とし、README のテーブルは必ず計測結果から生成する。
 
@@ -695,7 +713,7 @@ Ruby 2.6 指定を拾うことがあり、両ツールが同じ誤った版で�
 構文エラーの stdin から実効版を両 CLI に答えさせ、固定コーパスで確認した値
 （Rails 3.3、Mastodon 4.0、残り 2.7）と照合する。読めない場合も測定を止める。
 
-`CONFORMANCE.md` records offense-by-offense comparisons against five pinned corpora (18,251 files).
+`CONFORMANCE.md` records the current five-corpus comparison (18,670 targets), with dated input revisions.
 The commits are pinned because the numbers move with them. Anything that changes file discovery or
 path matching can move the target-file lists, so re-measure after touching `src/config/paths.rs`.
 The behavioral oracle stays RuboCop 1.89.0 even when the corpus checkout has advanced to a later
