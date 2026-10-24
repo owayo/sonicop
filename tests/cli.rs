@@ -28,14 +28,18 @@ fn syntax_message(reason: &str, target_ruby: &str) -> String {
 #[test]
 fn reports_keep_the_reference_file_and_argument_order() {
     let cases: [(&[&str], &[&str]); 3] = [
-        (&["."], &["foo.rb", "foo/bar.rb"]),
+        (&["."], &["foo.rb", "foo/bar.rb", "foo1/bar.rb"]),
         (&["foo/bar.rb", "foo.rb"], &["foo/bar.rb", "foo.rb"]),
         (&["foo.rb", "foo/bar.rb"], &["foo.rb", "foo/bar.rb"]),
     ];
     // 本家 1.89.0 はディレクトリ内を文字列順に展開し、引数間の順番は保持する。
     for cache in ["false", "true"] {
         for parallel in [false, true] {
-            let directory = project(&[("foo.rb", "puts 1\n"), ("foo/bar.rb", "puts 2\n")]);
+            let directory = project(&[
+                ("foo.rb", "puts 1\n"),
+                ("foo/bar.rb", "puts 2\n"),
+                ("foo1/bar.rb", "puts 3\n"),
+            ]);
             for (arguments, expected) in cases {
                 for _ in 0..if cache == "true" { 2 } else { 1 } {
                     let mut invocation = command(directory.path());
@@ -64,8 +68,8 @@ fn reports_keep_the_reference_file_and_argument_order() {
                         .stdout
                         .clone();
                     let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
-                    assert_eq!(found["summary"]["inspected_file_count"], 2);
-                    assert_eq!(found["summary"]["target_file_count"], 2);
+                    assert_eq!(found["summary"]["inspected_file_count"], expected.len());
+                    assert_eq!(found["summary"]["target_file_count"], expected.len());
                     assert_eq!(found["summary"]["offense_count"], 0);
                     let paths: Vec<_> = found["files"]
                         .as_array()

@@ -1634,9 +1634,11 @@ pub fn discover_targets_with_store(
             }
             walked.push(normalized_target_path(path));
         }
-        // Only what a directory expanded to is put in order. RuboCop keeps the arguments themselves
-        // in the order they were given, so `sonicop b.rb a.rb` inspects `b.rb` first -- which is what
-        // an editor passing one file at a time, or a script feeding a worklist, relies on.
+        // 本家はディレクトリの展開を表示パスの文字列順にし、明示引数の順は保持する。
+        // Windows の区切りのままでは、foo1/bar.rb が foo/bar.rb より先になる。
+        #[cfg(windows)]
+        walked.sort_by_cached_key(|path| path.to_string_lossy().replace('\\', "/"));
+        #[cfg(not(windows))]
         walked.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
         targets.append(&mut walked);
     }
