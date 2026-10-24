@@ -2,5 +2,5 @@
 
 # Generated from Cargo.toml by `rake version:sync`. Do not edit by hand.
 module Sonicop
-  VERSION = '26.10.100'
+  VERSION = '26.10.101'
 end
