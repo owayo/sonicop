@@ -51,6 +51,43 @@ class MeasurementToolsTest(unittest.TestCase):
             root = pathlib.Path(scratch)
             self.assertEqual(self.gate(root, self.fixture(root, known=False)), 1)
 
+    def test_windows_diff_paths_preserve_known_and_unknown_differences(self):
+        for prefix in ("C:/scratch/", "C:\\scratch\\", "C:\\scratch/", "\\\\server\\share\\"):
+            for known in (True, False):
+                with (
+                    self.subTest(prefix=prefix, known=known),
+                    tempfile.TemporaryDirectory() as scratch,
+                ):
+                    root = pathlib.Path(scratch)
+                    manifest = self.fixture(root, known=known)
+                    (root / "ff-diff-example.txt").write_text(
+                        f"Files {prefix}ff-up-example/sample.rb and "
+                        f"{prefix}ff-port-example/sample.rb differ\n"
+                    )
+                    self.assertEqual(self.gate(root, manifest), 0 if known else 1)
+
+    def test_windows_diff_paths_normalize_nested_directories(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = pathlib.Path(scratch)
+            (root / "ff-diff-example.txt").write_text(
+                "Files C:\\scratch\\ff-up-example\\lib\\sample.rb and "
+                "C:\\scratch\\ff-port-example\\lib\\sample.rb differ\n"
+            )
+            self.assertEqual(ff_gate.differing(root, "example"), ["lib/sample.rb"])
+
+    def test_posix_diff_paths_keep_literal_backslashes(self):
+        for prefix in ("/scratch/", "//scratch/"):
+            with (
+                self.subTest(prefix=prefix),
+                tempfile.TemporaryDirectory() as scratch,
+            ):
+                root = pathlib.Path(scratch)
+                (root / "ff-diff-example.txt").write_text(
+                    f"Files {prefix}ff-up-example/literal\\name.rb and "
+                    f"{prefix}ff-port-example/literal\\name.rb differ\n"
+                )
+                self.assertEqual(ff_gate.differing(root, "example"), ["literal\\name.rb"])
+
     def test_changed_hash_is_rejected(self):
         with tempfile.TemporaryDirectory() as scratch:
             root = pathlib.Path(scratch)
