@@ -2543,9 +2543,44 @@ regexp_character_boundary_divergences:
       この4条件は変更前のparser-backend baselineでも全診断・終了値・補正bytesが同じで、今回の新退行ではない。
 
 # #42: 診断用 Buffer の Symbol と物理ソースの Symbol が異なる境界。
-# 本家が構文を壊す補正に必要なClaude判定は未取得。判定後に根拠を追記する。
+# 今回は利用者承認により、Claude 判定を Codex の独立レビューで代替する。
 regexp_capture_encoding_divergences:
-  review_status: pending_external_judgment
+  review_status: reviewed_codex_user_approved_substitution
+  review:
+    reviewer: Codex
+    authority: user_approved_substitution_for_claude_judgment
+    date: "2026-10-24"
+    reviewed_code_head: 3c1d98e09e8087c5e04b477c73bd792b0210246f
+    verdict: >-
+      本家の生書込による構文破壊と、元符号化へ戻しても捕捉 local が method call に変わる
+      意味破壊を確認し、最終 Action の危険な括弧をファイル単位で拒否する方針を採用する。
+      逆方向は有効な物理 Symbol との積集合で架空 local を防ぐ。無害な補正を許可し、
+      全 cop や未対応入力の一般的な意味保存へ保証を広げない。Claude の判定取得ではない。
+    minimum_upstream_outputs:
+      - fixture: tests/fixtures/capture_parentheses_reports.json
+        case: unsafe_euc_plus
+        ending: LF
+        mode: safe
+        source_hex: "2320656e636f64696e673a204555432d4a500a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270a"
+        upstream_bytes_hex: "2320656e636f64696e673a204555432d4a500a2f283f3ce381823e78292f65203d7e202778270ae38182282b2727290a"
+        upstream_exit: 1
+        upstream_syntax_message: '"\xe3" followed by "\x81" on euc-jp.'
+      - fixture: tests/fixtures/capture_parentheses_reports.json
+        case: unsafe_31j_plus
+        ending: LF
+        mode: safe
+        source_hex: "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3c82a03e78292f73203d7e202778270a82a0202b27270a"
+        upstream_bytes_hex: "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3ce381823e78292f73203d7e202778270ae38182282b2727290a"
+        upstream_exit: 1
+        upstream_syntax_message: '"\x82" followed by ">" on windows-31j.'
+    runtime_evidence:
+      provenance: tests/fixtures/capture_parentheses_reports.json.PROVENANCE
+      symbol_fixture: tests/fixtures/capture_binding_encodings.json
+      symbol_case: case-126-eucjp-raw-e
+      outcome: >-
+        保存済みの実 MRI 2.7.8p225 の要約は、危険 plus 原本 String x、生書込 SyntaxError、
+        元符号化復元後 NoMethodError。逆方向は原本 Integer 1、復元後 ArgumentError。
+        これは PROVENANCE の実測要約であり、各 JSON 行の runtime field や今回の新実行ではない。
   target: 2.7/parser_whitequark
   modes: [inspect, -a, -A]
   endings: [lf, crlf]
@@ -2573,7 +2608,36 @@ regexp_capture_encoding_divergences:
 regexp_capture_fold_guard_divergences:
   issue: 59
   issue_url: https://github.com/owayo/sonicop/issues/59
-  review_status: pending_external_judgment
+  review_status: reviewed_codex_user_approved_substitution
+  review:
+    reviewer: Codex
+    authority: user_approved_substitution_for_claude_judgment
+    date: "2026-10-24"
+    reviewed_code_head: 3c1d98e09e8087c5e04b477c73bd792b0210246f
+    verdict: >-
+      実 MRI 2.7.8 と独立した MRI 3.2.0 の記録にある local から method call への変化を確認し、
+      対象 cop の最終括弧補正を FIRST 原本・未補正診断・理由・終了 2 へ戻す保護を採用する。
+      fold 値の同一性を拒否の前提にせず、旧 72 安全差と新 24 拒否を分けて保持する。
+      利用者承認による Codex の代替判定であり、Claude の判定取得ではない。
+    minimum_upstream_output:
+      fixture: tests/fixtures/regexp_capture_fold_safety.json
+      id: discarded_extended
+      mode: safe
+      source: |
+        /#{'(?x)'; '#(?<y>.)'}/ =~ '#x'
+        y +''
+      upstream_source: |
+        /#{'(?x)'; '#(?<y>.)'}/ =~ '#x'
+        y(+'')
+      rubocop_exit: 0
+      mri_original: {status: ok, class: String, encoding: ASCII-8BIT, bytes: [120]}
+      mri_written: {status: NoMethodError, name: {encoding: US-ASCII, bytes: [121]}}
+    mri32_evidence:
+      fixture_section: separate_mri32_process_observations
+      cases: [discarded_extended, encoding_meta_hex_True, encoding_meta_octal_True]
+      outcome: >-
+        公式 MRI 3.2.0 の独立した 18 実行で、LF/CRLF の original と guard42 は
+        stdout の String x・終了 0、parent191 は NoMethodError・終了 1。
   only: Layout/SpaceAroundOperators,Lint/AmbiguousOperator
   targets: [2.7/default, 3.2/parser_whitequark]
   modes: [-a, -A]
