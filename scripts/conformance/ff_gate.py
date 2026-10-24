@@ -89,6 +89,8 @@ def differing(out_dir, corpus):
         if not line.endswith(" differ"):
             continue
         for token in line.split():
+            if not token.startswith("/") and pathlib.PureWindowsPath(token).drive:
+                token = token.replace("\\", "/")
             index = token.find(marker)
             if index != -1:
                 paths.append(token[index + len(marker) :])
