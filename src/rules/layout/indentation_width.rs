@@ -477,7 +477,14 @@ impl Checker<'_, '_> {
             self.width
         );
         let insertion_anchor = range.start..range.start;
+        let past_the_text = range.end.saturating_sub(text.len());
         let mut offense = self.context.offense(message, range);
+        if past_the_text > 0 {
+            // 本家の範囲長は EOF の外の文字も数える。本文を読む長さは切り詰めたまま、
+            // 報告だけに足し、補正には実在する target と挿入アンカーを使う。
+            let length = offense.location(self.context.source).length + past_the_text;
+            offense = offense.with_length(length);
+        }
         if !self.other_offense_in_same_range(&target) && !holds_block_comment(self.context, &target)
         {
             let taboo = string_interiors(self.context, &target);
@@ -679,9 +686,10 @@ fn step_forward(text: &str, offset: usize, characters: usize) -> usize {
     let mut cursor = offset;
     for step in 0..characters {
         match text[cursor..].chars().next() {
+            // 本家の Source::Buffer は CRLF を LF へ正規化してから位置を数える。
+            Some('\r') if text.as_bytes().get(cursor + 1) == Some(&b'\n') => cursor += 2,
             Some(character) => cursor += character.len_utf8(),
-            // `begin_pos - indentation` is plain arithmetic upstream, and the range it builds may
-            // reach past the source. What lies beyond counts one column each.
+            // 本家の `begin_pos - indentation` は単純な算術なので、本文の外も 1 桁ずつ進む。
             None => return cursor + (characters - step),
         }
     }

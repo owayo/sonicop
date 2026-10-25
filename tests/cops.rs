@@ -10433,6 +10433,73 @@ mod layout_indentation {
     const CONSISTENCY: &str = "Layout/IndentationConsistency";
     const INCONSISTENT: &str = "Inconsistent indentation detected.";
 
+    /// 本家 1.89.0 の実 CLI は、負の字下げの範囲が EOF を越えても長さを切り詰めない。
+    /// CRLF と Unicode を含む場合も、本文の外を読むことなく同じ位置を報告する。
+    #[test]
+    fn negative_indentation_keeps_the_reported_length_beyond_eof() {
+        for newline in ["\n", "\r\n"] {
+            for body in ["a", "あ"] {
+                for trailing_newline in [true, false] {
+                    let mut source =
+                        format!("a_very_long_condition and class C{newline}  {body}{newline}end");
+                    let (last_line, last_column) = if trailing_newline {
+                        source.push_str(newline);
+                        (4, 18)
+                    } else {
+                        (3, 22)
+                    };
+                    CopCase::new(
+                        WIDTH,
+                        source,
+                        vec![Annotation::new(
+                            2,
+                            3,
+                            1,
+                            "Use 2 (not -24) spaces for indentation.",
+                        )],
+                    )
+                    .locations(&[(2, 3, last_line, last_column)])
+                    .lengths(&[24])
+                    .correctable(true)
+                    .run();
+                }
+            }
+        }
+    }
+
+    /// EOF の手前で閉じる範囲も、CRLF をまたぐ位置と Unicode の文字数を保つ。
+    #[test]
+    fn negative_indentation_inside_the_text_keeps_its_character_range() {
+        for newline in ["\n", "\r\n"] {
+            for (source, caret_length, message, location, length) in [
+                (
+                    "condition and class C\n  abcdefghijklmnopqrstuvwxyz\nend\n",
+                    12,
+                    "Use 2 (not -12) spaces for indentation.",
+                    (2, 3, 2, 14),
+                    12,
+                ),
+                (
+                    "true and class C\n  \"あ\n  a long string\"\nend\n",
+                    2,
+                    "Use 2 (not -7) spaces for indentation.",
+                    (2, 3, 3, 4),
+                    7,
+                ),
+            ] {
+                CopCase::new(
+                    WIDTH,
+                    source.replace('\n', newline),
+                    vec![Annotation::new(2, 3, caret_length, message)],
+                )
+                .locations(&[location])
+                .lengths(&[length])
+                .correctable(true)
+                .run();
+            }
+        }
+    }
+
     /// `begin ... rescue ... end` の本体は、本家では `rescue` ノード 1 つで、その範囲は
     /// 最後の節の最後の文で終わる。文法の `begin` ノードは `end` まで届いてしまうので、
     /// そのまま範囲に使うと補正が `end` の行も動かす。`end` は字下げを測る基準そのものな
