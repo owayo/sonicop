@@ -432,6 +432,11 @@ pub(crate) fn verified_by_reparse<T>(
             verified.extend(group);
             continue;
         }
+        if let Some(scope) = scope
+            && !reparse_keeps_string_encodings(scope, context)
+        {
+            continue;
+        }
         let original = normalized(scope.unwrap_or(root), text, verification);
         if group.len() > 1
             && corrections_verify(
@@ -460,6 +465,116 @@ pub(crate) fn verified_by_reparse<T>(
         }));
     }
     verified
+}
+
+/// 本家は scope の断片を元のパスだけで再解析し、ファイル先頭の符号化宣言は渡さない。
+/// 構造とソースが同じ str でも、非 ASCII の値の符号化が変われば AST は同値ではない。
+fn reparse_keeps_string_encodings(scope: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let fragment = context.source.node_text(scope);
+    // normalized_original は生の断片に __LINE__ があれば元側も再解析する。
+    // コメント・文字列中でも同じ判定だが、静的 regexp の再コンパイルは省略しない。
+    let original = crate::engine::declared_literal_encoding(context.source.text());
+    let reparsed = crate::engine::declared_literal_encoding(fragment);
+    if original == reparsed {
+        return true;
+    }
+    let encodings = [
+        if fragment.contains("__LINE__") {
+            reparsed
+        } else {
+            original
+        },
+        reparsed,
+    ];
+    let mut stack = vec![scope];
+    while let Some(node) = stack.pop() {
+        if !literal_keeps_encoding(node, context, encodings) {
+            return false;
+        }
+        push_named_children_in(node, context, &mut stack);
+    }
+    true
+}
+
+fn literal_keeps_encoding(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    encodings: [crate::engine::LiteralEncoding; 2],
+) -> bool {
+    let same = |content: &str, single, closing| {
+        crate::regexp_ast::same_string_encoding(
+            content,
+            single,
+            closing,
+            encodings,
+            context.parser_engine() == crate::rules::ParserEngine::Whitequark,
+        )
+    };
+    let raw = context.source.node_text(node);
+    let (container, start, end, single, closing) = match node.kind_str() {
+        "regex" => {
+            return crate::regexp_ast::same_regexp_encoding(
+                node,
+                context.source.text(),
+                context.regexp_semantics(),
+                encodings,
+                context.parser_engine() == crate::rules::ParserEngine::Whitequark,
+                |beginning| super::send_node::heredoc_body(beginning, context),
+            );
+        }
+        "character" => return same(raw.strip_prefix('?').unwrap_or(raw), false, None),
+        "simple_symbol" => return same(raw.strip_prefix(':').unwrap_or(raw), true, None),
+        "bare_string" | "bare_symbol" => {
+            let parent = node.parent_of(context);
+            let quoted = parent.map(|parent| context.source.node_text(parent));
+            let single =
+                quoted.is_none_or(|quoted| !quoted.starts_with("%W") && !quoted.starts_with("%I"));
+            return same(raw, single, None);
+        }
+        "string" | "delimited_symbol" | "subshell" => {
+            let Some(mut children) = context.children(node) else {
+                return true;
+            };
+            let (Some(open), Some(close)) = (children.next(), children.last()) else {
+                return true;
+            };
+            let opening = context.source.node_text(open);
+            let single =
+                opening.ends_with('\'') || opening.starts_with("%q") || opening.starts_with("%s");
+            (
+                node,
+                open.end_byte(),
+                close.start_byte(),
+                single,
+                context.source.node_text(close).chars().next(),
+            )
+        }
+        "heredoc_beginning" => {
+            let Some(body) = super::send_node::heredoc_body(node, context) else {
+                return true;
+            };
+            let end = super::send_node::named_children_iter(body, context)
+                .find(|child| child.kind_str() == "heredoc_end")
+                .map_or(body.end_byte(), |close| close.start_byte());
+            let single = raw
+                .trim_start_matches("<<")
+                .trim_start_matches(['-', '~'])
+                .starts_with('\'');
+            (body, body.start_byte(), end, single, None)
+        }
+        _ => return true,
+    };
+    let text = context.source.text();
+    let mut start = start;
+    for interpolation in super::send_node::named_children_iter(container, context)
+        .filter(|child| child.kind_str() == "interpolation")
+    {
+        if !same(&text[start..interpolation.start_byte()], single, closing) {
+            return false;
+        }
+        start = interpolation.end_byte();
+    }
+    same(&text[start..end], single, closing)
 }
 
 /// `reparse_scope`: the innermost node that both contains `range` and parses standalone.
