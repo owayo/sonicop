@@ -3596,7 +3596,12 @@ fn write_corrected_with_provenance(
     if rename_would_lose_the_file(path)? {
         return write_in_place(path, &bytes);
     }
-    let parent = path.parent().unwrap_or(Path::new("."));
+    #[cfg(windows)]
+    let replacement_path = windows_atomic_path(path)
+        .with_context(|| format!("failed to resolve {} for replacement", path.display()))?;
+    #[cfg(not(windows))]
+    let replacement_path = path;
+    let parent = replacement_path.parent().unwrap_or(Path::new("."));
     let metadata = fs::metadata(path)
         .with_context(|| format!("failed to read metadata for {}", path.display()))?;
     let mut temporary = match NamedTempFile::new_in(parent) {
@@ -3627,10 +3632,37 @@ fn write_corrected_with_provenance(
         .set_permissions(metadata.permissions())
         .with_context(|| format!("failed to preserve permissions for {}", path.display()))?;
     temporary
-        .persist(path)
+        .persist(replacement_path)
         .map_err(|error| error.error)
         .with_context(|| format!("failed to replace {} atomically", path.display()))?;
     Ok(())
+}
+
+/// tempfile の置換は Win32 API へ直接渡すため、一時名と置換先の両方に拡張形式が要る。
+/// absolute はファイルを開かず通常パスの . や末尾の空白を解決する。canonicalize で
+/// 親の読取権限を追加したり、symlink の表記を変えたりしない。
+#[cfg(windows)]
+fn windows_atomic_path(path: &Path) -> std::io::Result<PathBuf> {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
+    use std::path::{Component, Prefix};
+
+    let path = std::path::absolute(path)?;
+    let mut extended = match path.components().next() {
+        Some(Component::Prefix(prefix)) => match prefix.kind() {
+            Prefix::Disk(_) => OsString::from(r"\\?\"),
+            Prefix::UNC(..) => {
+                let remainder: Vec<u16> = path.as_os_str().encode_wide().skip(2).collect();
+                let mut extended = OsString::from(r"\\?\UNC\");
+                extended.push(OsString::from_wide(&remainder));
+                return Ok(extended.into());
+            }
+            _ => return Ok(path),
+        },
+        _ => return Ok(path),
+    };
+    extended.push(path.as_os_str());
+    Ok(extended.into())
 }
 
 /// 所有者・属性・ACL を落とす置換を避け、本家の File.write による保持を優先する。
@@ -6134,6 +6166,48 @@ mod tests {
                 .offenses
                 .iter()
                 .any(|offense| offense.corrected)
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_atomic_path_keeps_namespaces_and_wide_names() {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+        use std::path::Path;
+
+        for (path, expected) in [
+            (r"C:\parent\child\..\case.rb. ", r"\\?\C:\parent\case.rb"),
+            (
+                r"\\server\share\child\..\case.rb",
+                r"\\?\UNC\server\share\case.rb",
+            ),
+            (r"\\?\C:\parent\case.rb. ", r"\\?\C:\parent\case.rb. "),
+            (
+                r"\\?\UNC\server\share\case.rb",
+                r"\\?\UNC\server\share\case.rb",
+            ),
+            (r"\\.\pipe\sonicop", r"\\.\pipe\sonicop"),
+        ] {
+            assert_eq!(
+                super::windows_atomic_path(Path::new(path)).unwrap(),
+                Path::new(expected)
+            );
+        }
+
+        // OsString は Unicode に復号できない NTFS 名も持つため、UTF-16 を損失なく保つ。
+        let mut units: Vec<u16> = r"C:\parent\".encode_utf16().collect();
+        units.push(0xd800);
+        units.extend(".rb".encode_utf16());
+        let path = OsString::from_wide(&units);
+        let expected: Vec<u16> = r"\\?\".encode_utf16().chain(units).collect();
+        assert_eq!(
+            super::windows_atomic_path(Path::new(&path))
+                .unwrap()
+                .as_os_str()
+                .encode_wide()
+                .collect::<Vec<_>>(),
+            expected
         );
     }
 
