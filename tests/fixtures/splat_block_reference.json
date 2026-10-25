@@ -1,0 +1,3043 @@
+{
+  "issue": 87,
+  "reference": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "rubocop_ast": "1.50.0",
+    "prism": "1.8.1"
+  },
+  "candidate_version": "26.10.101",
+  "candidate_binary_sha256": "75aff7a09f520fdb1fffa98c88ece0453b0097bc28baa6920305b92c311eba51",
+  "recorded_at": "2026-10-25T03:59:35.861143+00:00",
+  "exit_scope": "reference_exit / candidate_exit are whole 18-file invocation statuses; dedicated CLI regressions also check each protected input exits 1 individually.",
+  "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLint/RedundantSplatExpansion:\n  Enabled: true\n",
+  "commands": {
+    "reference": [
+      "${RUBY}",
+      "-e",
+      "gem \"parser\", \"3.3.12.0\"; gem \"rubocop\", \"1.89.0\"; load Gem.bin_path(\"rubocop\", \"rubocop\", \"1.89.0\")",
+      "--",
+      "--raise-cop-error",
+      "-c",
+      ".rubocop.yml",
+      "--cache",
+      "false",
+      "--only",
+      "Lint/RedundantSplatExpansion",
+      "-f",
+      "json",
+      "${MODE}",
+      "${PATHS}"
+    ],
+    "candidate": [
+      "${SONICOP}",
+      "-c",
+      ".rubocop.yml",
+      "--cache",
+      "false",
+      "--only",
+      "Lint/RedundantSplatExpansion",
+      "-f",
+      "json",
+      "${MODE}",
+      "${PATHS}"
+    ]
+  },
+  "runs": [
+    {
+      "side": "reference",
+      "mode": "inspect",
+      "exit": 1,
+      "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"ruby_engine\":\"ruby\",\"ruby_version\":\"4.0.7\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"x64-mingw-ucrt\"},\"files\":[{\"path\":\"explicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_after-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"explicit_after-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"implicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"implicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"sole_block-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_block-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"mixed_plain-lf.rb\",\"offenses\":[]},{\"path\":\"mixed_plain-crlf.rb\",\"offenses\":[]},{\"path\":\"literal_array-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"literal_array-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"side_effects-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"side_effects-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"multiple_splats-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]},{\"path\":\"multiple_splats-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]}],\"summary\":{\"offense_count\":16,\"target_file_count\":18,\"inspected_file_count\":18}}",
+      "stderr": "",
+      "summary": {
+        "offense_count": 16,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "side": "reference",
+      "mode": "safe",
+      "exit": 0,
+      "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"ruby_engine\":\"ruby\",\"ruby_version\":\"4.0.7\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"x64-mingw-ucrt\"},\"files\":[{\"path\":\"explicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_after-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"explicit_after-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"implicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"implicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"sole_block-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_block-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"mixed_plain-lf.rb\",\"offenses\":[]},{\"path\":\"mixed_plain-crlf.rb\",\"offenses\":[]},{\"path\":\"literal_array-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"literal_array-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"side_effects-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"side_effects-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"multiple_splats-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]},{\"path\":\"multiple_splats-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]}],\"summary\":{\"offense_count\":16,\"target_file_count\":18,\"inspected_file_count\":18}}",
+      "stderr": "",
+      "summary": {
+        "offense_count": 16,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "side": "candidate",
+      "mode": "safe",
+      "exit": 1,
+      "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"sonicop_version\":\"26.10.101\",\"ruby_engine\":\"sonicop\",\"ruby_version\":\"n/a\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"windows\"},\"files\":[{\"path\":\"explicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_after-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"explicit_after-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"implicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"implicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"sole_block-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_block-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"mixed_plain-lf.rb\",\"offenses\":[]},{\"path\":\"mixed_plain-crlf.rb\",\"offenses\":[]},{\"path\":\"literal_array-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"literal_array-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"side_effects-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"side_effects-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"multiple_splats-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]},{\"path\":\"multiple_splats-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]}],\"summary\":{\"offense_count\":16,\"target_file_count\":18,\"inspected_file_count\":18}}",
+      "stderr": "",
+      "summary": {
+        "offense_count": 16,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "side": "reference",
+      "mode": "unsafe",
+      "exit": 0,
+      "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"ruby_engine\":\"ruby\",\"ruby_version\":\"4.0.7\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"x64-mingw-ucrt\"},\"files\":[{\"path\":\"explicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_after-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"explicit_after-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"implicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"implicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"sole_block-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_block-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"mixed_plain-lf.rb\",\"offenses\":[]},{\"path\":\"mixed_plain-crlf.rb\",\"offenses\":[]},{\"path\":\"literal_array-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"literal_array-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"side_effects-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"side_effects-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"multiple_splats-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]},{\"path\":\"multiple_splats-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]}],\"summary\":{\"offense_count\":16,\"target_file_count\":18,\"inspected_file_count\":18}}",
+      "stderr": "",
+      "summary": {
+        "offense_count": 16,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "side": "candidate",
+      "mode": "unsafe",
+      "exit": 1,
+      "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"sonicop_version\":\"26.10.101\",\"ruby_engine\":\"sonicop\",\"ruby_version\":\"n/a\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"windows\"},\"files\":[{\"path\":\"explicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":30,\"length\":19,\"line\":1,\"column\":12}}]},{\"path\":\"explicit_after-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"explicit_after-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"implicit_before-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"implicit_before-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":11,\"last_line\":1,\"last_column\":29,\"length\":19,\"line\":1,\"column\":11}}]},{\"path\":\"sole_block-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_block-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":26,\"length\":19,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"sole_plain-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":8,\"last_line\":1,\"last_column\":23,\"length\":16,\"line\":1,\"column\":8}}]},{\"path\":\"mixed_plain-lf.rb\",\"offenses\":[]},{\"path\":\"mixed_plain-crlf.rb\",\"offenses\":[]},{\"path\":\"literal_array-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"literal_array-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Pass array contents as separate arguments.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":true,\"correctable\":true,\"location\":{\"start_line\":1,\"start_column\":12,\"last_line\":1,\"last_column\":18,\"length\":7,\"line\":1,\"column\":12}}]},{\"path\":\"side_effects-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"side_effects-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":2,\"start_column\":33,\"last_line\":2,\"last_column\":69,\"length\":37,\"line\":2,\"column\":33}}]},{\"path\":\"multiple_splats-lf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]},{\"path\":\"multiple_splats-crlf.rb\",\"offenses\":[{\"severity\":\"warning\",\"message\":\"Replace splat expansion with comma separated values.\",\"cop_name\":\"Lint/RedundantSplatExpansion\",\"corrected\":false,\"correctable\":true,\"location\":{\"start_line\":6,\"start_column\":8,\"last_line\":6,\"last_column\":44,\"length\":37,\"line\":6,\"column\":8}}]}],\"summary\":{\"offense_count\":16,\"target_file_count\":18,\"inspected_file_count\":18}}",
+      "stderr": "",
+      "summary": {
+        "offense_count": 16,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "explicit_before-safe-lf",
+      "name": "explicit_before",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "original_sha256": "41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "candidate_sha256": "41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_before-safe-crlf",
+      "name": "explicit_before",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "original_sha256": "ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "candidate_sha256": "ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_after-safe-lf",
+      "name": "explicit_after",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0a70206172790a",
+      "original_sha256": "106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0a70206172790a",
+      "candidate_sha256": "106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_after-safe-crlf",
+      "name": "explicit_after",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0d0a70206172790d0a",
+      "original_sha256": "ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0d0a70206172790d0a",
+      "candidate_sha256": "ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "implicit_before-safe-lf",
+      "name": "implicit_before",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0a70206172790a",
+      "original_sha256": "3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0a70206172790a",
+      "candidate_sha256": "3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "implicit_before-safe-crlf",
+      "name": "implicit_before",
+      "category": "divergence",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "original_sha256": "983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "candidate_sha256": "983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_before-unsafe-lf",
+      "name": "explicit_before",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "original_sha256": "41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "candidate_sha256": "41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_before-unsafe-crlf",
+      "name": "explicit_before",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "original_sha256": "ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "candidate_sha256": "ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 30,
+            "length": 19,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_after-unsafe-lf",
+      "name": "explicit_after",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0a70206172790a",
+      "original_sha256": "106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0a70206172790a",
+      "candidate_sha256": "106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "explicit_after-unsafe-crlf",
+      "name": "explicit_after",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0d0a70206172790d0a",
+      "original_sha256": "ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d2c2039395d0d0a70206172790d0a",
+      "candidate_sha256": "ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1, 99]\r\n",
+        "stderr": "",
+        "stdout_sha256": "1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "implicit_before-unsafe-lf",
+      "name": "implicit_before",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0a70206172790a",
+      "original_sha256": "3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0a70206172790a",
+      "candidate_sha256": "3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "implicit_before-unsafe-crlf",
+      "name": "implicit_before",
+      "category": "divergence",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "original_sha256": "983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2039392c202a41727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "candidate_sha256": "983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 29,
+            "length": 19,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    }
+  ],
+  "controls": [
+    {
+      "id": "sole_block-safe-lf",
+      "name": "sole_block",
+      "category": "control",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "original_sha256": "4ef8e38857fe89bde3f7a9cc224de7cbe7a778c9b7df402f0370f17a6a859623",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e6577283229207b2031207d0a70206172790a",
+      "candidate_sha256": "fc50c2f513b1c5e4cdeb23c238329dd3fb79b9cbfae176f46abd33e2accfab71",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_block-safe-crlf",
+      "name": "sole_block",
+      "category": "control",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "original_sha256": "deaed94efe59069a85850816c17305332a725f9014e801421e3290c1d9a1c444",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "candidate_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_plain-safe-lf",
+      "name": "sole_plain",
+      "category": "control",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e657728322c2031295d0a70206172790a",
+      "original_sha256": "d7b33eeedae8bd790e7f592403f4cc9d1d40d55eff9d64b4610c49a88859b0a8",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "reference_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e657728322c2031290a70206172790a",
+      "candidate_sha256": "a3cb7baf7db1bb1d946856f64d6ceea3139b0f39e1c215a479a06b7e8b22af8a",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_plain-safe-crlf",
+      "name": "sole_plain",
+      "category": "control",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "original_sha256": "f0dde98566dd82ef81c6e0ad1a722857cf7dedc0f6b1e81887d94164d06a87a9",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "reference_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "candidate_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "mixed_plain-safe-lf",
+      "name": "mixed_plain",
+      "category": "control",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "original_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [],
+      "reference_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "reference_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "reference_offenses": [],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "candidate_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "candidate_offenses": [],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "mixed_plain-safe-crlf",
+      "name": "mixed_plain",
+      "category": "control",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "original_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [],
+      "reference_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "reference_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "reference_offenses": [],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "candidate_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "candidate_offenses": [],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "literal_array-safe-lf",
+      "name": "literal_array",
+      "category": "control",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a5b312c20325d5d0a70206172790a",
+      "original_sha256": "d4ad053ed14e5e81c0370e8022fd2b3436a753a72b8596908852f3c8dbd78fca",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "reference_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c20312c20325d0a70206172790a",
+      "candidate_sha256": "1135748ef8ebf023b131e2d7d94540382ec2827d45775616db0cceae4cdd2047",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "literal_array-safe-crlf",
+      "name": "literal_array",
+      "category": "control",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a5b312c20325d5d0d0a70206172790d0a",
+      "original_sha256": "456d45719c4ed2d617830d5f464519f0681adaa081b498fb9722b5949e8e666b",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "reference_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "candidate_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_block-unsafe-lf",
+      "name": "sole_block",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d5d0a70206172790a",
+      "original_sha256": "4ef8e38857fe89bde3f7a9cc224de7cbe7a778c9b7df402f0370f17a6a859623",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e6577283229207b2031207d0a70206172790a",
+      "candidate_sha256": "fc50c2f513b1c5e4cdeb23c238329dd3fb79b9cbfae176f46abd33e2accfab71",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_block-unsafe-crlf",
+      "name": "sole_block",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e6577283229207b2031207d5d0d0a70206172790d0a",
+      "original_sha256": "deaed94efe59069a85850816c17305332a725f9014e801421e3290c1d9a1c444",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "reference_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e6577283229207b2031207d0d0a70206172790d0a",
+      "candidate_sha256": "9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 26,
+            "length": 19,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_plain-unsafe-lf",
+      "name": "sole_plain",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b2a41727261792e6e657728322c2031295d0a70206172790a",
+      "original_sha256": "d7b33eeedae8bd790e7f592403f4cc9d1d40d55eff9d64b4610c49a88859b0a8",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "reference_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e657728322c2031290a70206172790a",
+      "candidate_sha256": "a3cb7baf7db1bb1d946856f64d6ceea3139b0f39e1c215a479a06b7e8b22af8a",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "sole_plain-unsafe-crlf",
+      "name": "sole_plain",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b2a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "original_sha256": "f0dde98566dd82ef81c6e0ad1a722857cf7dedc0f6b1e81887d94164d06a87a9",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "reference_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d2041727261792e6e657728322c2031290d0a70206172790d0a",
+      "candidate_sha256": "97ca690b3d8f8947361d66cde9731f159949a76218a5d0245d4ee2b30509204b",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 8,
+            "last_line": 1,
+            "last_column": 23,
+            "length": 16,
+            "line": 1,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "mixed_plain-unsafe-lf",
+      "name": "mixed_plain",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "original_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [],
+      "reference_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "reference_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "reference_offenses": [],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0a70206172790a",
+      "candidate_sha256": "a4a73b53ea55c1e609454c6f5af0d91cbe1db5f07793e0239557fbd1547a3ddd",
+      "candidate_offenses": [],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "mixed_plain-unsafe-crlf",
+      "name": "mixed_plain",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "original_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_inspection_offenses": [],
+      "reference_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "reference_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "reference_offenses": [],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c202a41727261792e6e657728322c2031295d0d0a70206172790d0a",
+      "candidate_sha256": "c7ce6162b4974d5317a8eafb55b3789074c8948b8b82dc5f5071169420c0a4cb",
+      "candidate_offenses": [],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 1]\r\n",
+        "stderr": "",
+        "stdout_sha256": "82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "literal_array-unsafe-lf",
+      "name": "literal_array",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "617279203d205b39392c202a5b312c20325d5d0a70206172790a",
+      "original_sha256": "d4ad053ed14e5e81c0370e8022fd2b3436a753a72b8596908852f3c8dbd78fca",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "reference_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c20312c20325d0a70206172790a",
+      "candidate_sha256": "1135748ef8ebf023b131e2d7d94540382ec2827d45775616db0cceae4cdd2047",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "literal_array-unsafe-crlf",
+      "name": "literal_array",
+      "category": "control",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "617279203d205b39392c202a5b312c20325d5d0d0a70206172790d0a",
+      "original_sha256": "456d45719c4ed2d617830d5f464519f0681adaa081b498fb9722b5949e8e666b",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "reference_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "617279203d205b39392c20312c20325d0d0a70206172790d0a",
+      "candidate_sha256": "2d502b877454c37f804b5d96b0cddb8ae6ecf02d40c7d005dca25c80cb4a86f7",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Pass array contents as separate arguments.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 7,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[99, 1, 2]\r\n",
+        "stderr": "",
+        "stdout_sha256": "9965731bcc2483ceeab7c4d04bbd0d0254e4a84b8680014f01ffabfb540b2dd6"
+      },
+      "candidate_exit": 1
+    }
+  ],
+  "effect_cases": [
+    {
+      "id": "side_effects-safe-lf",
+      "name": "side_effects",
+      "category": "effects",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "6576656e7473203d205b5d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0a70205b6172792c206576656e74735d0a",
+      "original_sha256": "7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_hex": "6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 1], [:block, :block]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "6576656e7473203d205b5d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0a70205b6172792c206576656e74735d0a",
+      "candidate_sha256": "7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "side_effects-safe-crlf",
+      "name": "side_effects",
+      "category": "effects",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "6576656e7473203d205b5d0d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0d0a70205b6172792c206576656e74735d0d0a",
+      "original_sha256": "6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_hex": "6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 1], [:block, :block]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "6576656e7473203d205b5d0d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0d0a70205b6172792c206576656e74735d0d0a",
+      "candidate_sha256": "6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "multiple_splats-safe-lf",
+      "name": "multiple_splats",
+      "category": "effects",
+      "mode": "safe",
+      "ending": "lf",
+      "original_hex": "646566207461696c286576656e7473290a20206576656e7473203c3c203a7365636f6e640a20205b325d0a656e640a6576656e7473203d205b5d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0a70205b6172792c206576656e74735d0a",
+      "original_sha256": "e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1], [:first]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "646566207461696c286576656e7473290a20206576656e7473203c3c203a7365636f6e640a20205b325d0a656e640a6576656e7473203d205b5d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0a70205b6172792c206576656e74735d0a",
+      "candidate_sha256": "e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "multiple_splats-safe-crlf",
+      "name": "multiple_splats",
+      "category": "effects",
+      "mode": "safe",
+      "ending": "crlf",
+      "original_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0d0a70205b6172792c206576656e74735d0d0a",
+      "original_sha256": "2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1], [:first]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0d0a70205b6172792c206576656e74735d0d0a",
+      "candidate_sha256": "2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "side_effects-unsafe-lf",
+      "name": "side_effects",
+      "category": "effects",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "6576656e7473203d205b5d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0a70205b6172792c206576656e74735d0a",
+      "original_sha256": "7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_hex": "6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 1], [:block, :block]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "6576656e7473203d205b5d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0a70205b6172792c206576656e74735d0a",
+      "candidate_sha256": "7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "side_effects-unsafe-crlf",
+      "name": "side_effects",
+      "category": "effects",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "6576656e7473203d205b5d0d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0d0a70205b6172792c206576656e74735d0d0a",
+      "original_sha256": "6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_hex": "6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 1], [:block, :block]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "6576656e7473203d205b5d0d0a617279203d205b286576656e7473203c3c203a6265666f72653b203939292c202a41727261792e6e6577283229207b206576656e7473203c3c203a626c6f636b3b2031207d2c20286576656e7473203c3c203a61667465723b20313030295d0d0a70205b6172792c206576656e74735d0d0a",
+      "candidate_sha256": "6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 33,
+            "last_line": 2,
+            "last_column": 69,
+            "length": 37,
+            "line": 2,
+            "column": 33
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[99, 1, 1, 100], [:before, :block, :block, :after]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "multiple_splats-unsafe-lf",
+      "name": "multiple_splats",
+      "category": "effects",
+      "mode": "unsafe",
+      "ending": "lf",
+      "original_hex": "646566207461696c286576656e7473290a20206576656e7473203c3c203a7365636f6e640a20205b325d0a656e640a6576656e7473203d205b5d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0a70205b6172792c206576656e74735d0a",
+      "original_sha256": "e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1], [:first]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "646566207461696c286576656e7473290a20206576656e7473203c3c203a7365636f6e640a20205b325d0a656e640a6576656e7473203d205b5d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0a70205b6172792c206576656e74735d0a",
+      "candidate_sha256": "e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "candidate_exit": 1
+    },
+    {
+      "id": "multiple_splats-unsafe-crlf",
+      "name": "multiple_splats",
+      "category": "effects",
+      "mode": "unsafe",
+      "ending": "crlf",
+      "original_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0d0a70205b6172792c206576656e74735d0d0a",
+      "original_sha256": "2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f",
+      "original_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "reference_inspection_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d2041727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d0d0a70205b6172792c206576656e74735d0d0a",
+      "reference_sha256": "39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e",
+      "reference_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "reference_runtime": {
+        "exit": 0,
+        "stdout": "[[1], [:first]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a"
+      },
+      "reference_exit": 0,
+      "candidate_hex": "646566207461696c286576656e7473290d0a20206576656e7473203c3c203a7365636f6e640d0a20205b325d0d0a656e640d0a6576656e7473203d205b5d0d0a617279203d205b2a41727261792e6e6577283129207b206576656e7473203c3c203a66697273743b2031207d2c202a7461696c286576656e7473295d0d0a70205b6172792c206576656e74735d0d0a",
+      "candidate_sha256": "2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f",
+      "candidate_offenses": [
+        {
+          "severity": "warning",
+          "message": "Replace splat expansion with comma separated values.",
+          "cop_name": "Lint/RedundantSplatExpansion",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 6,
+            "start_column": 8,
+            "last_line": 6,
+            "last_column": 44,
+            "length": 37,
+            "line": 6,
+            "column": 8
+          }
+        }
+      ],
+      "candidate_runtime": {
+        "exit": 0,
+        "stdout": "[[1, 2], [:first, :second]]\r\n",
+        "stderr": "",
+        "stdout_sha256": "e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4"
+      },
+      "candidate_exit": 1
+    }
+  ]
+}
