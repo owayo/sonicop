@@ -57,18 +57,52 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `allowed_subject_type?`: a variable, a constant or a call, all of which name something the
-/// enclosing method does not own. `self` is none of the three, which is what makes
-/// `def self.name` inside a method a nested definition.
+/// `allowed_subject_type?`: 変数・定数・呼び出しは外側のメソッドに属さない対象を指す。
+/// `self` はどれでもないので、メソッド内の `def self.name` は入れ子の定義になる。
 fn is_allowed_subject(subject: Node<'_>, context: &RuleContext<'_>) -> bool {
     if subject.kind_str() == "identifier" {
-        // The grammar spells the three keyword literals as identifiers here, and none of them is a
-        // variable, a constant or a call; every other bare name is one of the three.
+        // grammar はこの位置のキーワードリテラルも identifier と呼ぶが、本家では変数ではない。
         return !matches!(context.source.node_text(subject), "nil" | "true" | "false");
+    }
+    if subject.kind_str() == "assignment" {
+        // 属性・添字への単純代入は本家の send/csend。変数代入や複合代入は含めない。
+        return subject
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"));
+    }
+    if subject.kind_str() == "binary" {
+        return subject.field("operator").is_some_and(|operator| {
+            let operator = context.source.node_text(operator);
+            // 論理式と match_with_lvasgn は、本家では演算子の send にならない。
+            !matches!(operator, "&&" | "||" | "and" | "or")
+                && !(operator == "=~"
+                    && subject
+                        .field("left")
+                        .is_some_and(|left| context.static_regexp(left)))
+        });
+    }
+    if subject.kind_str() == "unary" {
+        return subject.field("operator").is_some_and(|operator| {
+            let operator = context.source.node_text(operator);
+            // 符号を数値へ畳み込むのは直下が数値のときだけ。--1.5 の外側は send。
+            matches!(operator, "!" | "~" | "+" | "-" | "not")
+                && !(matches!(operator, "+" | "-")
+                    && subject.field("operand").is_some_and(|operand| {
+                        matches!(operand.kind_str(), "integer" | "float" | "rational" | "complex")
+                    }))
+        });
+    }
+    if matches!(subject.kind_str(), "call" | "element_reference") {
+        // call や添字でもブロック付きなら block、super(...) なら super になる。
+        return subject.field("block").is_none()
+            && !(subject.field("receiver").is_none()
+                && subject
+                    .field("method")
+                    .is_some_and(|method| context.source.node_text(method) == "super"));
     }
     matches!(
         subject.kind_str(),
-        "instance_variable" | "class_variable" | "global_variable" | "call"
+        "instance_variable" | "class_variable" | "global_variable"
     ) || is_constant(subject, context)
 }
 
