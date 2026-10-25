@@ -1,4 +1,7 @@
 //! 本家の実 CLI と MRI の DATA.read を記録し、コードの補正と DATA の保存を分けて照合する。
+mod support;
+use support::project::recorded_disk_bytes;
+
 use std::fs;
 use std::process::Command;
 
@@ -111,14 +114,43 @@ fn semicolon_corrections_keep_data_and_only_change_code_tokens() {
             );
             assert_eq!(actual, wanted, "{label}");
             for case in &group.files {
-                let after = if phase == "first" {
-                    &case.first_after_hex
+                // 全記録で再実行はno-op。初回の予測disk bytesをそのまま保持する。
+                assert_eq!(case.first_after_hex, case.rerun_after_hex);
+                let original = bytes(&case.source_hex);
+                let after = bytes(&case.first_after_hex);
+                let reference = group.first.report["files"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|file| file["path"] == case.path)
+                    .unwrap();
+                let rewritten = group.mode != "inspect"
+                    && reference["offenses"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|offense| offense["corrected"] == true);
+                // DATAかどうかは実MRIで採ったtyped値に従い、偽marker文字列を探索しない。
+                let tail_len = if let Some(hex) = &case.first_expected_data_hex {
+                    bytes(hex).len()
+                } else if case.id == "original" {
+                    // この旧caseだけDATA値が未記録。実MRI 4.0.7のbinmode.readは
+                    // LFで6b6570743b0a、CRLFで6b6570743b0d0aを返した。
+                    let (source, tail): (&[u8], &[u8]) = match group.ending.as_str() {
+                        "lf" => (b"a=1;\n__END__\nkept;\n", b"kept;\n"),
+                        "crlf" => (b"a=1;\r\n__END__\r\nkept;\r\n", b"kept;\r\n"),
+                        ending => panic!("unrecorded original ending: {ending}"),
+                    };
+                    assert_eq!(original, source);
+                    assert!(after.ends_with(tail));
+                    tail.len()
                 } else {
-                    &case.rerun_after_hex
+                    0
                 };
+                let after = recorded_disk_bytes(&original, &after, rewritten, tail_len);
                 assert_eq!(
                     fs::read(folder.path().join(&case.path)).unwrap(),
-                    bytes(after),
+                    after,
                     "{label}/{}",
                     case.id
                 );

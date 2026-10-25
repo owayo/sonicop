@@ -46,8 +46,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let first_line = context.source.line_column(node.start_byte()).0;
         let last_line = context.source.line_column(node.end_byte()).0;
         for line in first_line..last_line {
-            let one = context.source.slice(context.source.line_range(line));
-            let two = context.source.slice(context.source.line_range(line + 1));
+            let one = context.source.raw_line(line);
+            let two = context.source.raw_line(line + 1);
             // The offset the second line starts at, which is what upstream's running
             // `end_of_first_line` holds once the first line's length has been added to it.
             let border = context.source.line_start(line + 1);

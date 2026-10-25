@@ -8,6 +8,8 @@ pub struct SourceFile {
     path: PathBuf,
     text: String,
     line_starts: Vec<usize>,
+    raw_source: Option<String>,
+    raw_line_starts: Vec<usize>,
     /// 読み込んだ原本のバイト数。通常はtextが原本全体を保持し、この値と長さが一致する。
     /// 解析用のNUL投影はSourceFileへ保存せず、字句器のEOF後もcopと補正へ渡す。
     /// 外部で短縮した本文を渡す互換APIでは、ここに短縮前の長さを記録できる。
@@ -31,6 +33,8 @@ impl SourceFile {
             length_as_read: text.len(),
             text,
             line_starts,
+            raw_source: None,
+            raw_line_starts: Vec::new(),
         }
     }
 
@@ -53,6 +57,42 @@ impl SourceFile {
 
     pub fn text(&self) -> &str {
         &self.text
+    }
+
+    /// Windows の補正後だけ、Runner#emulate_write_read_cycle が返す生の改行を保持する。
+    /// AST・編集・元 CR の由来は text の座標を使い、この view の長さを混ぜない。
+    pub(crate) fn with_raw_source(mut self, raw_source: Option<String>) -> Self {
+        if let Some(raw) = &raw_source {
+            self.raw_line_starts.push(0);
+            self.raw_line_starts.extend(
+                raw.bytes()
+                    .enumerate()
+                    .filter_map(|(index, byte)| (byte == b'\n').then_some(index + 1)),
+            );
+        }
+        self.raw_source = raw_source;
+        self
+    }
+
+    pub fn raw_source(&self) -> &str {
+        self.raw_source.as_deref().unwrap_or(&self.text)
+    }
+
+    pub fn raw_line(&self, one_based_line: usize) -> &str {
+        let Some(raw) = &self.raw_source else {
+            return self.line(one_based_line);
+        };
+        let start = self
+            .raw_line_starts
+            .get(one_based_line.saturating_sub(1))
+            .copied()
+            .unwrap_or(raw.len());
+        let end = self
+            .raw_line_starts
+            .get(one_based_line)
+            .copied()
+            .unwrap_or(raw.len());
+        &raw[start..end]
     }
 
     pub fn len(&self) -> usize {
@@ -151,6 +191,19 @@ pub fn is_protected(offset: usize, ranges: &[Range<usize>]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::SourceFile;
+
+    #[test]
+    fn raw_windows_lines_do_not_shift_ast_byte_positions() {
+        let text = "あ = 1\nx = 2\n";
+        let source = SourceFile::new("test.rb", text.to_owned())
+            .with_raw_source(Some(text.replace('\n', "\r\n")));
+        assert_eq!(source.raw_line(1), "あ = 1\r\n");
+        assert_eq!(source.raw_line(2), "x = 2\r\n");
+        assert_eq!(source.raw_line(3), "");
+        assert_eq!(source.line_start(2), "あ = 1\n".len());
+        assert_eq!(source.line_column(source.line_start(2)), (2, 1));
+        assert_eq!(source.slice(source.line_range(2)), "x = 2\n");
+    }
 
     #[test]
     fn calculates_unicode_columns() {

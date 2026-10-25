@@ -135,9 +135,16 @@ fn block_splat_still_corrects_without_discarding_other_values() {
     for case in controls {
         let original = decode_hex(case["original_hex"].as_str().unwrap());
         let written = decode_hex(case["reference_hex"].as_str().unwrap());
-        // 本体は本家の実バイトに合わせ、原本の改行形式を保つ既存方針を重ねる。
+        let reference_rewrites = written != original
+            && case["reference_offenses"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["corrected"] == true);
+        // 実補正した Windows 本家は純 LF も CRLF へ書き、no-op では原本を保つ。
+        // Unix でも CRLF 原本を保つ既存方針とは分けて、実測の補正有無を参照する。
         let normalized = String::from_utf8(written).unwrap().replace("\r\n", "\n");
-        let expected = if case["ending"] == "crlf" {
+        let expected = if case["ending"] == "crlf" || (cfg!(windows) && reference_rewrites) {
             normalized.replace('\n', "\r\n")
         } else {
             normalized

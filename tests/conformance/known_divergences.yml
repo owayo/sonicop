@@ -1518,6 +1518,61 @@ encoding_multipass_divergences:
       原本由来だけが残る最終出力を安全に書き戻し、LF/CRLF と file/stdin の両モードで
       終了 0 を検査する。仕様版更新時に本家を再測定し、符号化が維持されたら削除する。
 
+# Windows の File.write による未解析 tail の変更と、その保存から生じる差だけ。
+# 通常の純 LF コード・private/method 削除の互換修正を包括的に除外しない。
+windows_native_tail_divergences:
+  - cop: Layout/SpaceAroundOperators
+    case: windows_native_lf_autocorrection_preserves_data_tail
+    kind: correction
+    platform: windows
+    ending: lf
+    target_engines: ["2.7/parser_whitequark", "3.4/parser_prism"]
+    modes: [-a, -A]
+    source: "x=1\np DATA.binmode.read.bytes\n__END__\na\nb\n"
+    upstream: "x = 1\r\np DATA.binmode.read.bytes\r\n__END__\r\na\r\nb\r\n"
+    sonicop: "x = 1\r\np DATA.binmode.read.bytes\r\n__END__\r\na\nb\n"
+    note: >-
+      本家1.89.0のWindows File.writeは、純LF原本の補正でDATAへもCRを挿入し、
+      DATA.binmode.read.bytesを[97,10,98,10]から[97,13,10,98,13,10]へ変える。
+      通常コードとmarker行は本家と同じCRLFにし、未解析DATAの元byteだけを守る。
+      2026-10-25の同providerによる独立実装レビューが支持した。Claudeの判定ではない。
+      tests/fixtures/windows_corrections.jsonへ生の本家bytes・全JSON・実行値・再実行を保存し、
+      tests/windows_corrections.rsが原本・本家・安全出力とこのentryを照合する。
+      CRLF/mixed/bare CR、空・未終端DATA、偽markerは同fixtureの陰性対照で監視する。
+  - cop: Layout/SpaceAroundOperators
+    case: windows_native_lf_autocorrection_preserves_code_nul_tail
+    kind: correction
+    platform: windows
+    ending: lf
+    target_engines: ["2.7/parser_whitequark", "3.4/parser_prism"]
+    modes: [-a, -A]
+    source: "x=1\np x\n\0ignored\nnext\n"
+    upstream: "x = 1\r\np x\r\n\0ignored\r\nnext\r\n"
+    sonicop: "x = 1\r\np x\r\n\0ignored\nnext\n"
+    note: >-
+      DATA保存と同じ独立判断を、Rubyがコードとして読むNULから後の未解析bytesにも適用する。
+      通常コードのWindows改行は本家へ揃え、NUL以降の元LFをCRLFへ変えない。
+      copが明示した末尾空白等の本文補正は維持し、このentryはWindowsの暗黙CR挿入だけを防ぐ。
+      literal/comment中のNULをEOFとはせず、同fixtureの本家全診断・実bytes・再実行で区別する。
+  - cop: Lint/UselessAccessModifier,Layout/EmptyLines
+    case: windows_preserved_data_tail_keeps_raw_empty_lines_guard_visible
+    kind: correction
+    platform: windows
+    ending: lf
+    target_engines: ["2.7/parser_whitequark"]
+    modes: [-A]
+    source: "class A\n  foo\n\n  private\n\n  bar\nend\n__END__\na\n\n\nb\n"
+    upstream: "class A\r\n  foo\r\n\r\n\r\n  bar\r\nend\r\n__END__\r\na\r\n\r\n\r\nb\r\n"
+    sonicop: "class A\r\n  foo\r\n\r\n  bar\r\nend\r\n__END__\r\na\n\n\nb\n"
+    note: >-
+      保存するDATAの3LFはEmptyLinesのraw_source全体のquick guardを有効にする。
+      架空の全CRLF viewでtailを隠さず、安全な保存予定bytesをrawとして読むため、
+      private除去で露出したコードの余分な空行を初回から取り除く。本家より追加の
+      corrected EmptyLines診断が1件生じ、初回2診断から実ディスク再入力の二度目0診断、
+      bytes不変となる。初回原本のrawは仮想化しない。
+      同providerの独立レビューが、実行可能な1/2の本文とDATA.binmodeでもこの帰結を確認した。
+      原本DATA値を候補は保ち、本家はCR挿入で変える。通常のprivate削除だけの差はこの例外に含めない。
+
 divergences:
   - cop: Style/StringConcatenation
     case: style_string_concatenation_meta_hex_safety
@@ -1576,6 +1631,8 @@ divergences:
       本家1.89.0の-a/-AはSourceBufferの正規化で無関係なCRを消すが、Sonicopは
       原本のNULと後続本文を保持し、補正対象外のCRLFを変更しない。3組の対象Ruby/
       ParserEngineで診断全項目・終了値と本家の生出力を記録し、CLIで原本の行と照合する。
+      Windowsの補正後raw_sourceは保存予定bytesへ揃えるため、その保護の帰結となる
+      EndOfLineの範囲は同じ物理bytesを本家へ再入力した診断とも別に照合する。
   - cop: Style/FrozenStringLiteralComment
     case: mixed_crlf_reinspection_preserves_copied_endings
     kind: correction
@@ -1585,7 +1642,8 @@ divergences:
     note: >-
       既存CRLF保持方針をmixedの未変更copy区間にも適用する。本家1.89.0の-Aは
       DATA内のCRLFもLFへ変えてDATA.readの実値を変えるため、元pairの由来を各passへ
-      移して最終書出しだけ復元する。解析viewはLFなので初回の補正後診断は本家と一致する。
+      移して最終書出しだけ復元する。解析viewはLFを保つ。Windowsでは補正後raw_sourceを
+      安全な保存予定bytesへ揃え、EndOfLineの診断差も同じ物理bytesの本家再入力で監視する。
       mixedの挿入LFと元のLF・単独CRは一律にCRLFへしない。物理出力を再入力した場合は
       EndOfLineが再びCRを報告し得るため、その実診断も本家へ同じ保存予定bytesを与えて
       別に測定する。この再実行差を本家と原本からの完全一致へ数えない。

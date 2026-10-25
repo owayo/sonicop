@@ -13,3 +13,14 @@ tests/fixtures/end_of_line_tokens.json text eol=lf
 tests/fixtures/end_of_line_tokens.json.PROVENANCE text eol=lf
 tests/fixtures/end_of_line_tokens_windows.json text eol=lf
 tests/fixtures/end_of_line_tokens_windows.json.PROVENANCE text eol=lf
+
+# Windows Oracle の公開コンテナは LF 固定。JSON 内の hex/escape は変換しない。
+scripts/conformance/record_windows_corrections.py text eol=lf
+scripts/conformance/record_windows_native_cli.py text eol=lf
+scripts/conformance/test_windows_corrections.py text eol=lf
+scripts/conformance/test_windows_native_cli.py text eol=lf
+tests/windows_corrections.rs text eol=lf
+tests/fixtures/windows_corrections.json text eol=lf
+tests/fixtures/windows_corrections.json.PROVENANCE text eol=lf
+tests/fixtures/windows_native_cli_expectations.json text eol=lf
+tests/fixtures/windows_native_cli_expectations.json.PROVENANCE text eol=lf

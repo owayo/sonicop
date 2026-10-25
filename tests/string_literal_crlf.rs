@@ -1,4 +1,7 @@
 //! CRLF 保存形式と Ruby 文字列値を区別し、本家の全診断・補正 bytes と照合する。
+mod support;
+use support::project::recorded_disk_bytes;
+
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::process::Command;
@@ -117,15 +120,20 @@ fn crlf_string_literal_corrections_preserve_the_runtime_value() {
             actual.sort_by_cached_key(Value::to_string);
             let mut expected = case.offenses.clone();
             expected.sort_by_cached_key(Value::to_string);
+            let original = bytes(&case.source_hex);
+            let recorded = bytes(&case.after_hex);
+            let rewritten = group.mode != "inspect"
+                && expected.iter().any(|offense| offense["corrected"] == true);
+            let expected_bytes = recorded_disk_bytes(&original, &recorded, rewritten, 0);
             let actual_bytes = fs::read(folder.path().join(&case.path)).unwrap();
-            if actual != expected || actual_bytes != bytes(&case.after_hex) {
+            if actual != expected || actual_bytes != expected_bytes {
                 failures.push(format!(
                     "{label}/{}: offenses {} / {}; bytes {} / {}",
                     case.id,
                     serde_json::to_string(&actual).unwrap(),
                     serde_json::to_string(&expected).unwrap(),
                     actual_bytes.len(),
-                    bytes(&case.after_hex).len()
+                    expected_bytes.len()
                 ));
             }
         }

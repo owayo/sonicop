@@ -3,7 +3,7 @@
 mod support;
 
 use std::fs;
-use support::project::{command, project_without_pinned_ruby};
+use support::project::{command, project_without_pinned_ruby, recorded_disk_bytes};
 
 fn bytes(value: &serde_json::Value) -> Vec<u8> {
     value
@@ -146,6 +146,8 @@ fn harmless_capture_encoding_corrections_keep_the_reference_edits() {
             .collect();
         // group の本家終了値を個別ファイルの値へ流用せず、残る未補正診断から決める。
         let expected_exit = i32::from(expected.iter().any(|offense| offense["corrected"] != true));
+        let rewritten =
+            mode != "inspect" && expected.iter().any(|offense| offense["corrected"] == true);
         assert_eq!(output.status.code(), Some(expected_exit), "{case}");
         assert_eq!(
             actual["files"][0]["offenses"],
@@ -155,7 +157,7 @@ fn harmless_capture_encoding_corrections_keep_the_reference_edits() {
         // 本家が失う元符号化・CRLF だけを復元した実出力。診断の期待値は本家の記録から取る。
         assert_eq!(
             fs::read(&path).unwrap(),
-            bytes(&case["expected_safe_hex"]),
+            recorded_disk_bytes(&source, &bytes(&case["expected_safe_hex"]), rewritten, 0),
             "{case}"
         );
     }
@@ -173,7 +175,7 @@ fn unicode_capture_symbols_do_not_turn_legacy_method_calls_into_local_reads() {
             "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
         )]);
         let path = directory.path().join("example.rb");
-        fs::write(&path, source).unwrap();
+        fs::write(&path, &source).unwrap();
         let mode = case["mode"].as_str().unwrap();
         let mut run = command(directory.path());
         run.env("PATH", "").args([
@@ -201,9 +203,15 @@ fn unicode_capture_symbols_do_not_turn_legacy_method_calls_into_local_reads() {
             actual["files"][0]["offenses"], case["method_control_offenses"],
             "{case}"
         );
+        let rewritten = mode != "inspect"
+            && case["method_control_offenses"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["corrected"] == true);
         assert_eq!(
             fs::read(&path).unwrap(),
-            bytes(&case["expected_safe_hex"]),
+            recorded_disk_bytes(&source, &bytes(&case["expected_safe_hex"]), rewritten, 0),
             "{case}"
         );
     }

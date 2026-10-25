@@ -1,4 +1,7 @@
 //! 期待値は実 RuboCop CLI と MRI 2.7.8 の記録。raw NUL と escape の AST 分類を区別する。
+mod support;
+use support::project::recorded_disk_bytes;
+
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::process::Command;
@@ -112,9 +115,14 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
             actual.sort_by_cached_key(Value::to_string);
             let mut expected = case.offenses.clone();
             expected.sort_by_cached_key(Value::to_string);
+            let original = bytes(&case.source_hex);
+            let recorded = bytes(&case.after_hex);
+            let rewritten = group.mode != "inspect"
+                && expected.iter().any(|offense| offense["corrected"] == true);
+            let expected_bytes = recorded_disk_bytes(&original, &recorded, rewritten, 0);
             bytes_checked += 1;
             if actual != expected
-                || fs::read(folder.path().join(&case.path)).unwrap() != bytes(&case.after_hex)
+                || fs::read(folder.path().join(&case.path)).unwrap() != expected_bytes
             {
                 failures.push(format!(
                     "{label}/{}: offenses {} / {}, bytes {} / {}",
@@ -122,7 +130,7 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
                     serde_json::to_string(&actual).unwrap(),
                     serde_json::to_string(&expected).unwrap(),
                     fs::read(folder.path().join(&case.path)).unwrap().len(),
-                    bytes(&case.after_hex).len()
+                    expected_bytes.len()
                 ));
             }
         }

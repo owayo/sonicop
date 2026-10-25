@@ -15,6 +15,34 @@ use super::with_target_ruby;
 /// CLI テスト既定の TargetRubyVersion。
 pub const DEFAULT_TARGET_RUBY: &str = "2.7";
 
+/// 旧OSの記録へ、Windows本家の実書出しだけを投影する。候補の実出力は参照しない。
+/// CRLF/mixed原本は既存保存方針のまま。DATA等の保護tail長はfixtureの値から渡す。
+pub fn recorded_disk_bytes(
+    original: &[u8],
+    recorded: &[u8],
+    reference_rewrites: bool,
+    preserved_tail_len: usize,
+) -> Vec<u8> {
+    assert!(preserved_tail_len <= recorded.len());
+    if !cfg!(windows)
+        || !reference_rewrites
+        || original == recorded
+        || original.windows(2).any(|pair| pair == b"\r\n")
+    {
+        return recorded.to_vec();
+    }
+    let end = recorded.len() - preserved_tail_len;
+    let mut written = Vec::with_capacity(recorded.len());
+    for &byte in &recorded[..end] {
+        if byte == b'\n' {
+            written.push(b'\r');
+        }
+        written.push(byte);
+    }
+    written.extend_from_slice(&recorded[end..]);
+    written
+}
+
 /// `.rubocop.yml` に対象 Ruby を明示した一時プロジェクトを作る。
 ///
 /// リポジトリルートで CLI を走らせると sonicop.gemspec の

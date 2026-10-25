@@ -991,6 +991,7 @@ pub fn inspect_source(
         selection,
         &RulePlan::build(config, selection),
         true,
+        None,
     )
 }
 
@@ -1007,13 +1008,14 @@ fn inspect_planned(
     selection: &Selection,
     plan: &RulePlan,
     check_directives: bool,
+    raw_source: Option<String>,
 ) -> Result<FileReport> {
     // NULの代替と打ち切りはtree-sitter用の投影だけに適用する。原本をcopと補正へ渡し、
     // コメントのNULや字句器が読まない後続本文を無関係な補正で変えない。
     // NUL分類と本体parseには同じ対象Ruby・パーサーの束縛を使う。
     let semantics = crate::regexp_ast::Semantics::from_config(config);
     let parsed_text = crate::nul_bytes::as_ruby_reads_it_configured(&text, semantics);
-    let source = SourceFile::new(path, text);
+    let source = SourceFile::new(path, text).with_raw_source(raw_source);
     let tree = crate::profile::phase(crate::profile::Phase::Parse, || {
         crate::parser::parse_configured(parsed_text.as_deref().unwrap_or(source.text()), semantics)
     })
@@ -1278,6 +1280,7 @@ pub(crate) fn inspect_files_with_store_cached(
             selection,
             own_plan.as_ref().unwrap_or(&root_plan),
             true,
+            None,
         )?;
         if let Some(cache) = cache
             && cacheable
@@ -3096,7 +3099,15 @@ fn rollback_correction(
     plan: &RulePlan,
 ) -> Result<CorrectionOutcome> {
     // 書かない補正後のソースではなく、ディスクに残る原本の診断を返す。
-    let report = inspect_planned(path, original.to_owned(), config, selection, plan, true)?;
+    let report = inspect_planned(
+        path,
+        original.to_owned(),
+        config,
+        selection,
+        plan,
+        true,
+        None,
+    )?;
     Ok(CorrectionOutcome {
         report,
         text: original.to_owned(),
@@ -3123,16 +3134,95 @@ fn uses_crlf_only(text: &str) -> bool {
     found
 }
 
-/// 本家と同じ LF の中間結果を、元ファイルの CRLF へ戻す。
+/// LF の解析結果へ原本の保護と Windows disk の native 改行を適用する。
 fn restore_crlf(
     mut outcome: CorrectionOutcome,
     preserve_crlf: bool,
     retained_crlf: Option<&LineEndingProvenance>,
+    native_newlines: bool,
+    config: &Config,
 ) -> CorrectionOutcome {
     if outcome.rewritten && outcome.rollback.is_none() {
-        outcome.text = restored_line_endings(&outcome.text, preserve_crlf, retained_crlf);
+        outcome.text = physical_corrected_text(
+            &outcome.text,
+            preserve_crlf,
+            retained_crlf,
+            native_newlines,
+            config,
+        );
     }
     outcome
+}
+
+/// DATA と code NUL 以降を、Windows のテキスト書込みによる CR 挿入から保護する。
+/// 同名の文字列・コメントは境界ではないため、文字列検索だけで切り分けない。
+fn unparsed_tail_start(text: &str, config: &Config) -> Option<usize> {
+    let semantics = crate::regexp_ast::Semantics::from_config(config);
+    let projected = crate::nul_bytes::as_ruby_reads_it_configured(text, semantics);
+    let parsed = projected.as_deref().unwrap_or(text);
+    let nul_end = (parsed.len() < text.len()).then_some(parsed.len());
+    if !parsed.contains("__END__") {
+        return nul_end;
+    }
+    let tree = crate::parser::parse_configured(parsed, semantics)?;
+    let root = tree.root_node();
+    for index in 0..root.child_count() {
+        let Some(node) = root.child(index) else {
+            continue;
+        };
+        if node.kind() == "uninterpreted" {
+            // uninterpreted は marker 行の終端 LF から始まる。DATA.read はその次から。
+            let start = node.start_byte();
+            let end = text[start..]
+                .find('\n')
+                .map_or(start, |offset| start + offset + 1);
+            return Some(nul_end.map_or(end, |nul| nul.min(end)));
+        }
+    }
+    nul_end
+}
+
+fn physical_corrected_text(
+    text: &str,
+    preserve_crlf: bool,
+    retained_crlf: Option<&LineEndingProvenance>,
+    native_newlines: bool,
+    config: &Config,
+) -> String {
+    let text = restored_line_endings(text, preserve_crlf, retained_crlf);
+    if !native_newlines {
+        return text;
+    }
+    let tail = unparsed_tail_start(&text, config).unwrap_or(text.len());
+    let mut physical = text[..tail].replace('\n', "\r\n");
+    physical.push_str(&text[tail..]);
+    physical
+}
+
+fn correction_raw_source(
+    text: &str,
+    preserve_crlf: bool,
+    retained_crlf: Option<&LineEndingProvenance>,
+    windows_disk: bool,
+    native_newlines: bool,
+    config: &Config,
+) -> Option<String> {
+    if !windows_disk {
+        return None;
+    }
+    if unparsed_tail_start(text, config).is_some() {
+        // 保存した DATA の LF も EmptyLines の raw quick guard に影響する。
+        // 保護 tail を隠す仮想 CRLF にすると、次回の物理入力で新たな補正を生じる。
+        Some(physical_corrected_text(
+            text,
+            preserve_crlf,
+            retained_crlf,
+            native_newlines,
+            config,
+        ))
+    } else {
+        Some(text.replace('\n', "\r\n"))
+    }
 }
 
 /// 最終書出しと補正前script検査を、同じ物理改行の復元へ向ける。
@@ -3227,7 +3317,7 @@ pub fn correct_file(
     config: &Config,
     selection: &Selection,
 ) -> Result<CorrectionOutcome> {
-    correct_file_with_original(report, mode, config, selection, None)
+    correct_file_with_original(report, mode, config, selection, None, false)
 }
 
 /// stdin とディスクの補正は、復号前と書き戻し予定のバイト列で構文を比較する。
@@ -3237,6 +3327,7 @@ pub(crate) fn correct_file_with_original(
     config: &Config,
     selection: &Selection,
     original_bytes: Option<&[u8]>,
+    disk: bool,
 ) -> Result<CorrectionOutcome> {
     let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
         let configs = ConfigStore::new(config.clone(), false, false);
@@ -3260,6 +3351,9 @@ pub(crate) fn correct_file_with_original(
 
     let original = text.clone();
     let preserve_crlf = uses_crlf_only(&original);
+    let windows_disk = cfg!(windows) && disk;
+    // 元 CRLF/mixed の保存方針は維持する。純 LF の通常コードだけ File.write に合わせる。
+    let native_newlines = windows_disk && !original.contains("\r\n");
     // 全CRLFでも元bare CRだけは追跡する。元pairは書出しのdefault CRへ任せて二重計数しない。
     let track_line_endings = if preserve_crlf {
         original
@@ -3331,6 +3425,8 @@ pub(crate) fn correct_file_with_original(
                     },
                     preserve_crlf,
                     retained_crlf.as_ref(),
+                    native_newlines,
+                    config,
                 ),
                 &original,
                 original_bytes,
@@ -3354,8 +3450,13 @@ pub(crate) fn correct_file_with_original(
             } else {
                 // openingは旧reportの座標で照合済み。実byteだけをcurrentの由来で復元する。
                 debug_assert!(retained_crlf.as_ref().is_none_or(|state| !state.physical));
-                let physical_text =
-                    restored_line_endings(&text, preserve_crlf, retained_crlf.as_ref());
+                let physical_text = physical_corrected_text(
+                    &text,
+                    preserve_crlf,
+                    retained_crlf.as_ref(),
+                    native_newlines,
+                    config,
+                );
                 correction_bytes(
                     &physical_text,
                     original_raw,
@@ -3379,8 +3480,8 @@ pub(crate) fn correct_file_with_original(
             }
         }
         log.record_pass(&mut report, directive_pass);
-        // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
-        // 最終的な書き戻しだけは元の改行形式へ戻し、DATA のバイト列を守る。
+        // SourceBuffer の解析座標は LF、Windows の raw_source は別の view で保持する。
+        // 最後は予定物理 bytes へ戻して検証し、元改行の由来と DATA の値を守る。
         normalize_corrected_line_endings(
             &mut corrected,
             &mut next_provenance,
@@ -3415,6 +3516,8 @@ pub(crate) fn correct_file_with_original(
                     },
                     preserve_crlf,
                     retained_crlf.as_ref(),
+                    native_newlines,
+                    config,
                 ),
                 &original,
                 original_bytes,
@@ -3434,6 +3537,14 @@ pub(crate) fn correct_file_with_original(
             selection,
             &plan,
             directives_pending,
+            correction_raw_source(
+                &text,
+                preserve_crlf,
+                retained_crlf.as_ref(),
+                windows_disk,
+                native_newlines,
+                config,
+            ),
         )?;
     }
     unreachable!("the autocorrect loop always returns before exhausting its passes")
@@ -4855,6 +4966,8 @@ mod tests {
 
     #[test]
     fn pure_crlf_restores_original_bare_cr_at_pass_and_writeback_boundaries() {
+        let directory = tempfile::tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
         for original in ["x\r\r\ny\r\n", "x\r\r\r\ny\r\n", "x\rZ\r\ny\r"] {
             for passes in [1, 2] {
                 let mut retained = super::LineEndingProvenance::new(original);
@@ -4896,7 +5009,7 @@ mod tests {
                     infinite_loop: None,
                     rollback: None,
                 };
-                let actual = super::restore_crlf(outcome, true, retained.as_ref());
+                let actual = super::restore_crlf(outcome, true, retained.as_ref(), false, &config);
                 assert_eq!(actual.text, format!("{}{original}", "a\r\n".repeat(passes)));
             }
         }
@@ -4904,6 +5017,8 @@ mod tests {
 
     #[test]
     fn pure_crlf_keeps_only_surviving_original_bare_cr_without_pair_double_counting() {
+        let directory = tempfile::tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
         // 置換の同じCRへ由来を渡さず、元pairのLFだけの置換でbare CRまで消さない。
         for (start, end, replacement, expected) in [
             (1, 2, "", "x\r\ny\r\n"),
@@ -4942,7 +5057,7 @@ mod tests {
                 rollback: None,
             };
             assert_eq!(
-                super::restore_crlf(outcome, true, retained.as_ref()).text,
+                super::restore_crlf(outcome, true, retained.as_ref(), false, &config).text,
                 expected
             );
         }
