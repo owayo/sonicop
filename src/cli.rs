@@ -70,7 +70,17 @@ struct Cli {
     ignore_unrecognized_cops: bool,
     #[arg(long, help_heading = "Basic Options")]
     force_default_config: bool,
-    #[arg(short = 's', long, value_name = "FILE", help_heading = "Basic Options")]
+    // 本家は明示した空文字も stdin の対象名として受け取り、値の省略とは区別する。
+    #[arg(
+        short = 's',
+        long,
+        value_name = "FILE",
+        help_heading = "Basic Options",
+        value_parser = clap::builder::TypedValueParser::map(
+            clap::builder::OsStringValueParser::new(),
+            PathBuf::from,
+        ),
+    )]
     stdin: Option<PathBuf>,
     #[arg(long, help_heading = "Basic Options")]
     editor_mode: bool,
@@ -459,6 +469,9 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     } = apply_corrections(
         reports,
         stdin_original.as_deref(),
+        cli.stdin
+            .as_ref()
+            .is_some_and(|path| path.as_os_str().is_empty()),
         &configs,
         correct_mode,
         &selection,
@@ -635,19 +648,35 @@ fn inspect_inputs(
     if !cli.paths.is_empty() {
         bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
     }
-    *selection = selection.with_project_index(std::slice::from_ref(stdin_path), configs)?;
+    // TargetFinder の File.expand_path('') と同じ名前で設定と path 依存の cop を評価する。
+    let anonymous_stdin = stdin_path.as_os_str().is_empty();
+    let stdin_path = if anonymous_stdin {
+        cwd.to_path_buf()
+    } else {
+        stdin_path.clone()
+    };
+    *selection = selection.with_project_index(std::slice::from_ref(&stdin_path), configs)?;
     // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
     let mut bytes = Vec::new();
     io::stdin()
         .read_to_end(&mut bytes)
         .context("failed to read source from stdin")?;
-    let target_config = configs.for_path(stdin_path)?;
-    let report = inspect_stdin(stdin_path.clone(), bytes.clone(), &target_config, selection)?;
+    let target_config = if anonymous_stdin {
+        anonymous_stdin_config(configs, &stdin_path)?
+    } else {
+        configs.for_path(&stdin_path)?
+    };
+    let report = inspect_stdin(stdin_path, bytes.clone(), &target_config, selection)?;
     Ok(Inspection::Reports {
         reports: vec![report],
         target_count: 1,
         stdin_original: Some(bytes),
     })
+}
+
+fn anonymous_stdin_config(configs: &ConfigStore, path: &Path) -> Result<std::sync::Arc<Config>> {
+    // 空名は cwd という仮想ファイル。ConfigStore#for_file は、その親から設定を探す。
+    configs.for_path(path.parent().unwrap_or(path))
 }
 
 struct CorrectionRun {
@@ -663,6 +692,7 @@ struct CorrectionRun {
 fn apply_corrections(
     reports: Vec<FileReport>,
     stdin_original: Option<&[u8]>,
+    anonymous_stdin: bool,
     configs: &ConfigStore,
     correct_mode: CorrectMode,
     selection: &Selection,
@@ -676,7 +706,11 @@ fn apply_corrections(
     for report in reports {
         let original_stdin_report = stdin_original.map(|_| report.clone());
         let path = report.path.clone();
-        let target_config = configs.for_path(&path)?;
+        let target_config = if anonymous_stdin {
+            anonymous_stdin_config(configs, &path)?
+        } else {
+            configs.for_path(&path)?
+        };
         // 通常の lint は再読込しない。補正だけ、Ruby が実際に読む符号化を保護に渡す。
         let disk_original = if stdin_original.is_none() && correct_mode != CorrectMode::None {
             Some(fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?)

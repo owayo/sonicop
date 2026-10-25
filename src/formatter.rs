@@ -639,7 +639,14 @@ fn render_worst(reports: &[FileReport], cwd: &Path) -> String {
     let mut rows = reports
         .iter()
         .filter(|report| !report.offenses.is_empty())
-        .map(|report| (report.offenses.len(), relative_path(&report.path, cwd)))
+        .map(|report| {
+            let path = relative_path(&report.path, cwd);
+            // WorstOffendersFormatter は smart_path ではなく Pathname の相対名を使う。
+            (
+                report.offenses.len(),
+                if path.is_empty() { ".".into() } else { path },
+            )
+        })
         .collect::<Vec<_>>();
     // `sort_by { |k, v| [-v, k] }`, so files tying on count fall back to their path.
     rows.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
@@ -718,7 +725,7 @@ struct Metadata {
 
 #[derive(Serialize)]
 struct JsonFile<'a> {
-    path: String,
+    path: Option<String>,
     offenses: Vec<JsonOffense<'a>>,
 }
 
@@ -747,7 +754,8 @@ fn render_json(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<St
     let files = reports
         .iter()
         .map(|report| JsonFile {
-            path: smart_path(&report.path, options.cwd),
+            // PathUtil.relative_path(cwd, cwd) は nil となり、JSON では null を報告する。
+            path: Some(smart_path(&report.path, options.cwd)).filter(|path| !path.is_empty()),
             offenses: report
                 .offenses
                 .iter()
