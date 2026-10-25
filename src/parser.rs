@@ -391,6 +391,107 @@ mod tests {
         );
     }
 
+    /// 文字列の後の `%` は連結する percent literal ではなく剰余。配列内の式も含めて
+    /// 正しく読み、全ノードの範囲と座標は原文に対応する。
+    #[test]
+    fn a_percent_after_a_string_reads_as_a_binary_operator() {
+        for text in [
+            "puts \"%3d %s\"%[l+1, line]\n",
+            "puts \"%3d %s\" %[l+1, line]\n",
+            "puts \"%3d %s\"\t%[l+1, line]\n",
+            "puts \"%3d %s\"%[l+1, line]\r\n",
+            "puts \"あ\"%[値+1]\n",
+            "puts \"a\"%(value)\n",
+            "puts \"a\"%q[value]\n",
+            "puts \"a\"%Q[value]\n",
+            "puts %q(a)%[value+1]\n",
+            "puts \"a\"%[\"b\"%[value+1]]\n",
+            "puts \"#{format}\"%[value+1]\n",
+            "puts \"a\" \\\n%[value+1]\n",
+            "puts \"a\"\\\r\n%[value+1]\r\n",
+        ] {
+            let tree = parse(text).unwrap();
+            assert!(
+                !tree.root_node().has_error(),
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            let root = tree.root_node();
+            let call = root.named_child(0).unwrap();
+            let argument = call
+                .child_by_field_name("arguments")
+                .unwrap()
+                .named_child(0)
+                .unwrap();
+            assert_eq!(argument.kind(), "binary", "{text:?}: {}", root.to_sexp());
+            assert_eq!(
+                &text[argument
+                    .child_by_field_name("operator")
+                    .unwrap()
+                    .byte_range()],
+                "%"
+            );
+            assert_original_coordinates(&tree, text);
+        }
+    }
+
+    /// 外側の剰余を読み直して見えるローカル変数も、同じ fixed point の中で判定し直す。
+    #[test]
+    fn a_percent_after_a_string_exposes_inner_local_operators() {
+        for text in [
+            "value = 1\nputs \"a\"%[value +1]\n",
+            "puts \"a\"%[value = 1]\nvalue +1\n",
+            "value = 1\nvalue %(\"a\"%[value +1])\n",
+            "value = 1\r\nputs \"あ\"%[value\\\r\n+1]\r\n",
+        ] {
+            let tree = parse(text).unwrap();
+            assert!(
+                !tree.root_node().has_error(),
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            assert!(
+                !kinds(&tree).iter().any(|kind| kind == "chained_string"),
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            assert_eq!(
+                kinds(&tree).iter().filter(|kind| *kind == "binary").count(),
+                if text.contains("value %(") { 3 } else { 2 },
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            assert_original_coordinates(&tree, text);
+        }
+    }
+
+    /// 引数先頭の percent literal と通常の引用文字列の連結は Ruby でも有効で、剰余へ読み替えない。
+    #[test]
+    fn quoted_string_chains_keep_real_percent_literals() {
+        for text in [
+            "puts %q(a) \"b\"\n",
+            "puts %[a] 'b'\n",
+            "puts \"a\" \"b\"\n",
+            "puts \"a\" \"#{%[b]}\"\n",
+            "puts \"%[l+1]\"\n",
+            "puts %[\"a\"%[value+1]]\n",
+            "puts \"a\"\n%[value+1]\n",
+        ] {
+            let tree = parse(text).unwrap();
+            assert!(
+                !tree.root_node().has_error(),
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            assert!(
+                !kinds(&tree).iter().any(|kind| kind == "binary"),
+                "{text:?}: {}",
+                tree.root_node().to_sexp()
+            );
+            assert_original_coordinates(&tree, text);
+        }
+    }
+
     /// ローカル変数の後の `+1, 2` と、`+1` に続く `do` は Ruby でも構文エラー。手がかりのない
     /// 読み方へ戻して隠さない。
     #[test]
@@ -1058,10 +1159,47 @@ mod tests {
         }
     }
 
-    /// grammar が葉外へ落とす既存の literal 制約では、元の VT/FF を空白と誤分類しない。
-    /// この保護自体を、grammar が character 全範囲や control 区切りを読める証拠にはしない。
+    /// 本家 1.89.0 の Prism で受理した入れ子の control/meta と numeric escape は、
+    /// 末尾の数字や後続の文へ分割しない。UTF-8 本文と CRLF の原文座標も保つ。
     #[test]
-    fn control_literal_boundaries_are_preserved_despite_grammar_recovery() {
+    fn nested_character_escapes_keep_the_whole_token_range() {
+        for literal in [
+            r"?\C-\x43",
+            r"?\c\M-a",
+            r"?\M-\C-a",
+            r"?\C-\M-\x61",
+            r"?\M-\xFF",
+            r"?\M-\101",
+            r"?\u{3042}",
+            r"?\u0041",
+        ] {
+            for ending in ["\n", "\r\n"] {
+                let source = format!("puts {literal}{ending}");
+                let tree = super::parse_raw(&source).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{source:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                let argument = tree
+                    .root_node()
+                    .named_child(0)
+                    .unwrap()
+                    .child_by_field_name("arguments")
+                    .unwrap()
+                    .named_child(0)
+                    .unwrap();
+                assert_eq!(argument.kind(), "character", "{source:?}");
+                assert_eq!(&source[argument.byte_range()], literal, "{source:?}");
+                assert_original_coordinates(&tree, &source);
+                assert_original_coordinates(&parse(&source).unwrap(), &source);
+            }
+        }
+    }
+
+    /// VT/FF を区切りに持つ literal は有効な木で全範囲を読み、元の制御文字を空白と誤分類しない。
+    #[test]
+    fn control_literal_boundaries_are_preserved_as_full_tokens() {
         for control in ['\x0b', '\x0c'] {
             for source in [
                 format!("puts ?\\{control}\n"),
@@ -1069,6 +1207,12 @@ mod tests {
                 format!("%Q{control}#{{ {{ \"a\": :b }}; obj.`(1) }}{control}\n"),
             ] {
                 let tree = super::parse_raw(&source).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{source:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                assert_original_coordinates(&tree, &source);
                 let controls: Vec<_> = source
                     .bytes()
                     .enumerate()

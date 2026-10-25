@@ -197,8 +197,10 @@ Ruby の `File.realpath` は Windows の短縮名を保持し、Rust の canonic
 JSON を保存する。パスの同一性だけを根拠に表示の互換性を変更しない。
 
 **依存更新も構文診断を変える。** tree-sitter 0.27.1 は旧 grammar で有効な percent literal に
-誤った `tSTAR` を追加した。grammar v26.10.103 との組でその回帰が解消することを実測し、
-両者を固定している。回帰テストは新たな誤診断を拒むが、既知の EOF 誤診断を期待値へ固定しない。
+誤った `tSTAR` を追加した。grammar v26.10.103 との組でその回帰が解消することを実測した。
+現在は 0.27.1 と grammar v26.10.104 を固定し、文字列後の `%`、VT/FF を区切りとする `%Q`、
+入れ子の control/meta character を、原文のノード範囲・座標と本家の実診断で検査する。
+回帰テストは新たな誤診断を拒むが、既知の EOF 誤診断を期待値へ固定しない。
 
 **grammar はローカル変数の束縛を知らない。** v26.10.102 から `name +x` を `name` の引数として
 読む (未知の識別子に対する Ruby の読み方)。`-x`・`*x`・`**x`・`&x`・`[x]`・`<<X`・`/x/`・`%w[]`
@@ -262,8 +264,11 @@ character の escape や percent literal の制御文字区切りは grammar が
 SpaceAroundOperators も同じ根拠で保護中の開始だけを除外する。最初の誤 `%` 補正で literal 開始を
 壊すと次の pass が本文を code と読み、新しい診断と補正を足すため。本文や補間の演算子を範囲ごと
 沈黙させず、VT/FF のない通常ファイルでは追加の字句解析を行わない。
-control 区切り等を読む grammar 自体の既存制約は残る。元の文字を保護したことを、その不完全な木が
-Ruby を正しく表す証拠にしない。診断・補正バイトを元版と比較し、新しい受理や補正の成功へ数えない。
+grammar v26.10.104 では、検証した `%Q` の VT/FF 区切り、escaped VT/FF character と
+入れ子の control/meta escape を全範囲で読める。これらは有効な木と原文の座標を検査し、
+`TargetRubyVersion: 3.4` の Prism では LF/CRLF の既定全 cop 診断も本家と照合する。配列や未知の構文へ受理を一般化しない。
+元の文字の保護だけを正しい AST や cop 互換の証拠にせず、新しく読める入力の診断・補正バイトを
+対象版と backend ごとに別途比較する。本家の内部例外や未完了の検証は成功へ数えない。
 
 **source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
 `build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。
