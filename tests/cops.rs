@@ -18417,6 +18417,55 @@ mod mixin_usage {
         expect_no_offenses(COP, "obj.include M\n");
         expect_no_offenses(COP, "include foo\n");
     }
+
+    #[test]
+    fn exception_handlers_wrap_the_whole_begin_body() {
+        // 本家の rescue/ensure は節だけでなく本体も包み、トップレベル判定を遮る。
+        for source in [
+            "begin\n  include M\nrescue LoadError\n  nil\nend\n",
+            "begin\n  include M\nensure\n  nil\nend\n",
+            "def method_name\n  include M\nrescue LoadError\n  nil\nend\n",
+            "def method_name\n  include M\nensure\n  nil\nend\n",
+            "begin\n  if test\n    include M\n  end\nensure\n  nil\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    #[test]
+    fn mixins_in_rescue_else_and_ensure_are_not_top_level() {
+        for source in [
+            "begin\n  load 'config.rb'\nrescue LoadError\n  nil\nelse\n  include RbConfig\nend\n",
+            "begin\n  nil\nrescue LoadError\n  extend M\nend\n",
+            "begin\n  nil\nensure\n  prepend M\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    #[test]
+    fn ordinary_wrappers_still_report_top_level_mixins() {
+        for (source, line) in [
+            ("begin\n  include M\nend\n", 2),
+            ("def method_name\n  include M\nend\n", 2),
+            ("if test\n  nil\nelse\n  include M\nend\n", 4),
+            ("if test\n  nil\nelsif other\n  include M\nend\n", 4),
+            ("begin\n  nil\n  include M\nend\n", 3),
+        ] {
+            CopCase::new(
+                COP,
+                source,
+                vec![Annotation::new(
+                    line,
+                    3,
+                    9,
+                    "`include` is used at the top level. Use inside `class` or `module`.",
+                )],
+            )
+            .correctable(false)
+            .run();
+        }
+    }
 }
 
 /// `Style/HashLikeCase`: 1 対 1 対応の `case-when` はハッシュ引き。
