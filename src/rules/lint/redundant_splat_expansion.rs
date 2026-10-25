@@ -55,8 +55,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         let (position, grandparent) = position_of(node);
         let is_array_new = array_new(expanded, context);
+        let array_new_block = is_array_new && expanded.field("block").is_some();
+        let array_new_with_siblings =
+            is_array_new && array_new_inside_array_literal(node, &position);
         if is_array_new {
-            if array_new_inside_array_literal(node, &position) {
+            // 本家の literal_expansion は block 内の send を捕捉するため、
+            // 複数要素の配列を除外する判定はブロックのない send にだけ掛かる。
+            if !array_new_block && array_new_with_siblings {
                 continue;
             }
             if grandparent.is_some_and(|grandparent| !is_assignment(grandparent)) {
@@ -94,11 +99,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             grandparent,
             context,
         );
-        offenses.push(
-            context
-                .offense(message, node.byte_range())
-                .corrected_by(edit),
-        );
+        let mut offense = context.offense(message, node.byte_range());
+        if array_new_block && array_new_with_siblings {
+            // 本家は明示・暗黙の配列全体を block で置換し、隣の値を消す。
+            // 診断は維持するが、構文検査では防げないこの補正は適用しない。
+            offense.correctable = true;
+        } else {
+            offense = offense.corrected_by(edit);
+        }
+        offenses.push(offense);
     }
 }
 

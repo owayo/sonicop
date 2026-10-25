@@ -2655,3 +2655,297 @@ regexp_capture_fold_guard_divergences:
     fold 値の一致を拒否の前提にすると、この危険を再許可するためその制約は置かない。
     Target3.2は公式MRI3.2.0でも別に144実行と直接最小18条件を確認した。
     元/rollback String byte78、本家/親補正 NoMethodError。2.7の実行証拠とは分けて保存する。
+
+# #87: 構文として有効でも、配列全体の置換で兄弟要素とその副作用が失われる。
+splat_block_value_preservation_divergences:
+  issue: 87
+  cop: Lint/RedundantSplatExpansion
+  target: 2.7/parser_whitequark
+  reference_fixture: tests/fixtures/splat_block_reference.json
+  reference_version: 1.89.0
+  candidate_diagnostics: reference_inspection_offenses
+  modes: [safe, unsafe]
+  endings: [lf, crlf]
+  review_status: reviewed_codex_independent_context
+  review:
+    reviewer: Codex
+    date: "2026-10-25"
+    context: independent_fresh_context
+    claude_attempt: authentication_401_not_reviewed
+    verdict: >-
+      本家の配列全体の置換が兄弟要素を消し、構文は有効なまま実行値を変えることを確認した。
+      診断は一致させ、ブロック付き Array.new の splat と同じ直接の配列に別の要素がある場合だけ補正を抑止する。
+      通常の Array.new の既存例外、単一 splat と Array literal の有効な補正は維持する。
+      別コンテキストの Codex による判定であり、認証に失敗した Claude のレビュー取得ではない。
+  reason: >-
+    本家の literal_expansion は block の内側の send を捕捉し、複数要素を除外する親判定を迂回する。
+    corrector は明示・暗黙の配列全体を当該 Array.new の本文へ置換するため、兄弟要素を失う。
+    3形12条件の最小記録に、副作用付き兄弟と複数 splat の8条件を加え、値と評価順・回数を検査する。
+    correctable は true のまま、corrected は false、未修正の終了1と原本bytesを保つ。
+    同じファイルの別copや任意の補正の一般的な意味保存を保証する差分ではない。
+  excluded_reference_boundary:
+    name: two_array_new_blocks
+    reason: >-
+      ブロック付き Array.new の splat を二つ並べると、本家の補正は二番目に内部エラーとなる。
+      この形を完全な補正比較の成功へ数えず、検査のみの2件一致と候補単独の原本保持を回帰で確認する。
+  cases:
+    - id: explicit_before-safe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: explicit_before-safe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: explicit_after-safe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+    - id: explicit_after-safe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+    - id: implicit_before-safe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: implicit_before-safe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: explicit_before-unsafe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 41bf2fdbd54ab91ee04579f9c792b6f1c727a43eb96cad186d5fef301196771e
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: explicit_before-unsafe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: ceeb3f56923730672625be8e92636e7f9e67ab66984de31f3e4ce84e74369819
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: explicit_after-unsafe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 106f85bb1eeb741e6cce1a9e65fadccfc0bd30ee739069dcedac0702db712ff1
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+    - id: explicit_after-unsafe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: ca622ce45531959ffac3131390554f7923f14066e74a429f914db12151c631a2
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 1e9295db30baac8b28c8b4e5257b5198ba68d1c40018d8d623bf23f897cfefcb
+    - id: implicit_before-unsafe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 3e7f5aa1b99e0309b839cff6fc3bc7bdb754aa855aaaf3b8f5cc9cb19dc6fa02
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: implicit_before-unsafe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424
+      reference_sha256: 9b43928aec55229970c75313c3469ea23955a2c189c54b9f2145c6dccd2b843d
+      candidate_sha256: 983ff38878e050fae9b76afd1858310f3015b33decefec306abfd230aa163424
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+      reference_runtime_stdout_sha256: a8df5a5d6e93de44fab3fa992ba8bb4680414a4b52e26faff7d0c2145a86c79b
+      candidate_runtime_stdout_sha256: 82d478bfb00789adbe4e98b76c0c263357bb179bcfa319676de8fdd69aae7b51
+    - id: side_effects-safe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440
+      reference_sha256: d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe
+      candidate_sha256: 7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+      reference_runtime_stdout_sha256: 5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b
+      candidate_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+    - id: side_effects-safe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4
+      reference_sha256: d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe
+      candidate_sha256: 6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+      reference_runtime_stdout_sha256: 5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b
+      candidate_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+    - id: multiple_splats-safe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151
+      reference_sha256: 39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e
+      candidate_sha256: e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+      reference_runtime_stdout_sha256: 303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a
+      candidate_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+    - id: multiple_splats-safe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f
+      reference_sha256: 39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e
+      candidate_sha256: 2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+      reference_runtime_stdout_sha256: 303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a
+      candidate_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+    - id: side_effects-unsafe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440
+      reference_sha256: d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe
+      candidate_sha256: 7b2470e6a258080e7cf74ebea2011cf88726065119ca500718c19741db23f440
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+      reference_runtime_stdout_sha256: 5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b
+      candidate_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+    - id: side_effects-unsafe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4
+      reference_sha256: d2cb7c157a0ecb8a997c49e086046c1a36699b5339c98efdafa33d30c53e58fe
+      candidate_sha256: 6c52d417e57fac9821334bd6a2a1f18ce5df85b3ec6b3a18310d2eb25a2a87c4
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+      reference_runtime_stdout_sha256: 5f939283547cacb6ed28be41a94c4e0785f0fb74fc92fcf83cf7fa7fd33bdb7b
+      candidate_runtime_stdout_sha256: aace44d44b9e280ebf3b253f3f57aa7b16e47552b10520739f97a5403467f27d
+    - id: multiple_splats-unsafe-lf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151
+      reference_sha256: 39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e
+      candidate_sha256: e755008200034d436264c9440e1a8a0dc9d5b6c520a9ad0b9589a43c10132151
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+      reference_runtime_stdout_sha256: 303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a
+      candidate_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+    - id: multiple_splats-unsafe-crlf
+      reference_inspection_offense_count: 1
+      reference_correction_offense_count: 1
+      candidate_offense_count: 1
+      original_sha256: 2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f
+      reference_sha256: 39dfb02cd4921a506a3ad704d07c076fcace0f529d16da61a2c82b052247c28e
+      candidate_sha256: 2c0dcc6c71bf7830cdf2382d266ba29f38bd90416c58b658182ea94ab7b27a3f
+      reference_exit: 0
+      candidate_exit: 1
+      candidate_corrected: false
+      original_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+      reference_runtime_stdout_sha256: 303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a
+      candidate_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4

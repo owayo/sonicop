@@ -15610,6 +15610,71 @@ mod lint_late_additions {
     }
 
     #[test]
+    fn redundant_splat_expansion_reports_array_new_blocks_beside_other_values() {
+        for (source, column, last_column) in [
+            ("ary = [obj, *Array.new(2) { |x| x }]\n", 13, 35),
+            ("ary = obj, *Array.new(2) { |x| x }\n", 12, 34),
+        ] {
+            // 本家の matcher は block の内側の send を捕捉し、通常の send と異なる経路を通る。
+            CopCase::new(
+                "Lint/RedundantSplatExpansion",
+                source,
+                vec![Annotation::new(
+                    1,
+                    column,
+                    23,
+                    "Replace splat expansion with comma separated values.",
+                )],
+            )
+            .severity(Severity::Warning)
+            .correctable(true)
+            .locations(&[(1, column, 1, last_column)])
+            .lengths(&[23])
+            .run();
+        }
+        // 本家の検査のみの JSON は両方を報告する。補正時の内部エラーとは分ける。
+        CopCase::new(
+            "Lint/RedundantSplatExpansion",
+            "events = []\nary = [*Array.new(1) { events << :first; 1 }, *Array.new(1) { events << :second; 2 }]\np [ary, events]\n",
+            vec![
+                Annotation::new(2, 8, 37, "Replace splat expansion with comma separated values."),
+                Annotation::new(2, 47, 38, "Replace splat expansion with comma separated values."),
+            ],
+        )
+        .severity(Severity::Warning)
+        .correctable(true)
+        .locations(&[(2, 8, 2, 44), (2, 47, 2, 84)])
+        .lengths(&[37, 38])
+        .run();
+    }
+
+    #[test]
+    fn redundant_splat_expansion_corrects_array_new_blocks_without_other_values() {
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "ary = [*Array.new(2) { |x| x }]\n",
+            "ary = Array.new(2) { |x| x }\n",
+        );
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "ary = *Array.new(2) { |x| x }\n",
+            "ary = Array.new(2) { |x| x }\n",
+        );
+    }
+
+    #[test]
+    fn redundant_splat_expansion_keeps_unmatched_array_constructors() {
+        for source in [
+            "ary = [obj, *Array.new(2)]\n",
+            "ary = obj, *Array.new(2)\n",
+            "ary = [*Array&.new(2) { |x| x }]\n",
+            "ary = [*Foo::Array.new(2) { |x| x }]\n",
+        ] {
+            expect_no_offenses("Lint/RedundantSplatExpansion", source);
+        }
+    }
+
+    #[test]
     fn shadowed_exception_reports_a_group_of_two_levels() {
         CopCase::annotated(
             "Lint/ShadowedException",
