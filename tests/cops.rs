@@ -1605,6 +1605,214 @@ mod lint {
         .run();
     }
 
+    /// 属性・添字への代入は本家の `send` で、receiver の括弧を含めても許可される。
+    #[test]
+    fn nested_method_definition_allows_setter_assignment_receivers() {
+        for receiver in [
+            "obj.bar = Object.new",
+            "self.bar = Object.new",
+            "obj[0] = Object.new",
+            "obj&.bar = Object.new",
+        ] {
+            let source = format!("def outer\n  def ({receiver}).baz\n    foo\n  end\nend\n");
+            expect_no_offenses("Lint/NestedMethodDefinition", &source);
+            expect_no_offenses("Lint/NestedMethodDefinition", &source.replace('\n', "\r\n"));
+        }
+    }
+
+    /// 演算子・添字も本家の send。数値への符号の畳み込みや論理ノードと区別する。
+    #[test]
+    fn nested_method_definition_allows_expression_call_receivers() {
+        for receiver in [
+            "obj + other",
+            "obj - other",
+            "obj * other",
+            "obj / other",
+            "obj % other",
+            "obj ** other",
+            "obj << other",
+            "obj >> other",
+            "obj == other",
+            "obj === other",
+            "obj != other",
+            "obj =~ other",
+            "obj !~ other",
+            "obj < other",
+            "obj <= other",
+            "obj > other",
+            "obj >= other",
+            "obj <=> other",
+            "obj & other",
+            "obj | other",
+            "obj ^ other",
+            "!obj",
+            "~obj",
+            "+obj",
+            "-obj",
+            "not obj",
+            "obj[0]",
+            "obj[]",
+            "obj.foo",
+            "obj&.foo",
+            "__ENCODING__",
+            "text =~ /(?<x>a)/",
+            "--1.5",
+            "- -1.5",
+            "-(-1.5)",
+            "+(-1.5)",
+            "~1",
+            "!1",
+            "!nil",
+            "not nil",
+            "obj.foo(&:block)",
+            "obj.super()",
+            "/#{text}/ =~ text",
+            "1/2r",
+            "1 / 2r",
+            "1/2ri",
+            "(1)/2r",
+            "1.0/2r",
+            "-1/2r",
+            "(/a/) =~ text",
+            "not(obj)",
+            "self.super()",
+        ] {
+            let source = format!("def outer\n  def ({receiver}).baz\n    foo\n  end\nend\n");
+            expect_no_offenses("Lint/NestedMethodDefinition", &source);
+            expect_no_offenses("Lint/NestedMethodDefinition", &source.replace('\n', "\r\n"));
+        }
+    }
+
+    /// 添字呼び出し自身のブロックは block だが、receiver 内のブロックは外の send を変えない。
+    #[test]
+    fn nested_method_definition_distinguishes_index_blocks_from_receiver_blocks() {
+        for target in ["2.7", "3.3"] {
+            for (receiver, column_length) in [
+                ("obj[0] { 1 }", 22),
+                ("obj[] { 1 }", 21),
+                ("obj[0] do 1 end", 25),
+            ] {
+                let source = format!("def outer\n  def ({receiver}).baz\n    foo\n  end\nend\n");
+                for source in [source.clone(), source.replace('\n', "\r\n")] {
+                    CopCase::new(
+                        "Lint/NestedMethodDefinition",
+                        &source,
+                        vec![Annotation::new(
+                            2,
+                            3,
+                            column_length,
+                            "Method definitions must not be nested. Use `lambda` instead.",
+                        )],
+                    )
+                    .target_ruby(target)
+                    .locations(&[(2, 3, 4, 5)])
+                    .severity(Severity::Warning)
+                    .correctable(false)
+                    .run();
+                }
+            }
+            CopCase::new(
+                "Lint/NestedMethodDefinition",
+                "def outer\n  def (obj.foo { 1 }[0]).baz\n    foo\n  end\nend\n",
+                Vec::new(),
+            )
+            .target_ruby(target)
+            .run();
+        }
+    }
+
+    /// 静的な文字列の補間を畳み込む対象版の違いも、共通の regexp 分類へ渡す。
+    #[test]
+    fn nested_method_definition_uses_the_configured_regexp_semantics() {
+        let source = "def outer\n  def (/#{\"a\"}/ =~ text).baz\n    foo\n  end\nend\n";
+        for (target, engine, reports) in [
+            ("2.7", "parser_whitequark", true),
+            ("3.3", "parser_whitequark", false),
+            ("3.3", "parser_prism", false),
+        ] {
+            let expected = if reports {
+                vec![Annotation::new(
+                    2,
+                    3,
+                    26,
+                    "Method definitions must not be nested. Use `lambda` instead.",
+                )]
+            } else {
+                Vec::new()
+            };
+            let case = CopCase::new("Lint/NestedMethodDefinition", source, expected)
+                .target_ruby(target)
+                .config(&format!("AllCops:\n  ParserEngine: {engine}\n"));
+            if reports {
+                case.locations(&[(2, 3, 4, 5)])
+                    .lengths(&[40])
+                    .severity(Severity::Warning)
+                    .correctable(false)
+                    .run();
+            } else {
+                case.run();
+            }
+        }
+    }
+
+    /// 代入・論理式・ブロック・super などは本家の send/csend ではない。
+    #[test]
+    fn nested_method_definition_still_reports_non_call_receivers() {
+        for (receiver, column_length, length) in [
+            ("obj = Object.new", 26, 40),
+            ("@obj = Object.new", 27, 41),
+            ("obj.bar += 1", 22, 36),
+            ("obj.bar ||= Object.new", 32, 46),
+            ("self", 14, 28),
+            ("obj && other", 22, 36),
+            ("obj || other", 22, 36),
+            ("obj and other", 23, 37),
+            ("obj or other", 22, 36),
+            ("-1.5", 14, 28),
+            ("-1r", 13, 27),
+            ("-1i", 13, 27),
+            ("defined?(obj)", 23, 37),
+            ("obj.foo { 1 }", 23, 37),
+            ("super", 15, 29),
+            ("super(obj)", 20, 34),
+            ("yield", 15, 29),
+            ("yield obj", 19, 33),
+            ("nil", 13, 27),
+            ("true", 14, 28),
+            ("false", 15, 29),
+            ("/a/ =~ text", 21, 35),
+            ("/(?<x>a)/ =~ text", 27, 41),
+            ("(obj + other)", 23, 37),
+            ("(obj)", 15, 29),
+            ("obj ? other : value", 29, 43),
+            ("obj..other", 20, 34),
+            ("obj...other", 21, 35),
+            ("+1.5", 14, 28),
+            ("- 1.5", 15, 29),
+            ("+ 1.5", 15, 29),
+            ("super()", 17, 31),
+            ("/#{\"a\"}/ =~ text", 26, 40),
+            ("obj&.foo { 1 }", 24, 38),
+        ] {
+            let source = format!("def outer\n  def ({receiver}).baz\n    foo\n  end\nend\n");
+            CopCase::new(
+                "Lint/NestedMethodDefinition",
+                source,
+                vec![Annotation::new(
+                    2,
+                    3,
+                    column_length,
+                    "Method definitions must not be nested. Use `lambda` instead.",
+                )],
+            )
+            .locations(&[(2, 3, 4, 5)])
+            .lengths(&[length])
+            .severity(Severity::Warning)
+            .correctable(false)
+            .run();
+        }
+    }
+
     /// rescue を伴う else は有効な構文で、この cop の対象にならない。
     /// rescue の無い旧入力は専用 CLI の Lint/Syntax 記録で検査する。
     #[test]
