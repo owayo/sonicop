@@ -10723,6 +10723,62 @@ mod layout_indentation {
         .run();
     }
 
+    /// 本家の `on_begin` は外側から呼ばれる。親の補正範囲に含まれる内側の診断は、
+    /// 検査だけでも補正不可として記録される。
+    #[test]
+    fn enclosing_groups_withhold_nested_consistency_corrections() {
+        for (source, first_length, lengths, locations) in [
+            (
+                "foo\n  (bar\n baz)\n",
+                4,
+                [10, 3],
+                [(2, 3, 3, 5), (3, 2, 3, 4)],
+            ),
+            (
+                "foo\n  \"#{foo\n    bar}\"\n",
+                6,
+                [16, 3],
+                [(2, 3, 3, 9), (3, 5, 3, 7)],
+            ),
+        ] {
+            let report = CopCase::new(
+                CONSISTENCY,
+                source,
+                vec![
+                    Annotation::new(locations[0].0, locations[0].1, first_length, INCONSISTENT),
+                    Annotation::new(locations[1].0, locations[1].1, 3, INCONSISTENT),
+                ],
+            )
+            .lengths(&lengths)
+            .locations(&locations)
+            .run();
+            assert_eq!(
+                report
+                    .offenses
+                    .iter()
+                    .map(sonicop::diagnostic::Offense::is_correctable)
+                    .collect::<Vec<_>>(),
+                [true, false],
+                "外側の診断を内側の診断より先に登録する: {source:?}"
+            );
+        }
+    }
+
+    /// 外側を動かした次のパスで内側を再検査する。文字列本文の保護も維持する。
+    #[test]
+    fn enclosing_consistency_corrections_reinspect_the_nested_group() {
+        for (before, after) in [
+            ("foo\n  (bar\n baz)\n", "foo\n(bar\n baz)\n"),
+            ("foo\n  \"#{foo\n    bar}\"\n", "foo\n\"#{foo\n   bar}\"\n"),
+            (
+                "begin\n  a\n b do\n    c\n   d\n  end\nend\n",
+                "begin\n  a\n  b do\n     c\n     d\n   end\nend\n",
+            ),
+        ] {
+            expect_correction(CONSISTENCY, before, after);
+        }
+    }
+
     /// autocorrect は要素が跨る行を丸ごと動かす。
     #[test]
     fn the_correction_moves_the_whole_member() {

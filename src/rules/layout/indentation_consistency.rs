@@ -22,10 +22,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         == "indented_internal_methods";
     let text = context.source.text();
 
-    // `@current_offenses` is the cop's whole list for the file: an item nested inside a span
-    // already being realigned is reported without a correction of its own.
+    // 本家の `on_begin` は親の文リストを先に処理する。kind ごとの収集順のままだと、
+    // 内側の診断が先に登録され、外側の範囲との重複による補正の抑止をすり抜ける。
+    let mut groups = statement_groups(context);
+    groups.sort_by_key(|group| group.statements.first().map(|first| first.start_byte()));
+
+    // `@current_offenses` と同じくファイル全体で記録し、既存の範囲内では診断だけを残す。
     let mut reported: Vec<Range<usize>> = Vec::new();
-    for group in statement_groups(context) {
+    for group in groups {
         if indented_internal_methods {
             // A modifier divides the body, and consistency is only asked for within a section.
             let mut section: Vec<Node<'_>> = Vec::new();
