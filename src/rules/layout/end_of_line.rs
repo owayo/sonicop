@@ -18,6 +18,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| context.source.line_count());
     for line_number in 1..=last_line {
         let line = context.source.line(line_number);
+        // raw_source.each_line には、空入力や終端 LF の後ろの仮想行は含まれない。
+        if line.is_empty() {
+            break;
+        }
         let has_crlf = line.ends_with("\r\n");
         let offending = if crlf_expected {
             !has_crlf
@@ -27,8 +31,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !offending {
             continue;
         }
-        // 検査対象の最終行に改行自体が無い場合、本家もCRの欠落とは数えない。
-        if crlf_expected && line_number == last_line && !line.ends_with('\n') {
+        // EOF の CR 欠落を無視するのは明示 crlf だけ。Windows の native は例外にしない。
+        if style == "crlf" && line_number == last_line && !line.ends_with('\n') {
             continue;
         }
         let message = if crlf_expected {

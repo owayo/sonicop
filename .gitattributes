@@ -6,3 +6,10 @@ src/regexp_encoding_tables.rs text eol=lf linguist-generated=true
 scripts/record_last_token_lines.py text eol=lf
 tests/fixtures/last_token_lines.json text eol=lf
 tests/fixtures/last_token_lines.json.PROVENANCE text eol=lf
+
+# native の EOF 条件は明示 crlf と異なるため、Windows の実記録を別に保つ。
+scripts/record_windows_end_of_line_tokens.py text eol=lf
+tests/fixtures/end_of_line_tokens.json text eol=lf
+tests/fixtures/end_of_line_tokens.json.PROVENANCE text eol=lf
+tests/fixtures/end_of_line_tokens_windows.json text eol=lf
+tests/fixtures/end_of_line_tokens_windows.json.PROVENANCE text eol=lf
