@@ -37,3 +37,10 @@ scripts/record_empty_stdin.py text eol=lf
 scripts/test_record_empty_stdin.py text eol=lf
 tests/empty_stdin.rs text eol=lf
 tests/fixtures/empty_stdin_reports.json text eol=lf
+
+scripts/record_external_options.rb text eol=lf
+scripts/record_shellwords_options.rb text eol=lf
+scripts/test_record_external_options.rb text eol=lf
+tests/external_options.rs text eol=lf
+tests/fixtures/external_options_windows.json text eol=lf
+tests/fixtures/shellwords_options.json text eol=lf

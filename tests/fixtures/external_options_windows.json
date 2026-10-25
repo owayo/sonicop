@@ -1,0 +1,2108 @@
+{
+  "ruby_version": "4.0.7",
+  "rubocop_version": "1.89.0",
+  "platform": "x64-mingw-ucrt",
+  "cases": [
+    {
+      "id": "dotfile-crlf-delimiter",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d61740d0a6a736f6e0d0a2d2d737464696e0d0a6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-crlf-single",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610d0ae697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\n日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-crlf-double",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610d0ae697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\n日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-crlf-escaped",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0d0ae697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a/\n日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-cr-delimiter",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d61740d6a736f6e0d2d2d737464696e0d6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-cr-single",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610de697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-cr-double",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610de697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-cr-escaped",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0de697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-vt-delimiter",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d61740b6a736f6e0b2d2d737464696e0b6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-vt-single",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610be697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-vt-double",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610be697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-vt-escaped",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0be697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-ff-delimiter",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d61740c6a736f6e0c2d2d737464696e0c6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-ff-single",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610ce697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-ff-double",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610ce697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-ff-escaped",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0ce697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-empty-source",
+      "origin": "dotfile",
+      "options_hex": "",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--stdin",
+        "example.rb"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-empty-word",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e202222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-unicode",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022e697a5e69cac20f09f98802e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "日本 😀.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-hash",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20236e616d652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "#name.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-escaped-lf",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0a6e616d652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a/\nname.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-dq-escaped-lf",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022615c0a6e616d652e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\nname.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "dotfile-unmatched",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d617420276a736f6e",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 2,
+      "report": null,
+      "stdout_empty": true,
+      "stderr_empty": false
+    },
+    {
+      "id": "dotfile-nul",
+      "origin": "dotfile",
+      "options_hex": "2d2d666f726d6174206a736f6e002d2d737464696e206578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 2,
+      "report": null,
+      "stdout_empty": true,
+      "stderr_empty": false
+    },
+    {
+      "id": "environment-crlf-delimiter",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d61740d0a6a736f6e0d0a2d2d737464696e0d0a6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-crlf-single",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610d0ae697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r\n日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-crlf-double",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610d0ae697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r\n日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-crlf-escaped",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0d0ae697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 2,
+      "report": null,
+      "stdout_empty": true,
+      "stderr_empty": false
+    },
+    {
+      "id": "environment-cr-delimiter",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d61740d6a736f6e0d2d2d737464696e0d6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-cr-single",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610de697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-cr-double",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610de697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-cr-escaped",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0de697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\r日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-vt-delimiter",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d61740b6a736f6e0b2d2d737464696e0b6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-vt-single",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610be697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-vt-double",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610be697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-vt-escaped",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0be697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\u000b日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-ff-delimiter",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d61740c6a736f6e0c2d2d737464696e0c6578616d706c652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-ff-single",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2027610ce697a5e69cac2e726227",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-ff-double",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022610ce697a5e69cac2e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-ff-escaped",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0ce697a5e69cac2e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\f日本.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-empty-source",
+      "origin": "environment",
+      "options_hex": "",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--stdin",
+        "example.rb"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-empty-word",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e202222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-unicode",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022e697a5e69cac20f09f98802e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "日本 😀.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-hash",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20236e616d652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "#name.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-escaped-lf",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e20615c0a6e616d652e7262",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a/\nname.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-dq-escaped-lf",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d6174206a736f6e202d2d737464696e2022615c0a6e616d652e726222",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "a\nname.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "stdout_empty": false,
+      "stderr_empty": true
+    },
+    {
+      "id": "environment-unmatched",
+      "origin": "environment",
+      "options_hex": "2d2d666f726d617420276a736f6e",
+      "arguments": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "783d310d0a",
+      "exit": 2,
+      "report": null,
+      "stdout_empty": true,
+      "stderr_empty": false
+    }
+  ]
+}
