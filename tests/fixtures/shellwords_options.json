@@ -1,0 +1,402 @@
+{
+  "ruby_version": "4.0.7",
+  "shellwords_version": "0.2.2",
+  "cases": [
+    {
+      "id": "space-delimiter",
+      "source_hex": "612062",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "space-single",
+      "source_hex": "2761206227",
+      "reference": {
+        "words_hex": [
+          "612062"
+        ]
+      }
+    },
+    {
+      "id": "space-double",
+      "source_hex": "2261206222",
+      "reference": {
+        "words_hex": [
+          "612062"
+        ]
+      }
+    },
+    {
+      "id": "space-escaped",
+      "source_hex": "615c2062",
+      "reference": {
+        "words_hex": [
+          "612062"
+        ]
+      }
+    },
+    {
+      "id": "tab-delimiter",
+      "source_hex": "610962",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "tab-single",
+      "source_hex": "2761096227",
+      "reference": {
+        "words_hex": [
+          "610962"
+        ]
+      }
+    },
+    {
+      "id": "tab-double",
+      "source_hex": "2261096222",
+      "reference": {
+        "words_hex": [
+          "610962"
+        ]
+      }
+    },
+    {
+      "id": "tab-escaped",
+      "source_hex": "615c0962",
+      "reference": {
+        "words_hex": [
+          "610962"
+        ]
+      }
+    },
+    {
+      "id": "lf-delimiter",
+      "source_hex": "610a62",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "lf-single",
+      "source_hex": "27610a6227",
+      "reference": {
+        "words_hex": [
+          "610a62"
+        ]
+      }
+    },
+    {
+      "id": "lf-double",
+      "source_hex": "22610a6222",
+      "reference": {
+        "words_hex": [
+          "610a62"
+        ]
+      }
+    },
+    {
+      "id": "lf-escaped",
+      "source_hex": "615c0a62",
+      "reference": {
+        "words_hex": [
+          "615c0a62"
+        ]
+      }
+    },
+    {
+      "id": "crlf-delimiter",
+      "source_hex": "610d0a62",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "crlf-single",
+      "source_hex": "27610d0a6227",
+      "reference": {
+        "words_hex": [
+          "610d0a62"
+        ]
+      }
+    },
+    {
+      "id": "crlf-double",
+      "source_hex": "22610d0a6222",
+      "reference": {
+        "words_hex": [
+          "610d0a62"
+        ]
+      }
+    },
+    {
+      "id": "crlf-escaped",
+      "source_hex": "615c0d0a62",
+      "reference": {
+        "words_hex": [
+          "610d",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "cr-delimiter",
+      "source_hex": "610d62",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "cr-single",
+      "source_hex": "27610d6227",
+      "reference": {
+        "words_hex": [
+          "610d62"
+        ]
+      }
+    },
+    {
+      "id": "cr-double",
+      "source_hex": "22610d6222",
+      "reference": {
+        "words_hex": [
+          "610d62"
+        ]
+      }
+    },
+    {
+      "id": "cr-escaped",
+      "source_hex": "615c0d62",
+      "reference": {
+        "words_hex": [
+          "610d62"
+        ]
+      }
+    },
+    {
+      "id": "vt-delimiter",
+      "source_hex": "610b62",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "vt-single",
+      "source_hex": "27610b6227",
+      "reference": {
+        "words_hex": [
+          "610b62"
+        ]
+      }
+    },
+    {
+      "id": "vt-double",
+      "source_hex": "22610b6222",
+      "reference": {
+        "words_hex": [
+          "610b62"
+        ]
+      }
+    },
+    {
+      "id": "vt-escaped",
+      "source_hex": "615c0b62",
+      "reference": {
+        "words_hex": [
+          "610b62"
+        ]
+      }
+    },
+    {
+      "id": "ff-delimiter",
+      "source_hex": "610c62",
+      "reference": {
+        "words_hex": [
+          "61",
+          "62"
+        ]
+      }
+    },
+    {
+      "id": "ff-single",
+      "source_hex": "27610c6227",
+      "reference": {
+        "words_hex": [
+          "610c62"
+        ]
+      }
+    },
+    {
+      "id": "ff-double",
+      "source_hex": "22610c6222",
+      "reference": {
+        "words_hex": [
+          "610c62"
+        ]
+      }
+    },
+    {
+      "id": "ff-escaped",
+      "source_hex": "615c0c62",
+      "reference": {
+        "words_hex": [
+          "610c62"
+        ]
+      }
+    },
+    {
+      "id": "nbsp-delimiter",
+      "source_hex": "61c2a062",
+      "reference": {
+        "words_hex": [
+          "61c2a062"
+        ]
+      }
+    },
+    {
+      "id": "nbsp-single",
+      "source_hex": "2761c2a06227",
+      "reference": {
+        "words_hex": [
+          "61c2a062"
+        ]
+      }
+    },
+    {
+      "id": "nbsp-double",
+      "source_hex": "2261c2a06222",
+      "reference": {
+        "words_hex": [
+          "61c2a062"
+        ]
+      }
+    },
+    {
+      "id": "nbsp-escaped",
+      "source_hex": "615cc2a062",
+      "reference": {
+        "words_hex": [
+          "61c2a062"
+        ]
+      }
+    },
+    {
+      "id": "hash",
+      "source_hex": "2376616c7565206e657874",
+      "reference": {
+        "words_hex": [
+          "2376616c7565",
+          "6e657874"
+        ]
+      }
+    },
+    {
+      "id": "embedded-hash",
+      "source_hex": "612376616c7565206e657874",
+      "reference": {
+        "words_hex": [
+          "612376616c7565",
+          "6e657874"
+        ]
+      }
+    },
+    {
+      "id": "single-empty",
+      "source_hex": "2727",
+      "reference": {
+        "words_hex": [
+          ""
+        ]
+      }
+    },
+    {
+      "id": "double-empty",
+      "source_hex": "2222",
+      "reference": {
+        "words_hex": [
+          ""
+        ]
+      }
+    },
+    {
+      "id": "adjacent-empty",
+      "source_hex": "61272762",
+      "reference": {
+        "words_hex": [
+          "6162"
+        ]
+      }
+    },
+    {
+      "id": "terminal-backslash",
+      "source_hex": "615c",
+      "reference": {
+        "words_hex": [
+          "615c"
+        ]
+      }
+    },
+    {
+      "id": "dq-slash-lf",
+      "source_hex": "22615c0a6222",
+      "reference": {
+        "words_hex": [
+          "610a62"
+        ]
+      }
+    },
+    {
+      "id": "uq-slash-lf",
+      "source_hex": "615c0a62",
+      "reference": {
+        "words_hex": [
+          "615c0a62"
+        ]
+      }
+    },
+    {
+      "id": "nul",
+      "source_hex": "610062",
+      "reference": {
+        "error_class": "ArgumentError",
+        "error": "Nul character at 1: ...\u0000"
+      }
+    },
+    {
+      "id": "unmatched",
+      "source_hex": "2761",
+      "reference": {
+        "error_class": "ArgumentError",
+        "error": "Unmatched quote at 0: '"
+      }
+    },
+    {
+      "id": "unicode",
+      "source_hex": "e697a5e69cac2022e7a9ba20e799bdf09f988022",
+      "reference": {
+        "words_hex": [
+          "e697a5e69cac",
+          "e7a9ba20e799bdf09f9880"
+        ]
+      }
+    }
+  ]
+}

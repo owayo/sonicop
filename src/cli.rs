@@ -348,8 +348,11 @@ fn composed_arguments() -> Result<Vec<String>> {
     if dotfile.is_file() {
         let contents = fs::read_to_string(&dotfile)
             .with_context(|| format!("failed to read {}", dotfile.display()))?;
+        // ArgumentsFile の File.read は Windows の text mode で、引用内の CRLF も LF にする。
+        #[cfg(windows)]
+        let contents = contents.replace("\r\n", "\n");
         arguments.extend(
-            shell_words::split(&contents)
+            split_external_arguments(&contents)
                 .with_context(|| format!("failed to parse {}", dotfile.display()))?,
         );
     }
@@ -357,7 +360,8 @@ fn composed_arguments() -> Result<Vec<String>> {
         let options = options
             .into_string()
             .map_err(|_| anyhow::anyhow!("RUBOCOP_OPTS is not valid UTF-8"))?;
-        arguments.extend(shell_words::split(&options).context("failed to parse RUBOCOP_OPTS")?);
+        arguments
+            .extend(split_external_arguments(&options).context("failed to parse RUBOCOP_OPTS")?);
     }
     for (index, argument) in command_line.enumerate() {
         arguments.push(argument.into_string().map_err(|_| {
@@ -365,6 +369,45 @@ fn composed_arguments() -> Result<Vec<String>> {
         })?);
     }
     Ok(arguments)
+}
+
+/// Ruby Shellwords 0.2.2 の実出力に合わせ、POSIX crate の空白・コメント・継続行を補う。
+fn split_external_arguments(source: &str) -> Result<Vec<String>> {
+    if source.contains('\0') {
+        bail!("NUL character");
+    }
+    let mut input = String::with_capacity(source.len());
+    let mut quote = None;
+    let mut characters = source.chars();
+    while let Some(character) = characters.next() {
+        match (quote, character) {
+            (Some('\''), '\'') | (Some('"'), '"') => {
+                quote = None;
+                input.push(character);
+            }
+            (None, '\'' | '"') => {
+                quote = Some(character);
+                input.push(character);
+            }
+            (Some('\''), _) => input.push(character),
+            (_, '\\') => match characters.next() {
+                // Ruby の esc.gsub は LF を消さず、DQ の gsub は backslash だけを消す。
+                Some('\n') if quote.is_none() => input.push_str("'\\\n'"),
+                Some('\n') => input.push('\n'),
+                next => {
+                    input.push('\\');
+                    if let Some(next) = next {
+                        input.push(next);
+                    }
+                }
+            },
+            (None, '\r' | '\u{b}' | '\u{c}') => input.push(' '),
+            // Ruby は # をコメントとして扱わないが、crate は単語の先頭で捨てる。
+            (None, '#') => input.push_str("\\#"),
+            _ => input.push(character),
+        }
+    }
+    Ok(shell_words::split(&input)?)
 }
 
 fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
@@ -1392,5 +1435,36 @@ mod tests {
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn external_arguments_match_recorded_ruby_shellwords() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/shellwords_options.json"))
+                .unwrap();
+        let decode = |hex: &str| {
+            (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect::<Vec<_>>()
+        };
+        let cases = fixture["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 43);
+        for case in cases {
+            let source = String::from_utf8(decode(case["source_hex"].as_str().unwrap())).unwrap();
+            let found = super::split_external_arguments(&source);
+            if case["reference"]["error_class"].is_string() {
+                assert!(found.is_err(), "{}", case["id"]);
+            } else {
+                let expected: Vec<_> = case["reference"]["words_hex"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|word| decode(word.as_str().unwrap()))
+                    .collect();
+                let actual: Vec<_> = found.unwrap().into_iter().map(String::into_bytes).collect();
+                assert_eq!(actual, expected, "{}", case["id"]);
+            }
+        }
     }
 }
