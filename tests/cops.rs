@@ -175,6 +175,115 @@ mod layout {
             .run();
     }
 
+    fn end_of_line_case(
+        style: &str,
+        source: &str,
+        message: &str,
+        expected: Option<(usize, usize, usize, usize, usize)>,
+    ) {
+        let locations: Vec<_> = expected
+            .iter()
+            .map(|(line, column, last_line, last_column, _)| {
+                (*line, *column, *last_line, *last_column)
+            })
+            .collect();
+        let lengths: Vec<_> = expected
+            .iter()
+            .map(|(_, _, _, _, length)| *length)
+            .collect();
+        let report = CopCase::new("Layout/EndOfLine", source, Vec::new())
+            .config(&format!("Layout/EndOfLine:\n  EnforcedStyle: {style}\n"))
+            .without_offense_check()
+            .locations(&locations)
+            .lengths(&lengths)
+            .corrected_verbatim(source)
+            .run();
+        let messages: Vec<_> = report
+            .offenses
+            .iter()
+            .map(|offense| offense.message.as_str())
+            .collect();
+        let expected_messages: Vec<_> = expected.iter().map(|_| message).collect();
+        assert_eq!(messages, expected_messages, "{style}: {source:?}");
+        for offense in &report.offenses {
+            assert_eq!(offense.cop_name, "Layout/EndOfLine");
+            assert_eq!(offense.severity, Severity::Convention);
+            assert!(!offense.is_correctable());
+            assert!(!offense.corrected);
+        }
+    }
+
+    /// 本家 1.89.0 の実 CLI は、終端改行なしの例外を明示 crlf にだけ適用する。
+    /// 明示した lf/crlf は OS に依存せず、混在改行でも最初の違反だけを報告する。
+    #[test]
+    fn end_of_line_explicit_styles_keep_their_eof_rules() {
+        for (source, lf, crlf) in [
+            ("x = 1", None, None),
+            ("x = 1\n", None, Some((1, 1, 2, 1, 6))),
+            ("x = 1\r\n", Some((1, 1, 2, 1, 7)), None),
+            (
+                "x = 1\r\ny = 2\n",
+                Some((1, 1, 2, 1, 7)),
+                Some((2, 1, 3, 1, 6)),
+            ),
+            ("", None, None),
+            ("\n", None, Some((1, 1, 2, 1, 1))),
+            ("\r\n", Some((1, 1, 2, 1, 2)), None),
+        ] {
+            for (style, message, expected) in [
+                ("lf", "Carriage return character detected.", lf),
+                ("crlf", "Carriage return character missing.", crlf),
+            ] {
+                end_of_line_case(style, source, message, expected);
+            }
+        }
+    }
+
+    /// native は Windows で CRLF を要求するが、明示 crlf の EOF 例外は継承しない。
+    /// 空の入力や CRLF の後ろの仮想行を、新たな違反にしてはいけない。
+    #[cfg(windows)]
+    #[test]
+    fn end_of_line_native_on_windows_reports_the_unterminated_line() {
+        for (source, expected) in [
+            ("x = 1", Some((1, 1, 1, 5, 5))),
+            ("x = 1\n", Some((1, 1, 2, 1, 6))),
+            ("x = 1\r\n", None),
+            ("x = 1\r\ny = 2\n", Some((2, 1, 3, 1, 6))),
+            ("", None),
+            ("\n", Some((1, 1, 2, 1, 1))),
+            ("\r\n", None),
+        ] {
+            end_of_line_case(
+                "native",
+                source,
+                "Carriage return character missing.",
+                expected,
+            );
+        }
+    }
+
+    /// 本家の Platform.windows? を偽にした記録でも、native は lf と同じ診断になる。
+    #[cfg(not(windows))]
+    #[test]
+    fn end_of_line_native_outside_windows_keeps_lf_semantics() {
+        for (source, expected) in [
+            ("x = 1", None),
+            ("x = 1\n", None),
+            ("x = 1\r\n", Some((1, 1, 2, 1, 7))),
+            ("x = 1\r\ny = 2\n", Some((1, 1, 2, 1, 7))),
+            ("", None),
+            ("\n", None),
+            ("\r\n", Some((1, 1, 2, 1, 2))),
+        ] {
+            end_of_line_case(
+                "native",
+                source,
+                "Carriage return character detected.",
+                expected,
+            );
+        }
+    }
+
     #[test]
     fn line_length() {
         CopCase::annotated(

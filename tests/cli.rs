@@ -5687,6 +5687,10 @@ fn nul_truncated_tokens_bound_the_semicolon_scan() {
 fn logical_last_tokens_limit_the_line_ending_inspection() {
     let records: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/end_of_line_tokens.json")).unwrap();
+    let windows_records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/end_of_line_tokens_windows.json")).unwrap();
+    let windows_groups = windows_records["groups"].as_array().unwrap();
+    assert_eq!(windows_groups.len(), 2);
     let groups = records["groups"].as_array().unwrap();
     assert_eq!(groups.len(), 6);
     let decode = |hex: &str| {
@@ -5696,13 +5700,11 @@ fn logical_last_tokens_limit_the_line_ending_inspection() {
             .collect::<Vec<_>>()
     };
     for group in groups {
-        // 本家のnativeもWindowsではcrlf分岐へ入るため、同じ明示設定の実測値を使う。
+        // native には明示 crlf の EOF 例外がないため、Windows 実 CLI の別記録を使う。
         let expected = if cfg!(windows) && group["style"] == "native" {
-            groups
+            windows_groups
                 .iter()
-                .find(|candidate| {
-                    candidate["engine"] == group["engine"] && candidate["style"] == "crlf"
-                })
+                .find(|candidate| candidate["engine"] == group["engine"])
                 .unwrap()
         } else {
             group

@@ -3,8 +3,8 @@ RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI 記録。
 92 入力を TargetRubyVersion 2.7 / parser_whitequark と 3.4 / parser_prism、
 EnforcedStyle lf / crlf / native、検査 / -a / -A で測定した。
 全モードの診断全項目・終了値が同じであり、実ファイルの全 bytes が原本のままであることを確認し、
-重複する期待値は各設定 1 組に集約している。Windows の native は本家と同じ crlf 分岐を使うため、
-CLI 回帰では明示 crlf の実測期待値を参照する。
+重複する期待値は各設定 1 組に集約している。Windows の native は明示 crlf と EOF の
+例外条件が異なるため、CLI 回帰では end_of_line_tokens_windows.json の独立実測を参照する。
 
 末尾 comment、空行、複数行 comment、空文、継続改行、heredoc、__END__、NUL、SOH、
 Unicode、改行なし EOF を LF / CRLF / mixed と組み合わせる。

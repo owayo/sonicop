@@ -1,0 +1,21 @@
+# Windows native EndOfLine oracle provenance
+
+Specification: RuboCop 1.89.0; actual Ruby 4.0.7, parser 3.3.12.0, Prism 1.8.1, Windows x64 UCRT.
+Input: tests/fixtures/end_of_line_tokens.json, SHA256 a841c1ea91ac8a50a91e1e1884af3be12b16e4030d54137f05b07223279446bd.
+Use the existing case hex bytes, each native group's exact configuration, and its explicit ordered file list.
+Whitequark/Ruby2.7:90 files; Prism/Ruby3.4:92 files. All182 remain included in the supplement.
+
+Command: ruby <RuboCop1.89.0-pinned-launcher.rb> --config .rubocop.yml --cache false --only Layout/EndOfLine --format json [MODE] <ordered-explicit-files>
+MODE is absent, -a, or -A. Each mode ran twice for each engine:12 successful reference CLI completions.
+Full JSON files/ordering/counts, stderr, exit status, and all input bytes were checked for every invocation.
+The emitted fixture stores the actual first reference report; all six reference reports per engine are identical.
+Neither Sonicop reports nor native=crlf formulas define the expected files/offenses.
+
+The separate candidate control found the Prism/native EOF block-comment boundary in issue121.
+That input remains in the reference fixture; the shared token-line fix was merged separately.
+The native EOF rule in issue96 is retained; no native=explicit-crlf alias is introduced.
+
+Regenerate with the pinned Windows Ruby and gems:
+  python scripts/record_windows_end_of_line_tokens.py tests/fixtures/end_of_line_tokens_windows.json --ruby <ruby-4.0.7.exe>
+The collector clears the four Ruby/RuboCop option variables in a child environment copy.
+It keeps all182 inputs and compares complete reports and original bytes in all12 reference runs.

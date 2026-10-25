@@ -1,0 +1,2688 @@
+{
+  "reference": "Actual RuboCop 1.89.0 / Ruby 4.0.7 / parser3.3.12.0 / Prism1.8.1 / Windows x64 UCRT CLI",
+  "source_fixture": "tests/fixtures/end_of_line_tokens.json",
+  "source_fixture_sha256": "a841c1ea91ac8a50a91e1e1884af3be12b16e4030d54137f05b07223279446bd",
+  "scope": "Windows native only; explicit lf/crlf and non-Windows native retain existing independently recorded groups",
+  "reference_modes": [
+    "inspect",
+    "-a",
+    "-A"
+  ],
+  "repeats_per_mode": 2,
+  "all_mode_repeat_reports_identical": true,
+  "all_input_bytes_unchanged": true,
+  "groups": [
+    {
+      "engine": "parser_whitequark",
+      "style": "native",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\nLayout/EndOfLine:\n  EnforcedStyle: native\n",
+      "exit": 1,
+      "metadata": {
+        "rubocop_version": "1.89.0",
+        "ruby_engine": "ruby",
+        "ruby_version": "4.0.7",
+        "ruby_patchlevel": "0",
+        "ruby_platform": "x64-mingw-ucrt"
+      },
+      "files": [
+        {
+          "path": "block_comment_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "block_comment_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 7,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_blank-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_blank-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_blank_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_blank_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_block_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_block_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_eof-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 3,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_eof-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 3,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_line-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_line-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_tail-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_tail-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 12,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_soh_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_soh_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comment_eof-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 6,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comment_eof-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 6,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comments_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "comments_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 8,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "continued_backslash_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "continued_backslash_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "continued_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "continued_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "empty-lf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_comment_space-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_then_line-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 5,
+                "start_column": 1,
+                "last_line": 5,
+                "last_column": 6,
+                "length": 6,
+                "line": 5,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_then_line-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_code_nul-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_code_nul-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 12,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_continued_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 6,
+                "length": 6,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_continued_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_embedded_comment_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_embedded_comment_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 7,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 4,
+                "start_column": 1,
+                "last_line": 4,
+                "last_column": 6,
+                "length": 6,
+                "line": 4,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment_cr-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 4,
+                "start_column": 1,
+                "last_line": 4,
+                "last_column": 7,
+                "length": 7,
+                "line": 4,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment_cr-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_blank_space-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_blank_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 6,
+                "length": 6,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment_cr-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 7,
+                "length": 7,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment_cr-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_then_block-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_then_block-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_trailing_space-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 8,
+                "length": 8,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_trailing_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_multi_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 1,
+                "last_line": 3,
+                "last_column": 6,
+                "length": 6,
+                "line": 3,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_multi_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_nul_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 8,
+                "length": 8,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_nul_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_semicolon_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 6,
+                "length": 6,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_soh_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 8,
+                "length": 8,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_soh_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "heredoc_chain_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "heredoc_chain_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "heredoc_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "heredoc_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_crlf_blank.rb",
+          "offenses": []
+        },
+        {
+          "path": "mixed_crlf_code.rb",
+          "offenses": []
+        },
+        {
+          "path": "mixed_heredoc.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_lf_blank.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_lf_code.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_marker.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "nul_code_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "nul_code_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "nul_comment_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "nul_comment_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "only_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 8,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_nul-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_nul-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_semicolon_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "only_semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 2,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "semicolon_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "unicode_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 59,
+        "target_file_count": 90,
+        "inspected_file_count": 90
+      }
+    },
+    {
+      "engine": "parser_prism",
+      "style": "native",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\nLayout/EndOfLine:\n  EnforcedStyle: native\n",
+      "exit": 1,
+      "metadata": {
+        "rubocop_version": "1.89.0",
+        "ruby_engine": "ruby",
+        "ruby_version": "4.0.7",
+        "ruby_patchlevel": "0",
+        "ruby_platform": "x64-mingw-ucrt"
+      },
+      "files": [
+        {
+          "path": "block_comment_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "block_comment_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 7,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_blank-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_blank-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_blank_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_blank_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_block_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_block_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_eof-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 3,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_eof-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 3,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_line-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_line-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_nul_tail-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_nul_tail-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 12,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "code_soh_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "code_soh_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comment_eof-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 6,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comment_eof-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 6,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "comments_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "comments_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 8,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "continued_backslash_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "continued_backslash_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "continued_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "continued_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "empty-lf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_comment_space-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_block_comment_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_then_line-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 5,
+                "start_column": 1,
+                "last_line": 5,
+                "last_column": 6,
+                "length": 6,
+                "line": 5,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_block_then_line-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_code_nul-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_code_nul-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 12,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_continued_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 6,
+                "length": 6,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_continued_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_embedded_comment_only-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_embedded_comment_only-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 7,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_heredoc_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_heredoc_comment_cr-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_heredoc_comment_cr-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 6,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_blank_space-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_blank_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_comment_cr-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_comment_cr-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_then_block-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_then_block-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_line_trailing_space-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_line_trailing_space-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_multi_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_multi_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_nul_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_nul_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_semicolon_comment-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 6,
+                "length": 6,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "eof_soh_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "eof_soh_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "heredoc_chain_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "heredoc_chain_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "heredoc_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "heredoc_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_crlf_blank.rb",
+          "offenses": []
+        },
+        {
+          "path": "mixed_crlf_code.rb",
+          "offenses": []
+        },
+        {
+          "path": "mixed_heredoc.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 13,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_lf_blank.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_lf_code.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "mixed_marker.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "nul_code_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "nul_code_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "nul_comment_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "nul_comment_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_marker-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "only_marker-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 8,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_nul-crlf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_nul-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "only_semicolon_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "only_semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 2,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "semicolon_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "semicolon_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 5,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "soh_code-crlf.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid char '\\x01' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "soh_code-lf.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid char '\\x01' in expression\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_comment-crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "unicode_comment-lf.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Carriage return character missing.",
+              "cop_name": "Layout/EndOfLine",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 4,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 53,
+        "target_file_count": 92,
+        "inspected_file_count": 92
+      }
+    }
+  ]
+}
