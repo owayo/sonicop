@@ -5174,6 +5174,110 @@ fn assert_recorded_parser_reports(fixture: &str, only: &str) {
     }
 }
 
+/// parser 構成回帰。Windows 本家の改行変換と元形式保持で診断が変わる EndOfLine だけを
+/// 両者で無効にし、残る既定 cop の全診断と実際の補正バイトを本家と照合する。
+#[test]
+fn percent_after_a_string_matches_upstream_without_end_of_line_cop() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/string_percent_reports.json")).unwrap();
+    assert_eq!(
+        fixture["excluded_cops"],
+        serde_json::json!(["Layout/EndOfLine"])
+    );
+    let groups = fixture["groups"].as_array().unwrap();
+    assert_eq!(groups.len(), 12);
+    for group in groups {
+        let directory = project_without_pinned_ruby(&[]);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            group["yaml"].as_str().unwrap(),
+        )
+        .unwrap();
+        let cases = group["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 6);
+        for case in cases {
+            fs::write(
+                directory.path().join(case["filename"].as_str().unwrap()),
+                case["source"].as_str().unwrap().as_bytes(),
+            )
+            .unwrap();
+        }
+        let mut run = command(directory.path());
+        run.args([
+            "--config",
+            ".rubocop.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+        ]);
+        if let Some(mode) = group["mode"].as_str() {
+            run.arg(mode);
+        }
+        let output = run.arg(".").output().unwrap();
+        assert_eq!(
+            output.status.code(),
+            group["exit"].as_i64().map(|exit| exit as i32),
+            "{} / {:?} / {}: {}",
+            group["target"],
+            group["ending"],
+            group["mode"],
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let mut report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        report.as_object_mut().unwrap().remove("metadata");
+        assert_eq!(
+            report, group["report"],
+            "{} / {:?} / {}",
+            group["target"], group["ending"], group["mode"]
+        );
+        for case in cases {
+            // Windows 本家の改行変換だけを既存の保持方針へ戻し、その他の実バイトは変えない。
+            let expected = case["after"]
+                .as_str()
+                .unwrap()
+                .replace("\r\n", "\n")
+                .replace('\n', group["ending"].as_str().unwrap());
+            assert_eq!(
+                fs::read(directory.path().join(case["filename"].as_str().unwrap())).unwrap(),
+                expected.as_bytes(),
+                "{} / {} / {:?} / {}",
+                case["name"],
+                group["target"],
+                group["ending"],
+                group["mode"]
+            );
+        }
+        if group["mode"] == "-A" {
+            let before: Vec<_> = cases
+                .iter()
+                .map(|case| {
+                    fs::read(directory.path().join(case["filename"].as_str().unwrap())).unwrap()
+                })
+                .collect();
+            let repeated = command(directory.path())
+                .args(["--config", ".rubocop.yml", "--cache", "false", "-A", "."])
+                .output()
+                .unwrap();
+            assert!(
+                matches!(repeated.status.code(), Some(0 | 1)),
+                "{}",
+                String::from_utf8_lossy(&repeated.stderr)
+            );
+            for (case, expected) in cases.iter().zip(before) {
+                assert_eq!(
+                    fs::read(directory.path().join(case["filename"].as_str().unwrap())).unwrap(),
+                    expected,
+                    "二度目の -A: {} / {} / {:?}",
+                    case["name"],
+                    group["target"],
+                    group["ending"]
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn local_ternary_reports_and_corrections_match_recorded_upstream() {
     assert_recorded_parser_reports(

@@ -478,6 +478,24 @@ mod layout {
         expect_correction("Layout/SpaceAroundOperators", "1+2\n", "1 + 2\n");
     }
 
+    /// `%` を後続の文字列と誤認すると配列内の `+` も見えなくなる。本家の send の位置を確認する。
+    #[test]
+    fn space_around_operators_after_a_string_literal() {
+        const COP: &str = "Layout/SpaceAroundOperators";
+        CopCase::new(
+            COP,
+            "puts \"%3d %s\"%[l+1, line]\n",
+            vec![
+                Annotation::new(1, 14, 1, "Surrounding space missing for operator `%`."),
+                Annotation::new(1, 17, 1, "Surrounding space missing for operator `+`."),
+            ],
+        )
+        .corrected("puts \"%3d %s\" % [l + 1, line]\n")
+        .run();
+        expect_no_offenses(COP, "puts %q(a) \"b\"\n");
+        expect_no_offenses(COP, "puts \"%[l+1, line]\"\n");
+    }
+
     #[test]
     fn space_inside_parens() {
         expect_offense(
