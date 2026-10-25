@@ -3007,3 +3007,20 @@ splat_block_value_preservation_divergences:
       original_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
       reference_runtime_stdout_sha256: 303fe8237c8c9a91afffb7a7a0e98e7b3fbbde90279f6285bf3297e9184a8e7a
       candidate_runtime_stdout_sha256: e8b29b1cc39ea5245154d083308512ceb72382a46c1f3c22f392edc1a89afee4
+
+non_unicode_cli_arguments:
+  issue: 100
+  fixture: tests/fixtures/non_unicode_cli_arguments.json
+  measured_platforms: [windows]
+  unmeasured_reference_platforms: [unix]
+  regression: tests/cli_arguments.rs
+  counts_as_compatibility_match: false
+  complete_os_path_support: false
+  reason: >-
+    既存の String CLI が表せない OS 引数を、panic ではなく明示したエラーと終了 2 で拒否する。
+    Windows Ruby 4.0.7 は単独 surrogate を U+FFFD に置換してから RuboCop 1.89.0 へ渡す。
+    置換名が無ければ終了 2、別ファイルがあれば検査・補正してしまい、argv0 の置換後は通常処理を続ける。
+    Sonicop は別ファイルへ書かないため置換せず拒否し、元と U+FFFD 名の両方のバイトを保持する。
+    非 Unicode パスの完全サポートや本家との通常互換一致へ数えない。
+    Windows の 15 条件と Unicode・先行 valid 等を含む 37 実行を独立 Codex レビューで再確認した。
+    Unix の本家実測、通常の CRLF オプションファイル、通常の JSON message 差は対象に含めない。

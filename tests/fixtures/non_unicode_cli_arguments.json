@@ -1,0 +1,906 @@
+{
+  "issue": 100,
+  "measured_platform": "windows",
+  "reference": {
+    "rubocop": "1.89.0",
+    "ruby": "4.0.7",
+    "parser": "3.3.12.0"
+  },
+  "unix_reference": "not measured; cfg(unix) regression configures invalid UTF-8 bytes and argv0, but was not run on Windows",
+  "unmeasured_reference_platforms": [
+    "unix"
+  ],
+  "cases": [
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "inspect",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: <CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 9 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "safe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: <CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "unsafe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: <CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": true,
+      "mode": "inspect",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 1,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "path-ordinary-True-inspect/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 9 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": true,
+      "mode": "safe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "path-ordinary-True-safe/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "79203d20320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "ordinary",
+      "replacement_present": true,
+      "mode": "unsafe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "path-ordinary-True-unsafe/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "79203d20320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": false,
+      "mode": "inspect",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: //?/<CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 9 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": false,
+      "mode": "safe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: //?/<CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": false,
+      "mode": "unsafe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 2,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        },
+        "stderr": "Error: No such file or directory: //?/<CASE>/raw-\ufffd.rb\r\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": true,
+      "mode": "inspect",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 1,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "//?/<CASE>/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 9 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": true,
+      "mode": "safe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "//?/<CASE>/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "79203d20320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "path",
+      "spelling": "extended",
+      "replacement_present": true,
+      "mode": "unsafe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        114,
+        98
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": "793d320d0a",
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "//?/<CASE>/raw-\ufffd.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "79203d20320d0a"
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 10 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": "793d320d0a"
+      }
+    },
+    {
+      "location": "argv0",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "inspect",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        101,
+        120,
+        101
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 1,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "argv0-ordinary-False-inspect/valid.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 0 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "argv0",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "safe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        101,
+        120,
+        101
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "argv0-ordinary-False-safe/valid.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "78203d20310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 0 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    },
+    {
+      "location": "argv0",
+      "spelling": "ordinary",
+      "replacement_present": false,
+      "mode": "unsafe",
+      "argument_filename_utf16_code_units": [
+        114,
+        97,
+        119,
+        45,
+        55296,
+        46,
+        101,
+        120,
+        101
+      ],
+      "raw_before_hex": "783d310d0a",
+      "replacement_before_hex": null,
+      "reference": {
+        "exit": 0,
+        "stdout": {
+          "metadata": {
+            "rubocop_version": "1.89.0",
+            "ruby_engine": "ruby",
+            "ruby_version": "4.0.7",
+            "ruby_patchlevel": "0",
+            "ruby_platform": "x64-mingw-ucrt"
+          },
+          "files": [
+            {
+              "path": "argv0-ordinary-False-unsafe/valid.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "stderr": "",
+        "raw_after_hex": "78203d20310d0a",
+        "replacement_after_hex": null
+      },
+      "sonicop": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "Error: command-line argument 0 is not valid Unicode\n",
+        "raw_after_hex": "783d310d0a",
+        "replacement_after_hex": null
+      }
+    }
+  ]
+}

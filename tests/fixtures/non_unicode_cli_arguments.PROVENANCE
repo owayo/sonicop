@@ -1,0 +1,20 @@
+tests/fixtures/non_unicode_cli_arguments.json の出所
+
+RuboCop 1.89.0 / parser 3.3.12.0 / Windows Ruby 4.0.7 の実 CLI を参照した。
+Windows の通常・拡張パス、U+FFFD 別名の有無、inspect / -a / -A、および argv0 の計 15 条件。
+独立 Codex レビューは、この 15 条件と通常 Unicode・先行 valid 等を含む 37 実行を再確認した。
+Unix の参照は未実測。Unix 用の回帰を記述したことを本家実測として数えない。
+
+再生成例（Windows、固定版の gem を導入した Ruby を指定）:
+  python scripts/record_non_unicode_cli_arguments.py --ruby ruby --sonicop target/debug/sonicop.exe --output tmp/non_unicode_cli_arguments.json
+
+reference は実 Ruby CLI の出力・実ファイルの補正バイトから得る。
+sonicop は承認済みの拒否契約（終了 2、空 stdout、引数番号付きエラー、両名の原本保持）であり、
+指定した候補バイナリはその契約を検証するだけで、期待値の取得元にはしない。
+動的な絶対パスは <CASE> に置き換え、相対 case 名と拡張形式の //?/ は残す。
+単独 surrogate は JSON 文字列にせず UTF-16 整数配列にする。
+設定・JSON・生成元のコンテナは LF 固定、Ruby 原本と別名の本文は hex で明示した CRLF。
+候補エラーの末尾 LF / CRLF はこの差の対象外で、再検証ではその改行だけを比較時に外す。
+
+この記録は非 Unicode パスの完全サポートや通常の互換一致へ加算しない。
+通常の CRLF .rubocop や JSON message の注釈差を覆う記録ではない。

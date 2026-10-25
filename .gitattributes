@@ -24,3 +24,10 @@ tests/fixtures/windows_corrections.json text eol=lf
 tests/fixtures/windows_corrections.json.PROVENANCE text eol=lf
 tests/fixtures/windows_native_cli_expectations.json text eol=lf
 tests/fixtures/windows_native_cli_expectations.json.PROVENANCE text eol=lf
+
+# 非Unicode引数の記録コンテナと生成元をLFで保ち、原本hexを変換しない。
+scripts/record_non_unicode_cli_arguments.py text eol=lf
+scripts/test_record_non_unicode_cli_arguments.py text eol=lf
+tests/fixtures/non_unicode_cli_arguments.json text eol=lf
+tests/fixtures/non_unicode_cli_arguments.PROVENANCE text eol=lf
+tests/cli_arguments.rs text eol=lf
