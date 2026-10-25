@@ -1,0 +1,1832 @@
+{
+  "reference": "RuboCop 1.89.0 / parser 3.3.12.0 / Prism 1.8.1; actual CLI",
+  "text_normalization": "report CRLF -> LF; cwd and JUnit classname placeholders; corrected bytes stay exact",
+  "separate_formatter_audits": [
+    "fuubar",
+    "autogenconf",
+    "pacman"
+  ],
+  "cases": [
+    {
+      "name": "empty-long-crlf",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-equals-crlf",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin="
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-short-crlf",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-s",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-lf",
+      "input_hex": "783d310a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-eof",
+      "input_hex": "",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-without-final-newline",
+      "input_hex": "783d31",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "empty-unicode",
+      "input_hex": "e381823d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "named",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "named-unicode",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "あ💎.rb"
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "あ💎.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "default-cops-named",
+      "input_hex": "7075747320312b320d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "example.rb"
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Missing frozen string literal comment.",
+                "cop_name": "Style/FrozenStringLiteralComment",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `+`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 1,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "cwd-config",
+      "input_hex": "7075747320322a2a330d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: space\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: no_space\n"
+      },
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "nested-config",
+      "input_hex": "7075747320322a2a330d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "nested/example.rb"
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: space\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: no_space\n"
+      },
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "nested/example.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "explicit-config",
+      "input_hex": "7075747320322a2a330d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "nested/.rubocop.yml",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: space\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: no_space\n"
+      },
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "named-root-config",
+      "input_hex": "7075747320322a2a330d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: space\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  EnforcedStyleForExponentOperator: no_space\n"
+      },
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 7,
+                  "last_line": 1,
+                  "last_column": 8,
+                  "length": 2,
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "discovered-target-2.7",
+      "input_hex": "64656620666f6f203d20310d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n"
+      },
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tEQL\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 9,
+                  "last_line": 1,
+                  "last_column": 9,
+                  "length": 1,
+                  "line": 1,
+                  "column": 9
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "explicit-target-2.7",
+      "input_hex": "64656620666f6f203d20310d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--config",
+        ".rubocop.yml",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n"
+      },
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tEQL\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 9,
+                  "last_line": 1,
+                  "last_column": 9,
+                  "length": 1,
+                  "line": 1,
+                  "column": 9
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "discovered-target-3.4",
+      "input_hex": "64656620666f6f203d20310d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n"
+      },
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "unexpected token tEQL\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 9,
+                  "last_line": 1,
+                  "last_column": 9,
+                  "length": 1,
+                  "line": 1,
+                  "column": 9
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "explicit-target-3.4",
+      "input_hex": "64656620666f6f203d20310d0a",
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--config",
+        ".rubocop.yml",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 3.4\n"
+      },
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "correct-safe",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "format": "simple",
+      "files": {},
+      "exit": 0,
+      "text": "==  ==\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense corrected\n",
+      "corrected_hex": "78203d20310d0a",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": null,
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "correct-all",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-A",
+        "--stdin",
+        ""
+      ],
+      "format": "simple",
+      "files": {},
+      "exit": 0,
+      "text": "==  ==\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense corrected\n",
+      "corrected_hex": "78203d20310d0a",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-A",
+        "--stdin",
+        ""
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": null,
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "correct-unicode",
+      "input_hex": "e381823d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "format": "simple",
+      "files": {},
+      "exit": 0,
+      "text": "==  ==\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense corrected\n",
+      "corrected_hex": "e38182203d20310d0a",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": null,
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "correct-eof",
+      "input_hex": "783d31",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "format": "simple",
+      "files": {},
+      "exit": 0,
+      "text": "==  ==\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense corrected\n",
+      "corrected_hex": "78203d2031",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": null,
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "correct-empty",
+      "input_hex": "",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-A",
+        "--stdin",
+        ""
+      ],
+      "format": "simple",
+      "files": {},
+      "exit": 0,
+      "text": "\n1 file inspected, no offenses detected\n",
+      "corrected_hex": "",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-A",
+        "--stdin",
+        ""
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": null,
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "correct-clean",
+      "input_hex": "78203d20310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        ""
+      ],
+      "format": "json",
+      "files": {},
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "named-correction",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        "example.rb"
+      ],
+      "format": "simple",
+      "files": {
+        "example.rb": "original_disk = :kept\r\n"
+      },
+      "exit": 0,
+      "text": "== example.rb ==\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense corrected\n",
+      "corrected_hex": "78203d20310d0a",
+      "rerun_args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stdin",
+        "example.rb"
+      ],
+      "rerun": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": "example.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "missing-stdin",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin"
+      ],
+      "format": "json",
+      "files": {},
+      "missing_value": true,
+      "exit": 2,
+      "stderr": "missing argument: --stdin\nFor usage information, use --help\n"
+    },
+    {
+      "name": "missing-s",
+      "input_hex": "783d310d0a",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-s"
+      ],
+      "format": "json",
+      "files": {},
+      "missing_value": true,
+      "exit": 2,
+      "stderr": "missing argument: -s\nFor usage information, use --help\n"
+    }
+  ],
+  "formats": [
+    {
+      "name": "progress-anonymous",
+      "format": "progress",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "Inspecting 1 file\nC\n\nOffenses:\n\n:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nx=1\n ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "progress-named",
+      "format": "progress",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "Inspecting 1 file\nC\n\nOffenses:\n\nexample.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nx=1\n ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "simple-anonymous",
+      "format": "simple",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "==  ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "simple-named",
+      "format": "simple",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "simple",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "== example.rb ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "clang-anonymous",
+      "format": "clang",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "clang",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": ":1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nx=1\n ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "clang-named",
+      "format": "clang",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "clang",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "example.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nx=1\n ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "emacs-anonymous",
+      "format": "emacs",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "emacs",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<CWD>:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n"
+    },
+    {
+      "name": "emacs-named",
+      "format": "emacs",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "emacs",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<CWD>/example.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n"
+    },
+    {
+      "name": "json-anonymous",
+      "format": "json",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": null,
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "json-named",
+      "format": "json",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "example.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "name": "junit-anonymous",
+      "format": "junit",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "junit",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<?xml version='1.0'?>\n<testsuites>\n  <testsuite name='rubocop' tests='1' failures='1'>\n    <testcase classname='<CWD_CLASS>' name='Bundler/DuplicatedGem'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/DuplicatedGroup'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/GemComment'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/GemFilename'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/GemVersion'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/InsecureProtocolSource'/>\n    <testcase classname='<CWD_CLASS>' name='Bundler/OrderedGems'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/AddRuntimeDependency'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/AttributeAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/DependencyVersion'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/DeprecatedAttributeAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/DevelopmentDependencies'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/DuplicatedAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/OrderedDependencies'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/RequireMFA'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/RequiredRubyVersion'/>\n    <testcase classname='<CWD_CLASS>' name='Gemspec/RubyVersionGlobalsUsage'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/AccessModifierIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ArgumentAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ArrayAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/AssignmentIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/BeginEndAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/BlockAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/BlockEndNewline'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/CaseIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ClassStructure'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ClosingHeredocIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ClosingParenthesisIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/CommentIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ConditionPosition'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/DefEndAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/DotPosition'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ElseAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyComment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLineAfterGuardClause'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLineAfterMagicComment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLineAfterMultilineCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLineBetweenDefs'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAfterModuleInclusion'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundAccessModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundAttributeAccessor'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundBeginBody'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundBlockBody'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundClassBody'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundExceptionHandlingKeywords'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundMethodBody'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLinesAroundModuleBody'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EmptyLines'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EndAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/EndOfLine'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ExtraSpacing'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstArgumentIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstArrayElementIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstArrayElementLineBreak'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstHashElementIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstHashElementLineBreak'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstMethodArgumentLineBreak'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstMethodParameterLineBreak'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/FirstParameterIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/HashAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/HeredocArgumentClosingParenthesis'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/HeredocIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/IndentationConsistency'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/IndentationStyle'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/IndentationWidth'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/InitialIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LeadingCommentSpace'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LeadingEmptyLines'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LineContinuationLeadingSpace'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LineContinuationSpacing'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LineEndStringConcatenationIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/LineLength'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineArrayBraceLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineArrayLineBreaks'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineAssignmentLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineBlockLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineHashBraceLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineHashKeyLineBreaks'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineMethodArgumentLineBreaks'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineMethodCallBraceLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineMethodCallIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineMethodDefinitionBraceLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineMethodParameterLineBreaks'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/MultilineOperationIndentation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/ParameterAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/RedundantLineBreak'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/RescueEnsureAlignment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SingleLineBlockChain'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAfterColon'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAfterComma'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAfterMethodName'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAfterNot'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAfterSemicolon'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAroundBlockParameters'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAroundEqualsInParameterDefault'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAroundKeyword'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAroundMethodCallOperator'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceAroundOperators'>\n      <failure type='Layout/SpaceAroundOperators' message='Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.'>\n        <CWD>:1:2\n      </failure>\n    </testcase>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeBlockBraces'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeBrackets'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeComma'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeComment'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeFirstArg'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceBeforeSemicolon'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInLambdaLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideArrayPercentLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideArrayLiteralBrackets'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideBlockBraces'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideHashLiteralBraces'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideParens'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsidePercentLiteralDelimiters'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideRangeLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideReferenceBrackets'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/SpaceInsideStringInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/TrailingEmptyLines'/>\n    <testcase classname='<CWD_CLASS>' name='Layout/TrailingWhitespace'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousBlockAssociation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousOperator'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousOperatorPrecedence'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousRange'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AmbiguousRegexpLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ArrayLiteralInRegexp'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/AssignmentInCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/BigDecimalNew'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/BinaryOperatorWithIdenticalOperands'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/BooleanSymbol'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/CircularArgumentReference'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ConstantDefinitionInBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ConstantOverwrittenInRescue'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ConstantReassignment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ConstantResolution'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/CopDirectiveSyntax'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DataDefineOverride'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/Debugger'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DeprecatedClassMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DeprecatedConstants'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DeprecatedOpenSSLConstant'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DeprecatedReference'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DisjunctiveAssignmentInConstructor'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateBranch'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateCaseCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateElsifCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateHashKey'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateMagicComment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateMatchPattern'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateRegexpCharacterClassElement'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateRequire'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateRescueException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/DuplicateSetElement'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EachWithObjectArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ElseLayout'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyClass'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyConditionalBody'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyEnsure'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyExpression'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyFile'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyInPattern'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EmptyWhen'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/EnsureReturn'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SharedMutableDefault'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ErbNewArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/FlipFlop'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/FloatComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/FloatOutOfRange'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/FormatParameterMismatch'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/HashCompareByIdentity'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/HashNewWithKeywordArgumentsAsDefault'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/HeredocMethodCallPosition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/IdentityComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ImplicitStringConcatenation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/IncompatibleIoSelectWithFiberScheduler'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/IneffectiveAccessModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/InheritException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/InterpolationCheck'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ItWithoutArgumentsInBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/LambdaWithoutLiteralBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/LiteralAsCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/LiteralAssignmentInCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/LiteralInInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/Loop'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/MissingCopEnableDirective'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/MissingSuper'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/MixedCaseRange'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/MixedRegexpCaptureTypes'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/MultipleComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NameTypo'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NestedMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NestedPercentLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NextWithoutAccumulator'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NoReturnInBeginEndBlocks'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NonAtomicFileOperation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NonDeterministicRequireOrder'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NonLocalExitFromIterator'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NumberConversion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NumberedParameterAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/NumericOperationWithConstantResult'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/OrAssignmentToConstant'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/OrderedMagicComments'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/OutOfRangeRegexpRef'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ParenthesesAsGroupedExpression'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/PercentStringArray'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/PercentSymbolArray'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RaiseException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RandOne'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantCopDisableDirective'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantCopEnableDirective'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantDirGlobSort'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantRegexpQuantifiers'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantRequireStatement'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantSafeNavigation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantSplatExpansion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantStringCoercion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantTypeConversion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantWithIndex'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RedundantWithObject'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RefinementImportMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RegexpAsCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RequireParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RequireRangeParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RequireRelativeSelfPath'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RescueException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/RescueType'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ReturnInVoidContext'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SafeNavigationConsistency'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SafeNavigationChain'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SafeNavigationWithEmpty'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ScriptPermission'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SelfAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SendWithMixinArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ShadowedArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ShadowedException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ShadowingOuterLocalVariable'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/StructNewOverride'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SuppressedException'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SuppressedExceptionInNumberConversion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/SymbolConversion'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/Syntax'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ToEnumArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/ToJSON'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/TopLevelReturnWithArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/TrailingCommaInAttributeDeclaration'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/TripleQuotes'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnderscorePrefixedVariableName'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnescapedBracketInRegexp'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnexpectedBlockArity'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnifiedInteger'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnmodifiedReduceAccumulator'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnreachableCode'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnreachableLoop'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnreachablePatternBranch'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnusedBlockArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnusedMethodArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UnusedPrivateMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UriEscapeUnescape'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UriRegexp'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessAccessModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessConstantScoping'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessDefaultValueArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessDefined'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessElseWithoutRescue'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessNumericOperation'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessOr'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessRescue'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessRuby2Keywords'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessSetterCall'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/UselessTimes'/>\n    <testcase classname='<CWD_CLASS>' name='Lint/Void'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/CyclomaticComplexity'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/AbcSize'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/BlockLength'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/BlockNesting'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/ClassLength'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/CollectionLiteralLength'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/MethodLength'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/ModuleLength'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/ParameterLists'/>\n    <testcase classname='<CWD_CLASS>' name='Metrics/PerceivedComplexity'/>\n    <testcase classname='<CWD_CLASS>' name='Migration/DepartmentName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/AccessorMethodName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/AsciiIdentifiers'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/BlockForwarding'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/BlockParameterName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/ClassAndModuleCamelCase'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/ConstantName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/FileName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/HeredocDelimiterCase'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/HeredocDelimiterNaming'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/InclusiveLanguage'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/MemoizedInstanceVariableName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/MethodName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/MethodParameterName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/BinaryOperatorParameterName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/PredicateMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/PredicatePrefix'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/RescuedExceptionsVariableName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/VariableName'/>\n    <testcase classname='<CWD_CLASS>' name='Naming/VariableNumber'/>\n    <testcase classname='<CWD_CLASS>' name='Security/CompoundHash'/>\n    <testcase classname='<CWD_CLASS>' name='Security/Eval'/>\n    <testcase classname='<CWD_CLASS>' name='Security/IoMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Security/JSONLoad'/>\n    <testcase classname='<CWD_CLASS>' name='Security/MarshalLoad'/>\n    <testcase classname='<CWD_CLASS>' name='Security/Open'/>\n    <testcase classname='<CWD_CLASS>' name='Security/YAMLLoad'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AccessModifierDeclarations'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AccessorGrouping'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Alias'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AmbiguousEndlessMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AndOr'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArgumentsForwarding'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArrayCoercion'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArrayFirstLast'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArrayIntersect'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArrayIntersectWithSingleElement'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ArrayJoin'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AsciiComments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Attr'/>\n    <testcase classname='<CWD_CLASS>' name='Style/AutoResourceCleanup'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BarePercentLiterals'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BeginBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BisectedAttrAccessor'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BitwisePredicate'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BlockComments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/BlockDelimiters'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CaseEquality'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CaseLikeIf'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CharacterLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassAndModuleChildren'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassCheck'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassEqualityComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassMethodsDefinitions'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ClassVars'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CollectionCompact'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CollectionMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CollectionQuerying'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ColonMethodCall'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ColonMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CombinableDefined'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CombinableLoops'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CommandLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CommentAnnotation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/CommentedKeyword'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ComparableBetween'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ComparableClamp'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ConcatArrayLiterals'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ConditionalAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ConstantVisibility'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Copyright'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DataInheritance'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DateTime'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DefWithParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DigChain'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Dir'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DirEmpty'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DisableCopsWithinSourceCodeDirective'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DocumentationMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Documentation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DocumentDynamicEvalDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DoubleCopDisableDirective'/>\n    <testcase classname='<CWD_CLASS>' name='Style/DoubleNegation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EachForSimpleLoop'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EachWithObject'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyBlockParameter'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyCaseCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyClassDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyElse'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyHeredoc'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyLambdaParameter'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EmptyStringInsideInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EndlessMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Encoding'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EndBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EnvHome'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EvalWithLocation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/EvenOdd'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ExactRegexpMatch'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ExpandPathArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ExplicitBlockArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ExponentialNotation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FetchEnvVar'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileEmpty'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileNull'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileOpen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileRead'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileTouch'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FileWrite'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FloatDivision'/>\n    <testcase classname='<CWD_CLASS>' name='Style/For'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FormatString'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FormatStringToken'/>\n    <testcase classname='<CWD_CLASS>' name='Style/FrozenStringLiteralComment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/GlobalStdStream'/>\n    <testcase classname='<CWD_CLASS>' name='Style/GlobalVars'/>\n    <testcase classname='<CWD_CLASS>' name='Style/GuardClause'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashAsLastArrayItem'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashConversion'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashEachMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashExcept'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashFetchChain'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashLikeCase'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashLookupMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashSlice'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashSyntax'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashTransformKeys'/>\n    <testcase classname='<CWD_CLASS>' name='Style/HashTransformValues'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IdenticalConditionalBranches'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IfInsideElse'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IfUnlessModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IfUnlessModifierOfIfUnless'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IfWithBooleanLiteralBranches'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IfWithSemicolon'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ImplicitRuntimeError'/>\n    <testcase classname='<CWD_CLASS>' name='Style/InPatternThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/InfiniteLoop'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ReduceToHash'/>\n    <testcase classname='<CWD_CLASS>' name='Style/InverseMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/InlineComment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/InvertibleUnlessCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/IpAddresses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ItAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ItBlockParameter'/>\n    <testcase classname='<CWD_CLASS>' name='Style/KeywordArgumentsMerging'/>\n    <testcase classname='<CWD_CLASS>' name='Style/KeywordParametersOrder'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Lambda'/>\n    <testcase classname='<CWD_CLASS>' name='Style/LambdaCall'/>\n    <testcase classname='<CWD_CLASS>' name='Style/LineEndConcatenation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MagicCommentFormat'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MapIntoArray'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MapJoin'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MapToHash'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MapToSet'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MethodCallWithoutArgsParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MethodCallWithArgsParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MinMaxComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ModuleMemberExistenceCheck'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineInPatternThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NumberedParameters'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OneClassPerFile'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OpenStructUse'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OperatorMethodCall'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PartitionInsteadOfDoubleSelect'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantArrayConstructor'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantArrayFlatten'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantConstantBase'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantCurrentDirectoryInPath'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantDoubleSplatHashBraces'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantEach'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantFetchBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantFileExtensionInRequire'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantFilterChain'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantFormat'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantHeredocDelimiterQuotes'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantInitialize'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantInterpolationUnfreeze'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantLineContinuation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantMinMaxBy'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantRegexpArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantRegexpConstructor'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantSelfAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantSelfAssignmentBranch'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantStructKeywordInit'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RequireOrder'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ReverseFind'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SafeNavigationChainLength'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SingleLineDoEndBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SoleNestedConditional'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StaticClass'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MapCompactWithConditionalBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MethodCalledOnDoEndBlock'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MethodDefParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MinMax'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MissingElse'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MissingRespondToMissing'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MixinGrouping'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MixinUsage'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ModuleFunction'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineBlockChain'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineIfThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineIfModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineMethodSignature'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineMemoization'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineTernaryOperator'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultilineWhenThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MultipleComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Style/MutableConstant'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NegatedIf'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NegatedIfElseCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NegatedUnless'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NegatedWhile'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NegativeArrayIndex'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NestedFileDirname'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NestedModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NestedParenthesizedCalls'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NestedTernaryOperator'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Next'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NilComparison'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NilLambda'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NonNilCheck'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Not'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NumberedParametersLimit'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NumericLiterals'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NumericLiteralPrefix'/>\n    <testcase classname='<CWD_CLASS>' name='Style/NumericPredicate'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ObjectThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OneLineConditional'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OrAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OptionHash'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OptionalArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/OptionalBooleanParameter'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ParallelAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ParenthesesAroundCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PercentLiteralDelimiters'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PercentQLiterals'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PerlBackrefs'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PredicateWithKind'/>\n    <testcase classname='<CWD_CLASS>' name='Style/PreferredHashMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Proc'/>\n    <testcase classname='<CWD_CLASS>' name='Style/QuotedSymbols'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RaiseArgs'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RandomWithOffset'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantArgument'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantBegin'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantCapitalW'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantConditional'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantException'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantFreeze'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantPercentQ'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantRegexpCharacterClass'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantRegexpEscape'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantReturn'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantSelf'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantSort'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantSortBy'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RedundantStringEscape'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RegexpLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RescueModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Style/RescueStandardError'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ReturnNil'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ReturnNilInPredicateMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SafeNavigation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Sample'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SelectByKind'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SelectByRange'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SelectByRegexp'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SelfAssignment'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Semicolon'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Send'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SendWithLiteralMethodName'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SignalException'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SingleArgumentDig'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SingleLineBlockParams'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SingleLineMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SlicingWithRange'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SpecialGlobalVars'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StabbyLambdaParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StderrPuts'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringChars'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringConcatenation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringHashKeys'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringLiterals'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringLiteralsInInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StringMethods'/>\n    <testcase classname='<CWD_CLASS>' name='Style/Strip'/>\n    <testcase classname='<CWD_CLASS>' name='Style/StructInheritance'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SuperArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SuperWithArgsParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SwapValues'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SymbolArray'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SymbolLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/SymbolProc'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TallyMethod'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TernaryParentheses'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TopLevelMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingBodyOnClass'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingBodyOnMethodDefinition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingBodyOnModule'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingCommaInArguments'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingCommaInArrayLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingCommaInBlockArgs'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingCommaInHashLiteral'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingMethodEndStatement'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrailingUnderscoreVariable'/>\n    <testcase classname='<CWD_CLASS>' name='Style/TrivialAccessors'/>\n    <testcase classname='<CWD_CLASS>' name='Style/UnlessElse'/>\n    <testcase classname='<CWD_CLASS>' name='Style/UnlessLogicalOperators'/>\n    <testcase classname='<CWD_CLASS>' name='Style/UnpackFirst'/>\n    <testcase classname='<CWD_CLASS>' name='Style/VariableInterpolation'/>\n    <testcase classname='<CWD_CLASS>' name='Style/WhenThen'/>\n    <testcase classname='<CWD_CLASS>' name='Style/WhileUntilDo'/>\n    <testcase classname='<CWD_CLASS>' name='Style/WhileUntilModifier'/>\n    <testcase classname='<CWD_CLASS>' name='Style/WordArray'/>\n    <testcase classname='<CWD_CLASS>' name='Style/YAMLFileRead'/>\n    <testcase classname='<CWD_CLASS>' name='Style/YodaCondition'/>\n    <testcase classname='<CWD_CLASS>' name='Style/YodaExpression'/>\n    <testcase classname='<CWD_CLASS>' name='Style/ZeroLengthPredicate'/>\n  </testsuite>\n</testsuites>\n"
+    },
+    {
+      "name": "junit-named",
+      "format": "junit",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "junit",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<?xml version='1.0'?>\n<testsuites>\n  <testsuite name='rubocop' tests='1' failures='1'>\n    <testcase classname='example' name='Bundler/DuplicatedGem'/>\n    <testcase classname='example' name='Bundler/DuplicatedGroup'/>\n    <testcase classname='example' name='Bundler/GemComment'/>\n    <testcase classname='example' name='Bundler/GemFilename'/>\n    <testcase classname='example' name='Bundler/GemVersion'/>\n    <testcase classname='example' name='Bundler/InsecureProtocolSource'/>\n    <testcase classname='example' name='Bundler/OrderedGems'/>\n    <testcase classname='example' name='Gemspec/AddRuntimeDependency'/>\n    <testcase classname='example' name='Gemspec/AttributeAssignment'/>\n    <testcase classname='example' name='Gemspec/DependencyVersion'/>\n    <testcase classname='example' name='Gemspec/DeprecatedAttributeAssignment'/>\n    <testcase classname='example' name='Gemspec/DevelopmentDependencies'/>\n    <testcase classname='example' name='Gemspec/DuplicatedAssignment'/>\n    <testcase classname='example' name='Gemspec/OrderedDependencies'/>\n    <testcase classname='example' name='Gemspec/RequireMFA'/>\n    <testcase classname='example' name='Gemspec/RequiredRubyVersion'/>\n    <testcase classname='example' name='Gemspec/RubyVersionGlobalsUsage'/>\n    <testcase classname='example' name='Layout/AccessModifierIndentation'/>\n    <testcase classname='example' name='Layout/ArgumentAlignment'/>\n    <testcase classname='example' name='Layout/ArrayAlignment'/>\n    <testcase classname='example' name='Layout/AssignmentIndentation'/>\n    <testcase classname='example' name='Layout/BeginEndAlignment'/>\n    <testcase classname='example' name='Layout/BlockAlignment'/>\n    <testcase classname='example' name='Layout/BlockEndNewline'/>\n    <testcase classname='example' name='Layout/CaseIndentation'/>\n    <testcase classname='example' name='Layout/ClassStructure'/>\n    <testcase classname='example' name='Layout/ClosingHeredocIndentation'/>\n    <testcase classname='example' name='Layout/ClosingParenthesisIndentation'/>\n    <testcase classname='example' name='Layout/CommentIndentation'/>\n    <testcase classname='example' name='Layout/ConditionPosition'/>\n    <testcase classname='example' name='Layout/DefEndAlignment'/>\n    <testcase classname='example' name='Layout/DotPosition'/>\n    <testcase classname='example' name='Layout/ElseAlignment'/>\n    <testcase classname='example' name='Layout/EmptyComment'/>\n    <testcase classname='example' name='Layout/EmptyLineAfterGuardClause'/>\n    <testcase classname='example' name='Layout/EmptyLineAfterMagicComment'/>\n    <testcase classname='example' name='Layout/EmptyLineAfterMultilineCondition'/>\n    <testcase classname='example' name='Layout/EmptyLineBetweenDefs'/>\n    <testcase classname='example' name='Layout/EmptyLinesAfterModuleInclusion'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundAccessModifier'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundArguments'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundAttributeAccessor'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundBeginBody'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundBlockBody'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundClassBody'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundExceptionHandlingKeywords'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundMethodBody'/>\n    <testcase classname='example' name='Layout/EmptyLinesAroundModuleBody'/>\n    <testcase classname='example' name='Layout/EmptyLines'/>\n    <testcase classname='example' name='Layout/EndAlignment'/>\n    <testcase classname='example' name='Layout/EndOfLine'/>\n    <testcase classname='example' name='Layout/ExtraSpacing'/>\n    <testcase classname='example' name='Layout/FirstArgumentIndentation'/>\n    <testcase classname='example' name='Layout/FirstArrayElementIndentation'/>\n    <testcase classname='example' name='Layout/FirstArrayElementLineBreak'/>\n    <testcase classname='example' name='Layout/FirstHashElementIndentation'/>\n    <testcase classname='example' name='Layout/FirstHashElementLineBreak'/>\n    <testcase classname='example' name='Layout/FirstMethodArgumentLineBreak'/>\n    <testcase classname='example' name='Layout/FirstMethodParameterLineBreak'/>\n    <testcase classname='example' name='Layout/FirstParameterIndentation'/>\n    <testcase classname='example' name='Layout/HashAlignment'/>\n    <testcase classname='example' name='Layout/HeredocArgumentClosingParenthesis'/>\n    <testcase classname='example' name='Layout/HeredocIndentation'/>\n    <testcase classname='example' name='Layout/IndentationConsistency'/>\n    <testcase classname='example' name='Layout/IndentationStyle'/>\n    <testcase classname='example' name='Layout/IndentationWidth'/>\n    <testcase classname='example' name='Layout/InitialIndentation'/>\n    <testcase classname='example' name='Layout/LeadingCommentSpace'/>\n    <testcase classname='example' name='Layout/LeadingEmptyLines'/>\n    <testcase classname='example' name='Layout/LineContinuationLeadingSpace'/>\n    <testcase classname='example' name='Layout/LineContinuationSpacing'/>\n    <testcase classname='example' name='Layout/LineEndStringConcatenationIndentation'/>\n    <testcase classname='example' name='Layout/LineLength'/>\n    <testcase classname='example' name='Layout/MultilineArrayBraceLayout'/>\n    <testcase classname='example' name='Layout/MultilineArrayLineBreaks'/>\n    <testcase classname='example' name='Layout/MultilineAssignmentLayout'/>\n    <testcase classname='example' name='Layout/MultilineBlockLayout'/>\n    <testcase classname='example' name='Layout/MultilineHashBraceLayout'/>\n    <testcase classname='example' name='Layout/MultilineHashKeyLineBreaks'/>\n    <testcase classname='example' name='Layout/MultilineMethodArgumentLineBreaks'/>\n    <testcase classname='example' name='Layout/MultilineMethodCallBraceLayout'/>\n    <testcase classname='example' name='Layout/MultilineMethodCallIndentation'/>\n    <testcase classname='example' name='Layout/MultilineMethodDefinitionBraceLayout'/>\n    <testcase classname='example' name='Layout/MultilineMethodParameterLineBreaks'/>\n    <testcase classname='example' name='Layout/MultilineOperationIndentation'/>\n    <testcase classname='example' name='Layout/ParameterAlignment'/>\n    <testcase classname='example' name='Layout/RedundantLineBreak'/>\n    <testcase classname='example' name='Layout/RescueEnsureAlignment'/>\n    <testcase classname='example' name='Layout/SingleLineBlockChain'/>\n    <testcase classname='example' name='Layout/SpaceAfterColon'/>\n    <testcase classname='example' name='Layout/SpaceAfterComma'/>\n    <testcase classname='example' name='Layout/SpaceAfterMethodName'/>\n    <testcase classname='example' name='Layout/SpaceAfterNot'/>\n    <testcase classname='example' name='Layout/SpaceAfterSemicolon'/>\n    <testcase classname='example' name='Layout/SpaceAroundBlockParameters'/>\n    <testcase classname='example' name='Layout/SpaceAroundEqualsInParameterDefault'/>\n    <testcase classname='example' name='Layout/SpaceAroundKeyword'/>\n    <testcase classname='example' name='Layout/SpaceAroundMethodCallOperator'/>\n    <testcase classname='example' name='Layout/SpaceAroundOperators'>\n      <failure type='Layout/SpaceAroundOperators' message='Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.'>\n        <CWD>/example.rb:1:2\n      </failure>\n    </testcase>\n    <testcase classname='example' name='Layout/SpaceBeforeBlockBraces'/>\n    <testcase classname='example' name='Layout/SpaceBeforeBrackets'/>\n    <testcase classname='example' name='Layout/SpaceBeforeComma'/>\n    <testcase classname='example' name='Layout/SpaceBeforeComment'/>\n    <testcase classname='example' name='Layout/SpaceBeforeFirstArg'/>\n    <testcase classname='example' name='Layout/SpaceBeforeSemicolon'/>\n    <testcase classname='example' name='Layout/SpaceInLambdaLiteral'/>\n    <testcase classname='example' name='Layout/SpaceInsideArrayPercentLiteral'/>\n    <testcase classname='example' name='Layout/SpaceInsideArrayLiteralBrackets'/>\n    <testcase classname='example' name='Layout/SpaceInsideBlockBraces'/>\n    <testcase classname='example' name='Layout/SpaceInsideHashLiteralBraces'/>\n    <testcase classname='example' name='Layout/SpaceInsideParens'/>\n    <testcase classname='example' name='Layout/SpaceInsidePercentLiteralDelimiters'/>\n    <testcase classname='example' name='Layout/SpaceInsideRangeLiteral'/>\n    <testcase classname='example' name='Layout/SpaceInsideReferenceBrackets'/>\n    <testcase classname='example' name='Layout/SpaceInsideStringInterpolation'/>\n    <testcase classname='example' name='Layout/TrailingEmptyLines'/>\n    <testcase classname='example' name='Layout/TrailingWhitespace'/>\n    <testcase classname='example' name='Lint/AmbiguousAssignment'/>\n    <testcase classname='example' name='Lint/AmbiguousBlockAssociation'/>\n    <testcase classname='example' name='Lint/AmbiguousOperator'/>\n    <testcase classname='example' name='Lint/AmbiguousOperatorPrecedence'/>\n    <testcase classname='example' name='Lint/AmbiguousRange'/>\n    <testcase classname='example' name='Lint/AmbiguousRegexpLiteral'/>\n    <testcase classname='example' name='Lint/ArrayLiteralInRegexp'/>\n    <testcase classname='example' name='Lint/AssignmentInCondition'/>\n    <testcase classname='example' name='Lint/BigDecimalNew'/>\n    <testcase classname='example' name='Lint/BinaryOperatorWithIdenticalOperands'/>\n    <testcase classname='example' name='Lint/BooleanSymbol'/>\n    <testcase classname='example' name='Lint/CircularArgumentReference'/>\n    <testcase classname='example' name='Lint/ConstantDefinitionInBlock'/>\n    <testcase classname='example' name='Lint/ConstantOverwrittenInRescue'/>\n    <testcase classname='example' name='Lint/ConstantReassignment'/>\n    <testcase classname='example' name='Lint/ConstantResolution'/>\n    <testcase classname='example' name='Lint/CopDirectiveSyntax'/>\n    <testcase classname='example' name='Lint/DataDefineOverride'/>\n    <testcase classname='example' name='Lint/Debugger'/>\n    <testcase classname='example' name='Lint/DeprecatedClassMethods'/>\n    <testcase classname='example' name='Lint/DeprecatedConstants'/>\n    <testcase classname='example' name='Lint/DeprecatedOpenSSLConstant'/>\n    <testcase classname='example' name='Lint/DeprecatedReference'/>\n    <testcase classname='example' name='Lint/DisjunctiveAssignmentInConstructor'/>\n    <testcase classname='example' name='Lint/DuplicateBranch'/>\n    <testcase classname='example' name='Lint/DuplicateCaseCondition'/>\n    <testcase classname='example' name='Lint/DuplicateElsifCondition'/>\n    <testcase classname='example' name='Lint/DuplicateHashKey'/>\n    <testcase classname='example' name='Lint/DuplicateMagicComment'/>\n    <testcase classname='example' name='Lint/DuplicateMatchPattern'/>\n    <testcase classname='example' name='Lint/DuplicateMethods'/>\n    <testcase classname='example' name='Lint/DuplicateRegexpCharacterClassElement'/>\n    <testcase classname='example' name='Lint/DuplicateRequire'/>\n    <testcase classname='example' name='Lint/DuplicateRescueException'/>\n    <testcase classname='example' name='Lint/DuplicateSetElement'/>\n    <testcase classname='example' name='Lint/EachWithObjectArgument'/>\n    <testcase classname='example' name='Lint/ElseLayout'/>\n    <testcase classname='example' name='Lint/EmptyBlock'/>\n    <testcase classname='example' name='Lint/EmptyClass'/>\n    <testcase classname='example' name='Lint/EmptyConditionalBody'/>\n    <testcase classname='example' name='Lint/EmptyEnsure'/>\n    <testcase classname='example' name='Lint/EmptyExpression'/>\n    <testcase classname='example' name='Lint/EmptyFile'/>\n    <testcase classname='example' name='Lint/EmptyInPattern'/>\n    <testcase classname='example' name='Lint/EmptyInterpolation'/>\n    <testcase classname='example' name='Lint/EmptyWhen'/>\n    <testcase classname='example' name='Lint/EnsureReturn'/>\n    <testcase classname='example' name='Lint/SharedMutableDefault'/>\n    <testcase classname='example' name='Lint/ErbNewArguments'/>\n    <testcase classname='example' name='Lint/FlipFlop'/>\n    <testcase classname='example' name='Lint/FloatComparison'/>\n    <testcase classname='example' name='Lint/FloatOutOfRange'/>\n    <testcase classname='example' name='Lint/FormatParameterMismatch'/>\n    <testcase classname='example' name='Lint/HashCompareByIdentity'/>\n    <testcase classname='example' name='Lint/HashNewWithKeywordArgumentsAsDefault'/>\n    <testcase classname='example' name='Lint/HeredocMethodCallPosition'/>\n    <testcase classname='example' name='Lint/IdentityComparison'/>\n    <testcase classname='example' name='Lint/ImplicitStringConcatenation'/>\n    <testcase classname='example' name='Lint/IncompatibleIoSelectWithFiberScheduler'/>\n    <testcase classname='example' name='Lint/IneffectiveAccessModifier'/>\n    <testcase classname='example' name='Lint/InheritException'/>\n    <testcase classname='example' name='Lint/InterpolationCheck'/>\n    <testcase classname='example' name='Lint/ItWithoutArgumentsInBlock'/>\n    <testcase classname='example' name='Lint/LambdaWithoutLiteralBlock'/>\n    <testcase classname='example' name='Lint/LiteralAsCondition'/>\n    <testcase classname='example' name='Lint/LiteralAssignmentInCondition'/>\n    <testcase classname='example' name='Lint/LiteralInInterpolation'/>\n    <testcase classname='example' name='Lint/Loop'/>\n    <testcase classname='example' name='Lint/MissingCopEnableDirective'/>\n    <testcase classname='example' name='Lint/MissingSuper'/>\n    <testcase classname='example' name='Lint/MixedCaseRange'/>\n    <testcase classname='example' name='Lint/MixedRegexpCaptureTypes'/>\n    <testcase classname='example' name='Lint/MultipleComparison'/>\n    <testcase classname='example' name='Lint/NameTypo'/>\n    <testcase classname='example' name='Lint/NestedMethodDefinition'/>\n    <testcase classname='example' name='Lint/NestedPercentLiteral'/>\n    <testcase classname='example' name='Lint/NextWithoutAccumulator'/>\n    <testcase classname='example' name='Lint/NoReturnInBeginEndBlocks'/>\n    <testcase classname='example' name='Lint/NonAtomicFileOperation'/>\n    <testcase classname='example' name='Lint/NonDeterministicRequireOrder'/>\n    <testcase classname='example' name='Lint/NonLocalExitFromIterator'/>\n    <testcase classname='example' name='Lint/NumberConversion'/>\n    <testcase classname='example' name='Lint/NumberedParameterAssignment'/>\n    <testcase classname='example' name='Lint/NumericOperationWithConstantResult'/>\n    <testcase classname='example' name='Lint/OrAssignmentToConstant'/>\n    <testcase classname='example' name='Lint/OrderedMagicComments'/>\n    <testcase classname='example' name='Lint/OutOfRangeRegexpRef'/>\n    <testcase classname='example' name='Lint/ParenthesesAsGroupedExpression'/>\n    <testcase classname='example' name='Lint/PercentStringArray'/>\n    <testcase classname='example' name='Lint/PercentSymbolArray'/>\n    <testcase classname='example' name='Lint/RaiseException'/>\n    <testcase classname='example' name='Lint/RandOne'/>\n    <testcase classname='example' name='Lint/RedundantCopDisableDirective'/>\n    <testcase classname='example' name='Lint/RedundantCopEnableDirective'/>\n    <testcase classname='example' name='Lint/RedundantDirGlobSort'/>\n    <testcase classname='example' name='Lint/RedundantRegexpQuantifiers'/>\n    <testcase classname='example' name='Lint/RedundantRequireStatement'/>\n    <testcase classname='example' name='Lint/RedundantSafeNavigation'/>\n    <testcase classname='example' name='Lint/RedundantSplatExpansion'/>\n    <testcase classname='example' name='Lint/RedundantStringCoercion'/>\n    <testcase classname='example' name='Lint/RedundantTypeConversion'/>\n    <testcase classname='example' name='Lint/RedundantWithIndex'/>\n    <testcase classname='example' name='Lint/RedundantWithObject'/>\n    <testcase classname='example' name='Lint/RefinementImportMethods'/>\n    <testcase classname='example' name='Lint/RegexpAsCondition'/>\n    <testcase classname='example' name='Lint/RequireParentheses'/>\n    <testcase classname='example' name='Lint/RequireRangeParentheses'/>\n    <testcase classname='example' name='Lint/RequireRelativeSelfPath'/>\n    <testcase classname='example' name='Lint/RescueException'/>\n    <testcase classname='example' name='Lint/RescueType'/>\n    <testcase classname='example' name='Lint/ReturnInVoidContext'/>\n    <testcase classname='example' name='Lint/SafeNavigationConsistency'/>\n    <testcase classname='example' name='Lint/SafeNavigationChain'/>\n    <testcase classname='example' name='Lint/SafeNavigationWithEmpty'/>\n    <testcase classname='example' name='Lint/ScriptPermission'/>\n    <testcase classname='example' name='Lint/SelfAssignment'/>\n    <testcase classname='example' name='Lint/SendWithMixinArgument'/>\n    <testcase classname='example' name='Lint/ShadowedArgument'/>\n    <testcase classname='example' name='Lint/ShadowedException'/>\n    <testcase classname='example' name='Lint/ShadowingOuterLocalVariable'/>\n    <testcase classname='example' name='Lint/StructNewOverride'/>\n    <testcase classname='example' name='Lint/SuppressedException'/>\n    <testcase classname='example' name='Lint/SuppressedExceptionInNumberConversion'/>\n    <testcase classname='example' name='Lint/SymbolConversion'/>\n    <testcase classname='example' name='Lint/Syntax'/>\n    <testcase classname='example' name='Lint/ToEnumArguments'/>\n    <testcase classname='example' name='Lint/ToJSON'/>\n    <testcase classname='example' name='Lint/TopLevelReturnWithArgument'/>\n    <testcase classname='example' name='Lint/TrailingCommaInAttributeDeclaration'/>\n    <testcase classname='example' name='Lint/TripleQuotes'/>\n    <testcase classname='example' name='Lint/UnderscorePrefixedVariableName'/>\n    <testcase classname='example' name='Lint/UnescapedBracketInRegexp'/>\n    <testcase classname='example' name='Lint/UnexpectedBlockArity'/>\n    <testcase classname='example' name='Lint/UnifiedInteger'/>\n    <testcase classname='example' name='Lint/UnmodifiedReduceAccumulator'/>\n    <testcase classname='example' name='Lint/UnreachableCode'/>\n    <testcase classname='example' name='Lint/UnreachableLoop'/>\n    <testcase classname='example' name='Lint/UnreachablePatternBranch'/>\n    <testcase classname='example' name='Lint/UnusedBlockArgument'/>\n    <testcase classname='example' name='Lint/UnusedMethodArgument'/>\n    <testcase classname='example' name='Lint/UnusedPrivateMethod'/>\n    <testcase classname='example' name='Lint/UriEscapeUnescape'/>\n    <testcase classname='example' name='Lint/UriRegexp'/>\n    <testcase classname='example' name='Lint/UselessAccessModifier'/>\n    <testcase classname='example' name='Lint/UselessAssignment'/>\n    <testcase classname='example' name='Lint/UselessConstantScoping'/>\n    <testcase classname='example' name='Lint/UselessDefaultValueArgument'/>\n    <testcase classname='example' name='Lint/UselessDefined'/>\n    <testcase classname='example' name='Lint/UselessElseWithoutRescue'/>\n    <testcase classname='example' name='Lint/UselessMethodDefinition'/>\n    <testcase classname='example' name='Lint/UselessNumericOperation'/>\n    <testcase classname='example' name='Lint/UselessOr'/>\n    <testcase classname='example' name='Lint/UselessRescue'/>\n    <testcase classname='example' name='Lint/UselessRuby2Keywords'/>\n    <testcase classname='example' name='Lint/UselessSetterCall'/>\n    <testcase classname='example' name='Lint/UselessTimes'/>\n    <testcase classname='example' name='Lint/Void'/>\n    <testcase classname='example' name='Metrics/CyclomaticComplexity'/>\n    <testcase classname='example' name='Metrics/AbcSize'/>\n    <testcase classname='example' name='Metrics/BlockLength'/>\n    <testcase classname='example' name='Metrics/BlockNesting'/>\n    <testcase classname='example' name='Metrics/ClassLength'/>\n    <testcase classname='example' name='Metrics/CollectionLiteralLength'/>\n    <testcase classname='example' name='Metrics/MethodLength'/>\n    <testcase classname='example' name='Metrics/ModuleLength'/>\n    <testcase classname='example' name='Metrics/ParameterLists'/>\n    <testcase classname='example' name='Metrics/PerceivedComplexity'/>\n    <testcase classname='example' name='Migration/DepartmentName'/>\n    <testcase classname='example' name='Naming/AccessorMethodName'/>\n    <testcase classname='example' name='Naming/AsciiIdentifiers'/>\n    <testcase classname='example' name='Naming/BlockForwarding'/>\n    <testcase classname='example' name='Naming/BlockParameterName'/>\n    <testcase classname='example' name='Naming/ClassAndModuleCamelCase'/>\n    <testcase classname='example' name='Naming/ConstantName'/>\n    <testcase classname='example' name='Naming/FileName'/>\n    <testcase classname='example' name='Naming/HeredocDelimiterCase'/>\n    <testcase classname='example' name='Naming/HeredocDelimiterNaming'/>\n    <testcase classname='example' name='Naming/InclusiveLanguage'/>\n    <testcase classname='example' name='Naming/MemoizedInstanceVariableName'/>\n    <testcase classname='example' name='Naming/MethodName'/>\n    <testcase classname='example' name='Naming/MethodParameterName'/>\n    <testcase classname='example' name='Naming/BinaryOperatorParameterName'/>\n    <testcase classname='example' name='Naming/PredicateMethod'/>\n    <testcase classname='example' name='Naming/PredicatePrefix'/>\n    <testcase classname='example' name='Naming/RescuedExceptionsVariableName'/>\n    <testcase classname='example' name='Naming/VariableName'/>\n    <testcase classname='example' name='Naming/VariableNumber'/>\n    <testcase classname='example' name='Security/CompoundHash'/>\n    <testcase classname='example' name='Security/Eval'/>\n    <testcase classname='example' name='Security/IoMethods'/>\n    <testcase classname='example' name='Security/JSONLoad'/>\n    <testcase classname='example' name='Security/MarshalLoad'/>\n    <testcase classname='example' name='Security/Open'/>\n    <testcase classname='example' name='Security/YAMLLoad'/>\n    <testcase classname='example' name='Style/AccessModifierDeclarations'/>\n    <testcase classname='example' name='Style/AccessorGrouping'/>\n    <testcase classname='example' name='Style/Alias'/>\n    <testcase classname='example' name='Style/AmbiguousEndlessMethodDefinition'/>\n    <testcase classname='example' name='Style/AndOr'/>\n    <testcase classname='example' name='Style/ArgumentsForwarding'/>\n    <testcase classname='example' name='Style/ArrayCoercion'/>\n    <testcase classname='example' name='Style/ArrayFirstLast'/>\n    <testcase classname='example' name='Style/ArrayIntersect'/>\n    <testcase classname='example' name='Style/ArrayIntersectWithSingleElement'/>\n    <testcase classname='example' name='Style/ArrayJoin'/>\n    <testcase classname='example' name='Style/AsciiComments'/>\n    <testcase classname='example' name='Style/Attr'/>\n    <testcase classname='example' name='Style/AutoResourceCleanup'/>\n    <testcase classname='example' name='Style/BarePercentLiterals'/>\n    <testcase classname='example' name='Style/BeginBlock'/>\n    <testcase classname='example' name='Style/BisectedAttrAccessor'/>\n    <testcase classname='example' name='Style/BitwisePredicate'/>\n    <testcase classname='example' name='Style/BlockComments'/>\n    <testcase classname='example' name='Style/BlockDelimiters'/>\n    <testcase classname='example' name='Style/CaseEquality'/>\n    <testcase classname='example' name='Style/CaseLikeIf'/>\n    <testcase classname='example' name='Style/CharacterLiteral'/>\n    <testcase classname='example' name='Style/ClassAndModuleChildren'/>\n    <testcase classname='example' name='Style/ClassCheck'/>\n    <testcase classname='example' name='Style/ClassEqualityComparison'/>\n    <testcase classname='example' name='Style/ClassMethods'/>\n    <testcase classname='example' name='Style/ClassMethodsDefinitions'/>\n    <testcase classname='example' name='Style/ClassVars'/>\n    <testcase classname='example' name='Style/CollectionCompact'/>\n    <testcase classname='example' name='Style/CollectionMethods'/>\n    <testcase classname='example' name='Style/CollectionQuerying'/>\n    <testcase classname='example' name='Style/ColonMethodCall'/>\n    <testcase classname='example' name='Style/ColonMethodDefinition'/>\n    <testcase classname='example' name='Style/CombinableDefined'/>\n    <testcase classname='example' name='Style/CombinableLoops'/>\n    <testcase classname='example' name='Style/CommandLiteral'/>\n    <testcase classname='example' name='Style/CommentAnnotation'/>\n    <testcase classname='example' name='Style/CommentedKeyword'/>\n    <testcase classname='example' name='Style/ComparableBetween'/>\n    <testcase classname='example' name='Style/ComparableClamp'/>\n    <testcase classname='example' name='Style/ConcatArrayLiterals'/>\n    <testcase classname='example' name='Style/ConditionalAssignment'/>\n    <testcase classname='example' name='Style/ConstantVisibility'/>\n    <testcase classname='example' name='Style/Copyright'/>\n    <testcase classname='example' name='Style/DataInheritance'/>\n    <testcase classname='example' name='Style/DateTime'/>\n    <testcase classname='example' name='Style/DefWithParentheses'/>\n    <testcase classname='example' name='Style/DigChain'/>\n    <testcase classname='example' name='Style/Dir'/>\n    <testcase classname='example' name='Style/DirEmpty'/>\n    <testcase classname='example' name='Style/DisableCopsWithinSourceCodeDirective'/>\n    <testcase classname='example' name='Style/DocumentationMethod'/>\n    <testcase classname='example' name='Style/Documentation'/>\n    <testcase classname='example' name='Style/DocumentDynamicEvalDefinition'/>\n    <testcase classname='example' name='Style/DoubleCopDisableDirective'/>\n    <testcase classname='example' name='Style/DoubleNegation'/>\n    <testcase classname='example' name='Style/EachForSimpleLoop'/>\n    <testcase classname='example' name='Style/EachWithObject'/>\n    <testcase classname='example' name='Style/EmptyBlockParameter'/>\n    <testcase classname='example' name='Style/EmptyCaseCondition'/>\n    <testcase classname='example' name='Style/EmptyClassDefinition'/>\n    <testcase classname='example' name='Style/EmptyElse'/>\n    <testcase classname='example' name='Style/EmptyHeredoc'/>\n    <testcase classname='example' name='Style/EmptyLambdaParameter'/>\n    <testcase classname='example' name='Style/EmptyLiteral'/>\n    <testcase classname='example' name='Style/EmptyMethod'/>\n    <testcase classname='example' name='Style/EmptyStringInsideInterpolation'/>\n    <testcase classname='example' name='Style/EndlessMethod'/>\n    <testcase classname='example' name='Style/Encoding'/>\n    <testcase classname='example' name='Style/EndBlock'/>\n    <testcase classname='example' name='Style/EnvHome'/>\n    <testcase classname='example' name='Style/EvalWithLocation'/>\n    <testcase classname='example' name='Style/EvenOdd'/>\n    <testcase classname='example' name='Style/ExactRegexpMatch'/>\n    <testcase classname='example' name='Style/ExpandPathArguments'/>\n    <testcase classname='example' name='Style/ExplicitBlockArgument'/>\n    <testcase classname='example' name='Style/ExponentialNotation'/>\n    <testcase classname='example' name='Style/FetchEnvVar'/>\n    <testcase classname='example' name='Style/FileEmpty'/>\n    <testcase classname='example' name='Style/FileNull'/>\n    <testcase classname='example' name='Style/FileOpen'/>\n    <testcase classname='example' name='Style/FileRead'/>\n    <testcase classname='example' name='Style/FileTouch'/>\n    <testcase classname='example' name='Style/FileWrite'/>\n    <testcase classname='example' name='Style/FloatDivision'/>\n    <testcase classname='example' name='Style/For'/>\n    <testcase classname='example' name='Style/FormatString'/>\n    <testcase classname='example' name='Style/FormatStringToken'/>\n    <testcase classname='example' name='Style/FrozenStringLiteralComment'/>\n    <testcase classname='example' name='Style/GlobalStdStream'/>\n    <testcase classname='example' name='Style/GlobalVars'/>\n    <testcase classname='example' name='Style/GuardClause'/>\n    <testcase classname='example' name='Style/HashAsLastArrayItem'/>\n    <testcase classname='example' name='Style/HashConversion'/>\n    <testcase classname='example' name='Style/HashEachMethods'/>\n    <testcase classname='example' name='Style/HashExcept'/>\n    <testcase classname='example' name='Style/HashFetchChain'/>\n    <testcase classname='example' name='Style/HashLikeCase'/>\n    <testcase classname='example' name='Style/HashLookupMethod'/>\n    <testcase classname='example' name='Style/HashSlice'/>\n    <testcase classname='example' name='Style/HashSyntax'/>\n    <testcase classname='example' name='Style/HashTransformKeys'/>\n    <testcase classname='example' name='Style/HashTransformValues'/>\n    <testcase classname='example' name='Style/IdenticalConditionalBranches'/>\n    <testcase classname='example' name='Style/IfInsideElse'/>\n    <testcase classname='example' name='Style/IfUnlessModifier'/>\n    <testcase classname='example' name='Style/IfUnlessModifierOfIfUnless'/>\n    <testcase classname='example' name='Style/IfWithBooleanLiteralBranches'/>\n    <testcase classname='example' name='Style/IfWithSemicolon'/>\n    <testcase classname='example' name='Style/ImplicitRuntimeError'/>\n    <testcase classname='example' name='Style/InPatternThen'/>\n    <testcase classname='example' name='Style/InfiniteLoop'/>\n    <testcase classname='example' name='Style/ReduceToHash'/>\n    <testcase classname='example' name='Style/InverseMethods'/>\n    <testcase classname='example' name='Style/InlineComment'/>\n    <testcase classname='example' name='Style/InvertibleUnlessCondition'/>\n    <testcase classname='example' name='Style/IpAddresses'/>\n    <testcase classname='example' name='Style/ItAssignment'/>\n    <testcase classname='example' name='Style/ItBlockParameter'/>\n    <testcase classname='example' name='Style/KeywordArgumentsMerging'/>\n    <testcase classname='example' name='Style/KeywordParametersOrder'/>\n    <testcase classname='example' name='Style/Lambda'/>\n    <testcase classname='example' name='Style/LambdaCall'/>\n    <testcase classname='example' name='Style/LineEndConcatenation'/>\n    <testcase classname='example' name='Style/MagicCommentFormat'/>\n    <testcase classname='example' name='Style/MapIntoArray'/>\n    <testcase classname='example' name='Style/MapJoin'/>\n    <testcase classname='example' name='Style/MapToHash'/>\n    <testcase classname='example' name='Style/MapToSet'/>\n    <testcase classname='example' name='Style/MethodCallWithoutArgsParentheses'/>\n    <testcase classname='example' name='Style/MethodCallWithArgsParentheses'/>\n    <testcase classname='example' name='Style/MinMaxComparison'/>\n    <testcase classname='example' name='Style/ModuleMemberExistenceCheck'/>\n    <testcase classname='example' name='Style/MultilineInPatternThen'/>\n    <testcase classname='example' name='Style/NumberedParameters'/>\n    <testcase classname='example' name='Style/OneClassPerFile'/>\n    <testcase classname='example' name='Style/OpenStructUse'/>\n    <testcase classname='example' name='Style/OperatorMethodCall'/>\n    <testcase classname='example' name='Style/PartitionInsteadOfDoubleSelect'/>\n    <testcase classname='example' name='Style/RedundantArrayConstructor'/>\n    <testcase classname='example' name='Style/RedundantArrayFlatten'/>\n    <testcase classname='example' name='Style/RedundantAssignment'/>\n    <testcase classname='example' name='Style/RedundantConstantBase'/>\n    <testcase classname='example' name='Style/RedundantCurrentDirectoryInPath'/>\n    <testcase classname='example' name='Style/RedundantDoubleSplatHashBraces'/>\n    <testcase classname='example' name='Style/RedundantEach'/>\n    <testcase classname='example' name='Style/RedundantFetchBlock'/>\n    <testcase classname='example' name='Style/RedundantFileExtensionInRequire'/>\n    <testcase classname='example' name='Style/RedundantFilterChain'/>\n    <testcase classname='example' name='Style/RedundantFormat'/>\n    <testcase classname='example' name='Style/RedundantHeredocDelimiterQuotes'/>\n    <testcase classname='example' name='Style/RedundantInitialize'/>\n    <testcase classname='example' name='Style/RedundantInterpolationUnfreeze'/>\n    <testcase classname='example' name='Style/RedundantLineContinuation'/>\n    <testcase classname='example' name='Style/RedundantMinMaxBy'/>\n    <testcase classname='example' name='Style/RedundantRegexpArgument'/>\n    <testcase classname='example' name='Style/RedundantRegexpConstructor'/>\n    <testcase classname='example' name='Style/RedundantSelfAssignment'/>\n    <testcase classname='example' name='Style/RedundantSelfAssignmentBranch'/>\n    <testcase classname='example' name='Style/RedundantStructKeywordInit'/>\n    <testcase classname='example' name='Style/RequireOrder'/>\n    <testcase classname='example' name='Style/ReverseFind'/>\n    <testcase classname='example' name='Style/SafeNavigationChainLength'/>\n    <testcase classname='example' name='Style/SingleLineDoEndBlock'/>\n    <testcase classname='example' name='Style/SoleNestedConditional'/>\n    <testcase classname='example' name='Style/StaticClass'/>\n    <testcase classname='example' name='Style/MapCompactWithConditionalBlock'/>\n    <testcase classname='example' name='Style/MethodCalledOnDoEndBlock'/>\n    <testcase classname='example' name='Style/MethodDefParentheses'/>\n    <testcase classname='example' name='Style/MinMax'/>\n    <testcase classname='example' name='Style/MissingElse'/>\n    <testcase classname='example' name='Style/MissingRespondToMissing'/>\n    <testcase classname='example' name='Style/MixinGrouping'/>\n    <testcase classname='example' name='Style/MixinUsage'/>\n    <testcase classname='example' name='Style/ModuleFunction'/>\n    <testcase classname='example' name='Style/MultilineBlockChain'/>\n    <testcase classname='example' name='Style/MultilineIfThen'/>\n    <testcase classname='example' name='Style/MultilineIfModifier'/>\n    <testcase classname='example' name='Style/MultilineMethodSignature'/>\n    <testcase classname='example' name='Style/MultilineMemoization'/>\n    <testcase classname='example' name='Style/MultilineTernaryOperator'/>\n    <testcase classname='example' name='Style/MultilineWhenThen'/>\n    <testcase classname='example' name='Style/MultipleComparison'/>\n    <testcase classname='example' name='Style/MutableConstant'/>\n    <testcase classname='example' name='Style/NegatedIf'/>\n    <testcase classname='example' name='Style/NegatedIfElseCondition'/>\n    <testcase classname='example' name='Style/NegatedUnless'/>\n    <testcase classname='example' name='Style/NegatedWhile'/>\n    <testcase classname='example' name='Style/NegativeArrayIndex'/>\n    <testcase classname='example' name='Style/NestedFileDirname'/>\n    <testcase classname='example' name='Style/NestedModifier'/>\n    <testcase classname='example' name='Style/NestedParenthesizedCalls'/>\n    <testcase classname='example' name='Style/NestedTernaryOperator'/>\n    <testcase classname='example' name='Style/Next'/>\n    <testcase classname='example' name='Style/NilComparison'/>\n    <testcase classname='example' name='Style/NilLambda'/>\n    <testcase classname='example' name='Style/NonNilCheck'/>\n    <testcase classname='example' name='Style/Not'/>\n    <testcase classname='example' name='Style/NumberedParametersLimit'/>\n    <testcase classname='example' name='Style/NumericLiterals'/>\n    <testcase classname='example' name='Style/NumericLiteralPrefix'/>\n    <testcase classname='example' name='Style/NumericPredicate'/>\n    <testcase classname='example' name='Style/ObjectThen'/>\n    <testcase classname='example' name='Style/OneLineConditional'/>\n    <testcase classname='example' name='Style/OrAssignment'/>\n    <testcase classname='example' name='Style/OptionHash'/>\n    <testcase classname='example' name='Style/OptionalArguments'/>\n    <testcase classname='example' name='Style/OptionalBooleanParameter'/>\n    <testcase classname='example' name='Style/ParallelAssignment'/>\n    <testcase classname='example' name='Style/ParenthesesAroundCondition'/>\n    <testcase classname='example' name='Style/PercentLiteralDelimiters'/>\n    <testcase classname='example' name='Style/PercentQLiterals'/>\n    <testcase classname='example' name='Style/PerlBackrefs'/>\n    <testcase classname='example' name='Style/PredicateWithKind'/>\n    <testcase classname='example' name='Style/PreferredHashMethods'/>\n    <testcase classname='example' name='Style/Proc'/>\n    <testcase classname='example' name='Style/QuotedSymbols'/>\n    <testcase classname='example' name='Style/RaiseArgs'/>\n    <testcase classname='example' name='Style/RandomWithOffset'/>\n    <testcase classname='example' name='Style/RedundantArgument'/>\n    <testcase classname='example' name='Style/RedundantBegin'/>\n    <testcase classname='example' name='Style/RedundantCapitalW'/>\n    <testcase classname='example' name='Style/RedundantCondition'/>\n    <testcase classname='example' name='Style/RedundantConditional'/>\n    <testcase classname='example' name='Style/RedundantException'/>\n    <testcase classname='example' name='Style/RedundantFreeze'/>\n    <testcase classname='example' name='Style/RedundantInterpolation'/>\n    <testcase classname='example' name='Style/RedundantParentheses'/>\n    <testcase classname='example' name='Style/RedundantPercentQ'/>\n    <testcase classname='example' name='Style/RedundantRegexpCharacterClass'/>\n    <testcase classname='example' name='Style/RedundantRegexpEscape'/>\n    <testcase classname='example' name='Style/RedundantReturn'/>\n    <testcase classname='example' name='Style/RedundantSelf'/>\n    <testcase classname='example' name='Style/RedundantSort'/>\n    <testcase classname='example' name='Style/RedundantSortBy'/>\n    <testcase classname='example' name='Style/RedundantStringEscape'/>\n    <testcase classname='example' name='Style/RegexpLiteral'/>\n    <testcase classname='example' name='Style/RescueModifier'/>\n    <testcase classname='example' name='Style/RescueStandardError'/>\n    <testcase classname='example' name='Style/ReturnNil'/>\n    <testcase classname='example' name='Style/ReturnNilInPredicateMethodDefinition'/>\n    <testcase classname='example' name='Style/SafeNavigation'/>\n    <testcase classname='example' name='Style/Sample'/>\n    <testcase classname='example' name='Style/SelectByKind'/>\n    <testcase classname='example' name='Style/SelectByRange'/>\n    <testcase classname='example' name='Style/SelectByRegexp'/>\n    <testcase classname='example' name='Style/SelfAssignment'/>\n    <testcase classname='example' name='Style/Semicolon'/>\n    <testcase classname='example' name='Style/Send'/>\n    <testcase classname='example' name='Style/SendWithLiteralMethodName'/>\n    <testcase classname='example' name='Style/SignalException'/>\n    <testcase classname='example' name='Style/SingleArgumentDig'/>\n    <testcase classname='example' name='Style/SingleLineBlockParams'/>\n    <testcase classname='example' name='Style/SingleLineMethods'/>\n    <testcase classname='example' name='Style/SlicingWithRange'/>\n    <testcase classname='example' name='Style/SpecialGlobalVars'/>\n    <testcase classname='example' name='Style/StabbyLambdaParentheses'/>\n    <testcase classname='example' name='Style/StderrPuts'/>\n    <testcase classname='example' name='Style/StringChars'/>\n    <testcase classname='example' name='Style/StringConcatenation'/>\n    <testcase classname='example' name='Style/StringHashKeys'/>\n    <testcase classname='example' name='Style/StringLiterals'/>\n    <testcase classname='example' name='Style/StringLiteralsInInterpolation'/>\n    <testcase classname='example' name='Style/StringMethods'/>\n    <testcase classname='example' name='Style/Strip'/>\n    <testcase classname='example' name='Style/StructInheritance'/>\n    <testcase classname='example' name='Style/SuperArguments'/>\n    <testcase classname='example' name='Style/SuperWithArgsParentheses'/>\n    <testcase classname='example' name='Style/SwapValues'/>\n    <testcase classname='example' name='Style/SymbolArray'/>\n    <testcase classname='example' name='Style/SymbolLiteral'/>\n    <testcase classname='example' name='Style/SymbolProc'/>\n    <testcase classname='example' name='Style/TallyMethod'/>\n    <testcase classname='example' name='Style/TernaryParentheses'/>\n    <testcase classname='example' name='Style/TopLevelMethodDefinition'/>\n    <testcase classname='example' name='Style/TrailingBodyOnClass'/>\n    <testcase classname='example' name='Style/TrailingBodyOnMethodDefinition'/>\n    <testcase classname='example' name='Style/TrailingBodyOnModule'/>\n    <testcase classname='example' name='Style/TrailingCommaInArguments'/>\n    <testcase classname='example' name='Style/TrailingCommaInArrayLiteral'/>\n    <testcase classname='example' name='Style/TrailingCommaInBlockArgs'/>\n    <testcase classname='example' name='Style/TrailingCommaInHashLiteral'/>\n    <testcase classname='example' name='Style/TrailingMethodEndStatement'/>\n    <testcase classname='example' name='Style/TrailingUnderscoreVariable'/>\n    <testcase classname='example' name='Style/TrivialAccessors'/>\n    <testcase classname='example' name='Style/UnlessElse'/>\n    <testcase classname='example' name='Style/UnlessLogicalOperators'/>\n    <testcase classname='example' name='Style/UnpackFirst'/>\n    <testcase classname='example' name='Style/VariableInterpolation'/>\n    <testcase classname='example' name='Style/WhenThen'/>\n    <testcase classname='example' name='Style/WhileUntilDo'/>\n    <testcase classname='example' name='Style/WhileUntilModifier'/>\n    <testcase classname='example' name='Style/WordArray'/>\n    <testcase classname='example' name='Style/YAMLFileRead'/>\n    <testcase classname='example' name='Style/YodaCondition'/>\n    <testcase classname='example' name='Style/YodaExpression'/>\n    <testcase classname='example' name='Style/ZeroLengthPredicate'/>\n  </testsuite>\n</testsuites>\n"
+    },
+    {
+      "name": "html-anonymous",
+      "format": "html",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "html",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset='UTF-8' />\n    <title>RuboCop Inspection Report</title>\n    <style>\n      * {\n        -webkit-box-sizing: border-box;\n        -moz-box-sizing: border-box;\n        box-sizing: border-box;\n      }\n\n      body, html {\n        font-size: 62.5%;\n      }\n      body {\n        background-color: #ecedf0;\n        font-family: \"Helvetica Neue\",Helvetica,Arial,sans-serif;\n        margin: 0;\n      }\n      code {\n        font-family: Consolas, \"Liberation Mono\", Menlo, Courier, monospace;\n        font-size: 85%;\n      }\n      #header {\n        background: #f9f9f9;\n        color: #333;\n        border-bottom: 3px solid #ccc;\n        height: 50px;\n        padding: 0;\n      }\n      #header .logo {\n        float: left;\n        margin: 5px 12px 7px 20px;\n        width: 38px;\n        height: 38px;\n      }\n      #header .title {\n        display: inline-block;\n        float: left;\n        height: 50px;\n        font-size: 2.4rem;\n        letter-spacing: normal;\n        line-height: 50px;\n        margin: 0;\n      }\n\n      .information, #offenses {\n        width: 100%;\n        padding: 20px;\n        color: #333;\n      }\n      #offenses {\n        padding: 0 20px;\n      }\n\n      .information .infobox {\n        border-left: 3px solid;\n        border-radius: 4px;\n        background-color: #fff;\n        -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        padding: 15px;\n        border-color: #0088cc;\n        font-size: 1.4rem;\n      }\n      .information .infobox .info-title {\n        font-size: 1.8rem;\n        line-height: 2.2rem;\n        margin: 0 0 0.5em;\n      }\n      .information .offenses-list li {\n        line-height: 1.8rem\n      }\n      .information .offenses-list {\n        padding-left: 20px;\n        margin-bottom: 0;\n      }\n\n      #offenses .offense-box {\n        border-radius: 4px;\n        margin-bottom: 20px;\n        background-color: #fff;\n        -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n      }\n      .fixed .box-title {\n        position: fixed;\n        top: 0;\n        z-index: 10;\n        width: 100%;\n      }\n      .box-title-placeholder {\n        display: none;\n      }\n      .fixed .box-title-placeholder {\n        display: block;\n      }\n      #offenses .offense-box .box-title h3, #offenses .offense-box .box-title-placeholder h3 {\n        color: #33353f;\n        background-color: #f6f6f6;\n        font-size: 2rem;\n        line-height: 2rem;\n        display: block;\n        padding: 15px;\n        border-radius: 5px;\n        margin: 0;\n      }\n      #offenses .offense-box .offense-reports  {\n        padding: 0 15px;\n      }\n      #offenses .offense-box .offense-reports .report {\n        border-bottom: 1px dotted #ddd;\n        padding: 15px 0px;\n        position: relative;\n        font-size: 1.3rem;\n      }\n      #offenses .offense-box .offense-reports .report:last-child {\n        border-bottom: none;\n      }\n      #offenses .offense-box .offense-reports .report pre code {\n        display: block;\n        background: #000;\n        color: #fff;\n        padding: 10px 15px;\n        border-radius: 5px;\n        line-height: 1.6rem;\n      }\n      #offenses .offense-box .offense-reports .report .location {\n        font-weight: bold;\n      }\n      #offenses .offense-box .offense-reports .report .message code {\n        padding: 0.3em;\n        background-color: rgba(0,0,0,0.07);\n        border-radius: 3px;\n      }\n      .severity {\n        text-transform: capitalize;\n        font-weight: bold;\n      }\n      .highlight {\n        padding: 2px;\n        border-radius: 2px;\n        font-weight: bold;\n      }\n\n      .severity.refactor {\n        color: rgba(237, 156, 40, 1.0);\n      }\n      .highlight.refactor {\n        background-color: rgba(237, 156, 40, 0.6);\n        border: 1px solid rgba(237, 156, 40, 0.4);\n      }\n\n      .severity.convention {\n        color: rgba(237, 156, 40, 1.0);\n      }\n      .highlight.convention {\n        background-color: rgba(237, 156, 40, 0.6);\n        border: 1px solid rgba(237, 156, 40, 0.4);\n      }\n\n      .severity.warning {\n        color: rgba(150, 40, 239, 1.0);\n      }\n      .highlight.warning {\n        background-color: rgba(150, 40, 239, 0.6);\n        border: 1px solid rgba(150, 40, 239, 0.4);\n      }\n\n      .severity.error {\n        color: rgba(210, 50, 45, 1.0);\n      }\n      .highlight.error {\n        background-color: rgba(210, 50, 45, 0.6);\n        border: 1px solid rgba(210, 50, 45, 0.4);\n      }\n\n      .severity.fatal {\n        color: rgba(210, 50, 45, 1.0);\n      }\n      .highlight.fatal {\n        background-color: rgba(210, 50, 45, 0.6);\n        border: 1px solid rgba(210, 50, 45, 0.4);\n      }\n\n      footer {\n        margin-bottom: 20px;\n        margin-right: 20px;\n        font-size: 1.3rem;\n        color: #777;\n        text-align: right;\n      }\n      .extra-code {\n        color: #ED9C28\n      }\n\n\n    </style>\n    <script>\n    (function() {\n      // floating headers. requires classList support.\n      if (!('classList' in document.createElement(\"_\"))) return;\n\n      var loaded = false,\n        boxes,\n        boxPositions;\n\n      window.onload = function() {\n        var scrollY = window.scrollY;\n        boxes = document.querySelectorAll('.offense-box');\n        boxPositions = [];\n        for (var i = 0; i < boxes.length; i++)\n          // need to add scrollY because the page might be somewhere other than the top when loaded.\n          boxPositions[i] = boxes[i].getBoundingClientRect().top + scrollY;\n        loaded = true;\n      };\n\n      window.onscroll = function() {\n        if (!loaded) return;\n        var i,\n          idx,\n          scrollY = window.scrollY;\n        for (i = 0; i < boxPositions.length; i++) {\n          if (scrollY <= boxPositions[i] - 1) {\n            idx = i;\n            break;\n          }\n        }\n        if (typeof idx == 'undefined') idx = boxes.length;\n        if (idx > 0)\n          boxes[idx - 1].classList.add('fixed');\n        for (i = 0; i < boxes.length; i++) {\n          if (i < idx) continue;\n          boxes[i].classList.remove('fixed');\n        }\n      };\n    })();\n    </script>\n  </head>\n  <body>\n    <div id=\"header\">\n      <img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEwAAABMCAYAAADHl1ErAAAKQWlDQ1BJQ0Mg\nUHJvZmlsZQAASA2dlndUU9kWh8+9N73QEiIgJfQaegkg0jtIFQRRiUmAUAKG\nhCZ2RAVGFBEpVmRUwAFHhyJjRRQLg4Ji1wnyEFDGwVFEReXdjGsJ7601896a\n/cdZ39nnt9fZZ+9917oAUPyCBMJ0WAGANKFYFO7rwVwSE8vE9wIYEAEOWAHA\n4WZmBEf4RALU/L09mZmoSMaz9u4ugGS72yy/UCZz1v9/kSI3QyQGAApF1TY8\nfiYX5QKUU7PFGTL/BMr0lSkyhjEyFqEJoqwi48SvbPan5iu7yZiXJuShGlnO\nGbw0noy7UN6aJeGjjAShXJgl4GejfAdlvVRJmgDl9yjT0/icTAAwFJlfzOcm\noWyJMkUUGe6J8gIACJTEObxyDov5OWieAHimZ+SKBIlJYqYR15hp5ejIZvrx\ns1P5YjErlMNN4Yh4TM/0tAyOMBeAr2+WRQElWW2ZaJHtrRzt7VnW5mj5v9nf\nHn5T/T3IevtV8Sbsz55BjJ5Z32zsrC+9FgD2JFqbHbO+lVUAtG0GQOXhrE/v\nIADyBQC03pzzHoZsXpLE4gwnC4vs7GxzAZ9rLivoN/ufgm/Kv4Y595nL7vtW\nO6YXP4EjSRUzZUXlpqemS0TMzAwOl89k/fcQ/+PAOWnNycMsnJ/AF/GF6FVR\n6JQJhIlou4U8gViQLmQKhH/V4X8YNicHGX6daxRodV8AfYU5ULhJB8hvPQBD\nIwMkbj96An3rWxAxCsi+vGitka9zjzJ6/uf6Hwtcim7hTEEiU+b2DI9kciWi\nLBmj34RswQISkAd0oAo0gS4wAixgDRyAM3AD3iAAhIBIEAOWAy5IAmlABLJB\nPtgACkEx2AF2g2pwANSBetAEToI2cAZcBFfADXALDIBHQAqGwUswAd6BaQiC\n8BAVokGqkBakD5lC1hAbWgh5Q0FQOBQDxUOJkBCSQPnQJqgYKoOqoUNQPfQj\ndBq6CF2D+qAH0CA0Bv0BfYQRmALTYQ3YALaA2bA7HAhHwsvgRHgVnAcXwNvh\nSrgWPg63whfhG/AALIVfwpMIQMgIA9FGWAgb8URCkFgkAREha5EipAKpRZqQ\nDqQbuY1IkXHkAwaHoWGYGBbGGeOHWYzhYlZh1mJKMNWYY5hWTBfmNmYQM4H5\ngqVi1bGmWCesP3YJNhGbjS3EVmCPYFuwl7ED2GHsOxwOx8AZ4hxwfrgYXDJu\nNa4Etw/XjLuA68MN4SbxeLwq3hTvgg/Bc/BifCG+Cn8cfx7fjx/GvyeQCVoE\na4IPIZYgJGwkVBAaCOcI/YQRwjRRgahPdCKGEHnEXGIpsY7YQbxJHCZOkxRJ\nhiQXUiQpmbSBVElqIl0mPSa9IZPJOmRHchhZQF5PriSfIF8lD5I/UJQoJhRP\nShxFQtlOOUq5QHlAeUOlUg2obtRYqpi6nVpPvUR9Sn0vR5Mzl/OX48mtk6uR\na5Xrl3slT5TXl3eXXy6fJ18hf0r+pvy4AlHBQMFTgaOwVqFG4bTCPYVJRZqi\nlWKIYppiiWKD4jXFUSW8koGStxJPqUDpsNIlpSEaQtOledK4tE20Otpl2jAd\nRzek+9OT6cX0H+i99AllJWVb5SjlHOUa5bPKUgbCMGD4M1IZpYyTjLuMj/M0\n5rnP48/bNq9pXv+8KZX5Km4qfJUilWaVAZWPqkxVb9UU1Z2qbapP1DBqJmph\natlq+9Uuq43Pp893ns+dXzT/5PyH6rC6iXq4+mr1w+o96pMamhq+GhkaVRqX\nNMY1GZpumsma5ZrnNMe0aFoLtQRa5VrntV4wlZnuzFRmJbOLOaGtru2nLdE+\npN2rPa1jqLNYZ6NOs84TXZIuWzdBt1y3U3dCT0svWC9fr1HvoT5Rn62fpL9H\nv1t/ysDQINpgi0GbwaihiqG/YZ5ho+FjI6qRq9Eqo1qjO8Y4Y7ZxivE+41sm\nsImdSZJJjclNU9jU3lRgus+0zwxr5mgmNKs1u8eisNxZWaxG1qA5wzzIfKN5\nm/krCz2LWIudFt0WXyztLFMt6ywfWSlZBVhttOqw+sPaxJprXWN9x4Zq42Oz\nzqbd5rWtqS3fdr/tfTuaXbDdFrtOu8/2DvYi+yb7MQc9h3iHvQ732HR2KLuE\nfdUR6+jhuM7xjOMHJ3snsdNJp9+dWc4pzg3OowsMF/AX1C0YctFx4bgccpEu\nZC6MX3hwodRV25XjWuv6zE3Xjed2xG3E3dg92f24+ysPSw+RR4vHlKeT5xrP\nC16Il69XkVevt5L3Yu9q76c+Oj6JPo0+E752vqt9L/hh/QL9dvrd89fw5/rX\n+08EOASsCegKpARGBFYHPgsyCRIFdQTDwQHBu4IfL9JfJFzUFgJC/EN2hTwJ\nNQxdFfpzGC4sNKwm7Hm4VXh+eHcELWJFREPEu0iPyNLIR4uNFksWd0bJR8VF\n1UdNRXtFl0VLl1gsWbPkRoxajCCmPRYfGxV7JHZyqffS3UuH4+ziCuPuLjNc\nlrPs2nK15anLz66QX8FZcSoeGx8d3xD/iRPCqeVMrvRfuXflBNeTu4f7kufG\nK+eN8V34ZfyRBJeEsoTRRJfEXYljSa5JFUnjAk9BteB1sl/ygeSplJCUoykz\nqdGpzWmEtPi000IlYYqwK10zPSe9L8M0ozBDuspp1e5VE6JA0ZFMKHNZZruY\njv5M9UiMJJslg1kLs2qy3mdHZZ/KUcwR5vTkmuRuyx3J88n7fjVmNXd1Z752\n/ob8wTXuaw6thdauXNu5Tnddwbrh9b7rj20gbUjZ8MtGy41lG99uit7UUaBR\nsL5gaLPv5sZCuUJR4b0tzlsObMVsFWzt3WazrWrblyJe0fViy+KK4k8l3JLr\n31l9V/ndzPaE7b2l9qX7d+B2CHfc3em681iZYlle2dCu4F2t5czyovK3u1fs\nvlZhW3FgD2mPZI+0MqiyvUqvakfVp+qk6oEaj5rmvep7t+2d2sfb17/fbX/T\nAY0DxQc+HhQcvH/I91BrrUFtxWHc4azDz+ui6rq/Z39ff0TtSPGRz0eFR6XH\nwo911TvU1zeoN5Q2wo2SxrHjccdv/eD1Q3sTq+lQM6O5+AQ4ITnx4sf4H++e\nDDzZeYp9qukn/Z/2ttBailqh1tzWibakNml7THvf6YDTnR3OHS0/m/989Iz2\nmZqzymdLz5HOFZybOZ93fvJCxoXxi4kXhzpXdD66tOTSna6wrt7LgZevXvG5\ncqnbvfv8VZerZ645XTt9nX297Yb9jdYeu56WX+x+aem172296XCz/ZbjrY6+\nBX3n+l37L972un3ljv+dGwOLBvruLr57/17cPel93v3RB6kPXj/Mejj9aP1j\n7OOiJwpPKp6qP6391fjXZqm99Oyg12DPs4hnj4a4Qy//lfmvT8MFz6nPK0a0\nRupHrUfPjPmM3Xqx9MXwy4yX0+OFvyn+tveV0auffnf7vWdiycTwa9HrmT9K\n3qi+OfrW9m3nZOjk03dp76anit6rvj/2gf2h+2P0x5Hp7E/4T5WfjT93fAn8\n8ngmbWbm3/eE8/syOll+AAAACXBIWXMAAAsTAAALEwEAmpwYAAAEJGlUWHRY\nTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9i\nZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNS40LjAiPgogICA8cmRm\nOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjIt\ncmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjph\nYm91dD0iIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRv\nYmUuY29tL3RpZmYvMS4wLyIKICAgICAgICAgICAgeG1sbnM6ZXhpZj0iaHR0\ncDovL25zLmFkb2JlLmNvbS9leGlmLzEuMC8iCiAgICAgICAgICAgIHhtbG5z\nOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIKICAgICAg\nICAgICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAv\nIj4KICAgICAgICAgPHRpZmY6UmVzb2x1dGlvblVuaXQ+MTwvdGlmZjpSZXNv\nbHV0aW9uVW5pdD4KICAgICAgICAgPHRpZmY6Q29tcHJlc3Npb24+NTwvdGlm\nZjpDb21wcmVzc2lvbj4KICAgICAgICAgPHRpZmY6WFJlc29sdXRpb24+NzI8\nL3RpZmY6WFJlc29sdXRpb24+CiAgICAgICAgIDx0aWZmOk9yaWVudGF0aW9u\nPjE8L3RpZmY6T3JpZW50YXRpb24+CiAgICAgICAgIDx0aWZmOllSZXNvbHV0\naW9uPjcyPC90aWZmOllSZXNvbHV0aW9uPgogICAgICAgICA8ZXhpZjpQaXhl\nbFhEaW1lbnNpb24+NzY8L2V4aWY6UGl4ZWxYRGltZW5zaW9uPgogICAgICAg\nICA8ZXhpZjpDb2xvclNwYWNlPjE8L2V4aWY6Q29sb3JTcGFjZT4KICAgICAg\nICAgPGV4aWY6UGl4ZWxZRGltZW5zaW9uPjc2PC9leGlmOlBpeGVsWURpbWVu\nc2lvbj4KICAgICAgICAgPGRjOnN1YmplY3Q+CiAgICAgICAgICAgIDxyZGY6\nU2VxLz4KICAgICAgICAgPC9kYzpzdWJqZWN0PgogICAgICAgICA8eG1wOk1v\nZGlmeURhdGU+MjAxNDowOToyMyAyMjowOToxNDwveG1wOk1vZGlmeURhdGU+\nCiAgICAgICAgIDx4bXA6Q3JlYXRvclRvb2w+UGl4ZWxtYXRvciAzLjIuMTwv\neG1wOkNyZWF0b3JUb29sPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAg\nPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KkpvroQAABkNJREFUeAHtm0uIHFUY\nhWveM8ZpHN/RYCIS34mKGGSMMmLA6CKILmQwBOJCEcwqKzELceVWN+IyIgQM\n4gt84SMqBpNBkBiJGkEFMRFNMmSSzEzm5fmG7qEpbt1bt7q6XuOBQ3Xfuvf/\nz/nr3qrq6u6OIH9cLAlrxGvr20e0vVsE34rviL+Lv9W3J7XNDR05Zb5deR8U\n7xfXiVeKnaIN89p5XPxB/EL8WPxerCxqcrZd3CdOiwstkhj7RGISuzLol5On\nxSNiq0WKGk9scpCr1LhP6veLUUbTbicXOUuHHil+QZwS0y6KKx45yY2GUuAy\nqXxXdBlr9340oKXQWC11Y2K7ixE3PlrQVEhcI1WHxLhmsuqHJrQVCtx8cpOZ\nVRF886ANjYVAl1TsFX1NZN0fjWjNHTulIGvzSfOhNVfcpuwTYlIDWY9DK5pz\nAdP7EzFr063mQ3MuS/PREharUWy0Zwruog+IDQFl26I9008Cm0tcrMbBxYM3\nXM+gogI+GbWjRO2ZebhKRTklNo5UWbd4wIsXksywEWW4yCtLMTvjYcRXWpKC\nbfJNUuD+3l58C9Yt83cWuAC+0vCCp7aBT/3nxbKet8K68eL1JMO3unzLtFtk\nWwVQwKp4Kebx8KnurbLwjLhBHCimHW9VkxpxUHxVPOw92jJgi/bxjXP4HFCV\n93jDYypYrSj/iFUpTpQPPK4RrYhzW7FVES61RqnGTjw+4bISp2B3uIJUaL/T\na5yC9VaoIC4rTq9xCjbrylKh/U6vroLdpGKsr1BBXFbwiudE4NP8j2LUVaWq\n7XiOfBpjm2HbNPBmcbkBz3g3wnanf1ojBo2j6o1DnZ3B6IpasL6nb/Hng0y5\nIgKT8+Khmelgz9nTwal53lnB13E1Uw9bwaz+r+jqCvZcsjIY7hsIZhdXrSl8\nsdq69Tl7//RkMHriWPD33JxLnLE2vk8rlpLsGBwKhvsHggn30Voak/+LhUXN\naN81/m8iObZzWGRABg339QfTC9ZJGDk+zx1oRnsi4xKeaBxlmlJi45zNsxox\ncqMZ7UkPdeKCvX3uTNCrkpWpaGhFM9qTFizxOWy3rjZru3uD7RfWgoGOcpRt\nUjPrlYnxAO1JYXN6QEF5WGgFtxQ39vQGXbZI1gjZ7JzTlPpp5vzirUWMjGPq\n4/QejjOiBmbuciTevcH57TWRu7zlUjS84jnRuV3jFr+z+1Lb5VKwr+qe8W6E\nq5I87jhpHFnNxhOyZX3E4yoYZcnl13o5HQ+n1zgFS34Nzsl1C2mdXuMU7PMW\nBJRtaCpeecTDfUnVT/x4tD7O8jn616nz1xUuGt7w6ITP/Xmfoj0s8n/sFSIz\nLow4Szw8Jov33F+FgfezIn+r+UDkH77/I+0K+MywRm7+0P6hGF7vM2rbIh4V\ni4S1EvOeGP6ZOY+hHxKPi7GR5GkFYxDBsmwGS5RlWzSg6QYxPDlYjt7+vQfU\nq2G6G6bNdF6rD1naPKZXHNk0wEx/yxEITWgLzzCTB0eoBBV2RrR3eEC7Xxcv\nsHeLvXdUPcfFz2KPaLFjllc1foD7hphWsbBOLGISOxMkXZJJxLEMuWAALuEY\nPcebBKBQW0XOT8Qk9ndiIbFKqlgGnBuayS+SbxGj0KUdz4sUaUdUJ492YhCL\nmMSOAppMv/zGA17ajqQFawhj+YSvWI19PltixFmKqRYsyyXZKEZaS4fZnVas\nhjbnNo+ChUVtVMP1omvWUaCfxW/EUuFqqTX9m21W7es8nTyl/oxrPhfaXtOX\nMT5AkykHHvDSdgwpw1+iyRgfjeLiHnU8I5ri2NoYw9i4QJMpHh7w0nZw7zYm\nmkS8GTP7SvX7JSKGKW64jbHEiIO96hQez3s8ZHYf+nKECKb+NtEGzpvviyYT\nPm3EcJ2D0WJajuTBQ2bYqEz8wMpkcErtu8TLxTC4X3pJNI1L0kYs0z0YudGA\nFlNctOPBG64rU1RARH4kborqoPZj4mGx8cUCuVaJG8Q0cVDB/hQpDKiJ/C/K\ntmQ/1f7NovNXdeqTGu5SJB6RmI5gkdvQjPZc8KyyFrk4Jm1ozhXPKTvPzE3i\nitSGRrQWAo9LxR9ikQrUrAVtaCwUOMm+KB4Vm8Xm+RotaLJdALQ7Xwwq/b3i\nTvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=\n\" alt=\"\">\n      <h1 class=\"title\">RuboCop Inspection Report</h1>\n    </div>\n    <div class=\"information\">\n      <div class=\"infobox\">\n        <div class=\"total\">\n          1 file inspected,\n          1 offense detected:\n        </div>\n        <ul class=\"offenses-list\">\n\n\n            <li>\n              <a href=\"#offense_\">\n                 - 1 offense\n              </a>\n            </li>\n\n        </ul>\n      </div>\n    </div>\n    <div id=\"offenses\">\n\n\n      <div class=\"offense-box\" id=\"offense_\">\n        <div class=\"box-title-placeholder\"><h3>&nbsp;</h3></div>\n        <div class=\"box-title\"><h3> - 1 offense</h3></div>\n        <div class=\"offense-reports\">\n\n          <div class=\"report\">\n            <div class=\"meta\">\n              <span class=\"location\">Line #1</span> –\n              <span class=\"severity convention\">convention:</span>\n              <span class=\"message\">Layout/SpaceAroundOperators: Surrounding space missing for operator <code>=</code>.</span>\n            </div>\n\n            <pre><code>x<span class=\"highlight convention\">=</span>1</code></pre>\n\n          </div>\n\n        </div>\n      </div>\n\n\n    </div>\n    <footer>\n      Generated by <a href=\"https://github.com/rubocop/rubocop\">RuboCop</a>\n      <span class=\"version\">1.89.0</span>\n    </footer>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "html-named",
+      "format": "html",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "html",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset='UTF-8' />\n    <title>RuboCop Inspection Report</title>\n    <style>\n      * {\n        -webkit-box-sizing: border-box;\n        -moz-box-sizing: border-box;\n        box-sizing: border-box;\n      }\n\n      body, html {\n        font-size: 62.5%;\n      }\n      body {\n        background-color: #ecedf0;\n        font-family: \"Helvetica Neue\",Helvetica,Arial,sans-serif;\n        margin: 0;\n      }\n      code {\n        font-family: Consolas, \"Liberation Mono\", Menlo, Courier, monospace;\n        font-size: 85%;\n      }\n      #header {\n        background: #f9f9f9;\n        color: #333;\n        border-bottom: 3px solid #ccc;\n        height: 50px;\n        padding: 0;\n      }\n      #header .logo {\n        float: left;\n        margin: 5px 12px 7px 20px;\n        width: 38px;\n        height: 38px;\n      }\n      #header .title {\n        display: inline-block;\n        float: left;\n        height: 50px;\n        font-size: 2.4rem;\n        letter-spacing: normal;\n        line-height: 50px;\n        margin: 0;\n      }\n\n      .information, #offenses {\n        width: 100%;\n        padding: 20px;\n        color: #333;\n      }\n      #offenses {\n        padding: 0 20px;\n      }\n\n      .information .infobox {\n        border-left: 3px solid;\n        border-radius: 4px;\n        background-color: #fff;\n        -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        padding: 15px;\n        border-color: #0088cc;\n        font-size: 1.4rem;\n      }\n      .information .infobox .info-title {\n        font-size: 1.8rem;\n        line-height: 2.2rem;\n        margin: 0 0 0.5em;\n      }\n      .information .offenses-list li {\n        line-height: 1.8rem\n      }\n      .information .offenses-list {\n        padding-left: 20px;\n        margin-bottom: 0;\n      }\n\n      #offenses .offense-box {\n        border-radius: 4px;\n        margin-bottom: 20px;\n        background-color: #fff;\n        -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);\n      }\n      .fixed .box-title {\n        position: fixed;\n        top: 0;\n        z-index: 10;\n        width: 100%;\n      }\n      .box-title-placeholder {\n        display: none;\n      }\n      .fixed .box-title-placeholder {\n        display: block;\n      }\n      #offenses .offense-box .box-title h3, #offenses .offense-box .box-title-placeholder h3 {\n        color: #33353f;\n        background-color: #f6f6f6;\n        font-size: 2rem;\n        line-height: 2rem;\n        display: block;\n        padding: 15px;\n        border-radius: 5px;\n        margin: 0;\n      }\n      #offenses .offense-box .offense-reports  {\n        padding: 0 15px;\n      }\n      #offenses .offense-box .offense-reports .report {\n        border-bottom: 1px dotted #ddd;\n        padding: 15px 0px;\n        position: relative;\n        font-size: 1.3rem;\n      }\n      #offenses .offense-box .offense-reports .report:last-child {\n        border-bottom: none;\n      }\n      #offenses .offense-box .offense-reports .report pre code {\n        display: block;\n        background: #000;\n        color: #fff;\n        padding: 10px 15px;\n        border-radius: 5px;\n        line-height: 1.6rem;\n      }\n      #offenses .offense-box .offense-reports .report .location {\n        font-weight: bold;\n      }\n      #offenses .offense-box .offense-reports .report .message code {\n        padding: 0.3em;\n        background-color: rgba(0,0,0,0.07);\n        border-radius: 3px;\n      }\n      .severity {\n        text-transform: capitalize;\n        font-weight: bold;\n      }\n      .highlight {\n        padding: 2px;\n        border-radius: 2px;\n        font-weight: bold;\n      }\n\n      .severity.refactor {\n        color: rgba(237, 156, 40, 1.0);\n      }\n      .highlight.refactor {\n        background-color: rgba(237, 156, 40, 0.6);\n        border: 1px solid rgba(237, 156, 40, 0.4);\n      }\n\n      .severity.convention {\n        color: rgba(237, 156, 40, 1.0);\n      }\n      .highlight.convention {\n        background-color: rgba(237, 156, 40, 0.6);\n        border: 1px solid rgba(237, 156, 40, 0.4);\n      }\n\n      .severity.warning {\n        color: rgba(150, 40, 239, 1.0);\n      }\n      .highlight.warning {\n        background-color: rgba(150, 40, 239, 0.6);\n        border: 1px solid rgba(150, 40, 239, 0.4);\n      }\n\n      .severity.error {\n        color: rgba(210, 50, 45, 1.0);\n      }\n      .highlight.error {\n        background-color: rgba(210, 50, 45, 0.6);\n        border: 1px solid rgba(210, 50, 45, 0.4);\n      }\n\n      .severity.fatal {\n        color: rgba(210, 50, 45, 1.0);\n      }\n      .highlight.fatal {\n        background-color: rgba(210, 50, 45, 0.6);\n        border: 1px solid rgba(210, 50, 45, 0.4);\n      }\n\n      footer {\n        margin-bottom: 20px;\n        margin-right: 20px;\n        font-size: 1.3rem;\n        color: #777;\n        text-align: right;\n      }\n      .extra-code {\n        color: #ED9C28\n      }\n\n\n    </style>\n    <script>\n    (function() {\n      // floating headers. requires classList support.\n      if (!('classList' in document.createElement(\"_\"))) return;\n\n      var loaded = false,\n        boxes,\n        boxPositions;\n\n      window.onload = function() {\n        var scrollY = window.scrollY;\n        boxes = document.querySelectorAll('.offense-box');\n        boxPositions = [];\n        for (var i = 0; i < boxes.length; i++)\n          // need to add scrollY because the page might be somewhere other than the top when loaded.\n          boxPositions[i] = boxes[i].getBoundingClientRect().top + scrollY;\n        loaded = true;\n      };\n\n      window.onscroll = function() {\n        if (!loaded) return;\n        var i,\n          idx,\n          scrollY = window.scrollY;\n        for (i = 0; i < boxPositions.length; i++) {\n          if (scrollY <= boxPositions[i] - 1) {\n            idx = i;\n            break;\n          }\n        }\n        if (typeof idx == 'undefined') idx = boxes.length;\n        if (idx > 0)\n          boxes[idx - 1].classList.add('fixed');\n        for (i = 0; i < boxes.length; i++) {\n          if (i < idx) continue;\n          boxes[i].classList.remove('fixed');\n        }\n      };\n    })();\n    </script>\n  </head>\n  <body>\n    <div id=\"header\">\n      <img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEwAAABMCAYAAADHl1ErAAAKQWlDQ1BJQ0Mg\nUHJvZmlsZQAASA2dlndUU9kWh8+9N73QEiIgJfQaegkg0jtIFQRRiUmAUAKG\nhCZ2RAVGFBEpVmRUwAFHhyJjRRQLg4Ji1wnyEFDGwVFEReXdjGsJ7601896a\n/cdZ39nnt9fZZ+9917oAUPyCBMJ0WAGANKFYFO7rwVwSE8vE9wIYEAEOWAHA\n4WZmBEf4RALU/L09mZmoSMaz9u4ugGS72yy/UCZz1v9/kSI3QyQGAApF1TY8\nfiYX5QKUU7PFGTL/BMr0lSkyhjEyFqEJoqwi48SvbPan5iu7yZiXJuShGlnO\nGbw0noy7UN6aJeGjjAShXJgl4GejfAdlvVRJmgDl9yjT0/icTAAwFJlfzOcm\noWyJMkUUGe6J8gIACJTEObxyDov5OWieAHimZ+SKBIlJYqYR15hp5ejIZvrx\ns1P5YjErlMNN4Yh4TM/0tAyOMBeAr2+WRQElWW2ZaJHtrRzt7VnW5mj5v9nf\nHn5T/T3IevtV8Sbsz55BjJ5Z32zsrC+9FgD2JFqbHbO+lVUAtG0GQOXhrE/v\nIADyBQC03pzzHoZsXpLE4gwnC4vs7GxzAZ9rLivoN/ufgm/Kv4Y595nL7vtW\nO6YXP4EjSRUzZUXlpqemS0TMzAwOl89k/fcQ/+PAOWnNycMsnJ/AF/GF6FVR\n6JQJhIlou4U8gViQLmQKhH/V4X8YNicHGX6daxRodV8AfYU5ULhJB8hvPQBD\nIwMkbj96An3rWxAxCsi+vGitka9zjzJ6/uf6Hwtcim7hTEEiU+b2DI9kciWi\nLBmj34RswQISkAd0oAo0gS4wAixgDRyAM3AD3iAAhIBIEAOWAy5IAmlABLJB\nPtgACkEx2AF2g2pwANSBetAEToI2cAZcBFfADXALDIBHQAqGwUswAd6BaQiC\n8BAVokGqkBakD5lC1hAbWgh5Q0FQOBQDxUOJkBCSQPnQJqgYKoOqoUNQPfQj\ndBq6CF2D+qAH0CA0Bv0BfYQRmALTYQ3YALaA2bA7HAhHwsvgRHgVnAcXwNvh\nSrgWPg63whfhG/AALIVfwpMIQMgIA9FGWAgb8URCkFgkAREha5EipAKpRZqQ\nDqQbuY1IkXHkAwaHoWGYGBbGGeOHWYzhYlZh1mJKMNWYY5hWTBfmNmYQM4H5\ngqVi1bGmWCesP3YJNhGbjS3EVmCPYFuwl7ED2GHsOxwOx8AZ4hxwfrgYXDJu\nNa4Etw/XjLuA68MN4SbxeLwq3hTvgg/Bc/BifCG+Cn8cfx7fjx/GvyeQCVoE\na4IPIZYgJGwkVBAaCOcI/YQRwjRRgahPdCKGEHnEXGIpsY7YQbxJHCZOkxRJ\nhiQXUiQpmbSBVElqIl0mPSa9IZPJOmRHchhZQF5PriSfIF8lD5I/UJQoJhRP\nShxFQtlOOUq5QHlAeUOlUg2obtRYqpi6nVpPvUR9Sn0vR5Mzl/OX48mtk6uR\na5Xrl3slT5TXl3eXXy6fJ18hf0r+pvy4AlHBQMFTgaOwVqFG4bTCPYVJRZqi\nlWKIYppiiWKD4jXFUSW8koGStxJPqUDpsNIlpSEaQtOledK4tE20Otpl2jAd\nRzek+9OT6cX0H+i99AllJWVb5SjlHOUa5bPKUgbCMGD4M1IZpYyTjLuMj/M0\n5rnP48/bNq9pXv+8KZX5Km4qfJUilWaVAZWPqkxVb9UU1Z2qbapP1DBqJmph\natlq+9Uuq43Pp893ns+dXzT/5PyH6rC6iXq4+mr1w+o96pMamhq+GhkaVRqX\nNMY1GZpumsma5ZrnNMe0aFoLtQRa5VrntV4wlZnuzFRmJbOLOaGtru2nLdE+\npN2rPa1jqLNYZ6NOs84TXZIuWzdBt1y3U3dCT0svWC9fr1HvoT5Rn62fpL9H\nv1t/ysDQINpgi0GbwaihiqG/YZ5ho+FjI6qRq9Eqo1qjO8Y4Y7ZxivE+41sm\nsImdSZJJjclNU9jU3lRgus+0zwxr5mgmNKs1u8eisNxZWaxG1qA5wzzIfKN5\nm/krCz2LWIudFt0WXyztLFMt6ywfWSlZBVhttOqw+sPaxJprXWN9x4Zq42Oz\nzqbd5rWtqS3fdr/tfTuaXbDdFrtOu8/2DvYi+yb7MQc9h3iHvQ732HR2KLuE\nfdUR6+jhuM7xjOMHJ3snsdNJp9+dWc4pzg3OowsMF/AX1C0YctFx4bgccpEu\nZC6MX3hwodRV25XjWuv6zE3Xjed2xG3E3dg92f24+ysPSw+RR4vHlKeT5xrP\nC16Il69XkVevt5L3Yu9q76c+Oj6JPo0+E752vqt9L/hh/QL9dvrd89fw5/rX\n+08EOASsCegKpARGBFYHPgsyCRIFdQTDwQHBu4IfL9JfJFzUFgJC/EN2hTwJ\nNQxdFfpzGC4sNKwm7Hm4VXh+eHcELWJFREPEu0iPyNLIR4uNFksWd0bJR8VF\n1UdNRXtFl0VLl1gsWbPkRoxajCCmPRYfGxV7JHZyqffS3UuH4+ziCuPuLjNc\nlrPs2nK15anLz66QX8FZcSoeGx8d3xD/iRPCqeVMrvRfuXflBNeTu4f7kufG\nK+eN8V34ZfyRBJeEsoTRRJfEXYljSa5JFUnjAk9BteB1sl/ygeSplJCUoykz\nqdGpzWmEtPi000IlYYqwK10zPSe9L8M0ozBDuspp1e5VE6JA0ZFMKHNZZruY\njv5M9UiMJJslg1kLs2qy3mdHZZ/KUcwR5vTkmuRuyx3J88n7fjVmNXd1Z752\n/ob8wTXuaw6thdauXNu5Tnddwbrh9b7rj20gbUjZ8MtGy41lG99uit7UUaBR\nsL5gaLPv5sZCuUJR4b0tzlsObMVsFWzt3WazrWrblyJe0fViy+KK4k8l3JLr\n31l9V/ndzPaE7b2l9qX7d+B2CHfc3em681iZYlle2dCu4F2t5czyovK3u1fs\nvlZhW3FgD2mPZI+0MqiyvUqvakfVp+qk6oEaj5rmvep7t+2d2sfb17/fbX/T\nAY0DxQc+HhQcvH/I91BrrUFtxWHc4azDz+ui6rq/Z39ff0TtSPGRz0eFR6XH\nwo911TvU1zeoN5Q2wo2SxrHjccdv/eD1Q3sTq+lQM6O5+AQ4ITnx4sf4H++e\nDDzZeYp9qukn/Z/2ttBailqh1tzWibakNml7THvf6YDTnR3OHS0/m/989Iz2\nmZqzymdLz5HOFZybOZ93fvJCxoXxi4kXhzpXdD66tOTSna6wrt7LgZevXvG5\ncqnbvfv8VZerZ645XTt9nX297Yb9jdYeu56WX+x+aem172296XCz/ZbjrY6+\nBX3n+l37L972un3ljv+dGwOLBvruLr57/17cPel93v3RB6kPXj/Mejj9aP1j\n7OOiJwpPKp6qP6391fjXZqm99Oyg12DPs4hnj4a4Qy//lfmvT8MFz6nPK0a0\nRupHrUfPjPmM3Xqx9MXwy4yX0+OFvyn+tveV0auffnf7vWdiycTwa9HrmT9K\n3qi+OfrW9m3nZOjk03dp76anit6rvj/2gf2h+2P0x5Hp7E/4T5WfjT93fAn8\n8ngmbWbm3/eE8/syOll+AAAACXBIWXMAAAsTAAALEwEAmpwYAAAEJGlUWHRY\nTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9i\nZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNS40LjAiPgogICA8cmRm\nOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjIt\ncmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjph\nYm91dD0iIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRv\nYmUuY29tL3RpZmYvMS4wLyIKICAgICAgICAgICAgeG1sbnM6ZXhpZj0iaHR0\ncDovL25zLmFkb2JlLmNvbS9leGlmLzEuMC8iCiAgICAgICAgICAgIHhtbG5z\nOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIKICAgICAg\nICAgICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAv\nIj4KICAgICAgICAgPHRpZmY6UmVzb2x1dGlvblVuaXQ+MTwvdGlmZjpSZXNv\nbHV0aW9uVW5pdD4KICAgICAgICAgPHRpZmY6Q29tcHJlc3Npb24+NTwvdGlm\nZjpDb21wcmVzc2lvbj4KICAgICAgICAgPHRpZmY6WFJlc29sdXRpb24+NzI8\nL3RpZmY6WFJlc29sdXRpb24+CiAgICAgICAgIDx0aWZmOk9yaWVudGF0aW9u\nPjE8L3RpZmY6T3JpZW50YXRpb24+CiAgICAgICAgIDx0aWZmOllSZXNvbHV0\naW9uPjcyPC90aWZmOllSZXNvbHV0aW9uPgogICAgICAgICA8ZXhpZjpQaXhl\nbFhEaW1lbnNpb24+NzY8L2V4aWY6UGl4ZWxYRGltZW5zaW9uPgogICAgICAg\nICA8ZXhpZjpDb2xvclNwYWNlPjE8L2V4aWY6Q29sb3JTcGFjZT4KICAgICAg\nICAgPGV4aWY6UGl4ZWxZRGltZW5zaW9uPjc2PC9leGlmOlBpeGVsWURpbWVu\nc2lvbj4KICAgICAgICAgPGRjOnN1YmplY3Q+CiAgICAgICAgICAgIDxyZGY6\nU2VxLz4KICAgICAgICAgPC9kYzpzdWJqZWN0PgogICAgICAgICA8eG1wOk1v\nZGlmeURhdGU+MjAxNDowOToyMyAyMjowOToxNDwveG1wOk1vZGlmeURhdGU+\nCiAgICAgICAgIDx4bXA6Q3JlYXRvclRvb2w+UGl4ZWxtYXRvciAzLjIuMTwv\neG1wOkNyZWF0b3JUb29sPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAg\nPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KkpvroQAABkNJREFUeAHtm0uIHFUY\nhWveM8ZpHN/RYCIS34mKGGSMMmLA6CKILmQwBOJCEcwqKzELceVWN+IyIgQM\n4gt84SMqBpNBkBiJGkEFMRFNMmSSzEzm5fmG7qEpbt1bt7q6XuOBQ3Xfuvf/\nz/nr3qrq6u6OIH9cLAlrxGvr20e0vVsE34rviL+Lv9W3J7XNDR05Zb5deR8U\n7xfXiVeKnaIN89p5XPxB/EL8WPxerCxqcrZd3CdOiwstkhj7RGISuzLol5On\nxSNiq0WKGk9scpCr1LhP6veLUUbTbicXOUuHHil+QZwS0y6KKx45yY2GUuAy\nqXxXdBlr9340oKXQWC11Y2K7ixE3PlrQVEhcI1WHxLhmsuqHJrQVCtx8cpOZ\nVRF886ANjYVAl1TsFX1NZN0fjWjNHTulIGvzSfOhNVfcpuwTYlIDWY9DK5pz\nAdP7EzFr063mQ3MuS/PREharUWy0Zwruog+IDQFl26I9008Cm0tcrMbBxYM3\nXM+gogI+GbWjRO2ZebhKRTklNo5UWbd4wIsXksywEWW4yCtLMTvjYcRXWpKC\nbfJNUuD+3l58C9Yt83cWuAC+0vCCp7aBT/3nxbKet8K68eL1JMO3unzLtFtk\nWwVQwKp4Kebx8KnurbLwjLhBHCimHW9VkxpxUHxVPOw92jJgi/bxjXP4HFCV\n93jDYypYrSj/iFUpTpQPPK4RrYhzW7FVES61RqnGTjw+4bISp2B3uIJUaL/T\na5yC9VaoIC4rTq9xCjbrylKh/U6vroLdpGKsr1BBXFbwiudE4NP8j2LUVaWq\n7XiOfBpjm2HbNPBmcbkBz3g3wnanf1ojBo2j6o1DnZ3B6IpasL6nb/Hng0y5\nIgKT8+Khmelgz9nTwal53lnB13E1Uw9bwaz+r+jqCvZcsjIY7hsIZhdXrSl8\nsdq69Tl7//RkMHriWPD33JxLnLE2vk8rlpLsGBwKhvsHggn30Voak/+LhUXN\naN81/m8iObZzWGRABg339QfTC9ZJGDk+zx1oRnsi4xKeaBxlmlJi45zNsxox\ncqMZ7UkPdeKCvX3uTNCrkpWpaGhFM9qTFizxOWy3rjZru3uD7RfWgoGOcpRt\nUjPrlYnxAO1JYXN6QEF5WGgFtxQ39vQGXbZI1gjZ7JzTlPpp5vzirUWMjGPq\n4/QejjOiBmbuciTevcH57TWRu7zlUjS84jnRuV3jFr+z+1Lb5VKwr+qe8W6E\nq5I87jhpHFnNxhOyZX3E4yoYZcnl13o5HQ+n1zgFS34Nzsl1C2mdXuMU7PMW\nBJRtaCpeecTDfUnVT/x4tD7O8jn616nz1xUuGt7w6ITP/Xmfoj0s8n/sFSIz\nLow4Szw8Jov33F+FgfezIn+r+UDkH77/I+0K+MywRm7+0P6hGF7vM2rbIh4V\ni4S1EvOeGP6ZOY+hHxKPi7GR5GkFYxDBsmwGS5RlWzSg6QYxPDlYjt7+vQfU\nq2G6G6bNdF6rD1naPKZXHNk0wEx/yxEITWgLzzCTB0eoBBV2RrR3eEC7Xxcv\nsHeLvXdUPcfFz2KPaLFjllc1foD7hphWsbBOLGISOxMkXZJJxLEMuWAALuEY\nPcebBKBQW0XOT8Qk9ndiIbFKqlgGnBuayS+SbxGj0KUdz4sUaUdUJ492YhCL\nmMSOAppMv/zGA17ajqQFawhj+YSvWI19PltixFmKqRYsyyXZKEZaS4fZnVas\nhjbnNo+ChUVtVMP1omvWUaCfxW/EUuFqqTX9m21W7es8nTyl/oxrPhfaXtOX\nMT5AkykHHvDSdgwpw1+iyRgfjeLiHnU8I5ri2NoYw9i4QJMpHh7w0nZw7zYm\nmkS8GTP7SvX7JSKGKW64jbHEiIO96hQez3s8ZHYf+nKECKb+NtEGzpvviyYT\nPm3EcJ2D0WJajuTBQ2bYqEz8wMpkcErtu8TLxTC4X3pJNI1L0kYs0z0YudGA\nFlNctOPBG64rU1RARH4kborqoPZj4mGx8cUCuVaJG8Q0cVDB/hQpDKiJ/C/K\ntmQ/1f7NovNXdeqTGu5SJB6RmI5gkdvQjPZc8KyyFrk4Jm1ozhXPKTvPzE3i\nitSGRrQWAo9LxR9ikQrUrAVtaCwUOMm+KB4Vm8Xm+RotaLJdALQ7Xwwq/b3i\nTvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=\n\" alt=\"\">\n      <h1 class=\"title\">RuboCop Inspection Report</h1>\n    </div>\n    <div class=\"information\">\n      <div class=\"infobox\">\n        <div class=\"total\">\n          1 file inspected,\n          1 offense detected:\n        </div>\n        <ul class=\"offenses-list\">\n\n\n            <li>\n              <a href=\"#offense_example.rb\">\n                example.rb - 1 offense\n              </a>\n            </li>\n\n        </ul>\n      </div>\n    </div>\n    <div id=\"offenses\">\n\n\n      <div class=\"offense-box\" id=\"offense_example.rb\">\n        <div class=\"box-title-placeholder\"><h3>&nbsp;</h3></div>\n        <div class=\"box-title\"><h3>example.rb - 1 offense</h3></div>\n        <div class=\"offense-reports\">\n\n          <div class=\"report\">\n            <div class=\"meta\">\n              <span class=\"location\">Line #1</span> –\n              <span class=\"severity convention\">convention:</span>\n              <span class=\"message\">Layout/SpaceAroundOperators: Surrounding space missing for operator <code>=</code>.</span>\n            </div>\n\n            <pre><code>x<span class=\"highlight convention\">=</span>1</code></pre>\n\n          </div>\n\n        </div>\n      </div>\n\n\n    </div>\n    <footer>\n      Generated by <a href=\"https://github.com/rubocop/rubocop\">RuboCop</a>\n      <span class=\"version\">1.89.0</span>\n    </footer>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "markdown-anonymous",
+      "format": "markdown",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "markdown",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "# RuboCop Inspection Report\n\n1 file inspected, 1 offense detected:\n\n###  - (1 offense)\n  * **Line # 1 - convention:** Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n\n    ```rb\n    x=1\n    ```\n\n"
+    },
+    {
+      "name": "markdown-named",
+      "format": "markdown",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "markdown",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "# RuboCop Inspection Report\n\n1 file inspected, 1 offense detected:\n\n### example.rb - (1 offense)\n  * **Line # 1 - convention:** Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n\n    ```rb\n    x=1\n    ```\n\n"
+    },
+    {
+      "name": "github-anonymous",
+      "format": "github",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "github",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n::error file=,line=1,col=2::Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n"
+    },
+    {
+      "name": "github-named",
+      "format": "github",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "github",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n::error file=example.rb,line=1,col=2::Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.\n"
+    },
+    {
+      "name": "tap-anonymous",
+      "format": "tap",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "tap",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "1..1\nnot ok 1 - \n# :1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n# x=1\n#  ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "tap-named",
+      "format": "tap",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "tap",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "1..1\nnot ok 1 - example.rb\n# example.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n# x=1\n#  ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "files-anonymous",
+      "format": "files",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "files",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<CWD>\n"
+    },
+    {
+      "name": "files-named",
+      "format": "files",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "files",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "<CWD>/example.rb\n"
+    },
+    {
+      "name": "offenses-anonymous",
+      "format": "offenses",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "offenses",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n1  Layout/SpaceAroundOperators [Safe Correctable]\n--\n1  Total in 1 files\n\n"
+    },
+    {
+      "name": "offenses-named",
+      "format": "offenses",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "offenses",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n1  Layout/SpaceAroundOperators [Safe Correctable]\n--\n1  Total in 1 files\n\n"
+    },
+    {
+      "name": "worst-anonymous",
+      "format": "worst",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "worst",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n1  .\n--\n1  Total in 1 files\n\n"
+    },
+    {
+      "name": "worst-named",
+      "format": "worst",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "worst",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "\n1  example.rb\n--\n1  Total in 1 files\n\n"
+    },
+    {
+      "name": "quiet-anonymous",
+      "format": "quiet",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "quiet",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ""
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "==  ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    },
+    {
+      "name": "quiet-named",
+      "format": "quiet",
+      "args": [
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "quiet",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        "example.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "files": {},
+      "exit": 1,
+      "text": "== example.rb ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+    }
+  ]
+}

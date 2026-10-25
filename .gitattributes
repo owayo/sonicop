@@ -31,3 +31,9 @@ scripts/test_record_non_unicode_cli_arguments.py text eol=lf
 tests/fixtures/non_unicode_cli_arguments.json text eol=lf
 tests/fixtures/non_unicode_cli_arguments.PROVENANCE text eol=lf
 tests/cli_arguments.rs text eol=lf
+
+# 匿名stdinの参照記録と生成元はLFで保ち、入力hexを変換しない。
+scripts/record_empty_stdin.py text eol=lf
+scripts/test_record_empty_stdin.py text eol=lf
+tests/empty_stdin.rs text eol=lf
+tests/fixtures/empty_stdin_reports.json text eol=lf
