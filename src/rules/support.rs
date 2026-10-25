@@ -1577,17 +1577,49 @@ pub(crate) fn last_token_line(context: &RuleContext<'_>) -> Option<usize> {
     let root = context.root_node();
     let mut last = None;
     let mut last_code = None;
+    let mut previous: Option<Node<'_>> = None;
     for node in context.children(root)? {
-        if matches!(node.kind_str(), "heredoc_body" | "uninterpreted") {
+        if node.kind_str() == "uninterpreted" {
+            continue;
+        }
+        if node.kind_str() == "heredoc_body" {
+            // 本文内の空行を、次の comment までの空行として数えない。
+            if previous.is_none_or(|previous| previous.end_byte() < node.end_byte()) {
+                previous = Some(node);
+            }
             continue;
         }
         last = Some(node);
         if node.kind_str() != "comment" {
             last_code = Some(node);
+        } else if context.source.text()[node.byte_range()].starts_with("=begin") {
+            // 両 lexer ともブロック comment より前に tNL を返すため、後続へ遅延しない。
+            last_code = None;
+        } else if let Some(previous) = previous
+            && let Some(gap) = context
+                .source
+                .text()
+                .as_bytes()
+                .get(previous.end_byte()..node.start_byte())
+        {
+            // NEWLINE の次が空行なら tNL は comment より前に返る。継続改行は数えない。
+            let newlines = gap.iter().enumerate().filter(|(offset, byte)| {
+                if **byte != b'\n' {
+                    return false;
+                }
+                let prefix = gap[..*offset]
+                    .strip_suffix(b"\r")
+                    .unwrap_or(&gap[..*offset]);
+                !prefix.ends_with(b"\\")
+            });
+            if newlines.take(2).count() == 2 {
+                last_code = None;
+            }
         }
+        previous = Some(node);
     }
     // 通常EOFの終端なしcommentは、白lexerではtNLより後に返る。
-    // Prismも=beginは同順だが、通常の#commentは最後にtNLを返す。実token列で確認した差。
+    // Prismも=beginは同順だが、通常の#commentは遅延中のtNLより前。実token列で確認した差。
     // NUL投影は原本の後続bytesを持つため、この通常EOF特例へ混ぜない。
     if root.end_byte() == context.source.text().len()
         && let Some(comment) = last
@@ -1640,6 +1672,83 @@ pub(crate) fn last_code_line(context: &RuleContext<'_>) -> usize {
     data_marker_start(context).map_or(context.source.line_count(), |start| {
         context.source.line_column(start).0.saturating_sub(1)
     })
+}
+
+#[cfg(test)]
+mod last_token_tests {
+    use crate::config::Config;
+    use crate::regexp_ast::Semantics;
+    use crate::rules::{AstIndex, RuleContext};
+    use crate::source::SourceFile;
+
+    use super::last_token_line;
+
+    /// EndOfLine 自体の EOF 条件が誤りを隠しても、実 token 列の末尾行を直接監視する。
+    #[test]
+    fn last_token_lines_match_actual_processed_source_across_comment_boundaries() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/last_token_lines.json"))
+                .unwrap();
+        assert_eq!(fixture["groups"].as_array().unwrap().len(), 7);
+        assert_eq!(fixture["cases"].as_object().unwrap().len(), 144);
+        let directory = tempfile::tempdir().unwrap();
+        let config_path = directory.path().join(".rubocop.yml");
+        let rule = crate::rules::rules()
+            .find(|rule| rule.name == "Layout/EndOfLine")
+            .unwrap();
+        let mut differences = Vec::new();
+        let mut compared = 0;
+        let mut invalid = 0;
+        for group in fixture["groups"].as_array().unwrap() {
+            let target = group["target"].as_str().unwrap();
+            let engine = group["engine"].as_str().unwrap();
+            std::fs::write(
+                &config_path,
+                format!(
+                    "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {target}\n  ParserEngine: {engine}\n"
+                ),
+            )
+            .unwrap();
+            let config =
+                Config::load_with_options(Some(&config_path), directory.path(), false).unwrap();
+            let semantics = Semantics::from_config(&config);
+            for record in group["records"].as_array().unwrap() {
+                // 無効構文では cop が走らない。backend の回復 token 列は fixture に残す。
+                if !record["valid_syntax"].as_bool().unwrap() {
+                    invalid += 1;
+                    continue;
+                }
+                compared += 1;
+                let name = record["name"].as_str().unwrap();
+                let hex = fixture["cases"][name].as_str().unwrap();
+                let bytes: Vec<_> = hex
+                    .as_bytes()
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+                    .collect();
+                let text = String::from_utf8(bytes.clone()).unwrap();
+                let parsed = crate::nul_bytes::as_ruby_reads_it_configured(&text, semantics);
+                let tree =
+                    crate::parser::parse_configured(parsed.as_deref().unwrap_or(&text), semantics)
+                        .unwrap();
+                let source = SourceFile::new(name, text);
+                let ast = AstIndex::new(tree.root_node(), source.text());
+                let context = RuleContext::new(&source, &ast, &config, rule, rule.severity, false);
+                let actual = last_token_line(&context);
+                let expected = record["last_line"].as_u64().map(|value| value as usize);
+                if actual != expected {
+                    differences.push(format!(
+                        "{target}/{engine}/{name}: {actual:?} != {expected:?}"
+                    ));
+                }
+                assert_eq!(source.text().as_bytes(), bytes, "{target}/{engine}/{name}");
+            }
+        }
+        assert_eq!((compared, invalid), (974, 28));
+        assert!(differences.is_empty(), "{}", differences.join("\n"));
+    }
 }
 
 #[cfg(test)]

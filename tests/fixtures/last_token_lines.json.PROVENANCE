@@ -1,0 +1,27 @@
+RuboCop 1.89.0 / Prism 1.8.1 / parser 3.3.12.0 / rubocop-ast 1.50.0 の実記録。
+Ruby 4.0.7 (Windows) で ProcessedSource#tokens を直接読み、type・line・text を保存した。
+EndOfLine の EOF 条件や Sonicop の現在値から期待値を作っていない。
+
+既存 end_of_line_tokens.json の全92入力と、コメント境界・空行・行継続・NUL・Unicode・
+heredoc の空本文/空終端名/終端後の空行・無効なブロック等の追加52入力を含む。
+whitequark 2.7 / 3.3 / 3.4 と Prism 3.3 / 3.4 / 4.0 / 4.1 の7設定で採取した。
+既存の SOH-code 2入力だけは whitequark 側の既知の別件として元fixtureと同じく除外し、
+Prism には残すため、全1002記録となる。
+
+有効構文974組は共有helperと末尾token行を直接比較する。
+無効構文28組も原本hash・実token列・diagnosticsを保持するが、無効構文では通常copが
+実行されないため、helperがbackendの構文エラー回復を再現するという主張には使わない。
+tokenが無い有効入力も None として照合し、全fixtureのsource bytesは元のまま保持する。
+
+RUBYOPT / RUBYLIB / RUBOCOP_OPTS / RUBOCOP_TARGET_RUBY_VERSION を子process環境から外し、
+GEM_HOME / GEM_PATH / PATH / SystemRoot は既存のpinned gems・DLL解決のため保持する。
+fixtureには元fixtureと各入力のSHA-256、実行環境、実際にloadした4 gemの版も含める。
+
+再生成（--ruby で仕様版を導入済みのRuby実行ファイルを指定可能）:
+  python scripts/record_last_token_lines.py tests/fixtures/last_token_lines.json
+
+--cli-records DIR は2.7/whitequark と3.4/Prismについて、全142/144入力を
+lf / crlf / native、検査 / -a / -A の実CLIでも採取する補助監査。
+全診断fields・終了値・stderrのraw出力と原本bytes不変を記録する。
+Windows native のEOF診断は別のEndOfLine条件修正を必要とするため、
+このfixtureの直接token行テストと、その別修正を含むCLI統合結果を分けて評価する。
