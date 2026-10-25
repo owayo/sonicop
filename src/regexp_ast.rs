@@ -202,6 +202,114 @@ fn buffer_encoding(source: &str) -> Encoding {
     }
 }
 
+/// 再解析で符号化宣言を失う断片も、Ruby の String#== と同じ条件で比較する。
+pub(crate) fn same_string_encoding(
+    content: &str,
+    single: bool,
+    closing: Option<char>,
+    encodings: [LiteralEncoding; 2],
+    whitequark: bool,
+) -> bool {
+    let model = if whitequark {
+        StringModel::Whitequark
+    } else {
+        StringModel::Mri27
+    };
+    let values = encodings.map(|encoding| {
+        let encoding = match encoding {
+            LiteralEncoding::Text | LiteralEncoding::SevenBit => Encoding::Utf8,
+            LiteralEncoding::Binary => Encoding::Binary,
+        };
+        let mut value = decode_string(content, single, closing, encoding, model)?;
+        // 仕様版の Prism の str は、Binary の原本では Unicode escape も Binary の値を保持する。
+        // whitequark は同じ escape を UTF-8 にするため、物理 Ruby 用の復号規則は変更しない。
+        if !whitequark && encoding == Encoding::Binary {
+            value.encoding = Encoding::Binary;
+        }
+        Some(value)
+    });
+    let [Some(original), Some(reparsed)] = values else {
+        return false;
+    };
+    original.bytes == reparsed.bytes
+        && (original.encoding == reparsed.encoding || original.bytes.is_ascii())
+}
+
+/// 静的 regexp は断片側でもコンパイルする。動的な補間は parser もこの検証を行わない。
+pub(crate) fn same_regexp_encoding<'tree>(
+    regex: Node<'tree>,
+    source: &str,
+    semantics: Semantics,
+    encodings: [LiteralEncoding; 2],
+    whitequark: bool,
+    heredoc: impl Fn(Node<'tree>) -> Option<Node<'tree>>,
+) -> bool {
+    // match_with_lvasgn の dispatch と違い、静的 str だけの補間は Prism もコンパイルする。
+    let semantics = Semantics {
+        static_interpolation: true,
+        ..semantics
+    };
+    let regexp_encodings = encodings.map(|encoding| match encoding {
+        LiteralEncoding::Text | LiteralEncoding::SevenBit => Encoding::Utf8,
+        LiteralEncoding::Binary => Encoding::Binary,
+    });
+    if !semantics.is_static(regex, source, &heredoc) {
+        let (Some(opening), Some(closing)) = (regex.child(0), regex.child(regex.child_count() - 1))
+        else {
+            return false;
+        };
+        let Some(close) = source[closing.byte_range()].chars().next() else {
+            return false;
+        };
+        // 動的 regexp の \xFF は生の ASCII escape のまま AST に残る。
+        // コンパイルせず、補間を挟む str 断片の bytes と符号化だけを照合する。
+        let same_fragment = |fragment: &str| {
+            let fragment = crate::rules::decode_regexp_compile_fragment(fragment, close);
+            let [Some(original), Some(reparsed)] =
+                regexp_encodings.map(|encoding| Encoded::raw(&fragment, encoding))
+            else {
+                return false;
+            };
+            original.bytes == reparsed.bytes
+                && (original.encoding == reparsed.encoding || original.bytes.is_ascii())
+        };
+        let mut start = opening.end_byte();
+        for interpolation in children(regex)
+            .into_iter()
+            .filter(|child| child.kind() == "interpolation")
+        {
+            if !same_fragment(&source[start..interpolation.start_byte()]) {
+                return false;
+            }
+            start = interpolation.end_byte();
+        }
+        return same_fragment(&source[start..closing.start_byte()]);
+    }
+    let patterns = regexp_encodings
+        .map(|encoding| semantics.pattern(regex, source, &heredoc, false, encoding));
+    let [Some((original, _)), Some((reparsed, flags))] = patterns else {
+        return false;
+    };
+    if original.bytes != reparsed.bytes
+        || (original.encoding != reparsed.encoding && !original.bytes.is_ascii())
+    {
+        return false;
+    }
+    if whitequark {
+        crate::regexp_validation::validate(&reparsed.bytes, encodings[1], &flags).is_ok()
+    } else {
+        matches!(
+            crate::regexp_validation::literal_names(
+                &reparsed.bytes,
+                reparsed.encoding,
+                &flags,
+                reparsed.encoding,
+            ),
+            crate::regexp_validation::LiteralNames::Valid(_)
+        )
+    }
+}
+
 fn white_names(pattern: Encoded, flags: &str, source: &str) -> Option<Vec<String>> {
     // ASCII escape は regexp の構文記号を作らないので、名前の開始記号が無ければ native は不要。
     if !pattern

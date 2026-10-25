@@ -24103,6 +24103,166 @@ mod redundant_parentheses {
 
     const COP: &str = "Style/RedundantParentheses";
 
+    /// 本家の再解析は method の断片に符号化宣言を引き継がず、非 ASCII の str の同値性を失う。
+    #[test]
+    fn reparse_scope_compares_string_encoding_after_losing_the_magic_comment() {
+        for version in ["2.7", "3.3"] {
+            for literal in [
+                r#""\xFF""#,
+                r#""x#{bar}\xFF""#,
+                r"%W[\xFF]",
+                r"?\xFF",
+                r#":"\xFF""#,
+                r"`\xFF`",
+                r"/\xFF/",
+            ] {
+                CopCase::new(
+                    COP,
+                    format!("# coding: ASCII-8BIT\ndef f\n  foo((-0x11), {literal})\nend\n"),
+                    Vec::new(),
+                )
+                .target_ruby(version)
+                .run();
+            }
+            CopCase::new(
+                COP,
+                "# coding: ASCII-8BIT\ndef f\n  foo((17), <<~TEXT)\n    \\xFF\n  TEXT\nend\n",
+                Vec::new(),
+            )
+            .target_ruby(version)
+            .run();
+        }
+        // Prism の元の AST は Unicode escape も Binary のまま保持する。
+        for literal in [r#""\u0080""#, r#""\u0080#{'\xFF'}""#] {
+            CopCase::new(
+                COP,
+                format!("# coding: ASCII-8BIT\ndef f\n  foo((17), {literal})\nend\n"),
+                Vec::new(),
+            )
+            .target_ruby("3.3")
+            .run();
+        }
+    }
+
+    /// 本家は __LINE__ の字面がある断片では元側も再解析し、両側で宣言を失う。
+    #[test]
+    fn original_scope_reparsing_also_discards_the_magic_comment_for_line_macros() {
+        for source in [
+            "# coding: ASCII-8BIT\ndef f\n  foo((17), \"\\xFF\") # __LINE__\nend\n",
+            "# coding: ASCII-8BIT\ndef f\n  foo((17), \"\\xFF\", __LINE__)\nend\n",
+            "# coding: ASCII-8BIT\ndef f\n  foo((17), \"\\xFF\", \"__LINE__\")\nend\n",
+        ] {
+            expect_correction(COP, source, &source.replace("(17)", "17"));
+        }
+    }
+
+    /// 静的 regexp は断片の UTF-8 でもコンパイルできる必要があり、動的補間とは分ける。
+    #[test]
+    fn reparsed_regexps_keep_static_compilation_and_dynamic_interpolation_distinct() {
+        for version in ["2.7", "3.3"] {
+            for literal in [
+                r"/x#{bar}\xFF/",
+                r"/\xFF/n",
+                r"/\u0080/",
+                r"/\x7F/",
+                r"/\u0080#{bar}/",
+                r"/\xC2\x80/",
+            ] {
+                let source = format!("# coding: ASCII-8BIT\ndef f\n  foo((17), {literal})\nend\n");
+                let annotated = format!(
+                    "# coding: ASCII-8BIT\ndef f\n  foo((17), {literal})\n      ^^^^ Don't use parentheses around a literal.\nend\n"
+                );
+                CopCase::annotated(COP, &annotated)
+                    .target_ruby(version)
+                    .corrected(&source.replace("(17)", "17"))
+                    .run();
+            }
+            let source = "# coding: ASCII-8BIT\ndef f\n  foo((17), /#{\"a\"}\\xFF/)\nend\n";
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby(version)
+                .corrected(source)
+                .run();
+            let source = "# coding: ASCII-8BIT\ndef f\n  foo((17), /é#{bar}/)\nend\n";
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby(version)
+                .corrected(source)
+                .run();
+            for arguments in [
+                r"/\xFF/) # __LINE__",
+                r"/\xFF/, __LINE__)",
+                r#"/\xFF/, "__LINE__")"#,
+            ] {
+                let source = format!("# coding: ASCII-8BIT\ndef f\n  foo((17), {arguments}\nend\n");
+                CopCase::new(COP, &source, Vec::new())
+                    .target_ruby(version)
+                    .corrected(&source)
+                    .run();
+            }
+            let source = "# coding: ASCII-8BIT\ndef f\n  foo((17), /\\xFF/n) # __LINE__\nend\n";
+            CopCase::annotated(
+                COP,
+                "# coding: ASCII-8BIT\ndef f\n  foo((17), /\\xFF/n) # __LINE__\n      ^^^^ Don't use parentheses around a literal.\nend\n",
+            )
+            .target_ruby(version)
+            .corrected(&source.replace("(17)", "17"))
+            .run();
+        }
+    }
+
+    /// ASCII の値と明示 Unicode escape は宣言を失っても同値のまま。本家の実 CLI の陰性対照。
+    #[test]
+    fn reparsing_only_rejects_literals_whose_values_change_encoding() {
+        for (header, literal) in [
+            ("# coding: ASCII-8BIT\n", r#""\x7F""#),
+            ("# coding: ASCII-8BIT\n", r#""\u0080""#),
+            ("# coding: ASCII-8BIT\n", r#""x#{bar}\u0080""#),
+            ("# coding: ASCII-8BIT\n", r"'\xFF'"),
+            ("# coding: ASCII-8BIT\n", r"%w[\xFF]"),
+            ("# coding: ASCII-8BIT\n", r":'\xFF'"),
+            ("# coding: ASCII-8BIT\n", r#""\u0080#{'\xFF'}""#),
+            ("# coding: US-ASCII\n", r#""\xFF""#),
+            ("", r#""\xFF""#),
+        ] {
+            let before = format!("{header}def f\n  foo((17), {literal})\nend\n");
+            expect_correction(COP, &before, &before.replace("(17)", "17"));
+        }
+        // 断片に切り出す scope が無ければ、元の宣言も再解析へ渡る。
+        expect_correction(
+            COP,
+            "# coding: ASCII-8BIT\nfoo((17), \"\\xFF\")\n",
+            "# coding: ASCII-8BIT\nfoo(17, \"\\xFF\")\n",
+        );
+        expect_correction(
+            COP,
+            "# coding: ASCII-8BIT\ndef f\n  foo((17), <<~'TEXT')\n    \\xFF\n  TEXT\nend\n",
+            "# coding: ASCII-8BIT\ndef f\n  foo(17, <<~'TEXT')\n    \\xFF\n  TEXT\nend\n",
+        );
+    }
+
+    /// 同じ ReparsedEquivalence を使う他 cop も、元の str の符号化を比較する。
+    #[test]
+    fn all_reparse_based_cops_use_the_original_scope_string_encoding() {
+        for (cop, source, config) in [
+            (
+                "Style/MethodCallWithArgsParentheses",
+                "# coding: ASCII-8BIT\ndef f\n  foo(17)\n  \"\\xFF\"\nend\n",
+                "Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n",
+            ),
+            (
+                "Style/RedundantLineContinuation",
+                "# coding: ASCII-8BIT\ndef f\n  foo(\\\n    17)\n  \"\\xFF\"\nend\n",
+                "",
+            ),
+            (
+                "Layout/RedundantLineBreak",
+                "# coding: ASCII-8BIT\ndef f\n  value =\n    foo\n  \"\\xFF\"\nend\n",
+                "",
+            ),
+        ] {
+            CopCase::new(cop, source, Vec::new()).config(config).run();
+        }
+    }
+
     /// `_1` と `it` はそれぞれ導入前にはブロックの暗黙変数ではない。
     #[test]
     fn implicit_parameter_parentheses_follow_the_target_ruby_version() {
