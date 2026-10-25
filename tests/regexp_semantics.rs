@@ -1,6 +1,9 @@
 //! 実 RuboCop 1.89.0 CLI の記録を、診断全項目・終了値・ディスクの補正バイトで照合する。
 //! 再記録は `python3 scripts/record_regexp_semantics.py`。期待値を候補から採らない。
 
+mod support;
+use support::project::recorded_disk_bytes;
+
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::process::Command;
@@ -230,7 +233,18 @@ fn static_regexps_follow_the_selected_parser_and_version() {
             let mut expected_offenses = expected.offenses.clone();
             expected_offenses.sort_by_cached_key(Value::to_string);
             let after = fs::read(directory.path().join(&case.path)).unwrap();
-            if offenses != expected_offenses || after != expected.after.as_bytes() {
+            let rewritten = !guarded(group, case)
+                && group.mode != "inspect"
+                && expected_offenses
+                    .iter()
+                    .any(|offense| offense["corrected"] == true);
+            let expected_after = recorded_disk_bytes(
+                case.source.as_bytes(),
+                expected.after.as_bytes(),
+                rewritten,
+                0,
+            );
+            if offenses != expected_offenses || after != expected_after {
                 failures.push(format!(
                     "{}/{}\noffenses: {} / {}\nafter: {:?} / {:?}",
                     group.id,
@@ -238,7 +252,7 @@ fn static_regexps_follow_the_selected_parser_and_version() {
                     serde_json::to_string(&offenses).unwrap(),
                     serde_json::to_string(&expected_offenses).unwrap(),
                     String::from_utf8_lossy(&after),
-                    expected.after
+                    String::from_utf8_lossy(&expected_after)
                 ));
             }
         }

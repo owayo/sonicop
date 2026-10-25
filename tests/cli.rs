@@ -18,11 +18,79 @@ use support::project::{
     project_without_pinned_ruby, report,
 };
 
+/// Windows の Ruby File.write と同じ、補正済み通常コードの native 改行。
+/// 未補正・拒否・CRLF 原本・混在改行・DATA/NUL を持つ期待値には使わない。
+fn native_lf_disk_correction(expected: &[u8]) -> Vec<u8> {
+    assert!(!expected.contains(&b'\r'));
+    assert!(!expected.contains(&0));
+    assert!(!expected.windows(7).any(|part| part == b"__END__"));
+    if cfg!(windows) {
+        expected
+            .iter()
+            .flat_map(|&byte| {
+                if byte == b'\n' {
+                    vec![b'\r', b'\n']
+                } else {
+                    vec![byte]
+                }
+            })
+            .collect()
+    } else {
+        expected.to_vec()
+    }
+}
+
+/// 本家実 CLI の補正済み code と原本 tail から導出した Windows の物理 byte と再検査。
+fn windows_native_cli_case(
+    fixture: &str,
+    group: Option<usize>,
+    case: usize,
+) -> &'static serde_json::Value {
+    static REFERENCE: std::sync::LazyLock<serde_json::Value> = std::sync::LazyLock::new(|| {
+        serde_json::from_str(include_str!(
+            "fixtures/windows_native_cli_expectations.json"
+        ))
+        .unwrap()
+    });
+    let key = match group {
+        Some(group) => format!("group:{group}:case:{case}"),
+        None => format!("record:{case}"),
+    };
+    let expected = &REFERENCE["cases"][fixture][key];
+    assert!(
+        expected.is_object(),
+        "Windows の実 CLI 記録が不足: {fixture}/{group:?}/{case}"
+    );
+    expected
+}
+
 /// `Lint/Syntax` が付ける版の注記。src 側の書式と一致させて固定する。
 fn syntax_message(reason: &str, target_ruby: &str) -> String {
     format!(
         "{reason}\n(Using Ruby {target_ruby} parser; configure using `TargetRubyVersion` parameter, under `AllCops`)"
     )
+}
+
+/// 元の単独 CR は本家でも残る。LF だけが File.write の native 改行になる。
+fn native_lf_code_with_bare_cr(expected: &[u8]) -> Vec<u8> {
+    assert!(expected.contains(&b'\r'));
+    assert!(!expected.windows(2).any(|pair| pair == b"\r\n"));
+    assert!(!expected.contains(&0));
+    assert!(!expected.windows(7).any(|part| part == b"__END__"));
+    if cfg!(windows) {
+        expected
+            .iter()
+            .flat_map(|&byte| {
+                if byte == b'\n' {
+                    vec![b'\r', b'\n']
+                } else {
+                    vec![byte]
+                }
+            })
+            .collect()
+    } else {
+        expected.to_vec()
+    }
 }
 
 #[test]
@@ -525,7 +593,11 @@ fn typed_cop_settings_match_recorded_upstream_reports_and_disk_bytes() {
         }
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            case["corrected_source"].as_str().unwrap().as_bytes(),
+            if case["corrected_source"] != case["source"] {
+                native_lf_disk_correction(case["corrected_source"].as_str().unwrap().as_bytes())
+            } else {
+                case["source"].as_str().unwrap().as_bytes().to_vec()
+            },
             "{name}"
         );
     }
@@ -574,7 +646,11 @@ fn string_concatenation_preserves_meta_hex_values_on_disk() {
             // 0xE1 のエスケープをファイル上で固定し、別の cop の補正に隠れない形で検査する。
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                after.as_bytes()
+                if applied {
+                    native_lf_disk_correction(after.as_bytes())
+                } else {
+                    after.as_bytes().to_vec()
+                }
             );
             if applied {
                 command(directory.path())
@@ -590,7 +666,11 @@ fn string_concatenation_preserves_meta_hex_values_on_disk() {
                     .success();
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    after.as_bytes()
+                    if applied {
+                        native_lf_disk_correction(after.as_bytes())
+                    } else {
+                        after.as_bytes().to_vec()
+                    }
                 );
             }
         }
@@ -635,7 +715,11 @@ fn useless_assignment_keeps_a_valid_implicit_array_rhs_on_disk() {
             assert_eq!(reported[0]["correctable"], true, "{mode}: {before}");
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                after.as_bytes(),
+                if corrected {
+                    native_lf_disk_correction(after.as_bytes())
+                } else {
+                    after.as_bytes().to_vec()
+                },
                 "{mode}: {before}"
             );
         }
@@ -754,8 +838,8 @@ fn safe_autocorrect_updates_a_file_atomically() {
         .success();
 
     assert_eq!(
-        fs::read_to_string(directory.path().join("example.rb")).unwrap(),
-        "value = 10_000\n"
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        native_lf_disk_correction("value = 10_000\n".as_bytes())
     );
 }
 
@@ -806,7 +890,7 @@ fn indentation_keeps_a_nested_begin_in_an_ensure_body_on_disk() {
         }
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            after.as_bytes(),
+            native_lf_disk_correction(after.as_bytes()),
             "{mode}"
         );
         // 適正な字下げでは診断も二度目の書き換えも起きない。
@@ -816,7 +900,7 @@ fn indentation_keeps_a_nested_begin_in_an_ensure_body_on_disk() {
             .success();
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            after.as_bytes()
+            native_lf_disk_correction(after.as_bytes())
         );
     }
 }
@@ -853,7 +937,7 @@ fn safe_autocorrect_keeps_hash_arguments_in_safe_navigation_calls() {
         .success();
     assert_eq!(
         fs::read(directory.path().join("example.rb")).unwrap(),
-        b"recv&.foo({}, 1)\n"
+        native_lf_disk_correction(b"recv&.foo({}, 1)\n")
     );
 }
 
@@ -995,8 +1079,12 @@ fn assert_matches_upstream(cases: &[(&str, &[UpstreamOffense], &str)]) {
                 .output()
                 .unwrap();
             assert_eq!(
-                fs::read_to_string(directory.path().join("example.rb")).unwrap(),
-                corrected.replace('\n', ending),
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                if ending == "\n" && source != corrected {
+                    native_lf_disk_correction(corrected.as_bytes())
+                } else {
+                    corrected.replace('\n', ending).into_bytes()
+                },
                 "{original:?}"
             );
         }
@@ -1438,7 +1526,15 @@ fn nested_call_messages_normalize_crlf_without_changing_disk_bytes() {
                 };
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected.as_bytes(),
+                    if mode.is_some() && newline == "\n" {
+                        if expected.contains('\r') {
+                            native_lf_code_with_bare_cr(expected.as_bytes())
+                        } else {
+                            native_lf_disk_correction(expected.as_bytes())
+                        }
+                    } else {
+                        expected.as_bytes().to_vec()
+                    },
                     "{source:?} {mode:?}"
                 );
             }
@@ -1483,11 +1579,15 @@ fn crlf_continuations_are_corrected_at_the_original_byte_boundaries() {
                 assert_eq!(actual, expected_offenses, "{cop} {original:?} {mode:?}");
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected["source"]
-                        .as_str()
-                        .unwrap()
-                        .replace('\n', newline)
-                        .as_bytes(),
+                    if newline == "\n" && expected["source"] != case["source"] {
+                        native_lf_disk_correction(expected["source"].as_str().unwrap().as_bytes())
+                    } else {
+                        expected["source"]
+                            .as_str()
+                            .unwrap()
+                            .replace('\n', newline)
+                            .into_bytes()
+                    },
                     "{cop} {original:?} {mode:?}"
                 );
                 assert!(output.stderr.is_empty(), "{cop} {original:?} {mode:?}");
@@ -1542,11 +1642,15 @@ fn upstream_continuation_syntax_bugs_keep_safe_candidate_behavior() {
                 );
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected["source"]
-                        .as_str()
-                        .unwrap()
-                        .replace('\n', newline)
-                        .as_bytes()
+                    if newline == "\n" && expected["source"] != case["source"] {
+                        native_lf_disk_correction(expected["source"].as_str().unwrap().as_bytes())
+                    } else {
+                        expected["source"]
+                            .as_str()
+                            .unwrap()
+                            .replace('\n', newline)
+                            .into_bytes()
+                    }
                 );
                 assert_eq!(
                     output.stderr,
@@ -1632,8 +1736,12 @@ fn a_nested_call_both_cops_parenthesize_is_written_with_one_pair() {
             );
             let path = directory.path().join("example.rb");
             assert_eq!(
-                fs::read_to_string(&path).unwrap(),
-                corrected,
+                fs::read(&path).unwrap(),
+                if newline == "\n" {
+                    native_lf_disk_correction(corrected.as_bytes())
+                } else {
+                    corrected.as_bytes().to_vec()
+                },
                 "{mode} {newline:?}"
             );
             // 次の実行では何も報告せず、本文も変わらない。
@@ -1642,8 +1750,12 @@ fn a_nested_call_both_cops_parenthesize_is_written_with_one_pair() {
                 .assert()
                 .code(0);
             assert_eq!(
-                fs::read_to_string(&path).unwrap(),
-                corrected,
+                fs::read(&path).unwrap(),
+                if newline == "\n" {
+                    native_lf_disk_correction(corrected.as_bytes())
+                } else {
+                    corrected.as_bytes().to_vec()
+                },
                 "{mode} {newline:?}"
             );
         }
@@ -1658,8 +1770,8 @@ fn a_nested_call_both_cops_parenthesize_is_written_with_one_pair() {
         .assert()
         .code(0);
     assert_eq!(
-        fs::read_to_string(directory.path().join("example.rb")).unwrap(),
-        "# frozen_string_literal: true\n\nputs(foo(bar { 1 }))\n"
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        native_lf_disk_correction(b"# frozen_string_literal: true\n\nputs(foo(bar { 1 }))\n")
     );
 }
 
@@ -1678,7 +1790,11 @@ fn autocorrect_rechecks_crlf_as_rubocop_does() {
         .success();
     assert_eq!(
         fs::read(directory.path().join("example.rb")).unwrap(),
-        b"x = 1\r\n\r\n# header\r\nputs x\r\n"
+        if cfg!(windows) {
+            b"x = 1\r\n\r\n\r\n# header\r\nputs x\r\n".as_slice()
+        } else {
+            b"x = 1\r\n\r\n# header\r\nputs x\r\n".as_slice()
+        }
     );
 }
 
@@ -1753,8 +1869,8 @@ fn line_length_autocorrect_inserts_rubocop_compatible_breaks() {
     .concat();
 
     assert_eq!(
-        fs::read_to_string(directory.path().join("example.rb")).unwrap(),
-        expected
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        native_lf_disk_correction(expected.as_bytes())
     );
 }
 
@@ -2409,8 +2525,8 @@ fn editor_mode_withholds_a_contextual_autocorrect() {
         .stdout
         .clone();
     assert_eq!(
-        fs::read_to_string(editor.path().join("example.rb")).unwrap(),
-        source,
+        fs::read(editor.path().join("example.rb")).unwrap(),
+        source.as_bytes(),
         "--editor-mode で contextual な cop が代入を消した"
     );
     assert!(
@@ -2425,9 +2541,9 @@ fn editor_mode_withholds_a_contextual_autocorrect() {
         // 唯一の offense が直りきるので、残りは無い。
         .code(0);
     assert_eq!(
-        fs::read_to_string(batch.path().join("example.rb")).unwrap(),
+        fs::read(batch.path().join("example.rb")).unwrap(),
         // `--only` で Lint/Void を外してあるので、残された `1` はそのまま。
-        "def foo\n  1\n  2\nend\n",
+        native_lf_disk_correction(b"def foo\n  1\n  2\nend\n"),
         "エディタが動かしていない -a で contextual な cop が直さなくなった"
     );
 }
@@ -2492,8 +2608,8 @@ fn autocorrect_keeps_a_hard_linked_file_shared() {
         "-A が hard link を切った"
     );
     assert_eq!(
-        fs::read_to_string(&other).unwrap(),
-        "y = 2\nputs y\n",
+        fs::read(&other).unwrap(),
+        native_lf_disk_correction("y = 2\nputs y\n".as_bytes()),
         "同じ inode を指すもう一方の名前が古い本文のまま"
     );
 }
@@ -2648,7 +2764,11 @@ fn correction_merge_order_matches_recorded_upstream_on_disk() {
         assert_eq!(actual["summary"], case["summary"], "case {index}: {args:?}");
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            case["after"].as_str().unwrap().as_bytes(),
+            if case["after"] != case["before"] {
+                native_lf_disk_correction(case["after"].as_str().unwrap().as_bytes())
+            } else {
+                case["before"].as_str().unwrap().as_bytes().to_vec()
+            },
             "case {index}: {args:?}"
         );
     }
@@ -3054,7 +3174,10 @@ fn the_upstream_correction_limit_reports_partial_progress_on_disk() {
     let first = run();
     assert_eq!(first.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&first.stderr).contains("Infinite loop"));
-    assert_eq!(fs::read(&path).unwrap().len(), 86_261);
+    assert_eq!(
+        fs::read(&path).unwrap().len(),
+        if cfg!(windows) { 86_672 } else { 86_261 }
+    );
 
     let mut expected = String::new();
     for depth in 0..205 {
@@ -3068,7 +3191,10 @@ fn the_upstream_correction_limit_reports_partial_progress_on_disk() {
         let output = run();
         assert_eq!(output.status.code(), Some(0));
         assert!(!String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
-        assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+        assert_eq!(
+            fs::read(&path).unwrap(),
+            native_lf_disk_correction(expected.as_bytes())
+        );
     }
 }
 
@@ -3115,7 +3241,11 @@ fn bom_frozen_comments_match_recorded_upstream_fields_and_bytes() {
                 .code(expected_exit);
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                after.as_bytes()
+                if before != after {
+                    native_lf_disk_correction(after.as_bytes())
+                } else {
+                    before.as_bytes().to_vec()
+                }
             );
         }
     }
@@ -3149,7 +3279,7 @@ fn frozen_comment_insertion_uses_the_decoded_first_token() {
         assert!(String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            case["after"].as_str().unwrap().as_bytes(),
+            native_lf_disk_correction(case["after"].as_str().unwrap().as_bytes()),
             "{}",
             case["name"]
         );
@@ -3180,7 +3310,14 @@ fn a_frozen_comment_after_bom_encoding_converges_on_disk() {
                         ])
                         .assert()
                         .code(if mode == "-A" { 0 } else { 1 });
-                    assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+                    assert_eq!(
+                        fs::read(&path).unwrap(),
+                        if mode == "-A" && ending == "\n" {
+                            native_lf_disk_correction(expected.as_bytes())
+                        } else {
+                            expected.as_bytes().to_vec()
+                        }
+                    );
                 }
             }
         }
@@ -3260,7 +3397,7 @@ fn percent_quoted_byte_escapes_preserve_the_literal_value_on_disk() {
             .code(0);
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            expected.as_bytes()
+            native_lf_disk_correction(expected.as_bytes())
         );
     }
 }
@@ -3333,7 +3470,11 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             .code(0);
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            expected.as_bytes()
+            if newline == "\n" {
+                native_lf_disk_correction(expected.as_bytes())
+            } else {
+                expected.as_bytes().to_vec()
+            }
         );
         // 引用の無い exec ruby -x は本家 parser も拒否する。Ruby と shell の両方で
         // 有効な launcher を使い、コメントだけの補正を安全ゲートが許すことを確認する。
@@ -3348,7 +3489,11 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             .code(0);
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            expected.as_bytes()
+            if newline == "\n" {
+                native_lf_disk_correction(expected.as_bytes())
+            } else {
+                expected.as_bytes().to_vec()
+            }
         );
         let source = format!(
             "#!/bin/sh{newline}# example: <<EOF{newline}  exec \"${{RUBY-ruby}}\" \"-x\" \"$0\" \"$@\" && [ ] if false{newline}#!ruby{newline}puts :ok{newline}"
@@ -3361,7 +3506,11 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             .code(0);
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            expected.as_bytes()
+            if newline == "\n" {
+                native_lf_disk_correction(expected.as_bytes())
+            } else {
+                expected.as_bytes().to_vec()
+            }
         );
     }
 }
@@ -3381,7 +3530,11 @@ fn a_semicolon_in_a_heredoc_name_is_not_a_line_break() {
             .code(0);
         assert_eq!(
             fs::read(directory.path().join("example.rb")).unwrap(),
-            expected.as_bytes()
+            if newline == "\n" {
+                native_lf_disk_correction(expected.as_bytes())
+            } else {
+                expected.as_bytes().to_vec()
+            }
         );
     }
 }
@@ -3570,8 +3723,8 @@ fn nested_it_autocorrect_rolls_back_the_file_and_keeps_inspecting() {
             source.as_bytes()
         );
         assert_eq!(
-            fs::read_to_string(directory.path().join("other.rb")).unwrap(),
-            "foo do \n  puts it\nend\n"
+            fs::read(directory.path().join("other.rb")).unwrap(),
+            native_lf_disk_correction(b"foo do \n  puts it\nend\n")
         );
         let before: serde_json::Value = serde_json::from_slice(&lint).unwrap();
         let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -3681,8 +3834,8 @@ fn an_unencodable_correction_preserves_the_file_and_finishes_the_json_report() {
                 source.as_bytes()
             );
             assert_eq!(
-                fs::read_to_string(directory.path().join("other.rb")).unwrap(),
-                "value = \"1\"\n"
+                fs::read(directory.path().join("other.rb")).unwrap(),
+                native_lf_disk_correction(b"value = \"1\"\n")
             );
             let before: serde_json::Value = serde_json::from_slice(&lint).unwrap();
             let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -3857,7 +4010,7 @@ fn a_displaced_encoding_declaration_uses_the_upstream_utf8_output() {
             } else {
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected
+                    native_lf_disk_correction(&expected)
                 );
                 command(directory.path())
                     .args([
@@ -3873,7 +4026,7 @@ fn a_displaced_encoding_declaration_uses_the_upstream_utf8_output() {
                     .code(0);
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected
+                    native_lf_disk_correction(&expected)
                 );
             }
             assert!(!String::from_utf8_lossy(&output.stderr).contains("cannot be written back"));
@@ -3940,8 +4093,8 @@ fn unrelated_character_deletions_do_not_hide_an_unsafe_encoding_write() {
                 let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
                 assert_eq!(report["summary"]["inspected_file_count"], 2);
                 assert_eq!(
-                    fs::read_to_string(directory.path().join("other.rb")).unwrap(),
-                    "value = \"1\"\n"
+                    fs::read(directory.path().join("other.rb")).unwrap(),
+                    native_lf_disk_correction(b"value = \"1\"\n")
                 );
             }
         }
@@ -3996,7 +4149,7 @@ fn an_active_legacy_declaration_preserves_the_original_character_bytes() {
                 } else {
                     assert_eq!(
                         fs::read(directory.path().join("example.rb")).unwrap(),
-                        expected
+                        native_lf_disk_correction(&expected)
                     );
                     command(directory.path())
                         .args([
@@ -4012,7 +4165,7 @@ fn an_active_legacy_declaration_preserves_the_original_character_bytes() {
                         .code(0);
                     assert_eq!(
                         fs::read(directory.path().join("example.rb")).unwrap(),
-                        expected
+                        native_lf_disk_correction(&expected)
                     );
                 }
             }
@@ -4091,7 +4244,13 @@ fn later_conditional_corrections_preserve_character_provenance() {
                     .code(case["sonicop_exit"].as_i64().unwrap() as i32)
                     .get_output()
                     .clone();
-                let wanted = &expected;
+                // 既存の安全な文字 byte を符号化付き File.write で独立検証した。
+                let disk_expected = if !stdin && !crlf && !failed {
+                    native_lf_disk_correction(&expected)
+                } else {
+                    expected.clone()
+                };
+                let wanted = if stdin { &expected } else { &disk_expected };
                 if stdin {
                     assert!(output.stdout.ends_with(wanted), "{condition} {mode} {crlf}");
                     assert_eq!(
@@ -4248,7 +4407,11 @@ fn double_directive_locations_exclude_cr_and_corrections_preserve_line_endings()
             // CRLF の保持は既存の意図的差分。二重 CR も、原本の LF 化も許さない。
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                expected.as_bytes()
+                if correction.is_some() && ending == "\n" {
+                    native_lf_disk_correction(expected.as_bytes())
+                } else {
+                    expected.as_bytes().to_vec()
+                }
             );
         }
     }
@@ -4323,7 +4486,11 @@ fn block_comment_directive_ranges_reach_the_newline_after_end() {
                 // 本家は CRLF を LF で書き戻すが、CRLF を保つのは既存の意図的差分。
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    expected.as_bytes(),
+                    if correction.is_some() && ending == "\n" {
+                        native_lf_disk_correction(expected.as_bytes())
+                    } else {
+                        expected.as_bytes().to_vec()
+                    },
                     "{cop} {ending:?} {correction:?}"
                 );
             }
@@ -4887,12 +5054,13 @@ fn numeric_predicate_preserves_blocks_on_disk() {
                 );
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
-                    if correcting {
-                        corrected.replace('\n', ending)
+                    if correcting && ending == "\n" {
+                        native_lf_disk_correction(corrected.as_bytes())
+                    } else if correcting {
+                        corrected.replace('\n', ending).into_bytes()
                     } else {
-                        original
+                        original.into_bytes()
                     }
-                    .as_bytes()
                 );
                 assert!(output.stderr.is_empty());
             }
@@ -5010,7 +5178,11 @@ fn numeric_predicate_block_rejection_does_not_stop_other_files() {
         );
         assert_eq!(
             fs::read(directory.path().join("good.rb")).unwrap(),
-            "bar == 0\n".replace('\n', ending).as_bytes()
+            if ending == "\n" {
+                native_lf_disk_correction(b"bar == 0\n")
+            } else {
+                b"bar == 0\r\n".to_vec()
+            }
         );
         assert_eq!(
             output.stderr,
@@ -5022,7 +5194,11 @@ fn numeric_predicate_block_rejection_does_not_stop_other_files() {
             .success();
         assert_eq!(
             fs::read(directory.path().join("good.rb")).unwrap(),
-            "bar == 0\n".replace('\n', ending).as_bytes()
+            if ending == "\n" {
+                native_lf_disk_correction(b"bar == 0\n")
+            } else {
+                b"bar == 0\r\n".to_vec()
+            }
         );
     }
 }
@@ -5102,11 +5278,15 @@ fn ambiguous_arguments_keep_ruby_whitespace_and_reference_correction_bytes() {
                     // CRLF保持は既存の意図的差分。挿入した改行も元の形式へ戻す。
                     assert_eq!(
                         fs::read(directory.path().join(&filename)).unwrap(),
-                        case[source]
-                            .as_str()
-                            .unwrap()
-                            .replace('\n', ending)
-                            .as_bytes(),
+                        if ending == "\n" && case[source] != case["source"] {
+                            native_lf_disk_correction(case[source].as_str().unwrap().as_bytes())
+                        } else {
+                            case[source]
+                                .as_str()
+                                .unwrap()
+                                .replace('\n', ending)
+                                .into_bytes()
+                        },
                         "{} / {target} / {ending:?} / {correction:?}",
                         case["name"]
                     );
@@ -5163,11 +5343,20 @@ fn assert_recorded_parser_reports(fixture: &str, only: &str) {
             assert_eq!(report, case["report"], "{name} {ending:?}");
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                case["after"]
-                    .as_str()
-                    .unwrap()
-                    .replace('\n', ending)
-                    .as_bytes(),
+                if ending == "\n" && case["after"] != case["source"] {
+                    let expected = case["after"].as_str().unwrap().as_bytes();
+                    if expected.contains(&b'\r') {
+                        native_lf_code_with_bare_cr(expected)
+                    } else {
+                        native_lf_disk_correction(expected)
+                    }
+                } else {
+                    case["after"]
+                        .as_str()
+                        .unwrap()
+                        .replace('\n', ending)
+                        .into_bytes()
+                },
                 "{name} {ending:?}",
             );
         }
@@ -5232,12 +5421,18 @@ fn percent_after_a_string_matches_upstream_without_end_of_line_cop() {
             group["target"], group["ending"], group["mode"]
         );
         for case in cases {
-            // Windows 本家の改行変換だけを既存の保持方針へ戻し、その他の実バイトは変えない。
-            let expected = case["after"]
-                .as_str()
-                .unwrap()
-                .replace("\r\n", "\n")
-                .replace('\n', group["ending"].as_str().unwrap());
+            // CRLF 原本の保持方針を維持し、LF 原本への実補正だけ native の byte にする。
+            let expected =
+                if cfg!(windows) && group["ending"] == "\n" && case["after"] != case["source"] {
+                    // 本家 Windows の実補正 byte を使う。無変更の LF 原本は変換しない。
+                    case["after"].as_str().unwrap().to_owned()
+                } else {
+                    case["after"]
+                        .as_str()
+                        .unwrap()
+                        .replace("\r\n", "\n")
+                        .replace('\n', group["ending"].as_str().unwrap())
+                };
             assert_eq!(
                 fs::read(directory.path().join(case["filename"].as_str().unwrap())).unwrap(),
                 expected.as_bytes(),
@@ -5301,7 +5496,7 @@ fn nul_parse_projection_does_not_change_the_corrected_file_bytes() {
         serde_json::from_str(include_str!("fixtures/nul_writeback_cli.json")).unwrap();
     let groups = fixture["groups"].as_array().unwrap();
     assert_eq!(groups.len(), 36);
-    for group in groups {
+    for (group_index, group) in groups.iter().enumerate() {
         let label = format!(
             "{} / {} / {} / {} / {}",
             group["ruby"], group["engine"], group["eol"], group["mode"], group["selection"]
@@ -5391,7 +5586,16 @@ fn nul_parse_projection_does_not_change_the_corrected_file_bytes() {
             };
             assert_eq!(
                 fs::read(directory.path().join(&filename)).unwrap(),
-                expected,
+                if cfg!(windows) {
+                    decode(
+                        windows_native_cli_case("nul_writeback_cli.json", Some(group_index), index)
+                            ["safe_after_hex"]
+                            .as_str()
+                            .unwrap(),
+                    )
+                } else {
+                    expected
+                },
                 "{label} / {}",
                 case["name"]
             );
@@ -5490,7 +5694,7 @@ fn nul_truncated_tokens_limit_the_line_ending_inspection() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for group in groups {
+    for (group_index, group) in groups.iter().enumerate() {
         let label = format!(
             "{} / {} / {}",
             group["ruby"], group["engine"], group["mode"]
@@ -5543,8 +5747,15 @@ fn nul_truncated_tokens_limit_the_line_ending_inspection() {
         for (index, case) in cases.iter().enumerate() {
             let filename = format!("input_{index:03}.rb");
             let file = files.iter().find(|file| file["path"] == filename).unwrap();
+            let windows =
+                windows_native_cli_case("nul_line_endings.json", Some(group_index), index);
             assert_eq!(
-                file["offenses"], case["offenses"],
+                &file["offenses"],
+                if cfg!(windows) {
+                    &windows["expected_first_offenses"]
+                } else {
+                    &case["offenses"]
+                },
                 "{label} / {}",
                 case["name"]
             );
@@ -5576,7 +5787,11 @@ fn nul_truncated_tokens_limit_the_line_ending_inspection() {
             }
             assert_eq!(
                 fs::read(directory.path().join(filename)).unwrap(),
-                expected.as_bytes(),
+                if cfg!(windows) {
+                    decode(windows["safe_after_hex"].as_str().unwrap())
+                } else {
+                    expected.as_bytes().to_vec()
+                },
                 "{label} / {}",
                 case["name"]
             );
@@ -5596,7 +5811,7 @@ fn nul_truncated_tokens_bound_the_semicolon_scan() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for group in groups {
+    for (group_index, group) in groups.iter().enumerate() {
         let label = format!(
             "{} / {} / {} / {}",
             group["ruby"], group["engine"], group["eol"], group["mode"]
@@ -5675,7 +5890,16 @@ fn nul_truncated_tokens_bound_the_semicolon_scan() {
             };
             assert_eq!(
                 fs::read(directory.path().join(filename)).unwrap(),
-                expected,
+                if cfg!(windows) {
+                    decode(
+                        windows_native_cli_case("nul_semicolon_cli.json", Some(group_index), index)
+                            ["safe_after_hex"]
+                            .as_str()
+                            .unwrap(),
+                    )
+                } else {
+                    expected
+                },
                 "{label} / {}",
                 case["name"]
             );
@@ -5803,7 +6027,7 @@ fn leading_empty_lines_matches_recorded_real_tokens() {
             .map(|offset| u8::from_str_radix(&value[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for group in groups {
+    for (group_index, group) in groups.iter().enumerate() {
         let ruby = group["ruby"].as_str().unwrap();
         let directory = project_with_ruby(&[], ruby);
         fs::write(
@@ -5864,6 +6088,17 @@ fn leading_empty_lines_matches_recorded_real_tokens() {
                         .replace("\r\n", "\n")
                         .replace('\n', "\r\n")
                         .into_bytes();
+                }
+                if cfg!(windows) {
+                    bytes = decode(
+                        windows_native_cli_case(
+                            "leading_empty_lines.json",
+                            Some(group_index),
+                            index,
+                        )["safe_after_hex"]
+                            .as_str()
+                            .unwrap(),
+                    );
                 }
                 assert_eq!(
                     fs::read(directory.path().join(format!("input_{index:03}.rb"))).unwrap(),
@@ -6029,6 +6264,14 @@ fn euc_jp_alias_reports_and_raw_bytes_match_recorded_upstream() {
                     })
                     .collect();
             }
+            if case["ending"] == "lf"
+                && !case["mode"].is_null()
+                && case["reference"]["after_hex"] != case["source_hex"]
+            {
+                // この fixture で補正するのは ASCII の operator だけ。無変更の符号化原本は保つ。
+                assert!(expected.is_ascii());
+                expected = native_lf_disk_correction(&expected);
+            }
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
                 expected,
@@ -6050,7 +6293,7 @@ fn mixed_crlf_reinspection_preserves_copied_endings() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for case in cases {
+    for (case_index, case) in cases.iter().enumerate() {
         let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
         let directory = project(&[]);
         fs::write(
@@ -6064,6 +6307,7 @@ fn mixed_crlf_reinspection_preserves_copied_endings() {
         )
         .unwrap();
         for key in ["first", "repeated"] {
+            let windows = windows_native_cli_case("mixed_reinspection.json", None, case_index);
             let mut run = command(directory.path());
             run.args([
                 "--config",
@@ -6081,13 +6325,32 @@ fn mixed_crlf_reinspection_preserves_copied_endings() {
             let output = run
                 .arg("example.rb")
                 .assert()
-                .code(case[key]["exit"].as_i64().unwrap() as i32)
+                .code(if cfg!(windows) {
+                    windows[if key == "first" {
+                        "expected_first_exit"
+                    } else {
+                        "expected_repeated_exit"
+                    }]
+                    .as_i64()
+                    .unwrap() as i32
+                } else {
+                    case[key]["exit"].as_i64().unwrap() as i32
+                })
                 .get_output()
                 .clone();
             assert!(output.stderr.is_empty(), "{label} / {key}");
             let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            let expected_offenses = if cfg!(windows) {
+                &windows[if key == "first" {
+                    "expected_first_offenses"
+                } else {
+                    "expected_repeated_offenses"
+                }]
+            } else {
+                &case[key]["offenses"]
+            };
             assert_eq!(
-                report["files"][0]["offenses"], case[key]["offenses"],
+                report["files"][0]["offenses"], *expected_offenses,
                 "{label} / {key}"
             );
             assert_eq!(
@@ -6097,7 +6360,11 @@ fn mixed_crlf_reinspection_preserves_copied_endings() {
             let actual = fs::read(directory.path().join("example.rb")).unwrap();
             assert_eq!(
                 actual,
-                decode(case["after_hex"].as_str().unwrap()),
+                decode(if cfg!(windows) {
+                    windows["safe_after_hex"].as_str().unwrap()
+                } else {
+                    case["after_hex"].as_str().unwrap()
+                }),
                 "{label} / {key}"
             );
             if let Some(expected) = case["data_hex"].as_str() {
@@ -6131,7 +6398,7 @@ fn mixed_bare_cr_copied_data_survives_multiple_correction_passes() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for case in cases {
+    for (case_index, case) in cases.iter().enumerate() {
         let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
         let directory = project(&[]);
         fs::write(
@@ -6176,15 +6443,23 @@ fn mixed_bare_cr_copied_data_survives_multiple_correction_passes() {
             let actual = fs::read(directory.path().join("example.rb")).unwrap();
             assert_eq!(
                 actual,
-                decode(case["after_hex"].as_str().unwrap()),
+                decode(if cfg!(windows) {
+                    windows_native_cli_case("mixed_bare_cr.json", None, case_index)["safe_after_hex"].as_str().unwrap()
+                } else {
+                    case["after_hex"].as_str().unwrap()
+                }),
                 "{label} / {key}"
             );
             let marker = actual
-                .windows(8)
-                .position(|part| part == b"__END__\n")
+                .windows(7)
+                .position(|part| part == b"__END__")
+                .unwrap();
+            let newline = actual[marker..]
+                .iter()
+                .position(|byte| *byte == b'\n')
                 .unwrap();
             assert_eq!(
-                &actual[marker + 8..],
+                &actual[marker + newline + 1..],
                 decode(case["data_hex"].as_str().unwrap()),
                 "{label} / DATA"
             );
@@ -6204,7 +6479,7 @@ fn pure_crlf_preserves_original_bare_cr_through_correction_and_writeback() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for case in cases {
+    for (case_index, case) in cases.iter().enumerate() {
         let label = format!("{} / {} / {}", case["name"], case["engine"], case["mode"]);
         let directory = project(&[]);
         fs::write(
@@ -6256,19 +6531,23 @@ fn pure_crlf_preserves_original_bare_cr_through_correction_and_writeback() {
             let actual = fs::read(directory.path().join("example.rb")).unwrap();
             assert_eq!(
                 actual,
-                decode(case["after_hex"].as_str().unwrap()),
+                decode(if cfg!(windows) {
+                    windows_native_cli_case("pure_cr_preservation.json", None, case_index)["safe_after_hex"].as_str().unwrap()
+                } else {
+                    case["after_hex"].as_str().unwrap()
+                }),
                 "{label} / {key}"
             );
-            let marker = if case["pure"].as_bool().unwrap() {
-                b"__END__\r\n".as_slice()
-            } else {
-                b"__END__\n".as_slice()
-            };
-            let offset = actual
-                .windows(marker.len())
-                .position(|part| part == marker)
-                .unwrap()
-                + marker.len();
+            let marker = actual
+                .windows(7)
+                .position(|part| part == b"__END__")
+                .unwrap();
+            let offset = marker
+                + actual[marker..]
+                    .iter()
+                    .position(|byte| *byte == b'\n')
+                    .unwrap()
+                + 1;
             assert_eq!(
                 &actual[offset..],
                 decode(case["data_hex"].as_str().unwrap()),

@@ -681,6 +681,7 @@ fn apply_corrections(
             &target_config,
             selection,
             stdin_original.or(disk_original.as_deref()),
+            stdin_original.is_none(),
         )?;
         if let Some(message) = &outcome.infinite_loop {
             // 本家は反復が収束しないファイルでも最後の補正を書き、残りの処理を続ける。

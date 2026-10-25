@@ -1,0 +1,23 @@
+RuboCop 1.89.0 / Parser 3.3.12.0 / Ruby 4.0.7 x64-mingw-ucrt
+Recorded 2026-10-25 on Windows.
+
+python scripts/conformance/record_windows_corrections.py --ruby <ruby.exe> --reference <pinned-reference.rb> --output tests/fixtures/windows_corrections.json
+
+pinned-reference.rb selects parser 3.3.12.0 and rubocop 1.89.0 through gem, then loads Gem.bin_path('rubocop','rubocop','1.89.0').
+
+全 JSON の metadata だけを取り除き、offense の全フィールド・配列順・summary・exitを保存する。
+raw_after は本家が実ディスクへ書いた生bytes。after は既存mixed保存と未解析DATA/NUL保存方針を適用した予定bytes。
+安全な保存bytesへ復元してから本家を再実行し、その物理入力の診断を別に記録する。
+
+DATA/NUL 保存の期待は本家の出力と原本の既知tailから独立に構成し、Sonicopの出力を採取していない。
+DATA.binmode.read.bytes の原本/本家補正後/安全な保存bytesの MRI 実行値を保持する。
+composite の追加 EmptyLines 期待は同じ原本に対する本家 --stdin の実記録であり、候補出力から作らない。
+CRLF RedundantParenthesesの既存取りこぼし非追随はmanifestのblind_spotsに従い別テストで保つ。
+
+記録CLIはexit0/1だけを許可し、指定した正の対象数・完了数・全パス集合と重複・offense_count整合を検証する。
+0件を返す偽CLI、途中欠落、異常終了、不正summaryはtest_windows_corrections.pyの陰性対照で拒否する。
+Windows専用Rustテストも各軸の群数と入力数を固定し、正式manifestのDATA/NUL/cascadeの原本・本家・安全出力bytesへ結び付ける。
+
+公開 LF container SHA256: 56d71df2a0e850a62ae101659c345470bdcf299db48502371feedb25fa7b99c7
+canonical SHA256: 8a3b3c9dca395aa336331565499d66921f7e7daed741a06bf32639ce3b3d274e
+.gitattributesとwrite_text(newline="\n")でcontainerをLFへ固定し、hex/escapeの実バイト値を保つ。

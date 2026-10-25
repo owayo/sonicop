@@ -2,7 +2,7 @@
 mod support;
 
 use std::fs;
-use support::project::{command, project_with_ruby};
+use support::project::{command, project_with_ruby, recorded_disk_bytes};
 
 #[test]
 fn parser_gem_reports_and_correction_rejection_match_the_recorded_cli() {
@@ -59,9 +59,16 @@ fn parser_gem_reports_and_correction_rejection_match_the_recorded_cli() {
             } else {
                 recorded.to_owned()
             };
+            let rewritten = mode != "lint"
+                && expected["offenses"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|offense| offense["corrected"] == true);
+            let written = recorded_disk_bytes(source.as_bytes(), written.as_bytes(), rewritten, 0);
             assert_eq!(
                 fs::read(directory.path().join("example.rb")).unwrap(),
-                written.as_bytes(),
+                written,
                 "{name} {mode}"
             );
         }
@@ -90,4 +97,57 @@ fn a_deep_legacy_tree_is_destroyed_on_a_worker_sized_stack() {
         .unwrap()
         .join()
         .unwrap();
+}
+
+#[test]
+fn recorded_disk_bytes_keep_noop_mixed_and_typed_data_boundaries() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/windows_corrections.json")).unwrap();
+    let decode = |hex: &serde_json::Value| {
+        hex.as_str()
+            .unwrap()
+            .as_bytes()
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    let run = &fixture["groups"][0]["runs"][0];
+    for (name, protected_tail) in [
+        ("changed.rb", 0),
+        ("clean.rb", 0),
+        ("mixed.rb", 0),
+        ("data.rb", 4),
+        ("nul.rb", 5),
+    ] {
+        let original = decode(&fixture["sources"][name]);
+        let windows = decode(&run["after"][name]);
+        let recorded = if original.windows(2).any(|pair| pair == b"\r\n") {
+            windows.clone()
+        } else {
+            // Windows実記録を旧OSのLF形式に投影した同じ編集。期待は実記録のまま。
+            String::from_utf8(windows.clone())
+                .unwrap()
+                .replace("\r\n", "\n")
+                .into_bytes()
+        };
+        let rewritten = run["report"]["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|file| file["path"] == name)
+            .unwrap()["offenses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|offense| offense["corrected"] == true);
+        assert_eq!(
+            recorded_disk_bytes(&original, &recorded, rewritten, protected_tail),
+            if cfg!(windows) { windows } else { recorded },
+            "{name}"
+        );
+        // 同一byteに戻る／補正を保留する原本は、correctedの有無だけでは変換しない。
+        assert_eq!(recorded_disk_bytes(&original, &original, true, 0), original);
+    }
 }

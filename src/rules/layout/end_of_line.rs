@@ -1,11 +1,7 @@
 use crate::diagnostic::{Offense, OffenseSnapshot};
 use crate::rules::RuleContext;
 
-/// Reports only, like RuboCop: this cop has no autocorrector upstream.
-///
-/// Rewriting line endings here would fight `Layout/TrailingEmptyLines`, which normalizes the end
-/// of the file to `\n`. On Windows, where `native` means CRLF, the two would undo each other on
-/// every pass and autocorrect would never settle.
+/// 本家 EndOfLine に補正器がないため、診断だけを返す。
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
         .setting("EnforcedStyle")
@@ -17,7 +13,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let last_line = crate::rules::support::last_token_line(context)
         .unwrap_or_else(|| context.source.line_count());
     for line_number in 1..=last_line {
-        let line = context.source.line(line_number);
+        let line = context.source.raw_line(line_number);
         // raw_source.each_line には、空入力や終端 LF の後ろの仮想行は含まれない。
         if line.is_empty() {
             break;
@@ -53,7 +49,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             source_line: line.to_owned(),
         });
         offenses.push(offense);
-        // A file's line endings are almost always all alike, so RuboCop stops after the first.
+        // 本家は同じ改行が続くファイルの先頭の違反で停止する。
         break;
     }
 }

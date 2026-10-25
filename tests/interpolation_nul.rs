@@ -1,4 +1,7 @@
 //! 補間内の raw NUL を configured parser の実 str / dstr 分類に合わせる。
+mod support;
+use support::project::recorded_disk_bytes;
+
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::process::Command;
@@ -114,15 +117,20 @@ fn interpolated_nul_strings_follow_the_real_parser_tokens() {
             actual.sort_by_cached_key(Value::to_string);
             let mut expected = case.offenses.clone();
             expected.sort_by_cached_key(Value::to_string);
+            let original = bytes(&case.source_hex);
+            let recorded = bytes(&case.after_hex);
+            let rewritten = group.mode != "inspect"
+                && expected.iter().any(|offense| offense["corrected"] == true);
+            let expected_bytes = recorded_disk_bytes(&original, &recorded, rewritten, 0);
             let actual_bytes = fs::read(folder.path().join(&case.path)).unwrap();
-            if actual != expected || actual_bytes != bytes(&case.after_hex) {
+            if actual != expected || actual_bytes != expected_bytes {
                 failures.push(format!(
                     "{label}/{}: offenses {} / {}; bytes {} / {}",
                     case.id,
                     serde_json::to_string(&actual).unwrap(),
                     serde_json::to_string(&expected).unwrap(),
                     actual_bytes.len(),
-                    bytes(&case.after_hex).len()
+                    expected_bytes.len()
                 ));
             }
         }

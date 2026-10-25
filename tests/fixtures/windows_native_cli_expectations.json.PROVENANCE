@@ -1,0 +1,61 @@
+Windows Ruby 4.0.7 / Parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / RuboCop 1.89.0
+2026-10-25 に Windows で実測。
+記録時 CRLF container SHA256: ac8c2eba488a4723d1a82e82d1f3cba0ca318800f6979f2ed776d34c6beab2c0
+公開 LF container SHA256: dde6dac56ad835fc2bafa5dd26f56ff9b7160072c4ac31c34dba214bdc4f5d03
+
+公開 repository 内での再生成（repository root で実行）:
+  python scripts/conformance/record_windows_native_cli.py --ruby ruby --out tmp/windows-native-cli --check-against tests/fixtures/windows_native_cli_expectations.json
+
+--ruby は Ruby 4.0.7 の実行先を指定できる。collector が版を確認し、上記4gemを固定した
+launcherとPrism境界取得scriptを出力先へ生成する。Ruby/gemの導入やglobal設定変更は行わない。
+--fixtures の既定は repository の tests/fixtures。--sets の既定は次の全7集合。
+--sets mixed,nul_writeback 等で代表集合だけを別outへ生成することもできる。
+--check-against は指定集合の全caseを既存Oracleへ照合し、差があれば非0で止まる。
+全生成後の out/windows_native_cli_expectations.json をレビューして取り込む。
+
+入力 fixture と case 数:
+  leading_empty_lines.json       672
+  mixed_reinspection.json        60
+  nul_line_endings.json          90
+  nul_semicolon_cli.json        288
+  nul_writeback_cli.json       1224
+  mixed_bare_cr.json             36
+  pure_cr_preservation.json     192
+  合計                        2562
+
+生記録は out の各job JSON、版は loaded-versions.json、完了と失敗は summary.jsonへ保存する。
+実本家の初回補正99batch、保存予定physicalへの実本家の非補正再入力99batchを記録した。
+source/実本家after/安全な保存after のhexまたはSHA256、元設定、cop、mode、全診断・exitを保持する。
+reference.fixture_sha256 は入力fixtureファイル、各case.source_sha256 は実入力bytesを結び付ける。
+
+安全な保存bytesの独立導出:
+- 無変更は原本のまま。元CRLF/mixedは各既存fixtureのPROVENANCEに記録した、本家補正prefixと
+  未変更原本copyの期待を維持する。この after_hex は現在のSonicop出力を採った値ではない。
+- 元にCRLFがない実補正は、本家Windowsのnative code prefixを採用する。
+- 実DATA/code-NULはPrism.lexの__END__ tokenまたはNUL位置のゼロ長EOFで区別し、tailのLFへ
+  新しいCRを足さない。literal/comment NULはcode-NULとはしない。
+- NUL以降へのTrailingWhitespace/TrailingEmptyLines等の明示cop補正は維持する。
+  元tail全コピーという初期試案は本文補正を巻き戻すため採用していない。
+
+raw再検査の独立導出:
+- 実tailのある実補正: 安全な保存予定physicalを本家へ非補正で再入力する。
+- tailのない実補正: 本家の全native afterをfirst rawとして本家へ非補正で再入力する。
+- 次回に補正しないときは実physicalをrawとして読む。
+firstは本家corrected履歴とfirst rawの未補正診断を本家の並び順で結合し、repeatedはphysical
+再入力の全診断を使う。corrected/correctable/全location・exitを維持する。
+
+collectorは共通record_windows_corrections.executeの0/1終了・stderr空・正のtarget/inspected数・
+全指定パス集合/重複・offense_count整合のガードを再利用する。集計も要求job/case集合、source
+および保存bytesのSHA256を検証し、importではOracleやfilesystemを起動しない。
+
+公開collectorの確認:
+- 全99の既存生Oracle記録を新しい集計APIへ通し、全2562caseとmetadataの全フィールドが一致。
+  JSON objectのキー順だけを正規化したSHA256は双方
+  b1bc068ea8aad6137dbb20cf74c800ed37de665dbff62ab2ea69120e1b144049。
+- 公開CLIからmixed全60caseとNUL writeback全1,224caseを新規実測し、既存Oracleと全case一致。
+- 最初の全2562実測は独立担当が完走し、記録時artifactのCRLF container SHA256は上記のとおり。公開時にはcontainerだけLFへ変換し、
+  全JSON値とcanonical SHA256が変わらないことを検証した。公開LF版は上記の別SHA256で固定する。
+公開CLIでの全7集合を改めて実測し直したという主張ではない。
+
+.gitattributesで公開containerをLFへ固定し、collectorのwrite_textもnewline="\n"を指定する。
+入力/outputの物理改行はhex/escape内の値であり、containerのLF化では一切変更しない。

@@ -9,7 +9,7 @@ const LINE_OFFSET: usize = 2;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `return unless processed_source.raw_source.include?("\n\n\n")`.
-    if !context.source.text().contains("\n\n\n") {
+    if !context.source.raw_source().contains("\n\n\n") {
         return;
     }
     let lines = token_lines(context);

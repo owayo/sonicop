@@ -8,7 +8,7 @@ use super::tokens::tokens;
 use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    if !context.source.text().contains('\\') {
+    if !context.source.raw_source().contains('\\') {
         return;
     }
     let no_space = match context
@@ -33,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ignored = ignored_ranges(context);
     for line in 1..=last_line {
         let range = context.source.line_range(line);
-        let text = context.source.slice(range.clone());
+        let text = context.source.raw_line(line);
         let Some(spacing) = offensive_spacing(text, no_space) else {
             continue;
         };
@@ -70,8 +70,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The `no_space` style rejects any blank at all; the `space` style rejects none and two or more,
 /// which is what its `((?<!\s)|\s{2,})\\$` says.
 fn offensive_spacing(line: &str, no_space: bool) -> Option<&str> {
-    let content = crate::rules::support::chomp(line);
-    let content = content.strip_suffix('\r').unwrap_or(content);
+    // Ruby の $ は LF の直前にだけ一致し、その前の CR は残す。
+    let content = line.strip_suffix('\n').unwrap_or(line);
     let before = content.strip_suffix('\\')?;
     let blanks = before.len() - before.trim_end_matches([' ', '\t']).len();
     match no_space {

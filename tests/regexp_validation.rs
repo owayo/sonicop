@@ -3,7 +3,7 @@ mod support;
 
 use serde_json::Value;
 use std::{collections::BTreeMap, fs, path::Path};
-use support::project::{command, project_with_ruby};
+use support::project::{command, project_with_ruby, recorded_disk_bytes};
 
 fn decode(hex: &str) -> Vec<u8> {
     hex.as_bytes()
@@ -100,6 +100,13 @@ fn static_regexp_reports_and_correction_bytes_match_the_real_cli() {
                     }
                     written = preserved;
                 }
+                let rewritten = mode != "inspect"
+                    && expected["offenses"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|offense| offense["corrected"] == true);
+                let written = recorded_disk_bytes(&original, &written, rewritten, 0);
                 assert_eq!(
                     fs::read(directory.path().join(name)).unwrap(),
                     written,
