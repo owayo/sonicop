@@ -325,10 +325,14 @@ fn output_paths_by_format(matches: &ArgMatches) -> Vec<Option<PathBuf>> {
 }
 
 fn composed_arguments() -> Result<Vec<String>> {
+    // String の CLI へ渡せない名前は拒否する。置換文字へ変えると別ファイルを指してしまう。
+    let mut command_line = std::env::args_os();
     let mut arguments = vec![
-        std::env::args()
+        command_line
             .next()
-            .unwrap_or_else(|| "sonicop".to_owned()),
+            .unwrap_or_else(|| "sonicop".into())
+            .into_string()
+            .map_err(|_| anyhow::anyhow!("command-line argument 0 is not valid Unicode"))?,
     ];
     let dotfile = std::env::current_dir()?.join(".rubocop");
     if dotfile.is_file() {
@@ -345,7 +349,11 @@ fn composed_arguments() -> Result<Vec<String>> {
             .map_err(|_| anyhow::anyhow!("RUBOCOP_OPTS is not valid UTF-8"))?;
         arguments.extend(shell_words::split(&options).context("failed to parse RUBOCOP_OPTS")?);
     }
-    arguments.extend(std::env::args().skip(1));
+    for (index, argument) in command_line.enumerate() {
+        arguments.push(argument.into_string().map_err(|_| {
+            anyhow::anyhow!("command-line argument {} is not valid Unicode", index + 1)
+        })?);
+    }
     Ok(arguments)
 }
 
