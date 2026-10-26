@@ -1,0 +1,26 @@
+RuboCop 1.89.0 / Parser 3.3.12.0 / Ruby 4.0.7 / Windows x64-mingw-ucrt
+Recorded: 2026-10-25
+
+13形 ×3 parser設定 ×LF/CRLF ×inspect/-a/-A =234入力。
+設定・引数順・全JSON（metadataだけ除去）・終了値・全補正byteは本家の実CLIから記録した。
+入力はfile/scopeの65535/65536/65537文字、30k字の日本語、file大/method小、
+literal named、Name、if、静的str補間の対照。prefix/padding/count/suffixは全byteを復元する。
+Rubyの文字数であり、UTF-8 byte数や表示幅ではない。scopeのCRLFはBufferで正規化され、
+scope無しはraw_sourceを数える。Windowsの次passのnative CRLFが上限を跨ぐ対照も含む。
+
+--config .rubocop.yml --cache false --only Style/RedundantParentheses -f json
+補正はgroup.modeがあるときだけ追加し、cases.filenameの明示順で実行した。
+
+12条件は新しいliteral named安全差、36条件は既存CRLF再解析差としてマニフェストへ分離した。
+残る186入力のファイル全診断・物理byteを互換一致へ比較する。234すべてを互換一致へ加算しない。
+静的補間は旧MRI2.7.8/4.0.7とも括弧前後で束縛が変わらず、保留せず本家通り補正する。
+新安全差は4.0.7で原本method→本家localとなる。2.7.8は原本からlocalで前後不変。
+その独立core-only記録はmatch_with_lvasgn_runtime.jsonに保持する。
+
+再生成（候補source/outputは読まない。元fixtureを上書きせず、別出力へ保存する）:
+python scripts/conformance/record_match_dispatch.py --fixture tests/fixtures/match_with_lvasgn_cap.json --out <new.json> --work <scratch> --ruby <Ruby4.0.7> --launcher <RuboCop1.89.0のpin済launcher.rb>
+
+同じcollectorはmatch_with_lvasgn.jsonの720入力にも使う。
+終了0/1、空stderr、Ruby実VM/版、全path順、正のtarget/inspected数、全offense集計を検証する。
+本fixtureのcap対照はWindows固有のraw/write cycleも含むため、CLI回帰はWindowsで厳密に実行する。
+POSIXへJSONやbyteを一律正規化して転用しない。DATA/NUL/mixedはこのscopeの外。

@@ -110,14 +110,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         crate::rules::support::Verification::default(),
     );
     for (node, message) in verified {
-        offenses.push(
-            context
-                .offense(
-                    format!("Don't use parentheses around {message}."),
-                    node.byte_range(),
-                )
-                .corrected_by_all(super::parens::correct(context, node)),
-        );
+        let mut offense = context
+            .offense(
+                format!("Don't use parentheses around {message}."),
+                node.byte_range(),
+            )
+            .corrected_by_all(super::parens::correct(context, node));
+        if introduces_capture_bindings(context, node) {
+            // cap 超では本家も報告するが、最後の lhs 括弧の除去は実 Ruby の束縛を増やす。
+            // 診断と correctable は保ち、意味を変える補正だけを保留する。
+            offense.clear_corrections();
+        }
+        offenses.push(offense);
     }
 }
 
@@ -428,12 +432,60 @@ fn ignore_syntax(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = parent_node(context, node) else {
         return false;
     };
-    like_method_argument_parentheses(context, node, parent)
+    context.match_with_lvasgn(parent)
+        || changes_match_dispatch(context, node, parent)
+            && !crate::rules::support::verification_too_large(context, &node.byte_range())
+        || like_method_argument_parentheses(context, node, parent)
         || multiline_control_flow_statements(context, node, parent)
 }
 
-/// `like_method_argument_parentheses?`: `p (1)` reads as the argument list it looks like, so the
-/// parentheses are the call's rather than a group's.
+/// 最後の左辺括弧を外すと `send` が `match_with_lvasgn` に変わり、本家の再解析では非同値になる。
+/// 多重括弧の内側を一組外す場合は型が変わらないので、単一の直接の Regexp 子だけを保護する。
+fn changes_match_dispatch(context: &RuleContext<'_>, node: Node<'_>, parent: Node<'_>) -> bool {
+    if binary_operator(context, parent) != Some("=~")
+        || !parent
+            .field("left")
+            .is_some_and(|left| left.id() == node.id())
+    {
+        return false;
+    }
+    matches!(
+        super::nodes::children_in(node, context).as_slice(),
+        [left] if context.static_regexp(*left)
+    )
+}
+
+fn introduces_capture_bindings(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let Some(parent) = node.parent_of(context) else {
+        return false;
+    };
+    if !changes_match_dispatch(context, node, parent) {
+        return false;
+    }
+    let regex = super::nodes::children_in(node, context)[0];
+    if crate::rules::send_node::named_children_iter(regex, context)
+        .any(|part| part.kind_str() == "interpolation")
+    {
+        // この dispatch は 2.7 whitequark の静的補間だけ。実 MRI 2.7 は括弧の有無に
+        // 関わらず同じ束縛を持ち、現 Prism はどちらも動的なので、local は増えない。
+        return false;
+    }
+    let groups = context
+        .regexp_semantics()
+        .physical_binding()
+        .physical_groups(regex, context.source.text(), |beginning| {
+            crate::rules::send_node::heredoc_body(beginning, context)
+        });
+    let crate::regexp_validation::LiteralNames::Valid(names) = groups else {
+        // 未コンパイル・無効を「名前が無い」という安全の証明へ読み替えない。
+        return true;
+    };
+    names.iter().any(|name| {
+        crate::regexp_ast::capture_name_is_local(name, context.source.text()) != Some(false)
+    })
+}
+
+/// `like_method_argument_parentheses?`: `p (1)` の括弧は group ではなく call 自身の引数に属する。
 fn like_method_argument_parentheses(
     context: &RuleContext<'_>,
     node: Node<'_>,

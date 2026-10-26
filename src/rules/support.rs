@@ -352,8 +352,7 @@ fn accepts_more_than_ruby(root: Node<'_>, text: &str) -> bool {
     false
 }
 
-/// `MAX_VERIFICATION_FRAGMENT_SIZE`: past this, verification gives up and accepts the offense as
-/// reported. Only machine-generated files come near it.
+/// 本家はこの Ruby 文字数を超える scope を再解析せず、そのまま報告する。
 const MAX_VERIFICATION_FRAGMENT_SIZE: usize = 64 * 1024;
 
 /// The kinds that both parse standalone and cannot capture an outer local variable, which is what
@@ -414,7 +413,7 @@ pub(crate) fn verified_by_reparse<T>(
     let mut groups: Vec<(Option<Node<'_>>, Vec<T>)> = Vec::new();
     for item in items {
         trace_overlapping_edits(context, &edits_of(&item), range_of(&item).start);
-        let scope = reparse_scope(root, &range_of(&item));
+        let scope = reparse_scope(context, &range_of(&item));
         let key = scope.map(|node| node.id());
         match groups
             .iter_mut()
@@ -427,8 +426,7 @@ pub(crate) fn verified_by_reparse<T>(
 
     let mut verified = Vec::new();
     for (scope, group) in groups {
-        let span = scope.map_or(text.len(), |node| node.byte_range().len());
-        if span > MAX_VERIFICATION_FRAGMENT_SIZE && !verification.verify_oversized {
+        if !verification.verify_oversized && scope_is_too_large(context, scope) {
             verified.extend(group);
             continue;
         }
@@ -577,9 +575,30 @@ fn literal_keeps_encoding(
     same(&text[start..end], single, closing)
 }
 
-/// `reparse_scope`: the innermost node that both contains `range` and parses standalone.
-fn reparse_scope<'tree>(root: Node<'tree>, range: &Range<usize>) -> Option<Node<'tree>> {
-    let mut node = root;
+/// cop の局所 guard も、generic verifier と同じ scope・上限を使う。
+pub(crate) fn verification_too_large(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
+    scope_is_too_large(context, reparse_scope(context, range))
+}
+
+fn scope_is_too_large(context: &RuleContext<'_>, scope: Option<Node<'_>>) -> bool {
+    // scope の SourceRange は Buffer の CRLF 正規化後、scope 無しは raw_source の長さ。
+    // UTF-8 byte 数では、上限未満の日本語コメントでも検証を省略してしまう。
+    let size = match scope {
+        Some(scope) => {
+            let text = context.source.node_text(scope);
+            text.chars().count() - text.matches("\r\n").count()
+        }
+        None => context.source.raw_source().chars().count(),
+    };
+    size > MAX_VERIFICATION_FRAGMENT_SIZE
+}
+
+/// `reparse_scope`: range を含み、単独で再解析できる最も内側の scope。
+fn reparse_scope<'tree>(
+    context: &'tree RuleContext<'_>,
+    range: &Range<usize>,
+) -> Option<Node<'tree>> {
+    let mut node = context.root_node();
     let mut scope = None;
     loop {
         if REPARSE_SCOPES.contains(&node.kind_str()) {
@@ -587,8 +606,7 @@ fn reparse_scope<'tree>(root: Node<'tree>, range: &Range<usize>) -> Option<Node<
         }
         // `Range#contains?`: strictly wider on at least one side, so a child that spans exactly the
         // same text does not continue the descent.
-        let mut cursor = node.walk();
-        let next = node.named_children(&mut cursor).find(|child| {
+        let next = super::send_node::named_children_iter(node, context).find(|child| {
             let span = child.byte_range();
             (range.start > span.start && span.end >= range.end)
                 || (range.start >= span.start && span.end > range.end)

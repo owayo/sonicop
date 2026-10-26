@@ -21094,6 +21094,21 @@ mod and_or {
     const COP: &str = "Style/AndOr";
 
     #[test]
+    fn a_static_regexp_match_is_not_parenthesized_as_a_send() {
+        // 本家の match_with_lvasgn は send の補正へ渡らず、普通の receiver は渡る。
+        expect_correction(
+            COP,
+            "def f(event, arity)\n  if /_new\\z/ =~ event and arity == 0\n    :ok\n  end\nend\n",
+            "def f(event, arity)\n  if /_new\\z/ =~ event && (arity == 0)\n    :ok\n  end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def f(rx, event, arity)\n  if rx =~ event and arity == 0\n    :ok\n  end\nend\n",
+            "def f(rx, event, arity)\n  if rx =~(event) && (arity == 0)\n    :ok\n  end\nend\n",
+        );
+    }
+
+    #[test]
     fn only_a_condition_is_looked_at_by_default() {
         expect_offense(
             COP,
@@ -24643,6 +24658,17 @@ mod redundant_parentheses {
         ] {
             CopCase::new(cop, source, Vec::new()).config(config).run();
         }
+    }
+
+    #[test]
+    fn regexp_match_dispatch_keeps_its_argument_and_last_receiver_group() {
+        // RHS の ignore と、lhs を外すと send でなくなる本家の再解析結果を合わせて確認する。
+        expect_no_offenses(COP, "def f(event)\n  /_new\\z/ =~(event)\nend\n");
+        expect_correction(
+            COP,
+            "event = 'a'\nrx = /a/\n((/a/)) =~(event)\n",
+            "event = 'a'\nrx = /a/\n(/a/) =~event\n",
+        );
     }
 
     /// `_1` と `it` はそれぞれ導入前にはブロックの暗黙変数ではない。

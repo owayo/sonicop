@@ -61,3 +61,15 @@ scripts/test_record_multibyte_syntax.py text eol=lf
 tests/fixtures/multibyte_syntax_reports.json text eol=lf
 tests/fixtures/multibyte_syntax_reports.json.PROVENANCE text eol=lf
 tests/multibyte_syntax.rs text eol=lf
+
+# 公開 fixture と再生成スクリプトのハッシュを OS の改行変換から守る。
+tests/match_with_lvasgn.rs text eol=lf
+tests/fixtures/match_with_lvasgn.json text eol=lf
+tests/fixtures/match_with_lvasgn.json.PROVENANCE text eol=lf
+tests/fixtures/match_with_lvasgn_cap.json text eol=lf
+tests/fixtures/match_with_lvasgn_cap.json.PROVENANCE text eol=lf
+tests/fixtures/match_with_lvasgn_runtime.json text eol=lf
+tests/fixtures/match_with_lvasgn_runtime.json.PROVENANCE text eol=lf
+scripts/conformance/record_match_dispatch.py text eol=lf
+scripts/conformance/record_match_dispatch_runtime.py text eol=lf
+scripts/conformance/test_record_match_dispatch.py text eol=lf

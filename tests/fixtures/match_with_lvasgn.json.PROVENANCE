@@ -1,0 +1,29 @@
+RuboCop 1.89.0 / Parser 3.3.12.0 / rubocop-ast 1.50.0 / Prism 1.8.1
+Windows x64-mingw-ucrt / Ruby 4.0.7
+Recorded: 2026-10-25
+
+正本は本家の実 CLI 出力。候補 Sonicop の診断や補正本文は期待値へ使用していない。
+
+20形の Regexp/receiver × 3 parser設定 = 60形。
+各形を LF/CRLF × inspect/-a/-A × AndOr/RedundantParentheses で実行し、
+36設定群・720入力の全JSON（metadataのみ除去）・終了値・ディスクの全補正byteを記録した。
+
+設定: AllCops/NewCops: disable、TargetRubyVersion/ParserEngine は各group.yamlの実値。
+選択: --config .rubocop.yml --cache false --only <group.cop> -f json
+補正: group.mode がある場合だけ -a/-A。入力引数は各group.cases.filenameの明示順。
+
+入力と補正後のSHA-256、物理after_hexを保持している。after_lfは記録の確認用であり、
+Windowsの回帰テストはafter_hexとディスク全byteを厳密比較する。POSIXだけ、
+元LF原本のWindows native書出しをLFへ戻して期待する。元CRLFは保持する。
+DATA/NUL・混在改行・符号化宣言を含む入力はこの記録の対象外。
+
+左辺括弧、動的補間、整数補間、通常receiver、Regexp.new、freeze、!~、右辺Regexpはsendの陰性対照。
+2.7 whitequarkのstr/空begin補間だけはmatch_with_lvasgnへ畳まれ、
+3.3 whitequarkとPrismでは補間が一つでもあればsendになる。
+named capture有無と/o自体はその分類を変えない。
+
+全対象のパス、正のtarget/inspected数、offense集計と終了0/1、空stderrを確認して保存した。
+
+再生成（元fixtureと別の出力を使う）:
+python scripts/conformance/record_match_dispatch.py --fixture tests/fixtures/match_with_lvasgn.json --out <new.json> --work <scratch> --ruby <Ruby4.0.7> --launcher <RuboCop1.89.0のpin済launcher.rb>
+collectorは入力source/yaml/modeだけを使い、既存after/reportと候補source/outputから期待を作らない。

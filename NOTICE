@@ -53,6 +53,23 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Source and finite scope: the neighbouring .PROVENANCE.
       Full licence text is retained at licenses/RUBOCOP.txt.
 
+  tests/fixtures/match_with_lvasgn.json
+  tests/fixtures/match_with_lvasgn_cap.json
+  tests/fixtures/match_with_lvasgn_runtime.json
+      Constructed regexp-match inputs paired with actual RuboCop 1.89.0
+      reports and correction bytes. The normal fixture covers 720 inputs;
+      the cap fixture separates 186 matching inputs, 12 withheld unsafe
+      corrections and 36 existing CRLF reparse controls. The runtime fixture
+      records 26 core-only inputs on MRI 2.7.8 and 4.0.7, distinguishing actual
+      corrections from generated control pairs. It contains no candidate output.
+      The AndOr and RedundantParentheses dispatch/reparse rules are ported
+      from the same specification. Regenerate with
+      scripts/conformance/record_match_dispatch.py and
+      scripts/conformance/record_match_dispatch_runtime.py; see the three
+      adjacent .PROVENANCE files for versions, origins and finite scope.
+      Full licence text is retained at licenses/RUBOCOP.txt. The existing
+      Prism 1.8.1 identifier query uses the separately inventoried Prism code.
+
   tests/fixtures/upstream_spec_cases.jsonl
   tests/fixtures/upstream_spec_divergences.jsonl
       Input text taken out of RuboCop's own cop specs, each paired with what

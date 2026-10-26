@@ -1,0 +1,1108 @@
+{
+  "reference": {
+    "runtime_versions": [
+      "2.7.8",
+      "4.0.7"
+    ],
+    "core_only": true,
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "platform": "Windows"
+  },
+  "cases": [
+    {
+      "id": "named-original",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65386,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/(?<name>a)/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "be42e1511201e9bdbdb3cdad125f0e3359f4a5e84966c8bbd64118101a02c320",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "named-reference",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65386,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /(?<name>a)/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "2374bd4e74fe4bcc23aabec079b9a35b5ed0a8a1d43ec7c4be25381db74ed243",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        }
+      },
+      "upstream_cli": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": "reference.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Don't use parentheses around a literal.",
+                  "cop_name": "Style/RedundantParentheses",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 5,
+                    "start_column": 10,
+                    "last_line": 5,
+                    "last_column": 23,
+                    "length": 14,
+                    "line": 5,
+                    "column": 10
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "unnamed-original",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65395,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/a/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "9037513c5b53e7ca7d3eac2b464cc6b076e69c07ffd482f6ab3b0af333ab7f3e",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "unnamed-reference",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65395,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /a/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "91699e0408ba1ba65f37081b2f9a1042cfe51c7f929703aaab1ca0b6743cce02",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      },
+      "upstream_cli": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": "reference.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Don't use parentheses around a literal.",
+                  "cop_name": "Style/RedundantParentheses",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 5,
+                    "start_column": 10,
+                    "last_line": 5,
+                    "last_column": 14,
+                    "length": 5,
+                    "line": 5,
+                    "column": 10
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "capital-original",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65386,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/(?<Name>a)/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "69a1741bd95cb5990267ff1b130b4181ba1e938749548592f814e2ef45957e20",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "capital-reference",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65386,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /(?<Name>a)/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "87db89548a1ad2b928aa34f7bff057306c101eee14be1fc90071ec969eee9bc4",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      },
+      "upstream_cli": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": "reference.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Don't use parentheses around a literal.",
+                  "cop_name": "Style/RedundantParentheses",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 5,
+                    "start_column": 10,
+                    "last_line": 5,
+                    "last_column": 23,
+                    "length": 14,
+                    "line": 5,
+                    "column": 10
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "keyword-original",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65388,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/(?<if>a)/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "64386c478bd4748da38321146027751f20357e9109ab2e3e70e115c30046fd32",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "keyword-reference",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65388,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /(?<if>a)/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "3e50206afbcc3e0d36427d5d64266b96287424c26b071d17d810f25d7328af8a",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      },
+      "upstream_cli": {
+        "exit": 0,
+        "report": {
+          "files": [
+            {
+              "path": "reference.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Don't use parentheses around a literal.",
+                  "cop_name": "Style/RedundantParentheses",
+                  "corrected": true,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 5,
+                    "start_column": 10,
+                    "last_line": 5,
+                    "last_column": 21,
+                    "length": 12,
+                    "line": 5,
+                    "column": 10
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "body-interpolation-lf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/(?<name>#{'a'})/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "84998d073731c9f4672532425ea620f53190d1124457e852262d13283281bcce",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "body-interpolation-lf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = /(?<name>#{'a'})/ =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "7bb462be43f12a6df8aba33f6d88c8601d04354b5646be9bc2915fe5d3986c6b",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "body-interpolation-crlf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = (/(?<name>#{'a'})/) =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "5465ae1a775dffbb0574bae741ecae32d63e28918a9e638a4381a6fda72750ce",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "body-interpolation-crlf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /(?<name>#{'a'})/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "dfc638e232ed8562a13b430ee3e147cfdb3b931a32a94f8d3fe32e6597c39193",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-begin-lf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/#{ }(?<name>a)/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "1b5417d5b6ab4cb258e927d8f548d2a6a59d96f6171d84cb85c12da334d75691",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-begin-lf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = /#{ }(?<name>a)/ =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "533674fb4451c9deb0874cefc10053000e06edb22eb83c7cf8cf4c069a3d10f7",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-begin-crlf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = (/#{ }(?<name>a)/) =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "7f5a8a9ebe00869e27f8646ce30456c891aaff6e5113a20d0154d0107cbbcb64",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-begin-crlf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{ }(?<name>a)/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "2387913fe8b5cdddaf8fdc9e126bcf99c2355144b35a75207f5214953d5fe49b",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "multi-string-lf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/#{'ignored'; '(?<name>a)'}/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "7de474745dae042d133c808fe75b5de6fe0fbeb732c90f647b5074871247fb31",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "multi-string-lf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = /#{'ignored'; '(?<name>a)'}/ =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "a4cf85d793532e59c364156da97a79d23966f03abc8bbc89e70a92694a1026fc",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "multi-string-crlf-grouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = (/#{'ignored'; '(?<name>a)'}/) =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "e3ada10933b500f660536eb3b9a8172e6baeac161a651e2919d575258c803b30",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "multi-string-crlf-ungrouped",
+      "origin": "generated_parentheses_pair",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 65536,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{'ignored'; '(?<name>a)'}/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "0647db2a8d6d6b1d984fb55dbbeaa13f397f616fef8bafcb7019e09e579f56ee",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-original-lf",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\nSTDOUT.binmode\ndef name; :method; end\nevent = 'a'\nresult = (/#{'(?<name>a)'}/) =~ event\np [result, defined?(name), name, local_variables.include?(:name)]\n"
+      },
+      "source_sha256": "1eb39957546924c0b7f9c8bfe7d34e67d21a56f2bec82a36a6303e70a12b09b3",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-original-crlf",
+      "origin": "original",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = (/#{'(?<name>a)'}/) =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "6f758f49d010c31b7a86275585c2bac4da8aa998e3122d60fd0c445803a1325a",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-reference-lf-safe",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{'(?<name>a)'}/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "5340a4287410d4e4f855fbb529e90a8369a577c6d69e7552b09193120eed4c46",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-reference-lf-unsafe",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{'(?<name>a)'}/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "5340a4287410d4e4f855fbb529e90a8369a577c6d69e7552b09193120eed4c46",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-reference-crlf-safe",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{'(?<name>a)'}/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "5340a4287410d4e4f855fbb529e90a8369a577c6d69e7552b09193120eed4c46",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "static-reference-crlf-unsafe",
+      "origin": "actual_rubocop_correction",
+      "source": {
+        "prefix": "#",
+        "padding": "x",
+        "count": 70000,
+        "suffix": "\r\nSTDOUT.binmode\r\ndef name; :method; end\r\nevent = 'a'\r\nresult = /#{'(?<name>a)'}/ =~ event\r\np [result, defined?(name), name, local_variables.include?(:name)]\r\n"
+      },
+      "source_sha256": "5340a4287410d4e4f855fbb529e90a8369a577c6d69e7552b09193120eed4c46",
+      "observations": {
+        "2.7.8": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226c6f63616c2d7661726961626c65222c202261222c20747275655d0a",
+            "stderr_hex": ""
+          }
+        },
+        "4.0.7": {
+          "syntax": {
+            "exit": 0,
+            "stdout_hex": "53796e746178204f4b0d0a",
+            "stderr_hex": ""
+          },
+          "run": {
+            "exit": 0,
+            "stdout_hex": "5b302c20226d6574686f64222c203a6d6574686f642c2066616c73655d0a",
+            "stderr_hex": ""
+          }
+        }
+      }
+    }
+  ]
+}

@@ -344,6 +344,17 @@ impl<'a> RuleContext<'a> {
             })
     }
 
+    /// 本家の `match_with_lvasgn`。括弧付きの左辺は `send` なので透過しない。
+    pub(crate) fn match_with_lvasgn(&self, node: Node<'_>) -> bool {
+        node.kind_str() == "binary"
+            && node
+                .field("operator")
+                .is_some_and(|operator| self.source.node_text(operator) == "=~")
+            && node
+                .field("left")
+                .is_some_and(|left| self.static_regexp(left))
+    }
+
     /// The Ruby version the run analyzes as, which version-gated cops compare against.
     pub fn target_ruby_version(&self) -> RubyVersion {
         self.config.target_ruby_version()
