@@ -87,3 +87,11 @@ tests/formatter_message_options.rs text eol=lf
 tests/word_array_byte_safety.rs text eol=lf
 tests/fixtures/word_array_byte_safety.json text eol=lf
 tests/fixtures/word_array_byte_safety.json.PROVENANCE text eol=lf
+
+# 参照 collector の実バイトと生成分類表を Windows checkout でも固定する。
+src/cache_string_printable_table.rs text eol=lf linguist-generated=true
+scripts/record_cached_message_annotations.py text eol=lf
+scripts/test_record_cached_message_annotations.py text eol=lf
+tests/cached_message_annotations.rs text eol=lf
+tests/fixtures/cached_message_annotations_windows.json text eol=lf
+tests/fixtures/cached_message_annotations_windows.PROVENANCE text eol=lf
