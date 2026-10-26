@@ -75,6 +75,25 @@ unsafe extern "C" {
         data: *mut c_void,
     ) -> c_int;
     fn sonicop_prism_compat_version() -> *const c_char;
+    fn sonicop_prism_1_8_1_pm_string_query_local(
+        source: *const u8,
+        length: usize,
+        encoding_name: *const c_char,
+    ) -> c_int;
+}
+
+/// 名前の文字・大小文字は Prism 自身へ問い合わせる。keyword の除外は呼出し側で行う。
+/// 不明な符号化を、正常に照会した false と取り違えない。
+pub fn local_variable_name(source: &[u8], encoding: &str) -> Option<bool> {
+    let encoding = CString::new(encoding).ok()?;
+    // SAFETY: source と NUL 終端した encoding は同期呼出しが返るまで生存する。
+    match unsafe {
+        sonicop_prism_1_8_1_pm_string_query_local(source.as_ptr(), source.len(), encoding.as_ptr())
+    } {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    }
 }
 
 unsafe extern "C" fn collect(

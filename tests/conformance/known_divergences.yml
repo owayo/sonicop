@@ -3302,3 +3302,56 @@ windows_stdin_textmode_divergences:
         original_value: {"exit": 0, "stdout_hex": "3061"}
         upstream_value: {"exit": 0, "stdout_hex": "3064"}
         safe_value: {"exit": 0, "stdout_hex": "3061"}
+# #104: 本家の再解析上限で検証されない、非補間 Regexp の最後の左辺括弧。
+# 2cop の通常720入力は一致させ、この12補正条件だけを独立した安全差として監視する。
+match_dispatch_capture_divergences:
+  issue: 104
+  review_status: approved_independent_codex_review
+  review_authority:
+    provider: independent_codex_same_provider
+    claude_performed: false
+    user_instruction: 'claudeつかわなくていいよ'
+    scope: 保存済みの非補間literal named 12補正条件。独立Codex判断を使用し、Claude実施とは扱わない。
+  cop: Style/RedundantParentheses
+  reference_fixture: tests/fixtures/match_with_lvasgn_cap.json
+  runtime_fixture: tests/fixtures/match_with_lvasgn_runtime.json
+  cases: [oversized_named]
+  targets: [2.7/parser_whitequark, 3.3/parser_whitequark, 3.3/parser_prism]
+  modes: [-a, -A]
+  endings: [lf, crlf]
+  withhold_correction: true
+  candidate_exit: 1
+  candidate_preserves_source: true
+  expected_correction_conditions: 12
+  minimum_total_ruby_characters: 65537
+  runtime:
+    ruby_4_0_7:
+      original: '[0, "method", :method, false]'
+      upstream: '[0, "local-variable", "a", true]'
+    ruby_2_7_8:
+      original: '[0, "local-variable", "a", true]'
+      upstream: '[0, "local-variable", "a", true]'
+  reason: >-
+    本家は scope の Ruby 文字数が65536を超えると AST 同値性を検証せずに補正する。
+    非補間の /(?<name>a)/ の最後の lhs 括弧を外すと send が match_with_lvasgn になり、
+    MRI4.0.7では name メソッドの読取りが捕捉localの読取りへ変わる。構文と実行は成功するが
+    値が変わるため、全診断と correctable true を保ち、補正だけを保留する。
+    MRI2.7.8は原本から既に同じlocalを持つため、この版では前後の値は変わらない。
+    同じ原本byteを --disable-gems の独立core-only過程で実行し、版の差と前後差を分けた。
+    捕捉無し・Name/if等の非local捕捉名・静的補間は無害な対照で、本家通り補正する。
+    未コンパイルや判定不能を捕捉無しと読み替えない。
+
+# 既存 blind_spots の CRLF ReparsedEquivalence raw/source 差の対照。新しい安全差ではない。
+match_dispatch_crlf_controls:
+  cop: Style/RedundantParentheses
+  reference_fixture: tests/fixtures/match_with_lvasgn_cap.json
+  cases: [method_65535, method_65536, method_unicode, small_method_in_big_file]
+  targets: [2.7/parser_whitequark, 3.3/parser_whitequark, 3.3/parser_prism]
+  modes: [inspect, -a, -A]
+  endings: [crlf]
+  expected_conditions: 36
+  candidate_reference: 同じ形・版・modeのLF原本に対する本家全診断と補正本文。
+  reason: >-
+    本家は CRLF scope の補正後断片を raw_source 長の delta で切り、正規化後のASTを欠落させる。
+    その取りこぼしへ追従せず、意味を保つ RHS の変数括弧を報告・補正する既存方針を監視する。
+    lhs の最後の括弧は cap 以下で保持する。名前付き捕捉の新しい安全差と混ぜない。

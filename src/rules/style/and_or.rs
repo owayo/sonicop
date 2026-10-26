@@ -113,9 +113,11 @@ fn corrections(
     edits
 }
 
-/// Whether upstream's parser would have built a `send` here. A setter call is one too, however much
-/// the grammar spells it as an assignment.
+/// 本家の `send` 判定。代入形の setter は含み、静的な Regexp 左辺の match は含まない。
 fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+    if context.match_with_lvasgn(node) {
+        return false;
+    }
     match node.kind_str() {
         "call" | "element_reference" => true,
         "binary" => node

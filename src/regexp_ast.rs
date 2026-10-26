@@ -125,7 +125,7 @@ impl Semantics {
         safe
     }
 
-    fn physical_groups<'t>(
+    pub(crate) fn physical_groups<'t>(
         self,
         regex: Node<'t>,
         source: &str,
@@ -193,6 +193,35 @@ impl Semantics {
         }
         Some((pattern.value, flags))
     }
+}
+
+/// 捕捉名を独自の Unicode・keyword 表で分類しない。物理 encoding のまま照会し、
+/// 単純な local 名の候補だけを短い代入として解析して予約語を除く。
+pub(crate) fn capture_name_is_local(name: &str, source: &str) -> Option<bool> {
+    let encoding = crate::engine::regexp_source_encoding(source)?;
+    let encoded = Encoded::raw(name, encoding)?;
+    let label = match encoding {
+        Encoding::Utf8 => "UTF-8",
+        Encoding::Binary => "ASCII-8BIT",
+        Encoding::UsAscii => "US-ASCII",
+        Encoding::EucJp => "EUC-JP",
+        Encoding::Windows31J => "Windows-31J",
+    };
+    if !sonicop_prism_compat::local_variable_name(&encoded.bytes, label)? {
+        return Some(false);
+    }
+    let mut probe = format!("# encoding: {label}\n").into_bytes();
+    probe.extend_from_slice(&encoded.bytes);
+    probe.extend_from_slice(b" = nil\n");
+    let parsed = ruby_prism::parse(&probe);
+    let node = parsed.node();
+    let program = node.as_program_node()?;
+    let locals = program.locals();
+    Some(
+        parsed.errors().next().is_none()
+            && locals.len() == 1
+            && locals.first()?.as_slice() == encoded.bytes,
+    )
 }
 
 fn buffer_encoding(source: &str) -> Encoding {
@@ -1037,6 +1066,47 @@ fn decode_string(
 #[cfg(test)]
 mod tests {
     use super::Semantics;
+
+    #[test]
+    fn physical_capture_names_use_prisms_identifier_and_keyword_rules() {
+        assert_eq!(
+            sonicop_prism_compat::local_variable_name(b"name", "unknown"),
+            None
+        );
+        assert_eq!(
+            sonicop_prism_compat::local_variable_name(b"name", "UTF-8\0"),
+            None
+        );
+        // 実 MRI 4.0.7 の local table と照合した。Regexp#names の非空だけでは束縛を証明できない。
+        for (name, expected) in [
+            ("name", true),
+            ("Name", false),
+            ("if", false),
+            ("foo-bar", false),
+            ("@name", false),
+            ("あ", true),
+            ("_name", true),
+            ("_", true),
+            ("__FILE__", false),
+            ("foo?", false),
+            ("Ä", false),
+            ("it", true),
+        ] {
+            assert_eq!(
+                super::capture_name_is_local(name, ""),
+                Some(expected),
+                "{name}"
+            );
+        }
+        assert_eq!(
+            super::capture_name_is_local("Ä", "# encoding: ASCII-8BIT\n"),
+            Some(true)
+        );
+        assert_eq!(
+            super::capture_name_is_local("name", "# encoding: UTF-7\n"),
+            None
+        );
+    }
 
     #[test]
     fn configured_capture_names_keep_the_recorded_symbol_identity_in_both_models() {

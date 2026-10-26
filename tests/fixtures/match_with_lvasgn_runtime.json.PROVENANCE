@@ -1,0 +1,28 @@
+MRI 2.7.8p225 x64 RubyInstaller portable / MRI 4.0.7 x64-mingw-ucrt
+Recorded: 2026-10-25
+
+新たに実行したcore-onlyの104記録。過去fixtureの2.7実行結果の流用ではない。
+2.7.8は公式SHA-256と一致したportable archiveを隔離し、--disable-gemsで実行した。
+Gem/linter/external project codeをRuntime入力へ含めていない。既定RubyやPATHは変更していない。
+
+26自作入力（候補は含めない）×2 runtime ×syntax/run =104回。
+全てexit0・stderr空。syntaxのstdoutとruntimeのstdoutを物理hexで保持し、改行を正規化しない。
+sourceはUTF8のprefix/padding/count/suffix、source_sha256は実行した入力bytesの値。
+絶対パス・ユーザー名・作業フォルダは公開fixtureから除去した。
+
+named/unnamed/capital/keywordのoriginal/referenceは65537文字の最小閾値の実原本と
+RuboCop1.89.0の実-A補正である。referenceの全CLI診断も併記した。
+static-original-{lf,crlf}とstatic-reference-{lf,crlf}-{safe,unsafe}も実本家の出力。
+body-interpolation/empty-begin/multi-stringは同じcore-only scaffoldで生成した括弧pairであり、
+linterが実際に出力したものとは区別してorigin: generated_parentheses_pairと記録した。
+
+非補間literal named: 4.0.7はoriginal method→reference local、2.7.8は両方local。
+unnamed/Name/if: 両runtime・全sideでmethod、前後差なし。
+静的補間: 旧2.7は原本からlocalを持つ形があるが、括弧有無では変わらない。
+4.0.7はいずれもmethodで前後差なし。empty beginは両runtime・括弧有無でmethod。
+
+再実行（元fixtureは変更しない。候補実行や候補の期待値は使わない）:
+python scripts/conformance/record_match_dispatch_runtime.py --fixture tests/fixtures/match_with_lvasgn_runtime.json --out <new.json> --work <scratch> --ruby27 <MRI2.7.8> --ruby40 <MRI4.0.7>
+
+版probeを確認し、各入力をSHA-256照合してからRuby --disable-gems -c / 通常実行へ渡す。
+Ruby以外の依存やGemは不要。byteと観測を含む全JSONが元fixtureと一致することを検査する。
