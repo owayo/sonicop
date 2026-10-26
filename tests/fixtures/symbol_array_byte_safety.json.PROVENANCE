@@ -1,0 +1,35 @@
+SymbolArray invalid decoded bytes regression (Issue #174)
+
+Four authored literal arrays; saved RuboCop 1.89.0 CLI records.
+Ruby 4.0.7 / parser 3.3.12.0; TargetRubyVersion 2.7 / parser_whitequark.
+The runtime VM is 4.0.7, not evidence of execution on Ruby 2.7.
+Other loaded gem versions were not freshly recorded and are not inferred.
+
+The original %I[\x95 foo bar] raises EncodingError in recorded UTF-8 eval.
+Its Symbol value is unavailable, and value preservation is N/A. Original
+syntax validity was not independently classified. Reference inspect/-a/-A
+all exit 2 before correction and preserve input; files:[]/inspected_file_count:0
+is not a completed inspection. Only the first error line is published; local
+gem paths/backtraces are excluded. JSON stdout remains raw hex.
+
+The three controls retain all files/summary fields, exit, stderr, after bytes
+and Symbol-value records. Whole metadata identity is not compared as exact.
+Windows writeback CRLF is physical transport, not a literal-value projection.
+
+Reusing #172 typed rollback prevents writing an invented U+FFFD Symbol name.
+This is an ordinary bug fix: reference emitted no unsafe correction. No new
+known-divergence entry. Inspect1/reference2 and internal exception text remain
+unresolved outside this correction guard. Expected values are from saved
+reference, not current native. Native before/after report equality tests only
+the rollback invariant. No new reference/VM/input was collected.
+
+Saved records SHA-256: b507b22c4ae77a7fcc7178b50d34088efb562d31866244e873b04e753a89b833
+Fixture raw SHA-256: c59197131175c0318402d4d73f8cfc119bbb20711d58c9698c8ddae8121e36cb
+
+Revision2 adds one measured reverse bracket-to-percent original. Only reference
+-A was executed; inspect/-a reference remain unmeasured. Candidate -a is a
+rollback safety check, not newly measured reference compatibility. The reverse
+original MRI4.0.7 eval fails with SyntaxError/invalid symbol, distinct from the
+percent original EncodingError. Both original values are N/A. Saved reference
+-A exits 2, keeps the original and returns files:[]/inspected0 after an
+internal builder exception. No new author Oracle/VM/input was executed.

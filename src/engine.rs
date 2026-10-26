@@ -4162,6 +4162,82 @@ mod tests {
         cache.store(report, stat, &digest, config);
     }
 
+    #[test]
+    fn symbol_array_invalid_decode_rolls_back_without_changing_original_diagnostics() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("config.yml");
+        for (literal, style) in [
+            (r"%I[\x95 foo bar]", "brackets"),
+            (r#"[ :"\x95", :foo, :bar, :baz ]"#, "percent"),
+        ] {
+            fs::write(&path, format!("AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\nStyle/SymbolArray:\n  EnforcedStyle: {style}\n")).unwrap();
+            let config = Config::load(Some(&path), directory.path()).unwrap();
+            let selection = Selection {
+                only: vec![
+                    "Style/SymbolArray".to_owned(),
+                    "Layout/SpaceAroundOperators".to_owned(),
+                ],
+                correcting: true,
+                ..Selection::default()
+            };
+            // 両原本にSymbol値は無い。U+FFFD名の発明と別cop編集を同じ経路で拒否する。
+            for ending in ["\n", "\r\n"] {
+                let source = format!("{literal}\nx=1\n").replace('\n', ending);
+                for mode in [CorrectMode::Safe, CorrectMode::All] {
+                    let mut report = inspect_source(
+                        directory.path().join("input.rb"),
+                        source.clone(),
+                        &config,
+                        &selection,
+                    )
+                    .unwrap();
+                    let original: Vec<_> = report
+                        .offenses
+                        .iter()
+                        .map(|o| {
+                            (
+                                o.cop_name,
+                                o.message.clone(),
+                                o.start,
+                                o.end,
+                                o.is_correctable(),
+                            )
+                        })
+                        .collect();
+                    let (text, count) = corrected_text(&mut report, mode, Correcting::Everything);
+                    assert_eq!(text, source, "{style}/{ending:?}/{mode:?}");
+                    assert_eq!(count, 0);
+                    let outcome = correct_file(report, mode, &config, &selection).unwrap();
+                    assert_eq!(outcome.text, source);
+                    assert_eq!(outcome.corrected_count, 0);
+                    assert!(!outcome.rewritten);
+                    assert!(
+                        outcome
+                            .rollback
+                            .as_deref()
+                            .is_some_and(|r| r.contains("Style/SymbolArray"))
+                    );
+                    assert!(outcome.report.offenses.iter().all(|o| !o.corrected));
+                    let restored: Vec<_> = outcome
+                        .report
+                        .offenses
+                        .iter()
+                        .map(|o| {
+                            (
+                                o.cop_name,
+                                o.message.clone(),
+                                o.start,
+                                o.end,
+                                o.is_correctable(),
+                            )
+                        })
+                        .collect();
+                    assert_eq!(restored, original);
+                }
+            }
+        }
+    }
+
     fn word_array_byte_safety_configuration() -> (tempfile::TempDir, Config, Selection) {
         let directory = tempdir().unwrap();
         let path = directory.path().join(".rubocop.yml");

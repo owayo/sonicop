@@ -1,0 +1,1134 @@
+{
+  "issue": 174,
+  "cop": "Style/SymbolArray",
+  "target_ruby_version": "2.7",
+  "parser_engine": "parser_whitequark",
+  "reference_runtime": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "other_loaded_gems": "not freshly recorded; not inferred"
+  },
+  "source_hex": "25495b5c78393520666f6f206261725d0a",
+  "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\nStyle/SymbolArray:\n  EnforcedStyle: brackets\n",
+  "original_VM": {
+    "error_class": "EncodingError",
+    "value": null,
+    "value_comparison": "N/A; original Symbol value was not obtained",
+    "source_syntax_validity": "not independently classified",
+    "runtime_scope": "MRI4.0.7 UTF-8 eval; not Ruby2.7 VM proof"
+  },
+  "reference_failures": {
+    "inspect": {
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_first_line_hex": "696e76616c69642073796d626f6c20696e20656e636f64696e67205554462d38203a225c783935220d0a",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 0
+        }
+      },
+      "inspection_complete": false,
+      "original_unchanged": true,
+      "after_hex": "25495b5c78393520666f6f206261725d0a"
+    },
+    "-a": {
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_first_line_hex": "696e76616c69642073796d626f6c20696e20656e636f64696e67205554462d38203a225c783935220d0a",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 0
+        }
+      },
+      "inspection_complete": false,
+      "original_unchanged": true,
+      "after_hex": "25495b5c78393520666f6f206261725d0a"
+    },
+    "-A": {
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_first_line_hex": "696e76616c69642073796d626f6c20696e20656e636f64696e67205554462d38203a225c783935220d0a",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 0
+        }
+      },
+      "inspection_complete": false,
+      "original_unchanged": true,
+      "after_hex": "25495b5c78393520666f6f206261725d0a"
+    }
+  },
+  "controls": [
+    {
+      "id": "percent-lower-byte-text",
+      "source_hex": "25695b5c78393520666f6f206261725d0a",
+      "records": {
+        "inspect": {
+          "exit": 1,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a275c5c5c5c783935272c203a666f6f2c203a6261725d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:'\\\\x95', :foo, :bar]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "25695b5c78393520666f6f206261725d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-a": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a275c5c5c5c783935272c203a666f6f2c203a6261725d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:'\\\\x95', :foo, :bar]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a275c5c783935272c203a666f6f2c203a6261725d0d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-A": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a275c5c5c5c783935272c203a666f6f2c203a6261725d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:'\\\\x95', :foo, :bar]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a275c5c783935272c203a666f6f2c203a6261725d0d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "percent-upper-normal-escape",
+      "source_hex": "25495b666f5c6f206261722062617a5d0a",
+      "records": {
+        "inspect": {
+          "exit": 1,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a666f6f2c203a6261722c203a62617a5d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:foo, :bar, :baz]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "25495b666f5c6f206261722062617a5d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-a": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a666f6f2c203a6261722c203a62617a5d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:foo, :bar, :baz]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a666f6f2c203a6261722c203a62617a5d0d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-A": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2255736520605b3a666f6f2c203a6261722c203a62617a5d6020666f7220616e206172726179206f662073796d626f6c732e222c22636f705f6e616d65223a225374796c652f53796d626f6c4172726179222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31362c226c656e677468223a31362c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `[:foo, :bar, :baz]` for an array of symbols.",
+                    "cop_name": "Style/SymbolArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 1,
+                      "last_line": 1,
+                      "last_column": 16,
+                      "length": 16,
+                      "line": 1,
+                      "column": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a666f6f2c203a6261722c203a62617a5d0d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "62617a",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                122
+              ],
+              "valid_encoding": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "single-quoted-symbols",
+      "source_hex": "5b3a275c783935272c203a27666f6f272c203a27626172275d0a",
+      "records": {
+        "inspect": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a275c783935272c203a27666f6f272c203a27626172275d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-a": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a275c783935272c203a27666f6f272c203a27626172275d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        },
+        "-A": {
+          "exit": 0,
+          "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "stderr_hex": "",
+          "report": {
+            "metadata": {
+              "rubocop_version": "1.89.0",
+              "ruby_engine": "ruby",
+              "ruby_version": "4.0.7",
+              "ruby_patchlevel": "0",
+              "ruby_platform": "x64-mingw-ucrt"
+            },
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "after_hex": "5b3a275c783935272c203a27666f6f272c203a27626172275d0a",
+          "original_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ],
+          "after_values": [
+            {
+              "type": "Symbol",
+              "hex": "5c783935",
+              "encoding": "US-ASCII",
+              "bytes": [
+                92,
+                120,
+                57,
+                53
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "666f6f",
+              "encoding": "US-ASCII",
+              "bytes": [
+                102,
+                111,
+                111
+              ],
+              "valid_encoding": true
+            },
+            {
+              "type": "Symbol",
+              "hex": "626172",
+              "encoding": "US-ASCII",
+              "bytes": [
+                98,
+                97,
+                114
+              ],
+              "valid_encoding": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "reverse": {
+    "source_hex": "5b203a225c783935222c203a666f6f2c203a6261722c203a62617a205d0a",
+    "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\nStyle/SymbolArray:\n  EnforcedStyle: percent\n",
+    "reference_modes_verified": [
+      "-A"
+    ],
+    "candidate_safety_modes": [
+      "-a",
+      "-A"
+    ],
+    "original_VM": {
+      "error_class": "SyntaxError",
+      "error": "invalid symbol",
+      "value": null,
+      "scope": "MRI4.0.7 UTF-8 eval; not Ruby2.7 VM proof"
+    },
+    "reference_failure": {
+      "mode": "-A",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_first_line_hex": "696e76616c69642073796d626f6c20696e20656e636f64696e67205554462d38203a225c783935220d0a",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 0
+        }
+      },
+      "after_hex": "5b203a225c783935222c203a666f6f2c203a6261722c203a62617a205d0a",
+      "inspection_complete": false
+    },
+    "unmeasured_reference_modes": [
+      "inspect",
+      "-a"
+    ]
+  }
+}

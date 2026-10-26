@@ -132,6 +132,7 @@ impl CorrectionCharacterSource {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CorrectionRejection {
     WordArrayInvalidBytes,
+    SymbolArrayInvalidBytes,
 }
 
 impl CorrectionRejection {
@@ -139,6 +140,9 @@ impl CorrectionRejection {
         match self {
             Self::WordArrayInvalidBytes => {
                 "Style/WordArray would change the bytes of a string literal"
+            }
+            Self::SymbolArrayInvalidBytes => {
+                "Style/SymbolArray would change the bytes of a symbol literal"
             }
         }
     }

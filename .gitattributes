@@ -95,3 +95,8 @@ scripts/test_record_cached_message_annotations.py text eol=lf
 tests/cached_message_annotations.rs text eol=lf
 tests/fixtures/cached_message_annotations_windows.json text eol=lf
 tests/fixtures/cached_message_annotations_windows.PROVENANCE text eol=lf
+
+# SymbolArrayの公開fixture容器と回帰は改行変換しない。
+tests/symbol_array_byte_safety.rs text eol=lf
+tests/fixtures/symbol_array_byte_safety.json text eol=lf
+tests/fixtures/symbol_array_byte_safety.json.PROVENANCE text eol=lf
