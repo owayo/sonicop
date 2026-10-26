@@ -1068,6 +1068,41 @@ mod tests {
     use super::Semantics;
 
     #[test]
+    fn prism_local_name_query_ignores_bytes_after_the_slice() {
+        // length直後の=?!に依存したPrism照会は、通常のitまで非localにして補正保留を外す。
+        // 内在NULは無効な名前のfalseであり、未知encodingのNoneと混ぜない。
+        let cases: &[(&[u8], &str, Option<bool>)] = &[
+            (b"it", "UTF-8", Some(true)),
+            (b"name", "UTF-8", Some(true)),
+            ("あ".as_bytes(), "UTF-8", Some(true)),
+            (b"", "UTF-8", Some(false)),
+            (b"na\0me", "UTF-8", Some(false)),
+            (b"Name", "UTF-8", Some(false)),
+            (b"name?", "UTF-8", Some(false)),
+            (b"name=", "UTF-8", Some(false)),
+            (b"name", "US-ASCII", Some(true)),
+            (b"name", "ASCII-8BIT", Some(true)),
+            (b"\xc4", "ASCII-8BIT", Some(true)),
+            (b"\xff", "UTF-8", Some(false)),
+            (b"name", "unknown", None),
+            (b"name", "UTF-8\0", None),
+        ];
+        for &(name, encoding, expected) in cases {
+            for after in [0_u8, b'=', b'?', b'!', b'x'] {
+                // 後続byteも配列内に用意し、再現自体で不正な読取りを起こさない。
+                let mut backing = name.to_vec();
+                backing.extend_from_slice(&[after, 0]);
+                let input = &backing[..name.len()];
+                assert_eq!(
+                    sonicop_prism_compat::local_variable_name(input, encoding),
+                    expected,
+                    "{name:?}/{encoding:?}/after={after:02x}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn physical_capture_names_use_prisms_identifier_and_keyword_rules() {
         assert_eq!(
             sonicop_prism_compat::local_variable_name(b"name", "unknown"),
