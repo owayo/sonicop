@@ -13,8 +13,8 @@ use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
     CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection,
     correct_file_with_original, correction_bytes, discover_targets_with_store, inspect_files,
-    inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop, offense_count,
-    write_correction,
+    inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop, native_textmode_bytes,
+    offense_count, stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -518,6 +518,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         &configs,
         correct_mode,
         &selection,
+        prints_corrected_stdin(&cli),
     )?;
     reports = corrected_reports;
 
@@ -739,6 +740,7 @@ fn apply_corrections(
     configs: &ConfigStore,
     correct_mode: CorrectMode,
     selection: &Selection,
+    stdin_echo: bool,
 ) -> Result<CorrectionRun> {
     let mut corrected_count = 0;
     let mut stdin_corrected = None;
@@ -782,13 +784,13 @@ fn apply_corrections(
         }
         if let Some(original) = stdin_original {
             if correct_mode != CorrectMode::None {
-                if outcome.rewritten {
+                let bytes = if outcome.rewritten {
                     match correction_bytes(
                         &outcome.text,
                         original,
                         Some(outcome.introduced_non_ascii),
                     ) {
-                        Ok(bytes) => stdin_corrected = Some(bytes),
+                        Ok(bytes) => bytes,
                         Err(error) => {
                             eprintln!("refusing to rewrite {}: {error:#}", path.display());
                             had_errors = true;
@@ -799,7 +801,47 @@ fn apply_corrections(
                         }
                     }
                 } else {
-                    stdin_corrected = Some(original.to_vec());
+                    original.to_vec()
+                };
+                // Windows の transport が加える変更を検査し、Unix は既存の補正判定を使う。
+                if stdin_echo && cfg!(windows) && outcome.rollback.is_none() {
+                    let bytes = match stdin_output_bytes(&bytes, &target_config, outcome.rewritten)
+                    {
+                        Ok(bytes) => bytes,
+                        Err(error) => {
+                            eprintln!(
+                                "refusing to print corrected stdin {}: {error:#}",
+                                path.display()
+                            );
+                            had_errors = true;
+                            had_write_failures = true;
+                            stdin_corrected = Some(original.to_vec());
+                            corrected_reports.extend(original_stdin_report);
+                            continue;
+                        }
+                    };
+                    if bytes.as_ref() != original
+                        && !selection.skip_syntax_guard
+                        && std::env::var_os(NO_SYNTAX_GUARD).is_none()
+                        && crate::prism::would_invalidate(
+                            original,
+                            &bytes,
+                            target_config.target_ruby_version(),
+                        )
+                    {
+                        eprintln!(
+                            "Autocorrection was not written to {} because it introduced a syntax error.",
+                            path.display()
+                        );
+                        had_errors = true;
+                        had_write_failures = true;
+                        stdin_corrected = Some(original.to_vec());
+                        corrected_reports.extend(original_stdin_report);
+                        continue;
+                    }
+                    stdin_corrected = Some(bytes.into_owned());
+                } else {
+                    stdin_corrected = Some(bytes);
                 }
             }
         } else if outcome.rewritten
@@ -1357,36 +1399,28 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     Ok(())
 }
 
-/// `ExecuteRunner::INTEGRATION_FORMATTERS`: the formats whose consumers parse the whole stream, so
-/// nothing may be appended to them. Both the short and the long spelling of each.
+/// `ExecuteRunner::INTEGRATION_FORMATTERS`: 全体を機械が読むため本文を追加しない形式。
+/// 短い別名も本家と同じく最後の --format に対して判定する。
 const INTEGRATION_FORMATTERS: [&str; 6] = ["h", "html", "j", "json", "ju", "junit"];
 
-/// Appends the source `--stdin` was left holding to a formatter's report, the way
-/// `ExecuteRunner#maybe_print_corrected_source` (`cli/command/execute_runner.rb:92-102`) does.
-///
-/// An editor driving `--stdin -a` reads the corrected buffer off the end of the output, which is
-/// what the twenty `=` mark the start of. The report still comes first: printing only the buffer
-/// leaves nothing to say what was corrected, and with `--format json` it puts raw Ruby where a
-/// caller asked for JSON and will try to parse it.
-///
-/// Two details are upstream's rather than chosen here. The check is against `@options[:format]`,
-/// which the option parser assigns per `-f`, so it is the **last** format on the command line that
-/// decides -- `-f json -f simple` appends. And `--stderr` moves the separator but not the source:
-/// upstream picks the stream for the `puts` and then `print`s to `$stdout` unconditionally, by
-/// which point the redirect around the runner has already been undone.
-fn print_corrected_stdin(cli: &Cli, corrected: &[u8]) -> Result<()> {
-    if cli
-        .formats
+fn prints_corrected_stdin(cli: &Cli) -> bool {
+    !cli.formats
         .last()
         .is_some_and(|format| INTEGRATION_FORMATTERS.contains(&format.as_str()))
-    {
+}
+
+/// `ExecuteRunner#maybe_print_corrected_source` と同じ順で report・区切り・本文を返す。
+/// --stderr は区切りだけを移す。本家の本文 print は runner の redirect 解除後に行われる。
+/// 本文は encoding と構文を検査した最終 bytes なので、ここでは改行を変換しない。
+fn print_corrected_stdin(cli: &Cli, corrected: &[u8]) -> Result<()> {
+    if !prints_corrected_stdin(cli) {
         return Ok(());
     }
-    let separator = format!("{}\n", "=".repeat(20));
+    let separator = native_textmode_bytes(b"====================\n");
     if cli.stderr {
-        io::stderr().write_all(separator.as_bytes())?;
+        io::stderr().write_all(&separator)?;
     } else {
-        io::stdout().write_all(separator.as_bytes())?;
+        io::stdout().write_all(&separator)?;
     }
     io::stdout().write_all(corrected)?;
     io::stdout().flush()?;
@@ -1417,19 +1451,20 @@ fn csv(value: Option<&str>) -> Vec<String> {
 }
 
 fn write_output(output: &str, path: Option<&Path>, stderr: bool) -> Result<()> {
+    let output = native_textmode_bytes(output.as_bytes());
     if let Some(path) = path {
-        fs::write(path, output).with_context(|| format!("failed to write {}", path.display()))?;
+        fs::write(path, &output).with_context(|| format!("failed to write {}", path.display()))?;
     } else if stderr {
-        io::stderr().write_all(output.as_bytes())?;
+        io::stderr().write_all(&output)?;
     } else {
-        io::stdout().write_all(output.as_bytes())?;
+        io::stdout().write_all(&output)?;
     }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Cli;
+    use super::{Cli, native_textmode_bytes};
     use clap::CommandFactory;
 
     #[test]
@@ -1466,5 +1501,15 @@ mod tests {
                 assert_eq!(actual, expected, "{}", case["id"]);
             }
         }
+    }
+
+    #[test]
+    fn compact_json_textmode_borrows_the_original_bytes() {
+        // compact JSON は生の LF を持たない。本家と同じ bytes を複写せず一度で書く。
+        let json = br#"{"files":[],"summary":{"offense_count":0}}"#;
+        assert!(matches!(
+            native_textmode_bytes(json),
+            std::borrow::Cow::Borrowed(_)
+        ));
     }
 }

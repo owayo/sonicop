@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, OpenOptions};
@@ -3157,12 +3158,18 @@ fn restore_crlf(
 /// DATA と code NUL 以降を、Windows のテキスト書込みによる CR 挿入から保護する。
 /// 同名の文字列・コメントは境界ではないため、文字列検索だけで切り分けない。
 fn unparsed_tail_start(text: &str, config: &Config) -> Option<usize> {
+    unparsed_tail(text, config).map(|(start, _)| start)
+}
+
+/// tail 開始に加え、実際の DATA marker の終端 LF を返す。
+/// marker の CRLF を CRCRLF にすると、構文が通ったまま DATA が未定義になる。
+fn unparsed_tail(text: &str, config: &Config) -> Option<(usize, Option<usize>)> {
     let semantics = crate::regexp_ast::Semantics::from_config(config);
     let projected = crate::nul_bytes::as_ruby_reads_it_configured(text, semantics);
     let parsed = projected.as_deref().unwrap_or(text);
     let nul_end = (parsed.len() < text.len()).then_some(parsed.len());
     if !parsed.contains("__END__") {
-        return nul_end;
+        return nul_end.map(|start| (start, None));
     }
     let tree = crate::parser::parse_configured(parsed, semantics)?;
     let root = tree.root_node();
@@ -3173,13 +3180,110 @@ fn unparsed_tail_start(text: &str, config: &Config) -> Option<usize> {
         if node.kind() == "uninterpreted" {
             // uninterpreted は marker 行の終端 LF から始まる。DATA.read はその次から。
             let start = node.start_byte();
-            let end = text[start..]
-                .find('\n')
-                .map_or(start, |offset| start + offset + 1);
-            return Some(nul_end.map_or(end, |nul| nul.min(end)));
+            let newline = text[start..].find('\n').map(|offset| start + offset);
+            let end = newline.map_or(start, |offset| offset + 1);
+            return Some((nul_end.map_or(end, |nul| nul.min(end)), newline));
         }
     }
-    nul_end
+    nul_end.map(|start| (start, None))
+}
+
+/// Windows Ruby の通常 IO と同じく、既存の CR に関係なく LF の前へ CR を足す。
+/// compact JSON のように生の LF が無い出力では、本文を複写しない。
+pub(crate) fn native_textmode_bytes(bytes: &[u8]) -> Cow<'_, [u8]> {
+    if !cfg!(windows) || !bytes.contains(&b'\n') {
+        return Cow::Borrowed(bytes);
+    }
+    let mut output =
+        Vec::with_capacity(bytes.len() + bytes.iter().filter(|b| **b == b'\n').count());
+    for &byte in bytes {
+        if byte == b'\n' {
+            output.push(b'\r');
+        }
+        output.push(byte);
+    }
+    Cow::Owned(output)
+}
+
+/// stdin の保存予定 bytes を確定する。呼出側はこの結果を構文保護へ渡してから出力する。
+/// DATA/code NUL 以降と、値を変える既存 CRLF literal には新しい CR を挿入しない。
+pub(crate) fn stdin_output_bytes<'a>(
+    bytes: &'a [u8],
+    config: &Config,
+    rewritten: bool,
+) -> Result<Cow<'a, [u8]>> {
+    if !cfg!(windows) || !bytes.contains(&b'\n') {
+        return Ok(Cow::Borrowed(bytes));
+    }
+    if !bytes.contains(&b'\r')
+        && !bytes.contains(&0)
+        && !bytes.windows(7).any(|part| part == b"__END__")
+    {
+        return Ok(native_textmode_bytes(bytes));
+    }
+    let Decoded::Text(text) = decoded_bytes(bytes.to_vec()) else {
+        // 通常の無効な Ruby は、従来どおり構文診断と native echo を返す。
+        if !crate::prism::script_is_valid(bytes, config.target_ruby_version()) {
+            return Ok(native_textmode_bytes(bytes));
+        }
+        bail!("cannot determine literal boundaries in undecodable stdin bytes");
+    };
+    let unparsed = unparsed_tail(&text, config);
+    let tail = unparsed.map_or(text.len(), |(start, _)| start);
+    let mut protected_newlines: Vec<_> = unparsed
+        .and_then(|(_, newline)| newline)
+        .filter(|&offset| offset > 0 && text.as_bytes()[offset - 1] == b'\r')
+        .into_iter()
+        .collect();
+    if !rewritten
+        && text.contains("\r\n")
+        && crate::prism::script_is_valid(bytes, config.target_ruby_version())
+    {
+        // Prism token の所有範囲を使い、escape_sequence・語境界・補間コードを区別する。
+        let raw_positions =
+            crate::prism::literal_crlf_positions(bytes, config.target_ruby_version())
+                .map_err(|reason| anyhow::anyhow!(reason))?;
+        let mut raw_positions = raw_positions;
+        raw_positions.sort_unstable();
+        raw_positions.dedup();
+        let raw_newlines = bytes.iter().enumerate().filter(|(_, byte)| **byte == b'\n');
+        for ((raw, _), (decoded, _)) in raw_newlines.zip(text.match_indices('\n')) {
+            if raw_positions.binary_search(&raw).is_ok() {
+                protected_newlines.push(decoded);
+            }
+        }
+        protected_newlines.sort_unstable();
+        protected_newlines.dedup();
+    }
+    // 復号後の UTF-8 offset を raw bytes の offset と混ぜない。Ruby の対応する
+    // ASCII 互換符号化では LF の順序が不変なので、改行の序数だけを受け渡す。
+    let convert: Vec<_> = text
+        .match_indices('\n')
+        .map(|(offset, _)| offset < tail && protected_newlines.binary_search(&offset).is_err())
+        .collect();
+    if convert.len() != bytes.iter().filter(|byte| **byte == b'\n').count() {
+        if !crate::prism::script_is_valid(bytes, config.target_ruby_version()) {
+            return Ok(native_textmode_bytes(bytes));
+        }
+        bail!("cannot map decoded stdin newlines to the original bytes");
+    }
+    let mut output = Vec::with_capacity(bytes.len() + convert.len());
+    let mut newline = 0;
+    for (offset, &byte) in bytes.iter().enumerate() {
+        if byte == b'\n' {
+            // Team が更新した stdin buffer は LF。既存の物理 CRLF 復元と二重に足さない。
+            if convert[newline] && !(rewritten && offset > 0 && bytes[offset - 1] == b'\r') {
+                output.push(b'\r');
+            }
+            newline += 1;
+        }
+        output.push(byte);
+    }
+    if output == bytes {
+        Ok(Cow::Borrowed(bytes))
+    } else {
+        Ok(Cow::Owned(output))
+    }
 }
 
 fn physical_corrected_text(

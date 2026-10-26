@@ -1,0 +1,23 @@
+RuboCop 1.89.0 / Ruby 4.0.7 / parser 3.3.12.0 / Windows x64 UCRT
+
+Recorded from raw subprocess pipes with --cache false --only Layout/SpaceAroundOperators -a --stdin input.rb. Formatter destinations: simple stdout/stderr/File, JSON stdout/stderr/File, JUnit File.
+
+Source inputs are self-contained public minimal reproductions. Reference stdout/stderr/File bytes are unchanged. JSON metadata differences are excluded by the test; physical newlines remain compared.
+
+Safety cases preserve DATA and code-NUL tails, preserve the existing CRLF within string/regexp content, or return the raw original when the final textmode bytes introduce invalid script syntax. These expected bytes were constructed from the input and verified by Ruby 4.0.7 before implementation, not copied from Sonicop. The original/upstream/safe Ruby execution values are recorded independently.
+
+The temporary project prefix in the JUnit file is represented by ${PROJECT}; no source location or newline is removed.
+
+Additional boundaries: Shift_JIS unchanged bytes, a false __END__ in a string, a literal NUL, and a binary string whose UTF-8 decoded offsets differ from raw byte offsets.
+
+The no-op DATA marker with an existing CRLF remains recognizable in the safe output. The upstream textmode echo has valid syntax but raises NameError because DATA is no longer defined; the safe bytes were executed independently and preserve the original DATA value.
+
+Independent audit regression: escaped CRLF in %w/%W/%i/%I, double-quoted string, regexp and character literal. Safe bytes keep the literal-owned CRLF and apply textmode only outside it. The original/upstream/safe Ruby values were independently executed before the revised implementation.
+
+Negative controls preserve native textmode for unescaped %w/%W/%i/%I WORDS_SEP and interpolation code. Escaped line continuation in interpolation code remains subject to the final byte syntax guard; JSON-only output remains unaffected.
+
+Configured TargetRubyVersion 2.7 default whitequark is checked in no-op and rewritten controls. Physical token analysis uses Prism 1.8.1 effective version 3.3.1, matching the main-script guard lower bound; runtime value proof uses MRI 4.0.7 and is not evidence of execution on Ruby 2.7. Malformed/unterminated literals keep normal syntax exit 1 and native source echo.
+
+Independent revision-2 review verified all 51 CLI conditions and 22 MRI values, plus all 16 intentional cases in -A. Each -A reference/candidate raw stdout, stderr and exit exactly equals its independently measured -a stream. The public mode_equivalence field preserves all 16 observed sources and both raw streams. This is a same-provider Codex independent review, not a Claude judgment.
+
+Raw fixture SHA256: af9c76d642f4cc72a582fe0514c0fadfc02b486315804bbab2c6e7a4e3f18790

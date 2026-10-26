@@ -66,6 +66,14 @@ unsafe extern "C" {
         callback: LiteralCallback,
         data: *mut c_void,
     );
+    fn sonicop_prism_compat_literal_content_ranges(
+        source: *const u8,
+        length: usize,
+        version: *const c_char,
+        version_length: usize,
+        callback: LiteralCallback,
+        data: *mut c_void,
+    ) -> c_int;
     fn sonicop_prism_compat_version() -> *const c_char;
 }
 
@@ -207,6 +215,32 @@ unsafe extern "C" fn collect_literal_token(
     // callback は同期的で、Rust の所有値だけを C の parser より長く残す。
     let tokens = unsafe { &mut *data.cast::<Vec<(Range<usize>, c_int)>>() };
     tokens.push((start..end, kind));
+}
+
+/// 版を指定して literal 内容の token 範囲を返す。語区切りと補間コードは含まない。
+/// Ruby の構文エラーと、token 情報を完了できない API の失敗は区別する。
+pub fn literal_content_ranges(
+    source: &[u8],
+    version: &str,
+) -> Result<Vec<Range<usize>>, &'static str> {
+    let version = CString::new(version).map_err(|_| "invalid Prism target Ruby version")?;
+    let mut tokens = Vec::<(Range<usize>, c_int)>::new();
+    // 原本 bytes の範囲だけを借り、callback の所有値を戻り後へ渡す。
+    let result = unsafe {
+        sonicop_prism_compat_literal_content_ranges(
+            source.as_ptr(),
+            source.len(),
+            version.as_ptr(),
+            version.as_bytes().len(),
+            collect_literal_token,
+            (&mut tokens as *mut Vec<(Range<usize>, c_int)>).cast(),
+        )
+    };
+    match result {
+        0 => Ok(tokens.into_iter().map(|(range, _)| range).collect()),
+        -1 => Err("unsupported Prism target Ruby version"),
+        _ => Err("Prism literal lexing did not complete"),
+    }
 }
 
 /// 制御文字を含む literal の開始と終了を対応付ける。本文のコード補間まで保護しない。
