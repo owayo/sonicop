@@ -1,0 +1,570 @@
+{
+  "reference": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0"
+  },
+  "source_hex": "783d310a",
+  "cases": [
+    {
+      "name": "control-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "--display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-no-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "--no-display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-json-simple-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "--format",
+        "simple",
+        "--out",
+        "output1.txt",
+        "--display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        {
+          "format": "simple",
+          "text": "== case.rb ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+        }
+      ]
+    },
+    {
+      "name": "control-simple-json-no-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "simple",
+        "--out",
+        "output0.txt",
+        "--format",
+        "json",
+        "--out",
+        "output1.txt",
+        "--no-display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "simple",
+          "text": "== case.rb ==\nC:  1:  2: [Correctable] Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+        },
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-alias-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "j",
+        "--out",
+        "output0.txt",
+        "--display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-all",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "-D",
+        "-E",
+        "-S",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`. Extra detail. (https://rubystyle.guide#custom, https://example.test/reference)",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-simple-json-all",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "simple",
+        "--out",
+        "output0.txt",
+        "--format",
+        "json",
+        "--out",
+        "output1.txt",
+        "-D",
+        "-E",
+        "-S",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "simple",
+          "text": "== case.rb ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =. Extra detail. (https://rubystyle.guide#custom, https://example.test/reference)\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+        },
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`. Extra detail. (https://rubystyle.guide#custom, https://example.test/reference)",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-json-simple-no-names",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "--format",
+        "simple",
+        "--out",
+        "output1.txt",
+        "--no-display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        {
+          "format": "simple",
+          "text": "== case.rb ==\nC:  1:  2: [Correctable] Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n"
+        }
+      ]
+    },
+    {
+      "name": "control-names-again",
+      "cached": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: Extra detail.\n  StyleGuide: \"#custom\"\n  References:\n    - https://example.test/reference\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "--cache-root",
+        "cache",
+        "--format",
+        "json",
+        "--out",
+        "output0.txt",
+        "--display-cop-names",
+        "case.rb"
+      ],
+      "exit": 1,
+      "outputs": [
+        {
+          "format": "json",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

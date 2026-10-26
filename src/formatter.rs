@@ -761,7 +761,7 @@ fn render_json(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<St
                 .iter()
                 .map(|offense| JsonOffense {
                     severity: offense.severity,
-                    message: offense.message.clone(),
+                    message: annotated_message(offense, options),
                     cop_name: offense.cop_name,
                     corrected: offense.corrected,
                     correctable: offense.is_correctable(),
@@ -920,12 +920,9 @@ fn display_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
     )
 }
 
-/// `offense.message` as every formatter receives it.
-///
-/// A cop hands `add_offense` a bare sentence; `MessageAnnotator#annotate`
-/// (`cop/message_annotator.rb:58-66`) folds the cop name, the `Details` text and the style guide
-/// links into it before the offense is built, so the annotations are part of the message rather
-/// than something a formatter adds.
+/// 本家 MessageAnnotator#annotate が全 formatter へ渡す共通 message。
+/// cop 名・Details・StyleGuide は JSON にも含む。共有の Offense と cache は元の文を保ち、
+/// 描画時に注釈することで、同じ cache の表示設定を切り替えても重複や漏れを残さない。
 fn annotated_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
     let cop = if options.display_cop_names {
         format!("{}: ", offense.cop_name)

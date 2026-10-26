@@ -1,0 +1,23 @@
+RuboCop 1.89.0 の共有 cache に対する、追加の明示 on/off 対照 9 件。
+Ruby 4.0.7 / Parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0、
+Windows x64-mingw-ucrt の実 CLI だけから取得した。候補版は記録に使わない。
+
+再生成:
+python scripts/conformance/record_formatter_messages.py --ruby ruby --cache-controls --output new-formatter-message-cache-controls.json
+
+出力名は毎回まだ存在しないものを選ぶ。collector R2は既存leafを上書きしない。
+この手順追補は観測の再取得ではなく、以下の版・旧失敗・残差の履歴を更新しない。
+
+
+全 9 実行は同じ path・本文・config・stat・cache root を維持する。
+明示 --display-cop-names / --no-display-cop-names を JSON・simple・alias j と組み合わせ、
+cop 名、Details、StyleGuide、同条件の再実行と以前の条件への復帰を比較する。
+JSON は metadata 以外の全項目、simple は出力ストリームの CRLF を LF にした本文を保存する。
+全件で終了 1、stderr 空、原本不変、1 target / 1 inspected / 1 offense を検査した。
+
+この追加記録は formatter_messages.json の元 35 件を置き換えない。
+元の共有 cache 9 件に含まれる 2 条件の本家 stale message との差は、通常の未解決差
+owayo/sonicop#110 として追跡する。安全上の意図差や、互換一致には数えない。
+
+formatter_message_cache_controls.json SHA256:
+05174e245783daa2e97453ee9abd45a12416b310cff8465f18d2adb2449477d4
