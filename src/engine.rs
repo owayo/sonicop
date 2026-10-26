@@ -15,8 +15,8 @@ use tempfile::NamedTempFile;
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
 use crate::diagnostic::{
-    CorrectionCharacterSource, Edit, FileReport, InsertionAnchor, Location, Offense,
-    OffenseSnapshot, Severity,
+    CorrectionCharacterSource, CorrectionRejection, Edit, FileReport, InsertionAnchor, Location,
+    Offense, OffenseSnapshot, Severity,
 };
 use crate::directives::{CommentConfig, CopRegistry, DirectiveState};
 use crate::magic_comment::MagicComment;
@@ -877,7 +877,7 @@ impl PlannedRule {
         }
         if !self.safe_autocorrect {
             for offense in reported {
-                for correction in &mut offense.corrections {
+                for correction in offense.planned_corrections_mut() {
                     correction.safe = false;
                 }
             }
@@ -2423,7 +2423,7 @@ fn is_addressable(start: usize, end: usize, source: &str) -> bool {
 
 fn edits_are_addressable(offense: &Offense, source: &str) -> bool {
     offense
-        .corrections
+        .planned_corrections()
         .iter()
         .all(|edit| is_addressable(edit.start, edit.end, source))
 }
@@ -2565,9 +2565,13 @@ pub fn corrected_text(
     mode: CorrectMode,
     correcting: Correcting,
 ) -> (String, usize) {
-    let (text, count, _, _) = corrected_text_with_provenance(report, mode, correcting, None, None);
-    (text, count)
+    match corrected_text_with_provenance(report, mode, correcting, None, None) {
+        Ok((text, count, _, _)) => (text, count),
+        Err(_) => (report.source.text().to_owned(), 0),
+    }
 }
+
+type CorrectedPass = (String, usize, Option<Vec<usize>>, Vec<usize>);
 
 fn corrected_text_with_provenance(
     report: &mut FileReport,
@@ -2575,14 +2579,14 @@ fn corrected_text_with_provenance(
     correcting: Correcting,
     introduced: Option<&[usize]>,
     retained_crlf: Option<&mut LineEndingProvenance>,
-) -> (String, usize, Option<Vec<usize>>, Vec<usize>) {
+) -> Result<CorrectedPass, CorrectionRejection> {
     if mode == CorrectMode::None {
-        return (
+        return Ok((
             report.source.text().to_owned(),
             0,
             introduced.map(<[usize]>::to_vec),
             Vec::new(),
-        );
+        ));
     }
     let source = report.source.text();
 
@@ -2595,7 +2599,7 @@ fn corrected_text_with_provenance(
                 offense.cop_name,
                 "Lint/AmbiguousOperator" | "Lint/AmbiguousRegexpLiteral"
             )
-            .then_some(&offense.corrections)
+            .then_some(offense.planned_corrections())
         })
         .flatten()
         .filter(|edit| edit.end == edit.start + 1 && edit.replacement == "(")
@@ -2608,6 +2612,7 @@ fn corrected_text_with_provenance(
     let mut corrected: Vec<usize> = Vec::new();
     // 実行全体の corrector に届いた編集だけが、次のパスを走らせる根拠になる。
     let mut applied = 0;
+    let mut rejection = None;
     // `Team#each_corrector` の互換性宣言による skip。autocorrect_incompatible_with を参照。
     let mut skips: HashSet<&'static str> = HashSet::new();
     let mut rest = candidates.as_slice();
@@ -2660,6 +2665,13 @@ fn corrected_text_with_provenance(
         match merged {
             Ok(()) => {
                 applied += placed.len();
+                // WordArrayの拒否予定は非emptyな配列置換1件で、採用後に親へ飲まれない。
+                // skip・clashで捨てた予定を理由に、無関係な安全補正まで拒否しない。
+                rejection = rejection.or_else(|| {
+                    placed
+                        .iter()
+                        .find_map(|&index| report.offenses[index].correction_rejection())
+                });
                 trace_outcome("apply", cop_name);
                 if trace::enabled() {
                     eprintln!("    取り込み");
@@ -2674,6 +2686,10 @@ fn corrected_text_with_provenance(
         }
     }
 
+    // Actionの配置だけを調べ、危険な置換をrewriteにもcorrected表示にも渡さない。
+    if let Some(reason) = rejection {
+        return Err(reason);
+    }
     for index in &corrected {
         // add_offense の外で積まれた編集は診断の corrected を変えない。
         // Offense::corrected_without_status を参照。
@@ -2695,7 +2711,7 @@ fn corrected_text_with_provenance(
         Some(retained) => run.rewrite_with_line_endings(source, introduced, Some(retained)),
         None => run.rewrite(source, introduced),
     };
-    (text, applied, provenance, openings)
+    Ok((text, applied, provenance, openings))
 }
 
 fn correction_candidates(
@@ -2712,8 +2728,9 @@ fn correction_candidates(
         .enumerate()
         .filter(|(_, offense)| {
             correcting.takes(offense.cop_name)
-                && !offense.corrections.is_empty()
-                && (mode == CorrectMode::All || offense.corrections.iter().all(|edit| edit.safe))
+                && !offense.planned_corrections().is_empty()
+                && (mode == CorrectMode::All
+                    || offense.planned_corrections().iter().all(|edit| edit.safe))
                 && edits_are_addressable(offense, source)
         })
         .map(|(index, _)| index)
@@ -2730,7 +2747,7 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
     let mut placed = Vec::new();
     for &index in group {
         if trace::enabled() {
-            for edit in &report.offenses[index].corrections {
+            for edit in report.offenses[index].planned_corrections() {
                 eprintln!(
                     "      {:16} {:?}",
                     trace::span(source, edit.start, edit.end),
@@ -2740,7 +2757,7 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
         }
         // `Corrector#replace` と同様、何もしない編集を除く入口の `combine` を使う。
         let reported = &report.offenses[index];
-        let offense = reported.corrections.iter().enumerate().try_fold(
+        let offense = reported.planned_corrections().iter().enumerate().try_fold(
             Action::root(),
             |tree, (position, edit)| {
                 let mut action = edit_action(reported, position, edit, source);
@@ -3492,25 +3509,50 @@ pub(crate) fn correct_file_with_original(
     for pass in 0..MAX_CORRECTION_PASSES {
         // 補正前のscript検査には現在の位置表が必要。次passの由来で上書きしない。
         let mut next_retained_crlf = retained_crlf.clone();
-        let (mut corrected, mut count, mut next_provenance, mut openings) =
-            corrected_text_with_provenance(
-                &mut report,
-                mode,
-                Correcting::ExceptDirectives,
-                provenance.as_deref(),
-                next_retained_crlf.as_mut(),
-            );
+        let correction = corrected_text_with_provenance(
+            &mut report,
+            mode,
+            Correcting::ExceptDirectives,
+            provenance.as_deref(),
+            next_retained_crlf.as_mut(),
+        );
+        let (mut corrected, mut count, mut next_provenance, mut openings) = match correction {
+            Ok(pass) => pass,
+            Err(rejection) => {
+                let reason = format!(
+                    "Autocorrection was not written to {} because {}.",
+                    path.display(),
+                    rejection.description()
+                );
+                return rollback_correction(
+                    path, &original, None, reason, config, selection, &plan,
+                );
+            }
+        };
         let mut directive_pass = false;
         if count == 0 && directives_pending {
             directives_pending = false;
             directive_pass = true;
-            (corrected, count, next_provenance, openings) = corrected_text_with_provenance(
+            let correction = corrected_text_with_provenance(
                 &mut report,
                 mode,
                 Correcting::DirectivesOnly,
                 provenance.as_deref(),
                 next_retained_crlf.as_mut(),
             );
+            (corrected, count, next_provenance, openings) = match correction {
+                Ok(pass) => pass,
+                Err(rejection) => {
+                    let reason = format!(
+                        "Autocorrection was not written to {} because {}.",
+                        path.display(),
+                        rejection.description()
+                    );
+                    return rollback_correction(
+                        path, &original, None, reason, config, selection, &plan,
+                    );
+                }
+            };
         }
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
@@ -3988,7 +4030,9 @@ mod tests {
 
     use super::{Cached, Decoded, decoded_source, output_bytes};
     use crate::config::Config;
-    use crate::diagnostic::{Edit, FileReport, InsertionAnchor, Offense, Severity};
+    use crate::diagnostic::{
+        CorrectionRejection, Edit, FileReport, InsertionAnchor, Offense, Severity,
+    };
     use crate::source::SourceFile;
 
     use super::{
@@ -4013,6 +4057,270 @@ mod tests {
         let stat = ResultCache::stat(&fs::metadata(&report.path).unwrap());
         let digest = *blake3::hash(&fs::read(&report.path).unwrap()).as_bytes();
         cache.store(report, stat, &digest, config);
+    }
+
+    fn word_array_byte_safety_configuration() -> (tempfile::TempDir, Config, Selection) {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join(".rubocop.yml");
+        fs::write(
+            &path,
+            "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\n",
+        )
+        .unwrap();
+        let config = Config::load(Some(&path), directory.path()).unwrap();
+        let selection = Selection {
+            only: vec![
+                "Style/WordArray".to_owned(),
+                "Layout/SpaceAroundOperators".to_owned(),
+            ],
+            correcting: true,
+            ..Selection::default()
+        };
+        (directory, config, selection)
+    }
+
+    #[test]
+    fn word_array_invalid_bytes_never_leave_the_low_level_corrector() {
+        let (directory, config, selection) = word_array_byte_safety_configuration();
+        // 本家のraw 0x95も既存候補のU+FFFDも書かず、別copの安全な編集ごと保留する。
+        for ending in ["\n", "\r\n"] {
+            let source = "values = %W[\\x95 foo bar]\nx=1\n".replace('\n', ending);
+            for mode in [CorrectMode::Safe, CorrectMode::All] {
+                let mut report = inspect_source(
+                    directory.path().join("input.rb"),
+                    source.clone(),
+                    &config,
+                    &selection,
+                )
+                .unwrap();
+                assert!(report.offenses.iter().any(|offense| {
+                    offense.cop_name == "Style/WordArray"
+                        && offense.is_correctable()
+                        && offense.corrections.is_empty()
+                }));
+                let (corrected, count) = corrected_text(&mut report, mode, Correcting::Everything);
+                assert_eq!(corrected, source, "{ending:?}/{mode:?}");
+                assert_eq!(count, 0);
+                assert!(report.offenses.iter().all(|offense| !offense.corrected));
+            }
+        }
+    }
+
+    #[test]
+    fn word_array_invalid_bytes_roll_back_the_whole_file_and_original_diagnostics() {
+        let (directory, config, selection) = word_array_byte_safety_configuration();
+        for ending in ["\n", "\r\n"] {
+            let source = "values = %W[\\x95 foo bar]\nx=1\n".replace('\n', ending);
+            for mode in [CorrectMode::Safe, CorrectMode::All] {
+                let report = inspect_source(
+                    directory.path().join("input.rb"),
+                    source.clone(),
+                    &config,
+                    &selection,
+                )
+                .unwrap();
+                let original: Vec<_> = report
+                    .offenses
+                    .iter()
+                    .map(|offense| {
+                        (
+                            offense.cop_name,
+                            offense.message.clone(),
+                            serde_json::to_value(offense.location(&report.source)).unwrap(),
+                            offense.is_correctable(),
+                        )
+                    })
+                    .collect();
+                assert!(original.iter().any(|(cop, ..)| *cop == "Style/WordArray"));
+                assert!(
+                    original
+                        .iter()
+                        .any(|(cop, ..)| *cop == "Layout/SpaceAroundOperators")
+                );
+                let outcome = correct_file(report, mode, &config, &selection).unwrap();
+                assert_eq!(outcome.text, source, "{ending:?}/{mode:?}");
+                assert_eq!(outcome.corrected_count, 0);
+                assert!(!outcome.rewritten);
+                assert!(outcome.rollback.as_deref().is_some_and(|reason| {
+                    reason.contains("Style/WordArray") && reason.contains("bytes")
+                }));
+                assert!(
+                    outcome
+                        .report
+                        .offenses
+                        .iter()
+                        .all(|offense| !offense.corrected)
+                );
+                let restored: Vec<_> = outcome
+                    .report
+                    .offenses
+                    .iter()
+                    .map(|offense| {
+                        (
+                            offense.cop_name,
+                            offense.message.clone(),
+                            serde_json::to_value(offense.location(&outcome.report.source)).unwrap(),
+                            offense.is_correctable(),
+                        )
+                    })
+                    .collect();
+                assert_eq!(restored, original);
+            }
+        }
+    }
+
+    #[test]
+    fn word_array_rejection_respects_corrector_compatibility_and_conflicts() {
+        let edit = |start, end, replacement: &str| Edit {
+            start,
+            end,
+            replacement: replacement.to_owned(),
+            safe: true,
+        };
+        let offense = |cop: &'static str, edits: Vec<Edit>| {
+            Offense::new(cop, Severity::Convention, "test", 0, 0).corrected_by_all(edits)
+        };
+        // 実Registryの非互換pairと衝突規則を使い、採用されない予定では拒否しない。
+        let cases = [
+            (
+                offense("Layout/SpaceBeforeBlockBraces", vec![edit(0, 1, "A")]),
+                offense("Style/SymbolProc", vec![edit(4, 5, "X")]),
+                "Abcdef",
+            ),
+            (
+                offense("Layout/SpaceAroundOperators", vec![edit(0, 4, "A")]),
+                offense("Style/WordArray", vec![edit(1, 3, "X")]),
+                "Aef",
+            ),
+            (
+                offense("Layout/SpaceAroundOperators", vec![edit(5, 6, "F")]),
+                offense("Style/WordArray", vec![edit(1, 4, "X"), edit(2, 5, "Y")]),
+                "abcdeF",
+            ),
+        ];
+        for (ordinary, blocked, expected) in cases {
+            let mut report = FileReport {
+                path: "input.rb".into(),
+                source: SourceFile::new("input.rb", "abcdef".to_owned()),
+                offenses: vec![
+                    ordinary,
+                    blocked.reject_corrections(CorrectionRejection::WordArrayInvalidBytes),
+                ],
+            };
+            let (corrected, count) =
+                corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+            assert_eq!(corrected, expected);
+            assert_eq!(count, 1);
+        }
+        for (mode, correcting) in [
+            (CorrectMode::All, Correcting::DirectivesOnly),
+            (CorrectMode::None, Correcting::Everything),
+        ] {
+            let mut report = FileReport {
+                path: "input.rb".into(),
+                source: SourceFile::new("input.rb", "abcdef".to_owned()),
+                offenses: vec![
+                    offense("Style/WordArray", vec![edit(0, 1, "X")])
+                        .reject_corrections(CorrectionRejection::WordArrayInvalidBytes),
+                ],
+            };
+            let pass =
+                super::corrected_text_with_provenance(&mut report, mode, correcting, None, None)
+                    .unwrap();
+            assert_eq!(pass.0, "abcdef");
+            assert_eq!(pass.1, 0);
+        }
+    }
+
+    #[test]
+    fn word_array_disabled_or_unsafe_corrections_leave_other_cops_available() {
+        for (setting, prefix, mode) in [
+            ("  AutoCorrect: false\n", "", CorrectMode::All),
+            ("  SafeAutoCorrect: false\n", "", CorrectMode::Safe),
+            ("", "# rubocop:disable Style/WordArray\n", CorrectMode::All),
+        ] {
+            let (directory, _, selection) = word_array_byte_safety_configuration();
+            let path = directory.path().join(".rubocop.yml");
+            if !setting.is_empty() {
+                let original = fs::read_to_string(&path).unwrap();
+                fs::write(&path, format!("{original}Style/WordArray:\n{setting}")).unwrap();
+            }
+            let config = Config::load(Some(&path), directory.path()).unwrap();
+            let source = format!("{prefix}values = %W[\\x95 foo bar]\nx=1\n");
+            let report = inspect_source(
+                directory.path().join("input.rb"),
+                source.clone(),
+                &config,
+                &selection,
+            )
+            .unwrap();
+            let outcome = correct_file(report, mode, &config, &selection).unwrap();
+            assert!(outcome.rollback.is_none());
+            assert_eq!(outcome.text, source.replace("x=1", "x = 1"));
+            assert!(outcome.report.offenses.iter().any(|offense| {
+                offense.cop_name == "Layout/SpaceAroundOperators" && offense.corrected
+            }));
+            assert!(
+                outcome
+                    .report
+                    .offenses
+                    .iter()
+                    .all(|offense| { offense.cop_name != "Style/WordArray" || !offense.corrected })
+            );
+        }
+    }
+
+    #[test]
+    fn word_array_rejection_follows_nonempty_parent_child_conflicts() {
+        for parent_first in [true, false] {
+            let replacement = |start, end, text: &str| {
+                Offense::new("Style/WordArray", Severity::Convention, "test", start, end)
+                    .corrected_by(Edit {
+                        start,
+                        end,
+                        replacement: text.to_owned(),
+                        safe: true,
+                    })
+            };
+            let parent = replacement(0, 10, "safe");
+            let child = replacement(2, 3, "bad")
+                .reject_corrections(CorrectionRejection::WordArrayInvalidBytes);
+            let offenses = match parent_first {
+                true => vec![parent, child],
+                false => vec![child, parent],
+            };
+            let mut report = FileReport {
+                path: "input.rb".into(),
+                source: SourceFile::new("input.rb", "abcdefghij".to_owned()),
+                offenses,
+            };
+            // WordArray同様の非empty置換では、親が先なら子が衝突し、逆順なら親が衝突する。
+            let (cop, _) = super::build_cop_corrector(&report, &[0, 1], report.source.text());
+            let mut replacements = Vec::new();
+            cop.ordered_replacements(&mut replacements);
+            let final_text: Vec<_> = replacements
+                .iter()
+                .map(|(start, end, text, _)| (*start, *end, *text))
+                .collect();
+            assert_eq!(
+                final_text,
+                if parent_first {
+                    vec![(0, 10, "safe")]
+                } else {
+                    vec![(2, 3, "bad")]
+                },
+                "{parent_first}"
+            );
+            let (text, count) =
+                corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+            if parent_first {
+                assert_eq!(text, "safe", "{parent_first}");
+                assert!(count > 0);
+            } else {
+                assert_eq!(text, "abcdefghij");
+                assert_eq!(count, 0);
+            }
+        }
     }
 
     #[test]
@@ -4643,7 +4951,8 @@ mod tests {
             Correcting::Everything,
             None,
             None,
-        );
+        )
+        .unwrap();
         // 本家の corrected は衝突で捨てた括弧にも立つ。安全判定は適用した Action だけを見る。
         assert!(
             report.offenses.iter().any(|offense| {
@@ -4665,7 +4974,8 @@ mod tests {
             Correcting::Everything,
             None,
             None,
-        );
+        )
+        .unwrap();
         assert_eq!(openings.len(), 1);
         assert!(crate::rules::capture_parentheses_change_bindings(
             &report.source,

@@ -128,6 +128,28 @@ impl CorrectionCharacterSource {
     }
 }
 
+/// 診断は残すが、値を保存できないためファイル全体で取り消す補正。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CorrectionRejection {
+    WordArrayInvalidBytes,
+}
+
+impl CorrectionRejection {
+    pub(crate) fn description(self) -> &'static str {
+        match self {
+            Self::WordArrayInvalidBytes => {
+                "Style/WordArray would change the bytes of a string literal"
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RejectedCorrections {
+    reason: CorrectionRejection,
+    edits: Vec<Edit>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Offense {
     pub cop_name: &'static str,
@@ -145,6 +167,9 @@ pub struct Offense {
     /// output only while nothing else wants to correct inside it, which stops being true as the
     /// registry fills out.
     pub corrections: Vec<Edit>,
+    /// 危険な置換は公開編集列へ返さず、選択・衝突判定だけに渡す。補正時は再検査するため、
+    /// CachedOffenseには保存しない。採用された場合だけengineが原本全体へ戻す。
+    rejected_corrections: Option<RejectedCorrections>,
     /// The range this offense's insertions hang off, when it is not the reported range.
     ///
     /// RuboCop's `insert_before` / `insert_after` are `wrap` on a range the cop chooses, and that
@@ -205,6 +230,7 @@ impl Offense {
             suppressed: false,
             justification: None,
             corrections: Vec::new(),
+            rejected_corrections: None,
             correction_anchor: None,
             edit_anchors: Vec::new(),
             correction_characters_from: None,
@@ -258,6 +284,37 @@ impl Offense {
     pub fn clear_corrections(&mut self) {
         self.corrections.clear();
         self.edit_anchors.clear();
+        self.rejected_corrections = None;
+    }
+
+    /// 診断用のlossy値を実編集として公開せず、採用可否を既存correctorで判定する。
+    pub(crate) fn reject_corrections(mut self, reason: CorrectionRejection) -> Self {
+        self.rejected_corrections = Some(RejectedCorrections {
+            reason,
+            edits: std::mem::take(&mut self.corrections),
+        });
+        self
+    }
+
+    pub(crate) fn correction_rejection(&self) -> Option<CorrectionRejection> {
+        self.rejected_corrections
+            .as_ref()
+            .map(|blocked| blocked.reason)
+    }
+
+    /// 拒否予定も同じ配置条件で照合するが、この列を直接書き出してはいけない。
+    pub(crate) fn planned_corrections(&self) -> &[Edit] {
+        match &self.rejected_corrections {
+            Some(blocked) => &blocked.edits,
+            None => &self.corrections,
+        }
+    }
+
+    pub(crate) fn planned_corrections_mut(&mut self) -> &mut [Edit] {
+        match &mut self.rejected_corrections {
+            Some(blocked) => &mut blocked.edits,
+            None => &mut self.corrections,
+        }
     }
 
     /// 値を作る補正では、置換範囲と値の出典の範囲が一致しないことがある。

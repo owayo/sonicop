@@ -1,0 +1,70 @@
+Style/WordArray byte safety / Issue #172
+RuboCop reference: 1.89.0. Four constructed literal inputs, no corpus execution.
+Container: UTF-8 / LF; SHA256 e607715b177dda3985b812bce5216b7d8ff2ef068a9598d4cd9f8e9e1fa978cc
+Pinned diagnostic API stdout SHA256 20a2cd8c519dd538cee6475b1c8439c756ea312b3f05d00795f523aa0ec317da
+
+The original unsafe source is 107 ASCII bytes with a UTF-8 declaration.
+TargetRubyVersion2.7/parser_whitequark is the diagnostic setting. Value records
+use MRI4.0.7 and do not prove execution on a Ruby2.7 VM.
+
+One original LF input was inspected without correction. Before inspection the
+API asserts parser3.3.12.0, rubocop-ast1.50.0, Prism1.8.1, JSON2.18.0,
+RuboCop1.89.0 and display_cop_names:false. Message hex/encoding/validity are
+kept separately from the scrubbed UTF-8 explanation. Input/config bytes, size,
+mtime and mode were unchanged. The first capture with parser3.3.13.0 and the
+cop-name prefix was not adopted. No standard JSON success is inferred.
+
+The earlier real CLI records retain inspect/-a/-A correction bytes and errors.
+Their exact dependency selection beyond RuboCop1.89.0 and MRI4.0.7 was not
+recorded: the later API pins are not assigned to the earlier records. The unsafe
+CLI writes raw0x95, MRI rejects it, and JSON fails with exit2. These failures
+remain failures. The common 81-byte notice is preserved; the three safe-control
+reports are formatter segments after the exact notice, not whole-stdout JSON.
+
+Historical native U+FFFD output is evidence, never the safe expectation.
+Independent Codex policy review supports file-wide rollback to original bytes,
+uncorrected diagnostics, a value-byte reason and exit2. No Claude run is claimed.
+Invalid reference message bytes are not declared equal to native UTF-8 display.
+Candidate LF/CRLF/cache/settings/directive/stdin checks test this safety policy;
+reference correction bytes were measured only for LF.
+
+Use a new temporary directory with the stored source/config. Remove ENV4
+(RUBYOPT/RUBYLIB/RUBOCOP_OPTS/RUBOCOP_TARGET_RUBY_VERSION) in a child copy and
+preserve parent/GEM/PATH/SystemRoot. The single-input diagnostic API was:
+
+```ruby
+# frozen_string_literal: true
+# 既存1 literalを検査するだけで、補正やJSON formatterのfinishedは呼ばない。
+PINS = { 'parser' => '3.3.12.0', 'rubocop-ast' => '1.50.0', 'prism' => '1.8.1', 'json' => '2.18.0', 'rubocop' => '1.89.0' }.freeze
+PINS.each { |name, version| gem name, "= #{version}" }
+require 'rubocop'
+require 'json'
+require 'stringio'
+raise 'gem pins differ' unless PINS.all? { |name, version| Gem.loaded_specs.fetch(name).version.to_s == version }
+config = RuboCop::ConfigLoader.configuration_from_file(File.expand_path('config.yml'))
+source = File.binread('input.rb')
+processed = RuboCop::ProcessedSource.new(source, 2.7, 'input.rb', parser_engine: :parser_whitequark)
+options = { autocorrect: false, raise_error: true, display_cop_names: false }
+raise 'cop display option differs' unless options.fetch(:display_cop_names) == false
+team = RuboCop::Cop::Team.mobilize([RuboCop::Cop::Style::WordArray], config, options)
+report = team.investigate(processed)
+raise 'unexpected inspection error' unless team.errors.empty?
+formatter = RuboCop::Formatter::JSONFormatter.new(StringIO.new)
+fields = report.offenses.map do |offense|
+  value = formatter.hash_for_offense(offense)
+  message = value.delete(:message)
+  value[:message_record] = { hex: message.b.unpack1('H*'), encoding: message.encoding.name,
+                             valid_encoding: message.valid_encoding?,
+                             scrubbed_UTF8_display_not_raw: message.dup.force_encoding(Encoding::UTF_8).scrub }
+  value
+end
+STDOUT.write(JSON.generate(rubocop_version: RuboCop::Version::STRING, ruby_version: RUBY_VERSION,
+                          parser_version: Parser::VERSION, target_ruby: 2.7,
+                          parser_engine: 'parser_whitequark', autocorrect: false, display_cop_names: false,
+                          actual_gem_versions: PINS.to_h { |name, _| [name, Gem.loaded_specs.fetch(name).version.to_s] },
+                          input_valid_syntax: processed.valid_syntax?, errors: team.errors.length,
+                          offenses: fields))
+```
+
+RuboCop is MIT-licensed. Full licence: licenses/RUBOCOP.txt.
+Constructed inputs and safety-policy checks are Sonicop test material.
