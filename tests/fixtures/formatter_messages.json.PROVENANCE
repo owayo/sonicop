@@ -1,0 +1,40 @@
+RuboCop の共通 message 注釈を、実 CLI から記録した 35 ケース。
+仕様版: Ruby 4.0.7 / RuboCop 1.89.0 / Parser 3.3.12.0 /
+Prism 1.8.1 / rubocop-ast 1.50.0。取得環境は Windows x64-mingw-ucrt。
+参照版のロード検証は recorder の最初に実行し、候補版は呼ばない。
+
+再生成（Ruby の実行ファイルだけ環境に合わせる）:
+python scripts/conformance/record_formatter_messages.py --ruby ruby --output new-formatter-messages.json
+
+出力名は毎回まだ存在しないものを選ぶ。collector R2は既存leafを上書きしない。
+この手順追補は観測の再取得ではなく、以下の版・旧失敗・残差の履歴を更新しない。
+
+
+26 ケースは明示 on/off と双方の順序、AllCops の設定、複数 formatter の双方の順序、
+JSON alias j、設定の DefaultFormatter、StyleGuide / Details / debug を検査する。
+9 ケースは同じ path・config・本文・stat・cache root のまま表示設定を連続して切り替える。
+全ケースは非補正で、原本バイトの不変も検査した。入力は source_hex に保存する。
+JSON は metadata だけを除き、files の全 field と summary をそのまま記録する。
+simple の出力だけは Windows の出力ストリーム由来の CRLF を LF へ正規化する。
+recorder は終了 0/1 以外、stderr、対象 path 不一致、重複、欠落 field、
+空集合、summary と完了件数の不一致を拒否する。
+
+本家 Options#option は最後の生 --format を options[:format] に保持する。
+MessageAnnotator#display_cop_names? は debug、明示 false、明示 true、
+生 format が厳密に json、AllCops/DisplayCopNames の順で判定する。
+したがって json + simple と simple + json では、両 formatter が受け取る
+共通 message の prefix 有無が異なる。alias j と DefaultFormatter: json も
+厳密な --format json の抑止条件に該当しない。StyleGuide / Details は JSON にも付く。
+通常の明示 --format json・既定設定の message は prefix 無しを保つ。
+Sonicop は共有の元 message を cache へ保存し、描画時だけ注釈する。
+
+元の 35 件は上書きしていない。通常 26 件は機能回帰で比較する。
+共有 cache の元 9 件のうち cache-json-simple / cache-alias の 2 条件では、
+本家が format を cache key から除外して古い注釈済み message を再利用するため、
+Sonicop との通常診断差が残る。これは未解決の owayo/sonicop#110 で追跡し、
+安全上の意図差へ登録せず、互換一致にも加算しない。
+明示 on/off を伴う追加 cache 対照は別の formatter_message_cache_controls.json に保存し、
+この元の記録の失敗を新しい期待値で上書きしない。
+
+formatter_messages.json SHA256:
+ba82f0564f12415b91f530edb937cd758005d1f12308fb9b6db2119d26f63fa5

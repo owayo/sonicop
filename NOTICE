@@ -70,6 +70,18 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Full licence text is retained at licenses/RUBOCOP.txt. The existing
       Prism 1.8.1 identifier query uses the separately inventoried Prism code.
 
+  tests/fixtures/formatter_messages.json
+  tests/fixtures/formatter_message_cache_controls.json
+      Constructed display-option cases paired with actual RuboCop 1.89.0
+      CLI reports and shared-cache controls. JSON excludes runtime metadata;
+      simple output is recorded at the documented newline text layer.
+      Regenerate: scripts/conformance/record_formatter_messages.py
+      Use --cache-controls for the second file. The adjacent .PROVENANCE
+      files record the finite scope and the separately retained cache gap.
+      Read by tests/formatter_message_options.rs.
+      Record to a new, unused --output path; existing leaves are refused.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/upstream_spec_cases.jsonl
   tests/fixtures/upstream_spec_divergences.jsonl
       Input text taken out of RuboCop's own cop specs, each paired with what

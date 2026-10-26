@@ -105,9 +105,13 @@ struct Cli {
 
     #[arg(short = 'f', long = "format", action = ArgAction::Append, value_name = "FORMATTER", help_heading = "Output Options")]
     formats: Vec<String>,
-    #[arg(short = 'D', long, action = ArgAction::SetTrue, help_heading = "Output Options")]
+    #[arg(short = 'D', long, action = ArgAction::SetTrue, overrides_with = "no_display_cop_names", help_heading = "Output Options")]
     display_cop_names: bool,
-    #[arg(long, help_heading = "Output Options")]
+    #[arg(
+        long,
+        overrides_with = "display_cop_names",
+        help_heading = "Output Options"
+    )]
     no_display_cop_names: bool,
     #[arg(short = 'E', long, help_heading = "Output Options")]
     extra_details: bool,
@@ -1361,10 +1365,18 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     } else {
         cli.formats.clone()
     };
-    let display_cop_names = if cli.no_display_cop_names {
+    // MessageAnnotator は全 formatter 共通の注釈を、最後の生 --format で決める。
+    // alias j と設定の DefaultFormatter は、厳密な json の抑止条件に含まれない。
+    let display_cop_names = if cli.debug {
+        true
+    } else if cli.no_display_cop_names {
+        false
+    } else if cli.display_cop_names {
+        true
+    } else if cli.formats.last().is_some_and(|format| format == "json") {
         false
     } else {
-        cli.display_cop_names || config.display_cop_names()
+        config.display_cop_names()
     };
     let color = !cli.no_color
         && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));

@@ -73,3 +73,12 @@ tests/fixtures/match_with_lvasgn_runtime.json.PROVENANCE text eol=lf
 scripts/conformance/record_match_dispatch.py text eol=lf
 scripts/conformance/record_match_dispatch_runtime.py text eol=lf
 scripts/conformance/test_record_match_dispatch.py text eol=lf
+
+# formatter 注釈の実 Oracle 記録と公開 recorder は OS によらず同じコンテナを保つ。
+scripts/conformance/record_formatter_messages.py text eol=lf
+scripts/conformance/test_formatter_messages.py text eol=lf
+tests/fixtures/formatter_message_cache_controls.json text eol=lf
+tests/fixtures/formatter_message_cache_controls.json.PROVENANCE text eol=lf
+tests/fixtures/formatter_messages.json text eol=lf
+tests/fixtures/formatter_messages.json.PROVENANCE text eol=lf
+tests/formatter_message_options.rs text eol=lf
