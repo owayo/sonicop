@@ -38,18 +38,20 @@ fn check_recorded_cases(cop: &str, count: usize) {
             .replace('\\', "/");
         // Windows の canonicalize が付ける拡張長接頭辞は、索引の表示パスに含まれない。
         let root = canonical.strip_prefix("//?/").unwrap_or(&canonical);
+        // GemFilename の File.expand_path は Windows の短縮名を長い名へ変えない。
+        // 索引由来の他 cop と分け、この記録だけ child の cwd に渡す表記を使う。
+        #[cfg(windows)]
+        let supplied_root = directory.path().to_string_lossy().replace('\\', "/");
+        #[cfg(windows)]
+        let root = if cop == "Bundler/GemFilename" {
+            supplied_root.as_str()
+        } else {
+            root
+        };
         for file in expected.as_array_mut().unwrap() {
             for offense in file["offenses"].as_array_mut().unwrap() {
-                let mut message = offense["message"].as_str().unwrap().to_owned();
-                if cfg!(windows) && cop == "Bundler/GemFilename" {
-                    // この cop は索引の正規化パスではなく、呼び出し元のファイルパスを表示する。
-                    for name in files.keys() {
-                        message = message.replace(
-                            &format!("{{root}}/{name}"),
-                            &directory.path().join(name).to_string_lossy(),
-                        );
-                    }
-                }
+                // 本家の Windows CLI も message の絶対パスを / で返す。
+                let message = offense["message"].as_str().unwrap().to_owned();
                 offense["message"] = message.replace("{root}", root).into();
             }
         }

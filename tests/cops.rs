@@ -6690,6 +6690,36 @@ mod bundler_department {
             .run();
     }
 
+    // 実 CLI の 1.89.0 記録では、Windows の絶対パスも message では / だった。
+    #[cfg(windows)]
+    #[test]
+    fn gem_filename_uses_rubys_windows_message_separators() {
+        CopCase::annotated(
+            "Bundler/GemFilename",
+            "source \"https://rubygems.org\"\n^{} `gems.rb` file was found but `Gemfile` is required (file path: C:/project/gems.rb).\n",
+        )
+        .path(r"C:\project\gems.rb")
+        .target_ruby("3.3")
+        .severity(Severity::Convention)
+        .correctable(false)
+        .run();
+    }
+
+    // Unix のバックスラッシュは名前の一部なので、Windows 用の置換を共有しない。
+    #[cfg(unix)]
+    #[test]
+    fn gem_filename_preserves_a_literal_backslash_in_a_unix_directory() {
+        CopCase::annotated(
+            "Bundler/GemFilename",
+            "source \"https://rubygems.org\"\n^{} `gems.rb` file was found but `Gemfile` is required (file path: /tmp/project\\part/gems.rb).\n",
+        )
+        .path(r"/tmp/project\part/gems.rb")
+        .target_ruby("3.3")
+        .severity(Severity::Convention)
+        .correctable(false)
+        .run();
+    }
+
     /// 同じ集合のグループは並び順が違っても同じグループ。
     #[test]
     fn duplicated_group_flags_a_group_declared_twice() {

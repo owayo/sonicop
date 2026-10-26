@@ -6,3 +6,10 @@ that placeholder to the canonical temporary directory before comparing all field
 
 Regenerate with make project-index-fixtures. The same command also refreshes
 the project-index recording; see project_index_cases.json.PROVENANCE.
+
+Windows message-path follow-up (2026-10-26): the constructed gems.rb case was
+recorded again with Ruby 4.0.7, RuboCop 1.89.0, Parser 3.3.12.0 and Prism 1.8.1.
+The full CLI offense fields match this fixture. RuboCop uses forward slashes in
+the absolute path inside the message on Windows too; expand {root} with that
+representation rather than substituting the native backslash display path.
+Input bytes and mtimes were unchanged. No correction was requested.
