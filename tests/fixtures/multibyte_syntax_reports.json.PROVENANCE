@@ -1,0 +1,12 @@
+RuboCop 1.89.0 / Prism 1.8.1 / Parser 3.3.12.0
+
+This fixture preserves the original actual Ruby CLI observations for seven parser/target groups and eighteen byte inputs (126 file inspections). Source bytes are integer arrays. Every offense field, exit status, summary, group configuration and source byte remains unchanged by the collector environment follow-up. No expectation came from Sonicop.
+
+The JSON container alone was converted from physical CRLF to LF. Parsed JSON values, including all source byte arrays and escaped CR/LF inside strings, were compared for exact equality. The original raw container is retained with the author evidence; no 126-condition re-recording or Rust rebuild was used for this tooling-only follow-up.
+
+Original raw SHA256: 8307a3d489bc2bb658cb029026a5561398ade9704ba64572b921c5fc2839d912
+LF container SHA256: ae0b6274f94806a1a02bb1e0ef42e73a9ed54e410f00c61bb07f13e738328d30
+
+The collector copies the parent's environment and removes only RUBYOPT, RUBYLIB, RUBOCOP_OPTS and RUBOCOP_TARGET_RUBY_VERSION for every Ruby call. GEM_HOME, GEM_PATH, PATH, SystemRoot and all other inherited keys are preserved. Parent environment mutation and accidental filtering are checked by two Python contract tests.
+
+One representative actual CLI condition (parser_prism, Ruby target 3.3, diamond_lf_eof.rb) was executed clean and with all four ambient overrides poisoned. Its file report matches every original fixture field, its one-file summary is complete, and the clean/poisoned full JSON reports, stderr, exit and original bytes agree. The old child environment fails under the same four overrides. This targeted check does not claim a fresh 126-condition measurement.
