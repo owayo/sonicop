@@ -128,3 +128,19 @@ fn cached_raw_messages_survive_annotation_and_formatter_switches() {
     }
     assert!(project.path().join("cache").exists());
 }
+
+#[test]
+fn original_shared_cache_messages_match_after_cached_annotation_fix() {
+    // #108 が保存した元の共有cache 9条件を、#110と結合した実装へ全件接続する。
+    // 追加対照で元の失敗2条件を置き換えず、同じcwdと入力mtimeを維持する。
+    let document = fixture();
+    let source = source(&document);
+    let project = tempdir().unwrap();
+    let cases = document["cases"].as_array().unwrap();
+    let cached: Vec<_> = cases.iter().filter(|case| case["cached"] == true).collect();
+    assert_eq!(cached.len(), 9);
+    for case in cached {
+        assert_case(project.path(), &source, case);
+    }
+    assert!(project.path().join("cache").exists());
+}

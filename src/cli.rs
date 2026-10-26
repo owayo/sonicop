@@ -22,6 +22,9 @@ use crate::formatter::{
 use crate::rules::rule_names;
 use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 
+#[path = "cache_string_printable_table.rs"]
+mod cache_string_printable_table;
+
 #[derive(Debug, Parser)]
 #[command(name = "sonicop")]
 #[command(about = "A fast, native RuboCop-compatible Ruby linter and formatter")]
@@ -236,6 +239,8 @@ struct Cli {
     profile: bool,
     #[arg(long, help_heading = "Profiling Options")]
     memory: bool,
+    #[arg(skip)]
+    cache_message_options: String,
 }
 
 impl Cli {
@@ -270,7 +275,7 @@ fn run_inner() -> i32 {
             return 2;
         }
     };
-    let matches = match Cli::command().try_get_matches_from(arguments) {
+    let matches = match Cli::command().try_get_matches_from(&arguments) {
         Ok(matches) => matches,
         Err(error)
             if matches!(
@@ -286,13 +291,14 @@ fn run_inner() -> i32 {
             return 2;
         }
     };
-    let cli = match Cli::from_arg_matches(&matches) {
+    let mut cli = match Cli::from_arg_matches(&matches) {
         Ok(cli) => cli,
         Err(error) => {
             eprint!("{error}");
             return 2;
         }
     };
+    cli.cache_message_options = cache_message_options(&arguments);
     let outputs = output_paths_by_format(&matches);
     match try_run(cli, &outputs) {
         Ok(code) => code,
@@ -336,6 +342,226 @@ fn output_paths_by_format(matches: &ArgMatches) -> Vec<Option<PathBuf>> {
         slots[slot].get_or_insert_with(|| path.clone());
     }
     slots
+}
+
+// Options#option の Hash は初回の挿入位置を保ち、同じキーの値だけを更新する。
+fn set_cache_option(options: &mut Vec<(String, String)>, key: &str, value: String) {
+    if let Some((_, previous)) = options.iter_mut().find(|(name, _)| name == key) {
+        *previous = value;
+    } else {
+        options.push((key.to_owned(), value));
+    }
+}
+
+fn cache_nonprintable(character: char) -> bool {
+    // 依存 regex の Unicode 分類は U+088F で本家と違うため、実 String#inspect から生成する。
+    let codepoint = u32::from(character);
+    if codepoint < 128 {
+        return codepoint < 32 || codepoint == 127;
+    }
+    let ranges = cache_string_printable_table::NONPRINTABLE_RANGES;
+    let index = ranges.partition_point(|&(start, _)| start <= codepoint);
+    index > 0 && codepoint <= ranges[index - 1].1
+}
+
+fn cache_inspect_string(value: &str) -> String {
+    // cop が使う literal helper の語義を変えず、UTF-8 CLI の String#inspect だけを再現する。
+    let mut inspected = String::from("\"");
+    let mut characters = value.chars().peekable();
+    while let Some(character) = characters.next() {
+        match character {
+            '"' => inspected.push_str("\\\""),
+            '\\' => inspected.push_str("\\\\"),
+            '\n' => inspected.push_str("\\n"),
+            '\r' => inspected.push_str("\\r"),
+            '\t' => inspected.push_str("\\t"),
+            '\u{c}' => inspected.push_str("\\f"),
+            '\u{b}' => inspected.push_str("\\v"),
+            '\u{8}' => inspected.push_str("\\b"),
+            '\u{7}' => inspected.push_str("\\a"),
+            '\u{1b}' => inspected.push_str("\\e"),
+            '#' if matches!(characters.peek(), Some('{' | '@' | '$')) => inspected.push_str("\\#"),
+            other if cache_nonprintable(other) => {
+                if u32::from(other) <= 0xFFFF {
+                    inspected.push_str(&format!("\\u{:04X}", u32::from(other)));
+                } else {
+                    inspected.push_str(&format!("\\u{{{:X}}}", u32::from(other)));
+                }
+            }
+            other => inspected.push(other),
+        }
+    }
+    inspected.push('"');
+    inspected
+}
+
+fn cache_message_options(arguments: &[String]) -> String {
+    // Clap が検証した argv の投影だけを作る。引数の解釈・出力先・raw path は変更しない。
+    let command = Cli::command();
+    let mut options = Vec::new();
+    let mut only = Vec::new();
+    let mut formatted = false;
+    let mut arguments = arguments.iter().skip(1);
+    while let Some(argument) = arguments.next() {
+        if argument == "--" {
+            break;
+        }
+        let mut events = Vec::new();
+        if let Some(long) = argument.strip_prefix("--") {
+            let (name, attached) = long
+                .split_once('=')
+                .map_or((long, None), |(key, value)| (key, Some(value.to_owned())));
+            if let Some(definition) = command
+                .get_arguments()
+                .find(|arg| arg.get_long() == Some(name))
+            {
+                let value = if definition.get_action().takes_values() {
+                    attached.or_else(|| arguments.next().cloned())
+                } else {
+                    None
+                };
+                events.push((definition, value));
+            }
+        } else if let Some(short) = argument.strip_prefix('-') {
+            for (index, character) in short.char_indices() {
+                let Some(definition) = command
+                    .get_arguments()
+                    .find(|arg| arg.get_short() == Some(character))
+                else {
+                    continue;
+                };
+                if definition.get_action().takes_values() {
+                    let rest = &short[index + character.len_utf8()..];
+                    let value = if rest.is_empty() {
+                        arguments.next().cloned()
+                    } else {
+                        Some(rest.strip_prefix('=').unwrap_or(rest).to_owned())
+                    };
+                    events.push((definition, value));
+                    break;
+                }
+                events.push((definition, None));
+            }
+        }
+        for (definition, value) in events {
+            let id = definition.get_id().as_str();
+            // Ruby に無い display_suppressed は既存 Selection の fingerprint が扱う。
+            if id == "display_suppressed" {
+                continue;
+            }
+            if id == "formats" {
+                formatted = true;
+                continue;
+            }
+            if id == "out" {
+                // 最初の -f 前の output_path は、後の -f でも消さず最終代入だけ保つ。
+                if !formatted && let Some(value) = value {
+                    set_cache_option(&mut options, "output_path", cache_inspect_string(&value));
+                }
+                continue;
+            }
+            let key = match id {
+                "no_display_cop_names" => "display_cop_names",
+                "no_parallel" => "parallel",
+                "no_color" => "color",
+                "no_server" => "server",
+                "no_offense_counts" => "offense_counts",
+                "no_auto_gen_only_exclude" => "auto_gen_only_exclude",
+                "no_auto_gen_timestamp" => "auto_gen_timestamp",
+                "no_auto_gen_enforced_style" => "auto_gen_enforced_style",
+                "requires" => "require",
+                other => other,
+            };
+            // ResultCache::NON_CHANGING の全項目。paths は Option Hash に入らない。
+            let excluded = matches!(
+                key,
+                "color"
+                    | "format"
+                    | "formatters"
+                    | "out"
+                    | "debug"
+                    | "display_time"
+                    | "fail_level"
+                    | "fix_layout"
+                    | "autocorrect"
+                    | "safe_autocorrect"
+                    | "autocorrect_all"
+                    | "deprecated_auto_correct"
+                    | "deprecated_safe_auto_correct"
+                    | "deprecated_auto_correct_all"
+                    | "cache"
+                    | "fail_fast"
+                    | "stdin"
+                    | "parallel"
+            );
+            if !excluded {
+                let inspected = match key {
+                    "only" | "except" => {
+                        let value = value.as_deref().unwrap_or_default();
+                        let mut names: Vec<String> = if value.is_empty() {
+                            vec![String::new()]
+                        } else {
+                            value.split(',').map(str::to_owned).collect()
+                        };
+                        while names.last().is_some_and(String::is_empty) && names.len() > 1 {
+                            names.pop();
+                        }
+                        if key == "only" {
+                            if !names.iter().any(|name| name == "Lint/Syntax") {
+                                names.insert(0, "Lint/Syntax".to_owned());
+                            }
+                            only = names.clone();
+                        }
+                        format!(
+                            "[{}]",
+                            names
+                                .iter()
+                                .map(|name| cache_inspect_string(name))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                    _ => value.map_or_else(
+                        || {
+                            (!definition
+                                .get_long()
+                                .is_some_and(|name| name.starts_with("no-")))
+                            .to_string()
+                        },
+                        |value| cache_inspect_string(&value),
+                    ),
+                };
+                set_cache_option(&mut options, key, inspected);
+            }
+            if matches!(id, "lint" | "fix_layout") {
+                only.push(if id == "lint" { "Lint" } else { "Layout" }.to_owned());
+                set_cache_option(
+                    &mut options,
+                    "only",
+                    format!(
+                        "[{}]",
+                        only.iter()
+                            .map(|name| cache_inspect_string(name))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                );
+            }
+        }
+    }
+    // Hash#inspect の句読点はすべて同じ連続へ縮む。Unicode /i は手書き分類にしない。
+    let inspected = format!(
+        "{{{}}}",
+        options
+            .iter()
+            .map(|(key, value)| format!("{key}: {value}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    static NON_LETTERS: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new("(?i)[^a-z]+").expect("the literal cache-key pattern is valid")
+    });
+    NON_LETTERS.replace_all(&inspected, "_").into_owned()
 }
 
 fn composed_arguments() -> Result<Vec<String>> {
@@ -589,6 +815,21 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
     })
 }
 
+fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
+    // 最後の生 --format を使い、alias j と設定の DefaultFormatter は json 抑止へ含めない。
+    if cli.debug {
+        true
+    } else if cli.no_display_cop_names {
+        false
+    } else if cli.display_cop_names {
+        true
+    } else if cli.formats.last().is_some_and(|format| format == "json") {
+        false
+    } else {
+        config.display_cop_names()
+    }
+}
+
 fn result_cache(
     cli: &Cli,
     cwd: &Path,
@@ -617,7 +858,12 @@ fn result_cache(
     if max_files == 0 {
         return Ok(None);
     }
-    ResultCache::new(root, config.path_base(), selection, max_files).map(Some)
+    ResultCache::new(root, config.path_base(), selection, max_files).map(|cache| {
+        Some(cache.with_message_options(
+            &cli.cache_message_options,
+            message_display_cop_names(cli, config),
+        ))
+    })
 }
 
 fn default_cache_root(cwd: &Path) -> PathBuf {
@@ -1365,19 +1611,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     } else {
         cli.formats.clone()
     };
-    // MessageAnnotator は全 formatter 共通の注釈を、最後の生 --format で決める。
-    // alias j と設定の DefaultFormatter は、厳密な json の抑止条件に含まれない。
-    let display_cop_names = if cli.debug {
-        true
-    } else if cli.no_display_cop_names {
-        false
-    } else if cli.display_cop_names {
-        true
-    } else if cli.formats.last().is_some_and(|format| format == "json") {
-        false
-    } else {
-        config.display_cop_names()
-    };
+    let display_cop_names = message_display_cop_names(cli, config);
     let color = !cli.no_color
         && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));
     for (index, name) in formats.iter().enumerate() {
@@ -1482,6 +1716,118 @@ mod tests {
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn result_cache_option_projection_matches_recorded_rubocop() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/cached_message_annotations_windows.json"
+        ))
+        .unwrap();
+        // 新しい CLI フラグは relevant / 除外 / 未実装等の判断を明記してから追加する。
+        let mut classified: Vec<_> = fixture["cli_option_policy"]
+            .as_object()
+            .unwrap()
+            .values()
+            .flat_map(|values| {
+                values
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_str().unwrap())
+            })
+            .collect();
+        classified.sort_unstable();
+        let command = Cli::command();
+        let mut defined: Vec<_> = command
+            .get_arguments()
+            .map(|argument| argument.get_id().as_str())
+            .collect();
+        defined.sort_unstable();
+        assert_eq!(defined, classified);
+        for case in fixture["option_keys"].as_array().unwrap() {
+            let arguments: Vec<String> = std::iter::once("sonicop".to_owned())
+                .chain(
+                    case["arguments"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|value| value.as_str().unwrap().to_owned()),
+                )
+                .collect();
+            Cli::command().try_get_matches_from(&arguments).unwrap();
+            assert_eq!(
+                super::cache_message_options(&arguments),
+                case["normalized"],
+                "{arguments:?}"
+            );
+        }
+        for case in fixture["output_path_keys"].as_array().unwrap() {
+            let mut arguments = vec!["sonicop".to_owned()];
+            if let Some(path) = case["value"].as_str() {
+                arguments.extend(["--out".to_owned(), path.to_owned()]);
+            }
+            arguments.extend(["--format".to_owned(), "json".to_owned()]);
+            // 空 out も含む 19 件は Options API の記録で、CLI の受理は主張しない。
+            assert_eq!(
+                super::cache_message_options(&arguments),
+                case["normalized"],
+                "{arguments:?}"
+            );
+        }
+        let inspect = &fixture["inspect_keys"];
+        assert_eq!(inspect["unicode_version"], "17.0.0");
+        assert_eq!(inspect["default_external"], "UTF-8");
+        for case in inspect["cases"].as_array().unwrap() {
+            let value = case["value"].as_str().unwrap();
+            assert_eq!(
+                super::cache_inspect_string(value),
+                case["inspected"],
+                "{value:?}"
+            );
+            let arguments = vec![
+                "sonicop".to_owned(),
+                "--out".to_owned(),
+                value.to_owned(),
+                "--format".to_owned(),
+                "json".to_owned(),
+            ];
+            assert_eq!(
+                super::cache_message_options(&arguments),
+                case["normalized"],
+                "{value:?}"
+            );
+        }
+        // 単文字 inspect を全非 ASCII scalar で取得した区間。分類の依存更新による差も拒む。
+        let ranges: Vec<_> = inspect["nonprintable_ranges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|range| {
+                (
+                    range[0].as_u64().unwrap() as u32,
+                    range[1].as_u64().unwrap() as u32,
+                )
+            })
+            .collect();
+        let mut index = 0;
+        let mut checked = 0;
+        for codepoint in 128..=0x10FFFF {
+            let Some(character) = char::from_u32(codepoint) else {
+                continue;
+            };
+            while index < ranges.len() && ranges[index].1 < codepoint {
+                index += 1;
+            }
+            let escaped = index < ranges.len() && ranges[index].0 <= codepoint;
+            assert_eq!(
+                super::cache_nonprintable(character),
+                escaped,
+                "U+{codepoint:04X}"
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, 1_111_936);
     }
 
     #[test]

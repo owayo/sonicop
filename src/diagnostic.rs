@@ -155,6 +155,8 @@ pub struct Offense {
     pub cop_name: &'static str,
     pub severity: Severity,
     pub message: String,
+    /// raw message は保ち、cache から復元した診断だけが初回の cop 名表示設定を持つ。
+    pub(crate) cached_display_cop_names: Option<bool>,
     pub start: usize,
     pub end: usize,
     pub corrected: bool,
@@ -223,6 +225,7 @@ impl Offense {
             cop_name,
             severity,
             message: message.into(),
+            cached_display_cop_names: None,
             start,
             end: end.max(start),
             corrected: false,
@@ -238,6 +241,10 @@ impl Offense {
             snapshot: None,
             length_override: None,
         }
+    }
+
+    pub(crate) fn cached_display_cop_names(&self) -> Option<bool> {
+        self.cached_display_cop_names
     }
 
     pub fn with_length(mut self, length: usize) -> Self {

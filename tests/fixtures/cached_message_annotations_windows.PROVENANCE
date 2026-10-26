@@ -1,0 +1,60 @@
+RuboCop 1.89.0 の結果キャッシュに保存される注釈の履歴。
+
+参照環境: Windows / Ruby 4.0.7 / RuboCop 1.89.0 / parser 3.3.12.0 /
+prism 1.8.1 / rubocop-ast 1.50.0。取得日は 2026-10-25。
+Unix の本家 CLI は未実行。テストは保存済みの Windows 期待を他 OS でも実行する。
+通常の互換不具合を直す fixture であり、意図的差分の許容記録ではない。
+
+再生成:
+  python scripts/record_cached_message_annotations.py --ruby ruby --output new-cached-message-annotations.json --table-output new-cache-string-printable-table.rs
+
+出力名は毎回まだ存在しないものを選ぶ。collector R2は既存leafを上書きしない。
+この手順追補は観測の再取得ではなく、以下の版・旧失敗・残差の履歴を更新しない。
+
+
+15 履歴・71 回の実 CLI を記録する。各履歴で config と source を最初に一度だけ
+LF バイトで作り、以後は同じ cwd、入力パス、cache root を使う。補正は行わない。
+source は x=1\n の 4 バイト。mtime だけの変更、同サイズで mtime を戻す本文変更は
+action で明記する。input_before/after は各実行内で一致を要求し、cache のサイズ、
+mtime、inode、mode、SHA-256、保存済み message も実ファイルから記録する。
+これらの観測値は再生成ごとに変わり得る。絶対 machine path は保存しない。
+
+JSON は files/summary の全フィールド、simple は実出力の text_hex を期待とする。
+テストは Windows テキスト改行を LF へそろえて注釈を比較する。改行の byte 互換性は
+このテストの判定外。debug の走査ログは本家 stdout と native stderr の既存差があるため
+注釈本体と cache の履歴を判定し、debug stream 全体の一致は主張しない。
+複数 formatter、alias、DefaultFormatter、D/E/S、debug、表示フィルタ、stderr、
+NON_CHANGING の fail-level、オプションの挿入順、異なるファイルの初回履歴を含む。
+
+option_keys の 67 件は同じ版の Options.parse / ResultCache.relevant_options_digest の
+実戻り値で、候補出力から期待を作らない。ケースごとに memo を空にするのは、Ruby の
+Hash 同値判定が挿入順を無視し、同一プロセスの前例を返すため。新しい CLI プロセスの
+観測では -ES / -SE、safe+stderr / stderr+safe が別 cache になることも確認する。
+cli_option_policy は既存 Cli の全オプションを分類し、新しいフラグには分類の判断を要求する。
+native no-op や早期終了、cache 不使用の分類を、そのモード自体の完全な互換性と扱わない。
+
+output_path_keys の 19 件も Options / ResultCache API の実値で、ファイル出力は行わない。
+空値、CR/LF/VT/FF、引用符、backslash、日本語、数字・句読点、K/k/K、s/ſ を含む。
+先行 --out の実 CLI 履歴は別途記録する。API の空 out を CLI が受理するとは主張しない。
+文字列は CLI 専用 String#inspect と Unicode 対応 /[^a-z]+/i に従って key だけを投影し、
+表示先の raw path を変更しない。非 Unicode 引数や全 OS path の完全対応の証拠ではない。
+
+inspect_keys の 182 件は全 ASCII・C1 と補間 escape、Cf、private-use、unassigned、
+line/paragraph separator、astral、noncharacter の実 String#inspect / normalized key。
+DEL を含む先行 out の実 CLI 履歴も、初回 bare / 別 cache の prefix を確認する。
+同じ Ruby 4.0.7 / Unicode 17.0.0 / default external UTF-8 の String#inspect を、非 ASCII
+全 1,111,936 scalar から取得した 737 非表示区間を inspect_keys に保存している。
+依存 regex の分類は U+088F を異なって扱うため分類には使わず、生成表を探索する。
+共用の cop literal helper は変えない。ASCII の短縮8 escape と DEL 等は別に再現する。
+UTF-8 scalar 分類と保存した escape 例の検証であり、任意の Ruby Encoding へ広げない。
+
+生成物: src/cache_string_printable_table.rs。手で編集せず上記 collector から再生成する。
+手順header追補前の生成物SHA-256: 013e159b807a57849b35030cbf945afecece69dccee95277ebaaf9bcfe717bcc
+SHA-256: 418e0725b0c09ee9068096614b1f64ded07e6c069398ddf0837b69e6361f9c63
+fixture の inspect_table_sha256 と Python 回帰が、区間・生成物・LF・hash を結ぶ。
+
+collector は RUBYOPT / RUBYLIB / RUBOCOP_OPTS / RUBOCOP_TARGET_RUBY_VERSION を子環境の
+copy からだけ除く。親環境と GEM_HOME/GEM_PATH/PATH/OS 等の他の値は保持する。
+専用 Python 回帰で4キーの除去と他の値・親辞書の不変性を検査する。
+4種類を個別に汚した未隔離本家は exit1/1/2/2、隔離 collector の clean と4種同時汚染は
+DEL 2実行・全 API・scalar 取得で一致した。全ファイルの container は LF に固定する。

@@ -89,6 +89,19 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Record to a new, unused --output path; existing leaves are refused.
       Full licence text is retained at licenses/RUBOCOP.txt.
 
+  tests/fixtures/cached_message_annotations_windows.json
+  src/cache_string_printable_table.rs
+      Constructed cache histories paired with actual RuboCop 1.89.0
+      reports, output text and cache metadata: 15 histories / 71 CLI runs.
+      The CLI-only String#inspect table is generated from actual MRI 4.0.7
+      UTF-8 / Unicode 17.0.0 results, not hand-maintained classification.
+      Regenerate both assets with scripts/record_cached_message_annotations.py;
+      the adjacent .PROVENANCE records finite API and runtime scope.
+      Read by tests/cached_message_annotations.rs and the CLI option unit.
+      Cache key/message behavior is ported from the same RuboCop specification.
+      Choose new, unused --output and --table-output paths; existing leaves are refused.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/upstream_spec_cases.jsonl
   tests/fixtures/upstream_spec_divergences.jsonl
       Input text taken out of RuboCop's own cop specs, each paired with what

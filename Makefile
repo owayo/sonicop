@@ -118,6 +118,8 @@ check: fmt-check lint version-check ## Run fmt-check and lint (no changes), and 
 test-conformance-tools: ## Test corpus validation tools (MISE_ENV=conformance)
 	$(RUN) python -m unittest discover -s scripts/conformance -p "test_*.py"
 	$(RUN) python -O -m unittest discover -s scripts/conformance -p "test_*.py"
+	$(RUN) python -m unittest discover -s scripts -p "test_record_cached_message_annotations.py"
+	$(RUN) python -O -m unittest discover -s scripts -p "test_record_cached_message_annotations.py"
 
 ci: check test gem-check ## Run the same checks as CI (no changes)
 

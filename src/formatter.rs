@@ -921,10 +921,13 @@ fn display_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
 }
 
 /// 本家 MessageAnnotator#annotate が全 formatter へ渡す共通 message。
-/// cop 名・Details・StyleGuide は JSON にも含む。共有の Offense と cache は元の文を保ち、
-/// 描画時に注釈することで、同じ cache の表示設定を切り替えても重複や漏れを残さない。
+/// cop 名・Details・StyleGuide は JSON にも含む。raw message は保ち、cache hit の cop 名は
+/// 保存時の設定に従う。Details/StyleGuide の明示変更は別の cache namespace になる。
 fn annotated_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
-    let cop = if options.display_cop_names {
+    let cop = if offense
+        .cached_display_cop_names()
+        .unwrap_or(options.display_cop_names)
+    {
         format!("{}: ", offense.cop_name)
     } else {
         String::new()

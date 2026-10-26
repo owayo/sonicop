@@ -86,11 +86,9 @@ impl Selection {
     }
 }
 
-/// 4: the stat a report is keyed on records the file's permission bits as well as its size and
-/// modification time. One session index holds every path-keyed report in memory. Reports still
-/// carry that stat, the text's digest, and each offense's frozen location so an unchanged file
-/// need not be read at all.
-const RESULT_CACHE_SCHEMA: u32 = 4;
+/// 5: raw message と初回の cop 名表示設定を分けて保存する。本文 digest・権限・位置の
+/// 照合は維持し、formatter/debug だけの変更では最初の注釈を再利用する。
+const RESULT_CACHE_SCHEMA: u32 = 5;
 const RESULT_CACHE_INDEX_SCHEMA: u32 = 1;
 const RESULT_CACHE_INDEX_SUMMARY_SCHEMA: u32 = 1;
 const RESULT_CACHE_INDEX_PREFIX: &str = "sonicop-result-cache-";
@@ -121,6 +119,7 @@ pub(crate) struct ResultCache {
     entries: RwLock<Option<HashMap<String, IndexedReport>>>,
     prepared: OnceLock<bool>,
     dirty_keys: Mutex<HashSet<String>>,
+    display_cop_names: Option<bool>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -136,6 +135,7 @@ pub(crate) struct CachedReport {
     /// The digest of the text the report was made from, for when the stat moved but the text did
     /// not -- a checkout that restores a file, a formatter that rewrites it byte for byte.
     text: [u8; 32],
+    display_cop_names: Option<bool>,
     offenses: Vec<CachedOffense>,
 }
 
@@ -196,11 +196,13 @@ impl CachedReport {
     fn into_report(self, path: PathBuf, text: Option<&str>) -> Option<FileReport> {
         let source = SourceFile::new(path.clone(), text.unwrap_or_default().to_owned());
         let mut offenses = Vec::with_capacity(self.offenses.len());
+        let display_cop_names = self.display_cop_names;
         for cached in self.offenses {
             let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
             let severity = Severity::parse(&cached.severity)?;
             let mut offense =
                 Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
+            offense.cached_display_cop_names = display_cop_names;
             offense.correctable = cached.correctable;
             offense.suppressed = cached.suppressed;
             offense.justification = cached.justification;
@@ -274,7 +276,21 @@ impl ResultCache {
             entries: RwLock::new(None),
             prepared: OnceLock::new(),
             dirty_keys: Mutex::new(HashSet::new()),
+            display_cop_names: None,
         })
+    }
+
+    pub(crate) fn with_message_options(mut self, options: &str, display_cop_names: bool) -> Self {
+        let mut identity = blake3::Hasher::new();
+        hash_part(&mut identity, self.identity.as_bytes());
+        hash_part(&mut identity, options.as_bytes());
+        self.identity = identity.finalize();
+        self.index_path = self.root.join(format!(
+            "{RESULT_CACHE_INDEX_PREFIX}{}.index",
+            self.identity.to_hex()
+        ));
+        self.display_cop_names = Some(display_cop_names);
+        self
     }
 
     /// Loads the session index only when its size is proportionate to the number of targets.
@@ -394,6 +410,12 @@ impl ResultCache {
             modified: stat.modified,
             mode: stat.mode,
             text: *digest,
+            // mtime だけ動いた同一本文を再保存するときも、読み込んだ初回の設定を保つ。
+            display_cop_names: report
+                .offenses
+                .iter()
+                .find_map(Offense::cached_display_cop_names)
+                .or(self.display_cop_names),
             offenses: report
                 .offenses
                 .iter()
@@ -4042,6 +4064,87 @@ mod tests {
 
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn result_cache_retains_raw_messages_and_first_annotation_after_touch() {
+        let directory = tempdir().unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            b"AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n",
+        )
+        .unwrap();
+        let path = directory.path().join("example.rb");
+        fs::write(&path, b"x=1\n").unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/SpaceAroundOperators".to_owned()],
+            ..Selection::default()
+        };
+        let root = directory.path().join("cache");
+        let first = ResultCache::new(root.clone(), config.path_base(), &selection, 100)
+            .unwrap()
+            .with_message_options("_", false);
+        first.prepare(1);
+        let report = inspect_source(path.clone(), "x=1\n".to_owned(), &config, &selection).unwrap();
+        assert_eq!(report.offenses[0].cached_display_cop_names(), None);
+        store_as_read(&first, &report, &config);
+        let index = first.index_path.clone();
+        first.prune();
+        drop(first);
+
+        let second = ResultCache::new(root.clone(), config.path_base(), &selection, 100)
+            .unwrap()
+            .with_message_options("_", true);
+        assert_eq!(second.index_path, index);
+        second.prepare(1);
+        let Some(Cached::Fresh(report)) = second.load(&path, &config) else {
+            panic!("expected a cache hit")
+        };
+        assert_eq!(
+            report.offenses[0].message,
+            "Surrounding space missing for operator `=`."
+        );
+        assert_eq!(report.offenses[0].cached_display_cop_names(), Some(false));
+
+        // Oracle の touch-and-body 履歴は mtime だけの変更後も初回の裸 message を再利用する。
+        let modified =
+            fs::metadata(&path).unwrap().modified().unwrap() + std::time::Duration::from_secs(2);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(modified))
+            .unwrap();
+        let configs = crate::config::ConfigStore::new(config.clone(), false, false);
+        let reports = super::inspect_files_with_store_cached(
+            std::slice::from_ref(&path),
+            &configs,
+            &selection,
+            false,
+            Some(&second),
+        )
+        .unwrap();
+        assert_eq!(
+            reports[0].offenses[0].message,
+            "Surrounding space missing for operator `=`."
+        );
+        assert_eq!(
+            reports[0].offenses[0].cached_display_cop_names(),
+            Some(false)
+        );
+        second.prune();
+        drop(second);
+        let third = ResultCache::new(root, config.path_base(), &selection, 100)
+            .unwrap()
+            .with_message_options("_", true);
+        third.prepare(1);
+        let Some(Cached::Fresh(report)) = third.load(&path, &config) else {
+            panic!("expected the refreshed stat")
+        };
+        assert_eq!(report.offenses[0].cached_display_cop_names(), Some(false));
+        assert_eq!(fs::read(path).unwrap(), b"x=1\n");
+        assert_eq!(super::RESULT_CACHE_SCHEMA, 5);
+    }
 
     /// One cop's corrections: the cop's name, then an offense per inner slice, then the edits that
     /// offense asks for.
