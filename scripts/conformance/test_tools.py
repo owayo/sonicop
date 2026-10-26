@@ -4,6 +4,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -241,14 +242,24 @@ class MeasurementToolsTest(unittest.TestCase):
                 )
                 self.assertEqual(process.returncode, expected, process.stderr)
 
-    def rollback_fixture(self, root, message=None):
+    def rollback_fixture(self, root, message=None, relative="sample.rb"):
         manifest = self.fixture(root)
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace("path: sample.rb", f"path: {relative}"),
+            encoding="utf-8",
+        )
         work = root / "work"
         work.mkdir()
+        source = work / relative
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_bytes(b"before\n")
         stderr = root / "stderr.txt"
-        stderr.write_text(
-            message
-            or f"Autocorrection was not written to {work}/sample.rb because it introduced a syntax error.\n"
+        # 本体のstderrと同じUTF-8バイトを使い、Windowsの既定文字コードへ依存させない。
+        stderr.write_bytes(
+            (
+                message
+                or f"Autocorrection was not written to {source} because it introduced a syntax error.\n"
+            ).encode("utf-8")
         )
         return stderr, work, manifest, "example", "unsafe"
 
@@ -256,6 +267,161 @@ class MeasurementToolsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             result = rollbacks.check(*self.rollback_fixture(pathlib.Path(scratch)))
             self.assertEqual(result, [{"path": "sample.rb", "divergence_id": "example"}])
+
+    def test_registered_nested_rollback_path_uses_manifest_separators(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            result = rollbacks.check(
+                *self.rollback_fixture(pathlib.Path(scratch), relative="foo/bar.rb")
+            )
+            self.assertEqual(result, [{"path": "foo/bar.rb", "divergence_id": "example"}])
+
+    def test_registered_unicode_rollback_stderr_is_utf8(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            relative = "入れ子/例😀.rb"
+            result = rollbacks.check(
+                *self.rollback_fixture(pathlib.Path(scratch), relative=relative)
+            )
+            self.assertEqual(result, [{"path": relative, "divergence_id": "example"}])
+
+    def test_rollback_namespace_conversion_preserves_path_flavors(self):
+        for path, expected in [
+            (r"C:\copy\foo\bar.rb", r"C:\copy\foo\bar.rb"),
+            (r"\\?\C:\copy\foo\bar.rb", r"C:\copy\foo\bar.rb"),
+            (r"\\?\UNC\server\share\copy\例.rb", r"\\server\share\copy\例.rb"),
+            (r"\\?\unc\server\share\copy\例.rb", r"\\server\share\copy\例.rb"),
+            (r"\\.\pipe\example", r"\\.\pipe\example"),
+            (r"\\?\Volume{example}\case.rb", r"\\?\Volume{example}\case.rb"),
+        ]:
+            with self.subTest(path=path):
+                result = rollbacks._without_extended_prefix(pathlib.PureWindowsPath(path))
+                self.assertEqual(result.as_posix(), pathlib.PureWindowsPath(expected).as_posix())
+        for path in [r"/copy/literal\name.rb", r"//?/C:/copy/literal\name.rb"]:
+            source = pathlib.PurePosixPath(path)
+            self.assertEqual(rollbacks._without_extended_prefix(source).as_posix(), path)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windowsの実パスで名前空間を照合する")
+    def test_windows_rollback_paths_accept_extended_unicode_aliases(self):
+        for spelling in ["native", "slash", "extended"]:
+            for extended_work in [False, True]:
+                with (
+                    self.subTest(spelling=spelling, extended_work=extended_work),
+                    tempfile.TemporaryDirectory() as scratch,
+                ):
+                    relative = "入れ子/例😀.rb"
+                    stderr, work, manifest, corpus, mode = self.rollback_fixture(
+                        pathlib.Path(scratch), relative=relative
+                    )
+                    source = str(work / relative)
+                    if spelling == "slash":
+                        source = source.replace("\\", "/")
+                    elif spelling == "extended":
+                        source = "\\\\?\\" + source
+                    stderr.write_bytes(
+                        f"Autocorrection was not written to {source} "
+                        "because it introduced a syntax error.\n".encode()
+                    )
+                    if extended_work:
+                        work = pathlib.Path("\\\\?\\" + str(work))
+                    self.assertEqual(
+                        rollbacks.check(stderr, work, manifest, corpus, mode),
+                        [{"path": relative, "divergence_id": "example"}],
+                    )
+
+    @unittest.skipIf(sys.platform == "win32", "POSIXのファイル名中のbackslashを検査する")
+    def test_rollback_paths_keep_posix_literal_backslashes(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            relative = r"literal\name.rb"
+            stderr, work, manifest, corpus, mode = self.rollback_fixture(
+                pathlib.Path(scratch), relative=relative
+            )
+            self.assertEqual(
+                rollbacks.check(stderr, work, manifest, corpus, mode),
+                [{"path": relative, "divergence_id": "example"}],
+            )
+            # 実際には別のパスなので、区切りに読み替えた名前は受理しない。
+            stderr.write_bytes(
+                f"Autocorrection was not written to {work}/literal/name.rb "
+                "because it introduced a syntax error.\n".encode()
+            )
+            with self.assertRaises(ValueError):
+                rollbacks.check(stderr, work, manifest, corpus, mode)
+
+    def test_rollback_outside_the_work_copy_is_rejected(self):
+        for outside_name in ["other", "work-sibling"]:
+            with (
+                self.subTest(outside=outside_name),
+                tempfile.TemporaryDirectory() as scratch,
+            ):
+                root = pathlib.Path(scratch)
+                inputs = self.rollback_fixture(root, relative="foo/bar.rb")
+                outside = root / outside_name / "foo/bar.rb"
+                outside.parent.mkdir(parents=True)
+                outside.write_bytes(b"before\n")
+                inputs[0].write_bytes(
+                    f"Autocorrection was not written to {outside} "
+                    "because it introduced a syntax error.\n".encode()
+                )
+                with self.assertRaises(ValueError):
+                    rollbacks.check(*inputs)
+
+    def test_registered_rollback_with_another_reason_is_rejected(self):
+        for reason in ["an encoding error.", "a syntax error", "a syntax error. extra"]:
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as scratch:
+                inputs = self.rollback_fixture(pathlib.Path(scratch), relative="foo/bar.rb")
+                message = inputs[0].read_text(encoding="utf-8")
+                inputs[0].write_bytes(message.replace("a syntax error.", reason).encode("utf-8"))
+                with self.assertRaises(ValueError):
+                    rollbacks.check(*inputs)
+
+    def test_registered_rollback_mixed_with_another_error_is_rejected(self):
+        for other in ["cannot read input\n", "unknown-path"]:
+            with self.subTest(other=other), tempfile.TemporaryDirectory() as scratch:
+                inputs = self.rollback_fixture(pathlib.Path(scratch), relative="foo/bar.rb")
+                message = inputs[0].read_text(encoding="utf-8")
+                addition = (
+                    message.replace("bar.rb", "unknown.rb") if other == "unknown-path" else other
+                )
+                inputs[0].write_bytes((message + addition).encode("utf-8"))
+                with self.assertRaises(ValueError):
+                    rollbacks.check(*inputs)
+
+    def test_invalid_utf8_rollback_stderr_is_rejected(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            inputs = self.rollback_fixture(pathlib.Path(scratch))
+            inputs[0].write_bytes(inputs[0].read_bytes() + b"\xff")
+            with self.assertRaises(UnicodeDecodeError):
+                rollbacks.check(*inputs)
+
+    def test_rollback_cli_outputs_json_across_locales_and_rejects_mixed_errors(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            relative = "入れ子/例😀.rb"
+            stderr, work, manifest, corpus, mode = self.rollback_fixture(
+                pathlib.Path(scratch), relative=relative
+            )
+            message = stderr.read_bytes()
+            command = [
+                sys.executable,
+                "-X",
+                "utf8=0",
+                str(pathlib.Path(rollbacks.__file__)),
+                str(stderr),
+                str(work),
+                str(manifest),
+                corpus,
+                mode,
+            ]
+            # Native UTF-8の入力と判定JSONを、従来のWindows文字コードでも受け渡す。
+            env = dict(os.environ, PYTHONUTF8="0", PYTHONIOENCODING="cp932")
+            accepted = subprocess.run(command, capture_output=True, check=False, env=env)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            self.assertEqual(
+                json.loads(accepted.stdout), [{"path": relative, "divergence_id": "example"}]
+            )
+            for additional in [b"cannot read input\n", b"\xff"]:
+                stderr.write_bytes(message + additional)
+                rejected = subprocess.run(command, capture_output=True, check=False, env=env)
+                self.assertEqual(rejected.returncode, 2, rejected.stderr)
+                self.assertEqual(rejected.stdout, b"")
 
     def test_unregistered_rollback_path_is_rejected(self):
         with tempfile.TemporaryDirectory() as scratch:

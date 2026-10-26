@@ -111,6 +111,14 @@ fmt-check: ## Check the formatting (no changes)
 
 check: fmt-check lint version-check ## Run fmt-check and lint (no changes), and check that the versions agree
 
+# These tools also run on POSIX so path separators cannot hide Windows-only regressions.
+# Use MISE_ENV=conformance to load the pinned Python without changing normal builds.
+.PHONY: test-conformance-tools
+
+test-conformance-tools: ## Test corpus validation tools (MISE_ENV=conformance)
+	$(RUN) python -m unittest discover -s scripts/conformance -p "test_*.py"
+	$(RUN) python -O -m unittest discover -s scripts/conformance -p "test_*.py"
+
 ci: check test gem-check ## Run the same checks as CI (no changes)
 
 ## Version

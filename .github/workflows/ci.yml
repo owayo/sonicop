@@ -44,6 +44,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - run: make setup
+      - name: Test conformance tools
+        env:
+          MISE_ENV: conformance
+        run: make setup test-conformance-tools
+
       - run: make ci
 
       - name: Check foreign ownership under root
