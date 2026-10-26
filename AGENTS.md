@@ -296,6 +296,18 @@ stdin も同じバイト列の検査を使い、拒否したときは元の入�
 任意のシェル式や、exec 行の内容が変わった場合の意味保存を保証するものではない。
 コメント・通常の空白・本文だけの無害な補正は拒否せず、LF/CRLF の陰性対照を保つ。
 
+**Windows の stdin 本文と report の輸送を分ける。** 本家の text mode は LF を CRLF へ、
+未変更の通常コードの CRLF を CRCRLF へ変える。report・区切り・File 出力へは一度だけ適用し、
+compact JSON へ余分な終端改行を足さない。stdin 本文は実際に echo する形式だけを処理する。
+補正した本文の解析 view と物理 bytes を区別し、検査済みの本文へ再度 text mode を掛けない。
+
+DATA/code NUL の未解析 tail、DATA marker、literal 値に属する既存 CRLF は原本値を守る。
+境界は raw bytes に対する Prism token で決め、偽 marker・literal/comment 内の NUL と区別する。
+WORDS_SEP と補間コードを literal 値へ含めず、cop の補正を範囲ごと無効にしない。
+Prism の字句解析失敗と Ruby の構文エラーを分け、下限 3.3.1 の token と MRI 4.0.7 の実値を
+Ruby 2.7 実行の証拠へ読み替えない。非 TTY の実 stream と File、16例の -a/-A、
+252 stdin buffer 条件を照合し、安全な stdin の期待値へ disk の混在改行を流用しない。
+
 **heredoc の終端名はセミコロンの折り位置ではない。** Layout/LineLength の字句除外には
 heredoc_beginning も必要で、文字列の名前に含まれる ; を分割すると Ruby を壊す。
 本家が有効な補正を返す場合、安全網による拒否で代用せず cop の補正を直す。

@@ -2,6 +2,7 @@
 #include "prism.h"
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef void (*sonicop_prism_diagnostic_callback)(void *, size_t, size_t, const char *, const char *);
 
@@ -239,4 +240,57 @@ void sonicop_prism_compat_literal_tokens(const uint8_t *source, size_t length,
     pm_node_destroy(&parser, node);
     pm_parser_free(&parser);
     pm_options_free(&options);
+}
+
+typedef struct {
+    const uint8_t *source;
+    size_t length;
+    sonicop_prism_literal_callback callback;
+    void *data;
+    bool eof;
+    bool invalid_range;
+} sonicop_prism_content_context;
+
+/* escaped CRLF は STRING_CONTENT に属する。WORDS_SEP と補間のコードを広く保護しない。 */
+static void sonicop_prism_content_token(void *data, pm_parser_t *parser, pm_token_t *token) {
+    (void)parser;
+    sonicop_prism_content_context *context = (sonicop_prism_content_context *)data;
+    if (token->type == PM_TOKEN_EOF) {
+        context->eof = true;
+        return;
+    }
+    if (token->type != PM_TOKEN_STRING_CONTENT && token->type != PM_TOKEN_CHARACTER_LITERAL) return;
+    uintptr_t source = (uintptr_t)context->source;
+    uintptr_t start = (uintptr_t)token->start;
+    uintptr_t end = (uintptr_t)token->end;
+    if (start < source || end < start || end - source > context->length) {
+        context->invalid_range = true;
+        return;
+    }
+    context->callback(context->data, (size_t)(start - source), (size_t)(end - source), 2);
+}
+
+/* script 検査と同じ原本 bytes を読み、encoding 宣言と BOM も同じ規則で解釈する。 */
+int sonicop_prism_compat_literal_content_ranges(const uint8_t *source, size_t length,
+                                              const char *version, size_t version_length,
+                                              sonicop_prism_literal_callback callback, void *data) {
+    pm_options_t options = {0};
+    if (!pm_options_version_set(&options, version, version_length)) {
+        pm_options_free(&options);
+        return -1;
+    }
+    pm_options_partial_script_set(&options, false);
+    pm_options_main_script_set(&options, true);
+    pm_parser_t parser;
+    pm_parser_init(&parser, source, length, &options);
+    sonicop_prism_content_context context = {source, length, callback, data, false, false};
+    pm_lex_callback_t lex = {&context, sonicop_prism_content_token};
+    parser.lex_callback = &lex;
+    pm_node_t *node = pm_parse(&parser);
+    /* 構文エラーでも EOF までの lex が完了した範囲は返す。部分情報の成功扱いだけを防ぐ。 */
+    bool complete = node && context.eof && !context.invalid_range && parser.current.type == PM_TOKEN_EOF;
+    if (node) pm_node_destroy(&parser, node);
+    pm_parser_free(&parser);
+    pm_options_free(&options);
+    return complete ? 0 : -2;
 }

@@ -217,6 +217,33 @@ fn unicode_capture_symbols_do_not_turn_legacy_method_calls_into_local_reads() {
     }
 }
 
+fn safe_capture_stdin_bytes(id: &str, mode: &str, expected_disk: &[u8]) -> Vec<u8> {
+    // 承認safe 3原本×-a/-Aだけを、実Ruby 4.0.7 IOで確認したstdin輸送へ接続する。
+    // diskの由来を残したCRLFは一重にし、DATAは#95/#102の原本byte保護を保つ。
+    assert!(matches!(
+        id,
+        "mixed_initial_control" | "mixed_bare_later_control" | "pure_bare_later_control"
+    ));
+    assert!(matches!(mode, "-a" | "-A"));
+    let marker = b"__END__\r\n";
+    let starts: Vec<_> = expected_disk
+        .windows(marker.len())
+        .enumerate()
+        .filter_map(|(offset, bytes)| (bytes == marker).then_some(offset))
+        .collect();
+    assert_eq!(starts.len(), 1);
+    let tail = starts[0] + marker.len();
+    let mut output = Vec::new();
+    for (offset, &byte) in expected_disk[..tail].iter().enumerate() {
+        if byte == b'\n' && (offset == 0 || expected_disk[offset - 1] != b'\r') {
+            output.push(b'\r');
+        }
+        output.push(byte);
+    }
+    output.extend_from_slice(&expected_disk[tail..]);
+    output
+}
+
 #[test]
 fn current_capture_guards_preserve_mixed_and_original_bare_cr_bytes() {
     let fixture: serde_json::Value =
@@ -326,7 +353,14 @@ fn current_capture_guards_preserve_mixed_and_original_bare_cr_bytes() {
                 .output()
                 .unwrap();
             assert_eq!(output.status.code(), Some(exit), "{case}");
-            assert!(output.stdout.ends_with(&expected_bytes), "{case}");
+            let expected_stdin = if cfg!(windows) && !guarding {
+                // 拒否時のraw原本、他OSの輸送、disk期待は変えない。
+                assert!(safe_case.is_some());
+                safe_capture_stdin_bytes(case["id"].as_str().unwrap(), mode, &expected_bytes)
+            } else {
+                expected_bytes.clone()
+            };
+            assert!(output.stdout.ends_with(&expected_stdin), "{case}");
             assert_eq!(
                 String::from_utf8_lossy(&output.stderr).contains(reason),
                 guarding

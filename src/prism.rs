@@ -214,6 +214,32 @@ pub(crate) fn script_is_valid(source: impl AsRef<[u8]>, target: RubyVersion) -> 
     !script_has_errors(source, parser_version(target.max(RubyVersion::new(3, 3))))
 }
 
+/// 保存前の script 検査と同じ版で、literal の値に属する CRLF の LF 位置を求める。
+/// 実 bytes の座標で返し、WORDS_SEP・補間コード・失敗した lex は含めない。
+pub(crate) fn literal_crlf_positions(
+    source: &[u8],
+    target: RubyVersion,
+) -> Result<Vec<usize>, &'static str> {
+    let ranges = sonicop_prism_compat::literal_content_ranges(
+        source,
+        parser_version(target.max(RubyVersion::new(3, 3))),
+    )?;
+    let mut positions = Vec::new();
+    for range in ranges {
+        // CR が開始区切り側にある場合も、LF 自身が literal 内容なら値を保護する。
+        let content = source
+            .get(range.clone())
+            .ok_or("Prism literal token range is outside the source")?;
+        for (offset, byte) in content.iter().enumerate() {
+            let position = range.start + offset;
+            if *byte == b'\n' && position > 0 && source[position - 1] == b'\r' {
+                positions.push(position);
+            }
+        }
+    }
+    Ok(positions)
+}
+
 fn script_has_errors(source: impl AsRef<[u8]>, version: &str) -> bool {
     !sonicop_prism_compat::parse_script(source.as_ref(), version)
         .expect("Prism supports every configured Ruby version")
@@ -305,6 +331,39 @@ fn translated_message(kind: &str, written: &str, native: String) -> String {
 mod tests {
     use super::{ruby_script_prefix, script_has_errors, would_invalidate};
     use crate::ruby_version::RubyVersion;
+
+    #[test]
+    fn literal_crlf_positions_follow_recorded_prism_token_ownership() {
+        // Prism 1.8.1 実 lex: escaped 改行は STRING_CONTENT、非 escape は WORDS_SEP。
+        let cases: &[(&str, &[usize])] = &[
+            ("%w[a\\\r\nb c\r\nd]", &[6]),
+            ("%W[a\\\r\nb c\r\nd]", &[6]),
+            ("%i[a\\\r\nb c\r\nd]", &[6]),
+            ("%I[a\\\r\nb c\r\nd]", &[6]),
+            ("\"a\\\r\nb\"", &[4]),
+            ("/a\\\r\nb/", &[4]),
+            ("?\\\r\n", &[3]),
+            ("%w[a\r\nb]", &[]),
+            ("\"#{1\r\n}x\"", &[]),
+            ("\"#{1 + \\\r\n2}\"", &[]),
+        ];
+        for version in [(2, 7), (3, 3), (3, 4), (4, 0)] {
+            for (source, expected) in cases {
+                assert_eq!(
+                    super::literal_crlf_positions(
+                        source.as_bytes(),
+                        RubyVersion::new(version.0, version.1)
+                    )
+                    .unwrap(),
+                    *expected,
+                    "{version:?}: {source:?}"
+                );
+            }
+        }
+        // 完了した lex は通常の Ruby 構文エラーを API 失敗へ読み替えない。
+        assert!(sonicop_prism_compat::literal_content_ranges(b"\"unterminated", "3.3.1").is_ok());
+        assert!(sonicop_prism_compat::literal_content_ranges(b"1", "invalid").is_err());
+    }
 
     #[test]
     fn correction_validation_keeps_the_target_grammar_and_requires_a_valid_original() {

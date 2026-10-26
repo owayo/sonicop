@@ -40,6 +40,48 @@ fn native_lf_disk_correction(expected: &[u8]) -> Vec<u8> {
     }
 }
 
+/// Windows Ruby の stdout/stderr/File の text mode。#102 の実 pipe 記録に従う。
+/// 拒否した stdin 本文には適用せず、report・区切りと成功した本文を分けて使う。
+fn native_textmode_expected(expected: &[u8]) -> Vec<u8> {
+    if cfg!(windows) {
+        expected
+            .iter()
+            .flat_map(|&byte| {
+                if byte == b'\n' {
+                    vec![b'\r', b'\n']
+                } else {
+                    vec![byte]
+                }
+            })
+            .collect()
+    } else {
+        expected.to_vec()
+    }
+}
+
+fn stdin_separator() -> &'static str {
+    if cfg!(windows) {
+        "====================\r\n"
+    } else {
+        "====================\n"
+    }
+}
+
+/// 全 252 条件の本家 Windows CLI と、既存の物理 tail 保護から導出した本文。
+fn windows_stdin_buffer_case(index: usize, case: &serde_json::Value) -> &'static serde_json::Value {
+    static REFERENCE: std::sync::LazyLock<serde_json::Value> = std::sync::LazyLock::new(|| {
+        let recorded: serde_json::Value =
+            serde_json::from_str(include_str!("fixtures/windows_stdin_buffers.json")).unwrap();
+        assert_eq!(recorded["cases"].as_object().unwrap().len(), 252);
+        recorded
+    });
+    let expected = &REFERENCE["cases"][index.to_string()];
+    for key in ["name", "ruby", "eol", "mode", "source_hex", "exit"] {
+        assert_eq!(expected[key], case[key], "{index}: {key}");
+    }
+    expected
+}
+
 /// 本家実 CLI の補正済み code と原本 tail から導出した Windows の物理 byte と再検査。
 fn windows_native_cli_case(
     fixture: &str,
@@ -2735,7 +2777,9 @@ fn stdin_autocorrect_appends_the_corrected_buffer_to_the_report() {
         "formatter の出力ごと落ちている:\n{stdout}"
     );
     assert!(
-        stdout.ends_with("====================\ny = 2\n"),
+        stdout.ends_with(
+            &String::from_utf8(native_textmode_expected(b"====================\ny = 2\n")).unwrap()
+        ),
         "区切りと修正後ソースが末尾に無い:\n{stdout}"
     );
 }
@@ -3451,7 +3495,7 @@ fn legacy_syntax_rollback_returns_the_original_stdin_buffer() {
         .clone();
     assert!(
         String::from_utf8_lossy(&output.stdout)
-            .ends_with(&format!("====================\n{source}"))
+            .ends_with(&format!("{}{source}", stdin_separator()))
     );
     assert!(!directory.path().join("example.rb").exists());
 }
@@ -3772,7 +3816,7 @@ fn nested_it_autocorrect_returns_the_original_stdin_buffer() {
             .clone();
         assert!(
             String::from_utf8_lossy(&output.stdout)
-                .ends_with(&format!("====================\n{source}"))
+                .ends_with(&format!("{}{source}", stdin_separator()))
         );
         assert!(String::from_utf8_lossy(&output.stderr).contains("introduced a syntax error"));
         assert!(!directory.path().join("example.rb").exists());
@@ -3880,7 +3924,7 @@ fn an_unencodable_stdin_correction_returns_the_original_bytes() {
         assert!(
             output
                 .stdout
-                .ends_with(format!("====================\n{source}").as_bytes())
+                .ends_with(format!("{}{source}", stdin_separator()).as_bytes())
         );
         assert!(
             String::from_utf8_lossy(&output.stderr).contains("cannot be written back as US-ASCII")
@@ -3905,7 +3949,7 @@ fn an_unencodable_stdin_correction_returns_the_original_bytes() {
         .get_output()
         .stdout
         .clone();
-    assert!(output.ends_with(binary));
+    assert!(output.ends_with(&native_textmode_expected(binary)));
 }
 
 /// rollback 後も原本のディレクティブ診断を残す。--only ではこの集約 cop に届かない。
@@ -4002,7 +4046,11 @@ fn a_displaced_encoding_declaration_uses_the_upstream_utf8_output() {
             }
             let output = run.assert().code(0).get_output().clone();
             if stdin {
-                assert!(output.stdout.ends_with(&expected));
+                assert!(
+                    output
+                        .stdout
+                        .ends_with(&native_textmode_expected(&expected))
+                );
                 assert_eq!(
                     fs::read(directory.path().join("example.rb")).unwrap(),
                     source
@@ -4141,7 +4189,7 @@ fn an_active_legacy_declaration_preserves_the_original_character_bytes() {
                 }
                 let output = run.assert().code(0).get_output().stdout.clone();
                 if stdin {
-                    assert!(output.ends_with(&expected));
+                    assert!(output.ends_with(&native_textmode_expected(&expected)));
                     assert_eq!(
                         fs::read(directory.path().join("example.rb")).unwrap(),
                         source
@@ -4250,7 +4298,16 @@ fn later_conditional_corrections_preserve_character_provenance() {
                 } else {
                     expected.clone()
                 };
-                let wanted = if stdin { &expected } else { &disk_expected };
+                let stdin_expected = if stdin && !crlf && !failed {
+                    native_textmode_expected(&expected)
+                } else {
+                    expected.clone()
+                };
+                let wanted = if stdin {
+                    &stdin_expected
+                } else {
+                    &disk_expected
+                };
                 if stdin {
                     assert!(output.stdout.ends_with(wanted), "{condition} {mode} {crlf}");
                     assert_eq!(
@@ -5615,7 +5672,7 @@ fn nul_parse_projection_preserves_the_stdin_buffer() {
             .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
             .collect::<Vec<_>>()
     };
-    for case in records {
+    for (index, case) in records.iter().enumerate() {
         let label = format!(
             "{} / {} / {} / {}",
             case["ruby"], case["eol"], case["mode"], case["name"]
@@ -5653,7 +5710,7 @@ fn nul_parse_projection_preserves_the_stdin_buffer() {
                 assert_eq!(files[0]["path"], "example.rb", "{label}");
                 assert_eq!(files[0]["offenses"], case["offenses"], "{label}");
             } else {
-                let separator = b"====================\n";
+                let separator = stdin_separator().as_bytes();
                 let position = output
                     .stdout
                     .windows(separator.len())
@@ -5670,11 +5727,42 @@ fn nul_parse_projection_preserves_the_stdin_buffer() {
                     } else {
                         expected
                     };
+                    let expected = if cfg!(windows) {
+                        decode(
+                            windows_stdin_buffer_case(index, case)["expected_stdout_hex"]
+                                .as_str()
+                                .unwrap(),
+                        )
+                    } else {
+                        expected
+                    };
                     let start = position.unwrap_or_else(|| panic!("{label}: missing stdin buffer"))
                         + separator.len();
+                    if cfg!(windows) {
+                        assert_eq!(
+                            &output.stdout[..start],
+                            decode(
+                                windows_stdin_buffer_case(index, case)["upstream_stderr_hex"]
+                                    .as_str()
+                                    .unwrap(),
+                            ),
+                            "{label}"
+                        );
+                    }
                     assert_eq!(&output.stdout[start..], expected, "{label}");
                 } else {
                     assert!(position.is_none(), "{label}");
+                    if cfg!(windows) {
+                        assert_eq!(
+                            output.stdout,
+                            decode(
+                                windows_stdin_buffer_case(index, case)["upstream_stderr_hex"]
+                                    .as_str()
+                                    .unwrap(),
+                            ),
+                            "{label}"
+                        );
+                    }
                 }
             }
             assert!(!directory.path().join("example.rb").exists(), "{label}");

@@ -44,3 +44,12 @@ scripts/test_record_external_options.rb text eol=lf
 tests/external_options.rs text eol=lf
 tests/fixtures/external_options_windows.json text eol=lf
 tests/fixtures/shellwords_options.json text eol=lf
+
+scripts/conformance/oracle_environment.rb text eol=lf
+scripts/conformance/record_windows_stdin_buffers.rb text eol=lf
+test/oracle_environment_test.rb text eol=lf
+tests/fixtures/windows_stdin_buffers.json text eol=lf
+tests/fixtures/windows_stdin_buffers.json.PROVENANCE text eol=lf
+tests/fixtures/windows_stdio.json text eol=lf
+tests/fixtures/windows_stdio.json.PROVENANCE text eol=lf
+tests/windows_stdio.rs text eol=lf
