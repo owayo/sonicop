@@ -72,7 +72,10 @@ impl<'a> Input<'a> {
     }
 
     fn displayed_range(&self, mut range: Range<usize>) -> Range<usize> {
-        if range.start == range.end {
+        // Translation::Parser の文字位置への投影後にゼロ幅を判定する。複数の byte が
+        // 一文字の内部を指す場合も、Lint/Syntax は同じ一文字の範囲へ広げてから重複を除く。
+        if self.original_offset(range.start) == self.original_offset(range.end) {
+            range.end = range.start;
             // Lint/Syntax#diagnostic_location はゼロ幅を前方へ一文字、EOF では後方へ一文字広げる。
             if range.end < self.bytes.len() {
                 range.end += 1;
@@ -329,7 +332,7 @@ fn translated_message(kind: &str, written: &str, native: String) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ruby_script_prefix, script_has_errors, would_invalidate};
+    use super::{Input, ruby_script_prefix, script_has_errors, would_invalidate};
     use crate::ruby_version::RubyVersion;
 
     #[test]
@@ -363,6 +366,36 @@ mod tests {
         // 完了した lex は通常の Ruby 構文エラーを API 失敗へ読み替えない。
         assert!(sonicop_prism_compat::literal_content_ranges(b"\"unterminated", "3.3.1").is_ok());
         assert!(sonicop_prism_compat::literal_content_ranges(b"1", "invalid").is_err());
+    }
+
+    #[test]
+    fn multibyte_diagnostic_fragments_expand_after_character_projection() {
+        // Prism の raw 範囲は別々でも、Translation::Parser では同じ文字位置になる。
+        for (source, expected) in [("%💎\n💎", 6..10), ("%💎\r\n💎", 7..11)] {
+            let input = Input::new(source);
+            for range in [7..8, 8..9, 9..10] {
+                let displayed = input.displayed_range(range);
+                assert_eq!(displayed, expected);
+                assert_eq!(&source[displayed], "💎");
+            }
+        }
+    }
+
+    #[test]
+    fn projected_diagnostic_points_keep_whole_characters_and_crlf_at_eof() {
+        for (source, expected) in [
+            ("", 0..0),
+            ("é", 0..2),
+            ("あ", 0..3),
+            ("💎", 0..4),
+            ("💎\r\n", 4..6),
+        ] {
+            let input = Input::new(source);
+            let end = input.bytes.len();
+            let displayed = input.displayed_range(end..end);
+            assert_eq!(displayed, expected);
+            assert!(source.get(displayed).is_some());
+        }
     }
 
     #[test]

@@ -53,3 +53,11 @@ tests/fixtures/windows_stdin_buffers.json.PROVENANCE text eol=lf
 tests/fixtures/windows_stdio.json text eol=lf
 tests/fixtures/windows_stdio.json.PROVENANCE text eol=lf
 tests/windows_stdio.rs text eol=lf
+
+.gitattributes text eol=lf
+src/prism.rs text eol=lf
+scripts/record_multibyte_syntax.py text eol=lf
+scripts/test_record_multibyte_syntax.py text eol=lf
+tests/fixtures/multibyte_syntax_reports.json text eol=lf
+tests/fixtures/multibyte_syntax_reports.json.PROVENANCE text eol=lf
+tests/multibyte_syntax.rs text eol=lf

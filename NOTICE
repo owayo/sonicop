@@ -46,6 +46,13 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Input: tests/fixtures/nul_writeback_stdin.json; details: the adjacent
       .PROVENANCE. Full licence text is retained at licenses/RUBOCOP.txt.
 
+  tests/fixtures/multibyte_syntax_reports.json
+      Eighteen constructed byte inputs under seven parser/target groups,
+      paired with actual RuboCop 1.89.0 syntax diagnostics and full reports.
+      Regenerate: scripts/record_multibyte_syntax.py
+      Source and finite scope: the neighbouring .PROVENANCE.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/upstream_spec_cases.jsonl
   tests/fixtures/upstream_spec_divergences.jsonl
       Input text taken out of RuboCop's own cop specs, each paired with what

@@ -1,0 +1,3125 @@
+{
+  "provenance": {
+    "rubocop": "1.89.0",
+    "prism": "1.8.1",
+    "parser": "3.3.12.0",
+    "command": "rubocop _1.89.0_ --cache false --only Lint/Syntax --format json <files>",
+    "description": "実 CLI の原本 byte 入力と診断全フィールド。非補正。"
+  },
+  "sources": [
+    {
+      "path": "diamond_lf_eof.rb",
+      "bytes": [
+        37,
+        240,
+        159,
+        146,
+        142,
+        10,
+        240,
+        159,
+        146,
+        142
+      ]
+    },
+    {
+      "path": "diamond_crlf_eof.rb",
+      "bytes": [
+        37,
+        240,
+        159,
+        146,
+        142,
+        13,
+        10,
+        240,
+        159,
+        146,
+        142
+      ]
+    },
+    {
+      "path": "diamond_lf_terminated.rb",
+      "bytes": [
+        37,
+        240,
+        159,
+        146,
+        142,
+        10,
+        240,
+        159,
+        146,
+        142,
+        10
+      ]
+    },
+    {
+      "path": "diamond_crlf_terminated.rb",
+      "bytes": [
+        37,
+        240,
+        159,
+        146,
+        142,
+        13,
+        10,
+        240,
+        159,
+        146,
+        142,
+        13,
+        10
+      ]
+    },
+    {
+      "path": "three_byte_eof.rb",
+      "bytes": [
+        37,
+        227,
+        129,
+        130,
+        10,
+        227,
+        129,
+        130
+      ]
+    },
+    {
+      "path": "two_byte_eof.rb",
+      "bytes": [
+        37,
+        195,
+        169,
+        10,
+        195,
+        169
+      ]
+    },
+    {
+      "path": "percent_eof.rb",
+      "bytes": [
+        37,
+        240,
+        159,
+        146,
+        142
+      ]
+    },
+    {
+      "path": "unicode_prefix.rb",
+      "bytes": [
+        35,
+        32,
+        195,
+        169,
+        227,
+        129,
+        130,
+        240,
+        159,
+        146,
+        142,
+        10,
+        37,
+        240,
+        159,
+        146,
+        142,
+        10,
+        240,
+        159,
+        146,
+        142
+      ]
+    },
+    {
+      "path": "operator_eof.rb",
+      "bytes": [
+        240,
+        159,
+        146,
+        142,
+        32,
+        43
+      ]
+    },
+    {
+      "path": "valid_percent.rb",
+      "bytes": [
+        37,
+        113,
+        40,
+        240,
+        159,
+        146,
+        142,
+        195,
+        169,
+        227,
+        129,
+        130,
+        41,
+        10
+      ]
+    },
+    {
+      "path": "valid_percent_crlf.rb",
+      "bytes": [
+        37,
+        81,
+        123,
+        240,
+        159,
+        146,
+        142,
+        35,
+        123,
+        49,
+        125,
+        195,
+        169,
+        227,
+        129,
+        130,
+        125,
+        13,
+        10
+      ]
+    },
+    {
+      "path": "valid_character.rb",
+      "bytes": [
+        63,
+        240,
+        159,
+        146,
+        142,
+        10
+      ]
+    },
+    {
+      "path": "valid_character_crlf.rb",
+      "bytes": [
+        63,
+        227,
+        129,
+        130,
+        13,
+        10
+      ]
+    },
+    {
+      "path": "valid_unicode.rb",
+      "bytes": [
+        195,
+        169,
+        32,
+        61,
+        32,
+        34,
+        227,
+        129,
+        130,
+        240,
+        159,
+        146,
+        142,
+        34,
+        10,
+        195,
+        169,
+        10
+      ]
+    },
+    {
+      "path": "binary_percent.rb",
+      "bytes": [
+        35,
+        32,
+        101,
+        110,
+        99,
+        111,
+        100,
+        105,
+        110,
+        103,
+        58,
+        32,
+        65,
+        83,
+        67,
+        73,
+        73,
+        45,
+        56,
+        66,
+        73,
+        84,
+        10,
+        37,
+        240,
+        159,
+        146,
+        142,
+        10,
+        240,
+        159,
+        146,
+        142
+      ]
+    },
+    {
+      "path": "empty.rb",
+      "bytes": []
+    },
+    {
+      "path": "invalid_utf8.rb",
+      "bytes": [
+        35,
+        32,
+        99,
+        111,
+        100,
+        105,
+        110,
+        103,
+        58,
+        32,
+        85,
+        84,
+        70,
+        45,
+        56,
+        10,
+        34,
+        255,
+        34,
+        10
+      ]
+    },
+    {
+      "path": "invalid_ascii.rb",
+      "bytes": [
+        35,
+        32,
+        99,
+        111,
+        100,
+        105,
+        110,
+        103,
+        58,
+        32,
+        85,
+        83,
+        45,
+        65,
+        83,
+        67,
+        73,
+        73,
+        10,
+        34,
+        195,
+        169,
+        34,
+        10
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "target": "3.3",
+      "parser": "parser_prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 2,
+                "last_line": 2,
+                "last_column": 2,
+                "length": 1,
+                "line": 2,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 1,
+                "last_line": 3,
+                "last_column": 1,
+                "length": 1,
+                "line": 3,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "unexpected local variable or method, expecting end-of-input\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 2,
+                "last_line": 3,
+                "last_column": 4,
+                "length": 3,
+                "line": 3,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 24,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "3.4",
+      "parser": "parser_prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_prism\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 2,
+                "last_line": 2,
+                "last_column": 2,
+                "length": 1,
+                "line": 2,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 1,
+                "last_line": 3,
+                "last_column": 1,
+                "length": 1,
+                "line": 3,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "unexpected local variable or method, expecting end-of-input\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 2,
+                "last_line": 3,
+                "last_column": 4,
+                "length": 3,
+                "line": 3,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 24,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "4.0",
+      "parser": "parser_prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: parser_prism\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 2,
+                "last_line": 2,
+                "last_column": 2,
+                "length": 1,
+                "line": 2,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 1,
+                "last_line": 3,
+                "last_column": 1,
+                "length": 1,
+                "line": 3,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "unexpected local variable or method, expecting end-of-input\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 2,
+                "last_line": 3,
+                "last_column": 4,
+                "length": 3,
+                "line": 3,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 24,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "4.1",
+      "parser": "parser_prism",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: parser_prism\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 2,
+                "last_line": 2,
+                "last_column": 2,
+                "length": 1,
+                "line": 2,
+                "column": 2
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "invalid multibyte character 0x9F\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 1,
+                "last_line": 3,
+                "last_column": 1,
+                "length": 1,
+                "line": 3,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unknown type of %string\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            },
+            {
+              "severity": "fatal",
+              "message": "unexpected local variable or method, expecting end-of-input\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 3,
+                "start_column": 2,
+                "last_line": 3,
+                "last_column": 4,
+                "length": 3,
+                "line": 3,
+                "column": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 24,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "2.7",
+      "parser": "parser_whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 12,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "3.3",
+      "parser": "parser_whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_whitequark\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected token $end\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 12,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    },
+    {
+      "target": "3.4",
+      "parser": "parser_whitequark",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n  NewCops: disable\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "diamond_lf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_lf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "diamond_crlf_terminated.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "three_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "two_byte_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "percent_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "unicode_prefix.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "operator_eof.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unexpected token $end\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 3,
+                "last_line": 1,
+                "last_column": 3,
+                "length": 1,
+                "line": 1,
+                "column": 3
+              }
+            }
+          ]
+        },
+        {
+          "path": "valid_percent.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_percent_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_character_crlf.rb",
+          "offenses": []
+        },
+        {
+          "path": "valid_unicode.rb",
+          "offenses": []
+        },
+        {
+          "path": "binary_percent.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 2,
+                "start_column": 1,
+                "last_line": 2,
+                "last_column": 1,
+                "length": 1,
+                "line": 2,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "empty.rb",
+          "offenses": []
+        },
+        {
+          "path": "invalid_utf8.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "Invalid byte sequence in utf-8.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        },
+        {
+          "path": "invalid_ascii.rb",
+          "offenses": [
+            {
+              "severity": "fatal",
+              "message": "\"\\xc3\" on us-ascii.",
+              "cop_name": "Lint/Syntax",
+              "corrected": false,
+              "correctable": false,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 0,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 12,
+        "target_file_count": 18,
+        "inspected_file_count": 18
+      }
+    }
+  ]
+}
