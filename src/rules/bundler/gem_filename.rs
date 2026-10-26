@@ -13,8 +13,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or_default();
-    // The manifest the configuration asks for is fine; so is a name this cop was never pointed at,
-    // which upstream reaches through `register_offense` without either branch matching.
+    // 本家の register_offense と同じく、指定された形式と無関係な名前は報告しない。
     let message = match (style.as_str(), basename) {
         ("Gemfile", "gems.rb") => {
             "`gems.rb` file was found but `Gemfile` is required (file path: %<path>s)."
@@ -32,14 +31,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         _ => return,
     };
-    // `add_global_offense`, which upstream anchors at the head of the file: the offense is the name
-    // of the file, and no part of what is in it.
-    offenses.push(context.offense(
-        message.replace(
-            "%<path>s",
-            &expand_path(context.source.path()).to_string_lossy(),
-        ),
-        0..0,
-    ));
+    let expanded = expand_path(context.source.path());
+    let path = expanded.to_string_lossy();
+    // 本家 1.89 の Windows CLI は message 内にも / を使う。Unix の実ファイル名に
+    // 含まれるバックスラッシュは区切りではないため、その環境では置換しない。
+    #[cfg(windows)]
+    let path = path.replace('\\', "/");
+    // add_global_offense は本文ではなくファイル名を指すため、先頭の空範囲に置く。
+    offenses.push(context.offense(message.replace("%<path>s", &path), 0..0));
 }
 
