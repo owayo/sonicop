@@ -3355,3 +3355,32 @@ match_dispatch_crlf_controls:
     本家は CRLF scope の補正後断片を raw_source 長の delta で切り、正規化後のASTを欠落させる。
     その取りこぼしへ追従せず、意味を保つ RHS の変数括弧を報告・補正する既存方針を監視する。
     lhs の最後の括弧は cap 以下で保持する。名前付き捕捉の新しい安全差と混ぜない。
+
+# #172: 本家の不正UTF-8書戻しにも、旧nativeのU+FFFD値破壊にも従わない。
+word_array_byte_safety_divergence:
+  issue: 172
+  cop: Style/WordArray
+  reference_fixture: tests/fixtures/word_array_byte_safety.json
+  target: 2.7/parser_whitequark
+  modes: [-a, -A]
+  reference_endings: [lf]
+  candidate_safety_endings: [lf, crlf]
+  reference_standard_json_success: false
+  reference_diagnostic_source: pinned_API_raw_message_hex
+  candidate_exit: 2
+  candidate_preserves_source: true
+  candidate_corrected: false
+  candidate_correctable: true
+  rollback_scope: whole_file
+  review_authority:
+    provider: independent_codex_same_provider
+    claude_performed: false
+    scope: 本家のunsafe補正を原本全体へ戻す安全方針。実装レビューは別途行う。
+  reason: >-
+    %W[\x95 foo bar]の値は95だが、本家1.89はraw95をliteralへ書いて構文を壊し、
+    旧nativeはlossy復号したU+FFFDを書いて有効なままefbfbdへ変えていた。
+    危険なWordArray correctorが既存の設定・選択・指令・安全性・競合条件で採用される
+    場合だけ、同fileの別cop編集も含め初回原本へ戻す。原本の診断とcorrectableを保ち、
+    理由stderrと終了2を返す。AutoCorrect:falseや-aのSafeAutoCorrect:falseは拒否しない。
+    Ruby4.0.7の実値とTarget2.7/whitequarkを区別し、本家JSON失敗を成功へ変換しない。
+    不正な本家messageのrawとnativeのUTF-8表示を同一とは主張しない。

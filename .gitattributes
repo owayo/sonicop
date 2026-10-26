@@ -82,3 +82,8 @@ tests/fixtures/formatter_message_cache_controls.json.PROVENANCE text eol=lf
 tests/fixtures/formatter_messages.json text eol=lf
 tests/fixtures/formatter_messages.json.PROVENANCE text eol=lf
 tests/formatter_message_options.rs text eol=lf
+
+# WordArrayの参照raw/byte値の記録をOS改行変換から守る。
+tests/word_array_byte_safety.rs text eol=lf
+tests/fixtures/word_array_byte_safety.json text eol=lf
+tests/fixtures/word_array_byte_safety.json.PROVENANCE text eol=lf

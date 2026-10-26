@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tree_sitter::Node;
 
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::{CorrectionRejection, Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::literal::{Decoded, node_value, to_string_literal, trim_interpolation_escape};
@@ -106,7 +106,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .map(|(item, value)| word_source(&text[item.range.clone()], item, &value.value))
             .collect();
         let bracketed = bracketed_replacement(context, node, &items, &written);
-        offenses.push(percent_array_offense(context, node, ARRAY_MSG, bracketed));
+        let offense = percent_array_offense(context, node, ARRAY_MSG, bracketed);
+        // 本家はrawの不正UTF-8を書いて構文を壊し、lossy値を書くと有効なまま値が変わる。
+        // 診断は残し、実際にこのcorrectorが選ばれた場合だけ原本全体へ戻す。
+        let loses_bytes = items
+            .iter()
+            .zip(&decoded)
+            .any(|(item, value)| !item.interpolated && !value.valid);
+        offenses.push(if loses_bytes {
+            offense.reject_corrections(CorrectionRejection::WordArrayInvalidBytes)
+        } else {
+            offense
+        });
     }
 }
 

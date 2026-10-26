@@ -1,0 +1,333 @@
+{
+  "schema": 1,
+  "issue": 172,
+  "reference_rubocop": "1.89.0",
+  "target_ruby": "2.7",
+  "parser_engine": "parser_whitequark",
+  "runtime_value_VM": "MRI4.0.7; not a Ruby2.7 execution proof",
+  "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n  NewCops: disable\nStyle/WordArray:\n  EnforcedStyle: percent\n",
+  "source_hex": "2320636f64696e673a205554462d380a76616c756573203d2025575b5c78393520666f6f206261725d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+  "reference_api": {
+    "rubocop_version": "1.89.0",
+    "ruby_version": "4.0.7",
+    "parser_version": "3.3.12.0",
+    "target_ruby": 2.7,
+    "parser_engine": "parser_whitequark",
+    "autocorrect": false,
+    "display_cop_names": false,
+    "actual_gem_versions": {
+      "parser": "3.3.12.0",
+      "rubocop-ast": "1.50.0",
+      "prism": "1.8.1",
+      "json": "2.18.0",
+      "rubocop": "1.89.0"
+    },
+    "input_valid_syntax": true,
+    "errors": 0,
+    "offenses": [
+      {
+        "severity": "convention",
+        "cop_name": "Style/WordArray",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 2,
+          "start_column": 10,
+          "last_line": 2,
+          "last_column": 25,
+          "length": 16,
+          "line": 2,
+          "column": 10
+        },
+        "message_record": {
+          "hex": "55736520605b2795272c2027666f6f272c2027626172275d6020666f7220616e206172726179206f6620776f7264732e",
+          "encoding": "UTF-8",
+          "valid_encoding": false,
+          "scrubbed_UTF8_display_not_raw": "Use `['�', 'foo', 'bar']` for an array of words."
+        }
+      }
+    ]
+  },
+  "reference_api_stdout_hex": "7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f76657273696f6e223a22342e302e37222c227061727365725f76657273696f6e223a22332e332e31322e30222c227461726765745f72756279223a322e372c227061727365725f656e67696e65223a227061727365725f7768697465717561726b222c226175746f636f7272656374223a66616c73652c22646973706c61795f636f705f6e616d6573223a66616c73652c2261637475616c5f67656d5f76657273696f6e73223a7b22706172736572223a22332e332e31322e30222c227275626f636f702d617374223a22312e35302e30222c22707269736d223a22312e382e31222c226a736f6e223a22322e31382e30222c227275626f636f70223a22312e38392e30227d2c22696e7075745f76616c69645f73796e746178223a747275652c226572726f7273223a302c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c22636f705f6e616d65223a225374796c652f576f72644172726179222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31302c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a32352c226c656e677468223a31362c226c696e65223a322c22636f6c756d6e223a31307d2c226d6573736167655f7265636f7264223a7b22686578223a22353537333635323036303562323739353237326332303237363636663666323732633230323736323631373232373564363032303636366637323230363136653230363137323732363137393230366636363230373736663732363437333265222c22656e636f64696e67223a225554462d38222c2276616c69645f656e636f64696e67223a66616c73652c2273637275626265645f555446385f646973706c61795f6e6f745f726177223a2255736520605b27efbfbd272c2027666f6f272c2027626172275d6020666f7220616e206172726179206f6620776f7264732e227d7d5d7d",
+  "reference_api_scope": "one original LF input; diagnostic API only; no correction or normal JSON formatter success",
+  "reference_CLI_dependency_versions": "not recorded for earlier saved CLI; do not infer the pinned API versions",
+  "reference_json_failure": {
+    "diagnostic": {
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_first_line_hex": "736f757263652073657175656e636520697320696c6c6567616c2f6d616c666f726d6564207574662d38",
+      "standard_JSON_succeeded": false,
+      "output_hex": "2320636f64696e673a205554462d380a76616c756573203d2025575b5c78393520666f6f206261725d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a"
+    },
+    "-a": {
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_first_line_hex": "736f757263652073657175656e636520697320696c6c6567616c2f6d616c666f726d6564207574662d38",
+      "standard_JSON_succeeded": false,
+      "output_hex": "2320636f64696e673a205554462d380d0a76616c756573203d205b2795272c2027666f6f272c2027626172275d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+      "runtime_after": {
+        "exit": 1,
+        "stdout_hex": "",
+        "stderr_first_lines_hex": "696e7075742e72623a20696e7075742e72623a323a2073796e746178206572726f7220666f756e64202853796e7461784572726f7229"
+      }
+    },
+    "-A": {
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_first_line_hex": "736f757263652073657175656e636520697320696c6c6567616c2f6d616c666f726d6564207574662d38",
+      "standard_JSON_succeeded": false,
+      "output_hex": "2320636f64696e673a205554462d380d0a76616c756573203d205b2795272c2027666f6f272c2027626172275d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+      "runtime_after": {
+        "exit": 1,
+        "stdout_hex": "",
+        "stderr_first_lines_hex": "696e7075742e72623a20696e7075742e72623a323a2073796e746178206572726f7220666f756e64202853796e7461784572726f7229"
+      }
+    }
+  },
+  "historical_lossy_native_not_an_expectation": {
+    "-a": {
+      "exit": 0,
+      "output_hex": "2320636f64696e673a205554462d380d0a76616c756573203d205b27efbfbd272c2027666f6f272c2027626172275d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+      "runtime_after": {
+        "exit": 0,
+        "stdout_hex": "6566626662642c3636366636662c363236313732",
+        "stderr_hex": ""
+      }
+    },
+    "-A": {
+      "exit": 0,
+      "output_hex": "2320636f64696e673a205554462d380d0a76616c756573203d205b27efbfbd272c2027666f6f272c2027626172275d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+      "runtime_after": {
+        "exit": 0,
+        "stdout_hex": "6566626662642c3636366636662c363236313732",
+        "stderr_hex": ""
+      }
+    }
+  },
+  "expected_safe_policy": {
+    "file_rollback": true,
+    "exit": 2,
+    "output_hex": "2320636f64696e673a205554462d380a76616c756573203d2025575b5c78393520666f6f206261725d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+    "corrected": false,
+    "correctable": true,
+    "reason_contains": "Style/WordArray would change the bytes of a string literal"
+  },
+  "runtime_original": {
+    "exit": 0,
+    "stdout_hex": "39352c3636366636662c363236313732",
+    "stderr_hex": ""
+  },
+  "controls": [
+    {
+      "id": "single-quoted-byte-text",
+      "source_hex": "2320636f64696e673a205554462d380a76616c756573203d205b275c783935272c2027666f6f272c2027626172275d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+      "runtime_original": {
+        "exit": 0,
+        "stdout_hex": "35633738333933352c3636366636662c363236313732",
+        "stderr_hex": ""
+      },
+      "reference": {
+        "-a": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380a76616c756573203d205b275c783935272c2027666f6f272c2027626172275d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "35633738333933352c3636366636662c363236313732",
+            "stderr_hex": ""
+          }
+        },
+        "-A": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380a76616c756573203d205b275c783935272c2027666f6f272c2027626172275d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "35633738333933352c3636366636662c363236313732",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "double-quoted-invalid-byte",
+      "source_hex": "2320636f64696e673a205554462d380a76616c756573203d205b225c783935222c2022666f6f222c2022626172225d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+      "runtime_original": {
+        "exit": 0,
+        "stdout_hex": "39352c3636366636662c363236313732",
+        "stderr_hex": ""
+      },
+      "reference": {
+        "-a": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380a76616c756573203d205b225c783935222c2022666f6f222c2022626172225d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "39352c3636366636662c363236313732",
+            "stderr_hex": ""
+          }
+        },
+        "-A": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380a76616c756573203d205b225c783935222c2022666f6f222c2022626172225d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": []
+              }
+            ],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "39352c3636366636662c363236313732",
+            "stderr_hex": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "double-quoted-normal-escape",
+      "source_hex": "2320636f64696e673a205554462d380a76616c756573203d205b22666f5c6f222c2022626172222c202262617a225d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290a",
+      "runtime_original": {
+        "exit": 0,
+        "stdout_hex": "3636366636662c3632363137322c363236313761",
+        "stderr_hex": ""
+      },
+      "reference": {
+        "-a": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380d0a76616c756573203d2025775b666f6f206261722062617a5d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `%w` or `%W` for an array of words.",
+                    "cop_name": "Style/WordArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 2,
+                      "start_column": 10,
+                      "last_line": 2,
+                      "last_column": 31,
+                      "length": 22,
+                      "line": 2,
+                      "column": 10
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "3636366636662c3632363137322c363236313761",
+            "stderr_hex": ""
+          }
+        },
+        "-A": {
+          "exit": 0,
+          "after_windows_hex": "2320636f64696e673a205554462d380d0a76616c756573203d2025775b666f6f206261722062617a5d0d0a5354444f55542e77726974652876616c7565732e6d6170207b207c776f72647c20776f72642e756e7061636b312827482a2729207d2e6a6f696e28272c2729290d0a",
+          "report_formatter_segment": {
+            "files": [
+              {
+                "path": "input.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Use `%w` or `%W` for an array of words.",
+                    "cop_name": "Style/WordArray",
+                    "corrected": true,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 2,
+                      "start_column": 10,
+                      "last_line": 2,
+                      "last_column": 31,
+                      "length": 22,
+                      "line": 2,
+                      "column": 10
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "full_stdout_JSON_success": false,
+          "shared_notice_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+          "runtime_after": {
+            "exit": 0,
+            "stdout_hex": "3636366636662c3632363137322c363236313761",
+            "stderr_hex": ""
+          }
+        }
+      }
+    }
+  ]
+}
