@@ -1,0 +1,54 @@
+RuboCop 1.89.0 / parser 3.3.12.0 / MRI 4.0.7, Windows x64.
+
+再録:
+  python scripts/conformance/record_selector_csv.py --ruby <ruby.exe> --launcher <reference.rb> --work <fresh-directory> --out tests/fixtures/selector_csv.json
+
+reference.rb:
+  gem 'parser', '3.3.12.0'
+  gem 'rubocop', '1.89.0'
+  load Gem.bin_path('rubocop', 'rubocop', '1.89.0')
+
+自作の有限入力114条件について実CLIと実Options.parseを各1回実行する。
+候補のsource/outputは読まない。RUBYOPT/RUBYLIB/RUBOCOP_OPTS/
+RUBOCOP_TARGET_RUBY_VERSIONを各起動から除き、GemパスとOS環境は保持する。
+CLIのstdout/stderr/formatter保存bytes、入力、argv、終了値を保持する。
+JSON比較用reportだけmetadataを外し、原JSONはstdout_hex/raw_hexへ残す。
+Options.parseの実版と、正常実行の対象path・検査完了・診断集計を検証する。
+原本はすべて非補正の実bytesが不変であることを確認する。
+
+51条件: 正常JSON、全診断フィールド、警告、出力slotを比較する。
+  disk/stdin、末尾空要素、onlyの必須Lint/Syntax、exceptの空リスト、
+  通常名/短縮名/誤namespace、先行空白付きnamespace、Syntax alias、
+  構文不正入力、警告の複数fileでの一度だけの表示、対象0での無警告を含む。
+12条件: missing値とmandatory Syntax除外の早期拒否envelopeを比較する。
+47条件: explicit空文字/先頭・内部空要素/空白/未知名を拒否することを検査。
+  late errorのJSON/stderr表示はIssue118の残差で、完全互換とは数えない。
+4条件: LF単独argvのOptionParser消費境界を別記録とし、Issue117の成功へ数えない。
+  CSV分割の仕様へargv消費規則を一般化しない。
+
+Windows警告のCRLF bytesを保存する。POSIXテストではwarnの改行だけをOSへ合わせる。
+CSVの期待は本家Options.parse実記録から直接検査し、候補から期待を作らない。
+
+Badge正規化の有限補足は別ファイルselector_badges.jsonへ保存する。
+  python scripts/conformance/record_selector_csv.py --set badge --ruby <ruby.exe> --launcher <reference.rb> --work <fresh-directory> --out tests/fixtures/selector_badges.json
+
+元selector_csv.jsonの114記録は書き換えていない。
+補足はonly/except×disk/stdin×8入力の32CLIと32 Options.parse。
+wrong/SpaceAroundOperators、Wrong/space_around_operators、正規名、空文字、
+separator、未知名、bare snake名、登録済みbadgeへ正規化される元名を含む。
+20条件を全JSON/警告/原本bytesで比較し、12条件はIssue118のlate表示残差付き拒否確認。
+Badge.parseのcamel_caseとRegistryの登録済みbadge早期return/resolve_badgeに従い、
+警告は正規化badgeを使うが、登録済みなら元名をそのまま返す分岐を区別する。
+実CLIのraw selectorとOptions.parse結果はそのまま保存し、候補を期待へ転記しない。
+
+directory stdin と選択名の警告を組み合わせる追加6条件は、
+selector_directory_warnings.json へ別に保存する。元114条件と補足32条件は不変。
+  python scripts/conformance/record_selector_csv.py --set directory --ruby <ruby.exe> --launcher <reference.rb> --work <fresh-directory> --out tests/fixtures/selector_directory_warnings.json
+
+RuboCop 1.89.0 / parser 3.3.12.0 / MRI 4.0.7 / Windows の実CLIを6回、
+実Options.parseを6回、直列で新たに実行した。候補の出力は採取器へ渡していない。
+5条件はmetadata以外の全JSON・警告bytes・原本を比較し、1条件は検査前の一覧本文と
+無警告を比較する。対象1つ/2つ/空ディレクトリ/一覧表示/安全補正/誤namespaceを含む。
+Ruby原本はstdin本文と異なる値にして、物理ファイルの全bytesが不変であることも検査した。
+元の146条件の比較範囲、118の後段表示差、125の4引数境界はそのまま保持する。
+追加fixture SHA256: d48f9efeed8894d42fa76a22e433495c55d099270c5e2d96003c8b81e5e8025e
