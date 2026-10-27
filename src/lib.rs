@@ -17,6 +17,7 @@ mod heredocs;
 pub mod legacy_parser;
 mod lexical_locals;
 mod magic_comment;
+mod name_distance;
 mod nul_bytes;
 mod parser;
 mod prism;

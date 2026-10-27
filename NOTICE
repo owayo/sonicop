@@ -187,6 +187,13 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Source details: tests/fixtures/project_index_cases.json.PROVENANCE
       Read by tests/project_index.rs
 
+  tests/fixtures/unknown_cop_report.json
+  tests/fixtures/unknown_cop_directory_report.json
+      Constructed CLI inputs paired with actual RuboCop 1.89.0 refusal streams,
+      empty reports and unchanged input bytes, rather than candidate output.
+      Regenerate: scripts/conformance/record_unknown_cop_report.py
+      Source details: tests/fixtures/unknown_cop_report.json.PROVENANCE
+
   tests/fixtures/legacy_syntax_reports.json
       Constructed regression inputs paired with complete offense fields,
       exit codes and correction bytes recorded from RuboCop 1.89.0's CLI.
@@ -314,6 +321,8 @@ DidYouMean -- https://github.com/ruby/did_you_mean -- MIT
   Copyright (c) 2014-2016 Yuki Nishijima
 
   src/rules/lint/name_typo.rs
+  src/name_distance.rs
+  src/cli.rs
       The suggestion ranking mirrors DidYouMean 2.0.0's SpellChecker,
       JaroWinkler and Levenshtein algorithms used by the reference Ruby.
       Full text: licenses/DID_YOU_MEAN.txt
