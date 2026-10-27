@@ -1,0 +1,38 @@
+RuboCop 1.89.0 whitequark EOF reporting ranges
+============================================
+
+Upstream: https://github.com/rubocop/rubocop
+License: MIT; full text in licenses/RUBOCOP.txt.
+Issue: https://github.com/owayo/sonicop/issues/175
+
+Recorded with MRI 4.0.7 (x64-mingw-ucrt), RuboCop 1.89.0,
+parser 3.3.12.0, rubocop-ast 1.50.0, Prism 1.8.1 (CEXT), Rainbow 3.1.1.
+The 18 cells use six literal byte inputs, targets 3.3/whitequark,
+3.4/whitequark and 3.3/Prism. No source was evaluated by the Ruby VM.
+
+Each offense/file record comes from actual specification JSON. The existing
+five-byte no-LF input was reused from three completed 55-file batches. Five
+additional LF/CRLF/UTF8-prefix/valid-hex controls were recorded in one five-file
+batch per setting. The new three batches completed all inputs and preserved
+input bytes/mode/mtime. ENV4 was removed from a child environment copy and
+actual loaded versions/effective target/backend were retained privately.
+Native output was never used to construct expectations.
+
+The fixture combines exact per-file reference records, not a newly captured
+six-file report: only the known no-LF path was projected to the declared case
+path; all offense fields are unchanged. Group summary counts are derived from
+the six authoritative records. Runtime metadata is identical across the joined
+records. CLI assertions exclude only the four documented implementation runtime
+identity keys; rubocop_version/ruby_patchlevel and all other JSON fields stay
+strict. The capture order remains in files; duplicate diagnostics are retained.
+
+The original stdout/stderr/argv/runtime records remain in the maintainer's
+private evidence packet. Reference stderr includes the existing pending notice;
+this location regression compares JSON, not the separately tracked transport
+or pending-notice behavior. The public fixture contains no private cwd/path.
+
+Regeneration inputs are source_hex and each group's YAML. Run RuboCop 1.89.0
+with --config CONFIG --cache false --only Lint/Syntax --format json and the
+listed paths, then compare exact per-file records. No dedicated public collector
+is claimed. JSON container uses LF; source CRLF bytes remain escaped as hex.
+These are diagnostics only, not correction/VM/latest/corpus/FINAL evidence.

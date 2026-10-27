@@ -15,6 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         legacy_targets::check(context, offenses);
         return;
     }
+    let mut whitequark_reported_range = false;
     let mut diagnostics: Vec<(std::ops::Range<usize>, String)> =
         if let Some(found) = crate::prism::diagnostics(context) {
             found
@@ -30,6 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 legacy_targets::check(context, offenses);
                 return;
             };
+            whitequark_reported_range = true;
             legacy_parser::diagnostics(context.source.text(), version)
                 .into_iter()
                 .map(|diagnostic| (diagnostic.range, diagnostic.message))
@@ -40,7 +42,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     diagnostics.sort_by_key(|(range, _)| (range.start, range.end));
     diagnostics.dedup_by(|left, right| left.0 == right.0);
     for (range, reason) in diagnostics {
-        offenses.push(context.offense(syntax_message(&reason, target), range));
+        // 桁は既存 line_column が EOF の先も数えるが、長さの切り出しは本文内に保つ。
+        // この補完は whitequark の報告範囲だけで、Prism の診断には適用しない。
+        let past_eof = range.end.saturating_sub(context.source.len());
+        let reported_length = (whitequark_reported_range && past_eof > 0).then(|| {
+            crate::diagnostic::character_length(context.source, range.start, range.end) + past_eof
+        });
+        let offense = context.offense(syntax_message(&reason, target), range);
+        offenses.push(match reported_length {
+            Some(length) => offense.with_length(length),
+            None => offense,
+        });
     }
 }
 
