@@ -18,8 +18,8 @@ use crate::engine::{
     native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
-    Format, FormatOptions, Lifecycle, Output, OutputSet, offenses_by_cop, render, smart_path,
-    yaml_single_quoted,
+    Format, FormatOptions, Lifecycle, Output, OutputSet, absolute_path, offenses_by_cop, render,
+    smart_path, yaml_single_quoted,
 };
 use crate::name_distance::{jaro_winkler, levenshtein};
 use crate::rules::rule_names;
@@ -772,7 +772,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
     let inspection = if let Some(failure) = selection_failure {
-        inspect_rejected_inputs(&cli, &cwd, &configs, failure, selection_warnings)?
+        inspect_rejected_inputs(&cli, &cwd, &configs, parallel, failure, selection_warnings)?
     } else {
         inspect_inputs(
             &cli,
@@ -814,6 +814,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         }
         Inspection::Rejected {
             target_count,
+            first_path,
             warnings,
             failure,
         } => {
@@ -827,6 +828,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
                     corrected_count: 0,
                     target_count,
                     rejection: Some(&warnings),
+                    rejected_path: Some(&first_path),
                 },
                 &[],
             )?;
@@ -834,10 +836,6 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         }
     };
 
-    if cli.debug {
-        let inspected = stdin_directory.as_ref().map_or(reports.len(), Vec::len);
-        debug_report(&cwd, &config, inspected, parallel);
-    }
     if cli.auto_gen_config || cli.regenerate_todo {
         if let Some(targets) = &stdin_directory {
             reports = inspect_stdin_directory(
@@ -911,6 +909,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             corrected_count,
             target_count,
             rejection: None,
+            rejected_path: None,
         },
         &reports,
     )?;
@@ -1080,6 +1079,7 @@ enum Inspection {
     ListedTargets,
     Rejected {
         target_count: usize,
+        first_path: PathBuf,
         warnings: Vec<String>,
         failure: SelectionFailure,
     },
@@ -1089,6 +1089,7 @@ fn inspect_rejected_inputs(
     cli: &Cli,
     cwd: &Path,
     configs: &ConfigStore,
+    parallel: bool,
     mut failure: SelectionFailure,
     mut warnings: Vec<String>,
 ) -> Result<Inspection> {
@@ -1108,6 +1109,9 @@ fn inspect_rejected_inputs(
             // stdinの名前もTargetFinderが展開する。対象ゼロと一覧ではmobilizeへ届かない。
             let targets =
                 discover_stdin_targets_with_store(path, cwd, configs, cli.directory_order())?;
+            if cli.debug {
+                debug_report(cwd, configs.root(), targets.len(), parallel)?;
+            }
             if cli.list_target_files {
                 for target in targets {
                     let line = format!("{}\n", smart_path(&target, cwd));
@@ -1121,9 +1125,13 @@ fn inspect_rejected_inputs(
             configs.for_path(first)?;
             return Ok(Inspection::Rejected {
                 target_count: targets.len(),
+                first_path: first.clone(),
                 warnings,
                 failure,
             });
+        }
+        if cli.debug {
+            debug_report(cwd, configs.root(), 1, parallel)?;
         }
         if anonymous {
             anonymous_stdin_config(configs, path)?;
@@ -1132,12 +1140,16 @@ fn inspect_rejected_inputs(
         }
         return Ok(Inspection::Rejected {
             target_count: 1,
+            first_path: path.to_path_buf(),
             warnings,
             failure,
         });
     }
 
     let targets = rejected_selection_targets(cli, cwd, configs)?;
+    if cli.debug {
+        debug_report(cwd, configs.root(), targets.len(), parallel)?;
+    }
     if cli.list_target_files {
         let mut output = io::stdout().lock();
         for path in targets {
@@ -1178,6 +1190,7 @@ fn inspect_rejected_inputs(
     }
     Ok(Inspection::Rejected {
         target_count: targets.len(),
+        first_path: first.clone(),
         warnings,
         failure,
     })
@@ -1256,6 +1269,9 @@ fn inspect_inputs(
             cli.only_recognized_file_types,
             directory_order,
         )?;
+        if cli.debug {
+            debug_report(cwd, configs.root(), targets.len(), parallel)?;
+        }
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
             for path in targets {
@@ -1300,6 +1316,9 @@ fn inspect_inputs(
     if !anonymous_stdin && stdin_path.is_dir() {
         let targets =
             discover_stdin_targets_with_store(&stdin_path, cwd, configs, directory_order)?;
+        if cli.debug {
+            debug_report(cwd, configs.root(), targets.len(), parallel)?;
+        }
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
             for path in targets {
@@ -1312,6 +1331,9 @@ fn inspect_inputs(
             emit_selection_warnings(selection_warnings)?;
         }
         return Ok(Inspection::StdinDirectory { targets, bytes });
+    }
+    if cli.debug {
+        debug_report(cwd, configs.root(), 1, parallel)?;
     }
     *selection = selection.with_project_index(std::slice::from_ref(&stdin_path), configs)?;
     let target_config = if anonymous_stdin {
@@ -1969,27 +1991,32 @@ fn warn_unimplemented_enabled(config: &Config, selection: &Selection) {
     );
 }
 
-fn debug_report(cwd: &Path, config: &Config, targets: usize, parallel: bool) {
+fn debug_report(cwd: &Path, config: &Config, targets: usize, parallel: bool) -> Result<()> {
     let implemented: HashSet<&str> = rule_names().collect();
     let mut unimplemented = config
         .known_cop_names()
         .filter(|name| !implemented.contains(name))
         .collect::<Vec<_>>();
     unimplemented.sort();
-    eprintln!(
-        "For {}: configuration from {}, {targets} target(s), parallel={parallel}",
+    let output = format!(
+        "For {}: configuration from {}, {targets} target(s), parallel={parallel}\n\
+         Implemented cops: {}; recognized but not implemented: {}\n\
+         Unimplemented cops: {}\n",
         cwd.display(),
         config.config_path().map_or_else(
             || "built-in defaults".to_owned(),
             |path| path.display().to_string()
-        )
-    );
-    eprintln!(
-        "Implemented cops: {}; recognized but not implemented: {}",
+        ),
         implemented.len(),
-        unimplemented.len()
+        unimplemented.len(),
+        unimplemented.join(", ")
     );
-    eprintln!("Unimplemented cops: {}", unimplemented.join(", "));
+    // native の実構成を示し、Runnerのredirect外にある本家の設定ログと同じstdoutへ出す。
+    write_output(&output, None, false)
+}
+
+fn emit_debug_scanning(output: &mut impl Output, path: &Path, cwd: &Path) -> Result<()> {
+    output.puts(&format!("Scanning {}", absolute_path(path, cwd)))
 }
 
 /// The cop names a `--show-cops`/`--show-docs-url` filter selects, sorted. An empty filter names
@@ -2174,6 +2201,8 @@ struct RenderRequest<'a> {
     target_count: usize,
     /// 失敗前に初回mobilizeが出した警告。Someなら空finishedをcallback順に出力する。
     rejection: Option<&'a [String]>,
+    /// reportを持たない最初のfile_startedも、実際に探索したpathで記録する。
+    rejected_path: Option<&'a Path>,
 }
 
 fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result<()> {
@@ -2186,6 +2215,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         corrected_count,
         target_count,
         rejection,
+        rejected_path,
     } = *request;
     let formats = if cli.formats.is_empty() {
         vec![
@@ -2212,18 +2242,25 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
         display_only_failed: cli.display_only_failed,
     };
-    let paths = (0..formats.len())
+    let mut paths = (0..formats.len())
         .map(|index| outputs.get(index).cloned().flatten())
         .collect::<Vec<_>>();
+    if cli.debug {
+        // formatterの--outとは独立したrunnerのstream。共有bufferでfile eventとの順を守る。
+        paths.push(None);
+    }
     let mut parsed_formats = Vec::with_capacity(formats.len());
     // FormatterSet#add_formatterは各Fileを開いた後にそのclassを解決する。
     // 未知名でも当該Fileはtruncateされ、後続entryはまだ開かれない。
     let mut destinations = OutputSet::open(&paths, cli.stderr, |index| {
-        parsed_formats.push(Format::parse(&formats[index])?);
+        // 末尾のdebug slotはformatterではないため、classを解決しない。
+        if index < formats.len() {
+            parsed_formats.push(Format::parse(&formats[index])?);
+        }
         Ok(())
     })?;
     let formats = parsed_formats;
-    if formats.len() == 1 && rejection.is_none() {
+    if formats.len() == 1 && rejection.is_none() && !cli.debug {
         // 同じ File を共有する別formatterがなければ、公開StringSink経路を一度で書ける。
         // compact JSON の余分な段階bufferとwrite syscallを増やさない。
         destinations
@@ -2241,6 +2278,11 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     if let Some(warnings) = rejection {
         // first file_startedの後でmobilizeが失敗し、file_finishedは一度も呼ばれない。
         if target_count > 0 {
+            if cli.debug
+                && let Some(path) = rejected_path
+            {
+                emit_debug_scanning(&mut destinations.writer(formats.len()), path, cwd)?;
+            }
             for (index, formatter) in formatters.iter_mut().enumerate() {
                 formatter.file_started(0, &mut destinations.writer(index))?;
             }
@@ -2257,7 +2299,11 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
             emit_selection_warnings(warnings)?;
         }
     }
-    for file in 0..reports.len() {
+    for (file, report) in reports.iter().enumerate() {
+        if cli.debug {
+            // 全formatterと同じ出力event再生であり、並列のfilesystem読取時刻を示すものではない。
+            emit_debug_scanning(&mut destinations.writer(formats.len()), &report.path, cwd)?;
+        }
         for (index, formatter) in formatters.iter_mut().enumerate() {
             formatter.file_started(file, &mut destinations.writer(index))?;
         }
