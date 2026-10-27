@@ -496,18 +496,15 @@ fn render_json(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<St
     Ok(serde_json::to_string(&output)?)
 }
 
-/// The message with the backticks RuboCop's `simple` and `tap` formatters strip.
-///
-/// Those two are the only ones that call `annotate_message`, so `Useless assignment to variable -
-/// `x`.` reads as `- x.` there and keeps its backticks everywhere else.
-fn annotate_message(message: &str) -> String {
+/// SimpleTextFormatter は backtick 内だけを黄、TapFormatter の override は無色にする。
+fn annotate_message(message: &str, color: bool) -> String {
     let mut out = String::with_capacity(message.len());
     let mut rest = message;
     while let Some(open) = rest.find('`') {
         match rest[open + 1..].find('`') {
             Some(close) => {
                 out.push_str(&rest[..open]);
-                out.push_str(&rest[open + 1..open + 1 + close]);
+                out.push_str(&paint(&rest[open + 1..open + 1 + close], "33", color));
                 rest = &rest[open + close + 2..];
             }
             None => break,
@@ -618,6 +615,24 @@ fn display_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
     )
 }
 
+fn simple_message(offense: &Offense, options: &FormatOptions<'_>) -> String {
+    // SimpleTextFormatter#message は status と注釈本文を別々に描き、本文全体を塗らない。
+    let status = status_marker(offense);
+    let status = if status.is_empty() {
+        String::new()
+    } else {
+        paint(
+            status,
+            if offense.corrected { "32" } else { "33" },
+            options.color,
+        )
+    };
+    format!(
+        "{status}{}",
+        annotate_message(&annotated_message(offense, options), options.color)
+    )
+}
+
 /// 本家 MessageAnnotator#annotate が全 formatter へ渡す共通 message。
 /// cop 名・Details・StyleGuide は JSON にも含む。raw message は保ち、cache hit の cop 名は
 /// 保存時の設定に従う。Details/StyleGuide の明示変更は別の cache namespace になる。
@@ -718,6 +733,11 @@ fn summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
     } else {
         plural(offense_count, "offense")
     };
+    let offenses = paint(
+        &offenses,
+        if offense_count == 0 { "32" } else { "31" },
+        options.color,
+    );
     let mut output = format!(
         "{} inspected, {offenses} detected",
         plural(reports.len(), "file")
@@ -725,19 +745,31 @@ fn summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
     if options.corrected_count > 0 {
         output.push_str(&format!(
             ", {} corrected",
-            plural(options.corrected_count, "offense")
+            paint(
+                &plural(options.corrected_count, "offense"),
+                if options.corrected_count == offense_count {
+                    "32"
+                } else {
+                    "36"
+                },
+                options.color
+            )
         ));
     }
     if correctable_count > 0 {
         if options.safe_autocorrect {
             output.push_str(&format!(
                 ", {} can be corrected with `rubocop -A`",
-                plural(correctable_count, "more offense")
+                paint(
+                    &plural(correctable_count, "more offense"),
+                    "33",
+                    options.color
+                )
             ));
         } else {
             output.push_str(&format!(
                 ", {} autocorrectable",
-                plural(correctable_count, "offense")
+                paint(&plural(correctable_count, "offense"), "33", options.color)
             ));
         }
     }
@@ -851,7 +883,8 @@ fn xml_escape(value: &str) -> String {
 
 fn severity_color(severity: Severity) -> &'static str {
     match severity {
-        Severity::Info => "90",
+        // RuboCop 1.89.0 / Rainbow の gray は indexed color 188。
+        Severity::Info => "38;5;188",
         Severity::Refactor | Severity::Convention => "33",
         Severity::Warning => "35",
         Severity::Error | Severity::Fatal => "31",

@@ -1,0 +1,36 @@
+RuboCop 1.89.0 の単一 formatter における ANSI leaf の実 CLI 記録。
+
+参照: Windows x64 UCRT / Ruby 4.0.7 / RuboCop 1.89.0 / parser 3.3.12.0 /
+Prism 1.8.1 / rubocop-ast 1.50.0。取得日 2026-10-25。すべて非TTYのpipeで捕捉した。
+
+再生成:
+  python scripts/conformance/record_formatter_colors.py --ruby <Ruby-4.0.7の実体> --output <未作成のJSONパス>
+
+Rainbow は3.1.1へ固定し、実childのloaded版も照合する。
+採取先の既存ファイルは上書きせず、保存済み記録を保つ。
+
+cases は simple/clang の各6 severity、no-color、no-cop、Details+StyleGuide、
+-a の Corrected、clean を合わせた22条件。tap_controls の2条件は共有leafである
+Tapの status/backtick 無色overrideを守るための color/no-color 陰性対照。
+候補を起動せず、終了0/1・stderr空・正の検査完了footer・固定版の全件一致を要求する。
+source/configのLF bytes、stdout/stderrの生hex、CRLFだけをLFにした投影を保持する。
+非補正条件では原本bytes/mtime不変を要求する。補正後の実原本bytesも記録する。
+
+Ruby SimpleTextFormatter#report_file/#colored_severity_code/#annotate_message/#message、
+ClangStyleFormatter#report_offense、SimpleTextFormatter::Report の count ごとの色付けに従う。
+InfoのgrayはANSI 38;5;188、R/Cは33、Wは35、E/Fは31。ヘッダresetはLFの前。
+status/引用内/summary countを局所的に塗り、通常本文とcop名、URL、座標は塗らない。
+clangのpathは36、source/caretは無色。Tapのstatusと引用内は無色のまま。
+
+回帰はWindowsで生stdout全byteとディスク書出しを比較する。Unixでは保存済みWindows
+CRLFをLFへ投影するが、Unixの本家CLI実測とは数えない。ANSIの差を消す投影はしない。
+collector は RUBYOPT / RUBYLIB / RUBOCOP_OPTS / RUBOCOP_TARGET_RUBY_VERSION だけを
+子環境のcopyから除き、親・GEM_HOME/GEM_PATH/PATH/OS等の値を保つ。
+専用Python回帰と、各4種の未隔離実Rubyがexit1/1/2/2となる陰性対照、
+cleanと4種同時汚染の隔離実行が同じ参照記録となる実測で確認した。
+
+#116のevent routing/Sink、#102のtextmode transport、#110のraw/cache注釈の意味とは分離する。
+新しい意図的差分の許容ではない。部分補正countのcyan条件は本家sourceに従い、
+この22条件の実CLIでは全件補正のgreenだけを測定した。
+部分補正とUnicode引用の追加実測は formatter_color_boundaries.json に分けた。
+採取時の終了・stderr・版・完了・原本/設定保持の検査は、Python -O でも省略しない。
