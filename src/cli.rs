@@ -21,6 +21,7 @@ use crate::formatter::{
     Format, FormatOptions, Lifecycle, Output, OutputSet, offenses_by_cop, render, smart_path,
     yaml_single_quoted,
 };
+use crate::name_distance::{jaro_winkler, levenshtein};
 use crate::rules::rule_names;
 use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 
@@ -316,7 +317,13 @@ fn run_inner() -> i32 {
     match try_run(cli, &outputs) {
         Ok(code) => code,
         Err(error) => {
-            eprintln!("Error: {error:#}");
+            if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
+                let prefix = if failure.error_prefix { "Error: " } else { "" };
+                let text = format!("{prefix}{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else {
+                eprintln!("Error: {error:#}");
+            }
             2
         }
     }
@@ -740,22 +747,35 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 
     let correct_mode = cli.correct_mode();
-    let (mut selection, selection_warnings) = build_selection(&cli, &config, correct_mode)?;
-    let result_cache = result_cache(&cli, &cwd, &selection, &config)?;
-    if !cli.list_target_files {
+    let PreparedSelection {
+        mut selection,
+        warnings: selection_warnings,
+        failure: selection_failure,
+    } = build_selection(&cli, &config, correct_mode);
+    // 未知名では本家の最初のmobilizeまで進める。native cacheの生成は正常経路だけに保つ。
+    let result_cache = if selection_failure.is_none() {
+        result_cache(&cli, &cwd, &selection, &config)?
+    } else {
+        None
+    };
+    if !cli.list_target_files && selection_failure.is_none() {
         warn_unimplemented_enabled(&config, &selection);
     }
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
-    let inspection = inspect_inputs(
-        &cli,
-        &cwd,
-        &configs,
-        &mut selection,
-        parallel,
-        result_cache.as_ref(),
-        &selection_warnings,
-    )?;
+    let inspection = if let Some(failure) = selection_failure {
+        inspect_rejected_inputs(&cli, &cwd, &configs, failure, selection_warnings)?
+    } else {
+        inspect_inputs(
+            &cli,
+            &cwd,
+            &configs,
+            &mut selection,
+            parallel,
+            result_cache.as_ref(),
+            &selection_warnings,
+        )?
+    };
     if let Some(cache) = &result_cache {
         cache.prune();
     }
@@ -783,6 +803,26 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
                 print_corrected_stdin(&cli, &corrected)?;
             }
             return Ok(if run.had_write_failures { 2 } else { 0 });
+        }
+        Inspection::Rejected {
+            target_count,
+            warnings,
+            failure,
+        } => {
+            render_outputs(
+                &RenderRequest {
+                    cli: &cli,
+                    config: &config,
+                    cwd: &cwd,
+                    fail_level,
+                    outputs,
+                    corrected_count: 0,
+                    target_count,
+                    rejection: Some(&warnings),
+                },
+                &[],
+            )?;
+            return Err(failure.into());
         }
     };
 
@@ -862,6 +902,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             outputs,
             corrected_count,
             target_count,
+            rejection: None,
         },
         &reports,
     )?;
@@ -877,11 +918,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     })
 }
 
-fn build_selection(
-    cli: &Cli,
-    config: &Config,
-    correct_mode: CorrectMode,
-) -> Result<(Selection, Vec<String>)> {
+fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> PreparedSelection {
     let mut only = selector_csv(cli.only.as_deref(), true);
     if cli.lint {
         only.push("Lint".to_owned());
@@ -889,13 +926,21 @@ fn build_selection(
     if cli.fix_layout {
         only.push("Layout".to_owned());
     }
-    let (only, mut warnings) = qualify_selectors(only, "--only", config);
-    validate_selection(&only, "--only", config)?;
-
+    let (only, mut warnings, mut failure) = qualify_selectors(only, "--only", config);
     let except = selector_csv(cli.except.as_deref(), false);
-    let (except, except_warnings) = qualify_selectors(except, "--except", config);
-    warnings.extend(except_warnings);
-    validate_selection(&except, "--except", config)?;
+    let except = if failure.is_none() {
+        let (except, except_warnings, except_failure) =
+            qualify_selectors(except, "--except", config);
+        warnings.extend(except_warnings);
+        failure = except_failure;
+        except
+    } else {
+        except
+    };
+    // Runnerは両optionをqualifyした後でunknownを調べ、曖昧さだけはqualify中に停止する。
+    let failure = failure
+        .or_else(|| validate_selection(&only, config))
+        .or_else(|| validate_selection(&except, config));
 
     let selection = Selection {
         only,
@@ -908,15 +953,35 @@ fn build_selection(
         ignore_disable_comments: cli.ignore_disable_comments,
         display_suppressed: cli.display_suppressed,
         correcting: correct_mode != CorrectMode::None,
-        // `LSP.enabled?`. `--lsp` sets it too, but that mode returns before anything is inspected,
-        // so `--editor-mode` is the only way it reaches a cop from here.
+        // LSPは検査前に戻るため、ここからcopへ届くLSP.enabled?はeditor-modeだけ。
         editor_mode: cli.editor_mode,
-        // **No flag turns this on from the command line.** The guard is switched off for tests
-        // only, and even then per case; a run reaches the environment variable or nothing.
+        // guardを外すCLI flagはない。テストの明示指定か既存の環境変数だけを使う。
         skip_syntax_guard: false,
         project_index: None,
     };
-    Ok((selection, warnings))
+    PreparedSelection {
+        selection,
+        warnings,
+        failure,
+    }
+}
+
+struct PreparedSelection {
+    selection: Selection,
+    warnings: Vec<String>,
+    failure: Option<SelectionFailure>,
+}
+
+#[derive(Debug)]
+struct SelectionFailure {
+    message: String,
+    error_prefix: bool,
+}
+
+impl std::fmt::Display for SelectionFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.message)
+    }
 }
 
 fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
@@ -933,6 +998,8 @@ fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
         config.display_cop_names()
     }
 }
+
+impl std::error::Error for SelectionFailure {}
 
 fn result_cache(
     cli: &Cli,
@@ -1003,6 +1070,160 @@ enum Inspection {
         bytes: Vec<u8>,
     },
     ListedTargets,
+    Rejected {
+        target_count: usize,
+        warnings: Vec<String>,
+        failure: SelectionFailure,
+    },
+}
+
+fn inspect_rejected_inputs(
+    cli: &Cli,
+    cwd: &Path,
+    configs: &ConfigStore,
+    mut failure: SelectionFailure,
+    mut warnings: Vec<String>,
+) -> Result<Inspection> {
+    if let Some(path) = &cli.stdin {
+        if !cli.paths.is_empty() {
+            bail!(
+                "--stdin requires exactly one path supplied as its argument and no file arguments"
+            );
+        }
+        let anonymous = path.as_os_str().is_empty();
+        let path = if anonymous { cwd } else { path.as_path() };
+        let mut bytes = Vec::new();
+        io::stdin()
+            .read_to_end(&mut bytes)
+            .context("failed to read source from stdin")?;
+        if !anonymous && path.is_dir() {
+            // stdinの名前もTargetFinderが展開する。対象ゼロと一覧ではmobilizeへ届かない。
+            let targets = discover_stdin_targets_with_store(path, cwd, configs)?;
+            if cli.list_target_files {
+                for target in targets {
+                    let line = format!("{}\n", smart_path(&target, cwd));
+                    io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
+                }
+                return Ok(Inspection::ListedStdin { bytes });
+            }
+            let Some(first) = targets.first() else {
+                return Ok(Inspection::StdinDirectory { targets, bytes });
+            };
+            configs.for_path(first)?;
+            return Ok(Inspection::Rejected {
+                target_count: targets.len(),
+                warnings,
+                failure,
+            });
+        }
+        if anonymous {
+            anonymous_stdin_config(configs, path)?;
+        } else {
+            configs.for_path(path)?;
+        }
+        return Ok(Inspection::Rejected {
+            target_count: 1,
+            warnings,
+            failure,
+        });
+    }
+
+    let targets = rejected_selection_targets(cli, cwd, configs)?;
+    if cli.list_target_files {
+        let mut output = io::stdout().lock();
+        for path in targets {
+            let line = format!("{}\n", smart_path(&path, cwd));
+            output.write_all(&native_textmode_bytes(line.as_bytes()))?;
+        }
+        return Ok(Inspection::ListedTargets);
+    }
+    let Some(first) = targets.first() else {
+        // Runnerは対象ゼロならmobilizeを呼ばない。名前も警告も失敗へ昇格しない。
+        return Ok(Inspection::Reports {
+            reports: Vec::new(),
+            target_count: 0,
+            stdin_original: None,
+        });
+    };
+    configs.for_path(first)?;
+    // cached_run?はnative cacheの使用条件と違い、補正中でもstdin以外なら有効になる。
+    let cached = cli.cache.as_deref() == Some("true")
+        || (cli.cache.as_deref() != Some("false")
+            && configs
+                .root()
+                .all_cops_value::<bool>("UseCache")
+                .unwrap_or(true));
+    if !cached && let Err(error) = fs::read(first) {
+        // File.readの失敗はqualifyより前。UTF-8の復号はまだせず、原本bytesは捨てるだけ。
+        warnings.clear();
+        let path = first.to_string_lossy().replace('\\', "/");
+        let message = if error.kind() == io::ErrorKind::NotFound {
+            format!("No such file or directory: {path}")
+        } else {
+            format!("failed to read {path}: {error}")
+        };
+        failure = SelectionFailure {
+            message,
+            error_prefix: true,
+        };
+    }
+    Ok(Inspection::Rejected {
+        target_count: targets.len(),
+        warnings,
+        failure,
+    })
+}
+
+fn rejected_selection_targets(
+    cli: &Cli,
+    cwd: &Path,
+    configs: &ConfigStore,
+) -> Result<Vec<PathBuf>> {
+    if cli.paths.is_empty() {
+        return discover_targets_with_store(
+            &[],
+            cwd,
+            configs,
+            cli.force_exclusion,
+            cli.only_recognized_file_types,
+        );
+    }
+    let mut targets = Vec::new();
+    for path in &cli.paths {
+        if path.exists() {
+            targets.extend(discover_targets_with_store(
+                std::slice::from_ref(path),
+                cwd,
+                configs,
+                cli.force_exclusion,
+                cli.only_recognized_file_types,
+            )?);
+        } else {
+            // TargetFinder#process_explicit_pathは不存在の明示名もfirst File.readまで保持する。
+            let config = configs.for_path(path)?;
+            if (cli.only_recognized_file_types || cli.force_exclusion)
+                && !config.path_included(path)
+            {
+                continue;
+            }
+            if !cli.force_exclusion || !config.path_excluded(path) {
+                targets.push(path.clone());
+            }
+        }
+    }
+    let mut seen = HashSet::new();
+    let mut expanded = Vec::with_capacity(targets.len());
+    for path in targets {
+        let path = std::path::absolute(if path.is_absolute() {
+            path
+        } else {
+            cwd.join(path)
+        })?;
+        if seen.insert(path.clone()) {
+            expanded.push(path);
+        }
+    }
+    Ok(expanded)
 }
 
 fn inspect_inputs(
@@ -1638,18 +1859,73 @@ fn validate_config(config: &Config, ignore_unrecognized: bool) -> Result<()> {
     Ok(())
 }
 
-fn validate_selection(values: &[String], flag: &str, config: &Config) -> Result<()> {
+fn validate_selection(values: &[String], config: &Config) -> Option<SelectionFailure> {
     let known: HashSet<&str> = config.known_cop_names().collect();
     let departments: HashSet<&str> = known
         .iter()
         .map(|name| cop_name::department(name))
         .collect();
-    for value in values {
-        if !known.contains(value.as_str()) && !departments.contains(value.as_str()) {
-            bail!("Unrecognized cop or department for {flag}: {value}.");
+    values.iter().find_map(|value| {
+        if known.contains(value.as_str()) || departments.contains(value.as_str()) {
+            return None;
         }
+        let mut message = format!("Unrecognized cop or department: {value}.");
+        let corrections = similar_cop_names(value, config);
+        if !corrections.is_empty() {
+            message.push_str(&format!("\nDid you mean? {}", corrections.join(", ")));
+        }
+        Some(SelectionFailure {
+            message,
+            error_prefix: false,
+        })
+    })
+}
+
+fn selector_dictionary(config: &Config) -> Vec<&str> {
+    let known: HashSet<&str> = config.known_cop_names().collect();
+    let mut names: Vec<_> = crate::formatter::COP_REGISTRY_ORDER
+        .iter()
+        .copied()
+        .filter(|name| known.contains(name))
+        .collect();
+    let registered: HashSet<_> = names.iter().copied().collect();
+    names.extend(
+        config
+            .known_cop_names()
+            .filter(|name| !registered.contains(name)),
+    );
+    names
+}
+
+fn similar_cop_names(input: &str, config: &Config) -> Vec<String> {
+    // NameSimilarityはDidYouMean::SpellCheckerを使う。最初の一候補だけに切り詰めない。
+    let normalized = input.to_lowercase().replace('@', "");
+    let length = normalized.chars().count();
+    let threshold = if length > 3 { 0.834 } else { 0.77 };
+    let normalize = |name: &str| name.to_lowercase().replace('@', "");
+    let mut words: Vec<_> = selector_dictionary(config)
+        .into_iter()
+        .filter(|word| *word != input && jaro_winkler(&normalize(word), &normalized) >= threshold)
+        .collect();
+    words.sort_by(|left, right| {
+        jaro_winkler(left, &normalized).total_cmp(&jaro_winkler(right, &normalized))
+    });
+    words.reverse();
+    let corrections: Vec<_> = words
+        .iter()
+        .filter(|word| levenshtein(&normalize(word), &normalized) <= length.div_ceil(4))
+        .map(|word| (*word).to_owned())
+        .collect();
+    if !corrections.is_empty() {
+        return corrections;
     }
-    Ok(())
+    words
+        .into_iter()
+        .find(|word| {
+            levenshtein(&normalize(word), &normalized) < length.min(normalize(word).chars().count())
+        })
+        .map(|word| vec![word.to_owned()])
+        .unwrap_or_default()
 }
 
 /// Tell the user about cops that resolved to enabled but have no implementation here.
@@ -1898,6 +2174,8 @@ struct RenderRequest<'a> {
     /// How many files discovery produced, which is not how many were inspected once `--fail-fast`
     /// stops the run early. See [`Inspection::Reports`].
     target_count: usize,
+    /// 失敗前に初回mobilizeが出した警告。Someなら空finishedをcallback順に出力する。
+    rejection: Option<&'a [String]>,
 }
 
 fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result<()> {
@@ -1909,6 +2187,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         outputs,
         corrected_count,
         target_count,
+        rejection,
     } = *request;
     let formats = if cli.formats.is_empty() {
         vec![
@@ -1946,7 +2225,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         Ok(())
     })?;
     let formats = parsed_formats;
-    if formats.len() == 1 {
+    if formats.len() == 1 && rejection.is_none() {
         // 同じ File を共有する別formatterがなければ、公開StringSink経路を一度で書ける。
         // compact JSON の余分な段階bufferとwrite syscallを増やさない。
         destinations
@@ -1960,6 +2239,25 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         .collect::<Vec<_>>();
     for (index, formatter) in formatters.iter_mut().enumerate() {
         formatter.started(&mut destinations.writer(index))?;
+    }
+    if let Some(warnings) = rejection {
+        // first file_startedの後でmobilizeが失敗し、file_finishedは一度も呼ばれない。
+        if target_count > 0 {
+            for (index, formatter) in formatters.iter_mut().enumerate() {
+                formatter.file_started(0, &mut destinations.writer(index))?;
+            }
+        }
+        if cli.stderr
+            && let Some(index) = paths.iter().position(Option::is_none)
+        {
+            // headerと同じstderr bufferへ入れ、直接warnがstartedを追い越さないようにする。
+            let mut output = destinations.writer(index);
+            for warning in warnings {
+                output.puts(warning)?;
+            }
+        } else {
+            emit_selection_warnings(warnings)?;
+        }
     }
     for file in 0..reports.len() {
         for (index, formatter) in formatters.iter_mut().enumerate() {
@@ -2039,7 +2337,7 @@ fn qualify_selectors(
     mut names: Vec<String>,
     flag: &str,
     config: &Config,
-) -> (Vec<String>, Vec<String>) {
+) -> (Vec<String>, Vec<String>, Option<SelectionFailure>) {
     let known: HashSet<&str> = config.known_cop_names().collect();
     let mut warnings = Vec::new();
     for name in &mut names {
@@ -2061,15 +2359,26 @@ fn qualify_selectors(
             continue;
         }
         let short_name = badge.rsplit('/').next().unwrap_or(&badge);
-        let mut matches = known
+        let dictionary = selector_dictionary(config);
+        let mut matches = dictionary
             .iter()
             .copied()
             .filter(|known| known.rsplit('/').next() == Some(short_name));
         let Some(qualified) = matches.next() else {
             continue;
         };
-        if matches.next().is_some() {
-            continue;
+        if let Some(second) = matches.next() {
+            let mut candidates = vec![qualified, second];
+            candidates.extend(matches);
+            let failure = SelectionFailure {
+                // RegistryはBadge.parse後の表記をAmbiguousCopNameへ渡す。
+                message: format!(
+                    "Ambiguous cop name `{badge}` used in {flag} option needs department qualifier. Did you mean {}?",
+                    candidates.join(" or ")
+                ),
+                error_prefix: true,
+            };
+            return (names, warnings, Some(failure));
         }
         // resolve_badge の警告は元名でなく Badge.parse が正規化した表記を使う。
         if has_department {
@@ -2079,7 +2388,7 @@ fn qualify_selectors(
         }
         *name = qualified.to_owned();
     }
-    (names, warnings)
+    (names, warnings, None)
 }
 
 fn selector_badge(name: &str) -> (String, bool) {

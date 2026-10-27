@@ -76,7 +76,7 @@ fn check_case(fixture: &Value, case: &Value) -> std::process::Output {
             case["id"]
         );
     }
-    if case["coverage"] == "full_json" {
+    if case["coverage"] == "full_json" || case["coverage"] == "rejection_only" {
         if case["reference"]["report"].is_object() {
             assert_eq!(
                 report(&output.stdout),
@@ -151,7 +151,7 @@ fn explicit_empty_and_internal_empty_names_are_rejected_without_trimming() {
                     "{}",
                     case["id"]
                 );
-                // #118 の late error JSON は未解決。終了 2 を完全な表示互換へ数えない。
+                // #118でlate errorの空JSONと警告も本家記録へ一致させた。
                 late_errors += 1;
             }
             "rejection_envelope" => {
@@ -195,7 +195,7 @@ fn badge_normalization_matches_upstream_qualification_and_warning_names() {
                     "{}",
                     case["id"]
                 );
-                // 登録済み正規化badgeの元名を返すRegistryの分岐も、late表示の一致とは分ける。
+                // 登録済み正規化badgeの元名を返す分岐も、空JSONとstderr全体を比較する。
                 late_errors += 1;
             }
             coverage => panic!("unrecognized coverage {coverage}"),

@@ -1,0 +1,29 @@
+Constructed finite CLI inputs, recorded from Ruby 4.0.7 / RuboCop 1.89.0.
+Pinned gems: parser 3.3.12.0, Prism 1.8.1, Rainbow 3.1.1.
+Regenerate: python scripts/conformance/record_unknown_cop_report.py --ruby ruby
+
+The recorder executes the actual RuboCop::CLI with no candidate executable or
+patched formatter/Runner. Every invocation verifies unchanged input/config bytes.
+It removes RUBYOPT, RUBYLIB, RUBOCOP_OPTS and RUBOCOP_TARGET_RUBY_VERSION from an
+independent child environment, preserving the parent gem/PATH/OS environment.
+JSON containers are LF. Source and captured streams remain hexadecimal byte data;
+only the temporary working directory is replaced by the documented ${CWD} marker.
+Native tests compare every report field other than Ruby runtime metadata, plus
+the full stream prefix/suffix and warning/error order. Windows stream CRLF is
+adapted to LF only when the tests run on a non-Windows platform.
+
+50 conditions: disk/stdin, --only/--except, zero/one/two targets, list-target-files,
+safe/unsafe correction refusal without source mutation, namespace warnings,
+ambiguous names and suggestion lists, fail-fast, invalid encoding/syntax,
+stderr routing, multiple output files, missing-target order and cache predicate.
+Four ambiguity controls include canonical, snake-case, lowercase-initial and
+wrong-namespace spellings, recording the normalized Badge name in the exception.
+The original wider audit keeps show/docs rendering, repeated --cache, early
+syntax-error prefixes and parallel/cache notices separate from this regression.
+
+Six directory-stdin controls are recorded separately in
+unknown_cop_directory_report.json with --set directory --output <that-file>.
+They cover one/two/zero discovered targets, listing, and safe correction with a
+progress formatter. Physical input bytes differ from the shared stdin buffer.
+The original 50-case fixture is retained byte-for-byte; the new records come
+from six further serial executions of the same pinned upstream CLI.
