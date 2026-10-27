@@ -105,3 +105,9 @@ tests/fixtures/symbol_array_byte_safety.json.PROVENANCE text eol=lf
 tests/fixtures/whitequark_eof_ranges.json text eol=lf
 tests/fixtures/whitequark_eof_ranges.json.PROVENANCE text eol=lf
 tests/whitequark_eof_ranges.rs text eol=lf
+
+scripts/conformance/record_fuubar.py text eol=lf
+scripts/conformance/test_fuubar.py text eol=lf
+tests/fuubar.rs text eol=lf
+tests/fixtures/fuubar_reports.json text eol=lf
+tests/fixtures/fuubar_reports.json.PROVENANCE text eol=lf
