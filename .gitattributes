@@ -201,3 +201,6 @@ scripts/conformance/test_formatter_lookup.py text eol=lf
 tests/formatter_lookup.rs text eol=lf
 tests/fixtures/formatter_lookup.json text eol=lf
 tests/fixtures/formatter_lookup.json.PROVENANCE text eol=lf
+
+# splat参照採取の環境契約
+scripts/conformance/test_splat_block_environment.py text eol=lf

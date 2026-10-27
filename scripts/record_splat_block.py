@@ -55,6 +55,14 @@ SOURCES = {
 }
 
 
+def _environment():
+    # 本家CLI・実値の実行・候補の版照会を、同じ固定条件で起動する。
+    environment = dict(os.environ)
+    for key in ("RUBYOPT", "RUBYLIB", "RUBOCOP_OPTS", "RUBOCOP_TARGET_RUBY_VERSION"):
+        environment.pop(key, None)
+    return environment
+
+
 def sha256(raw):
     """本文の証跡を改行変換せずバイト単位で固定する。
 
@@ -149,9 +157,7 @@ def main():
     if args.ruby is None:
         parser.error("--ruby に参照 Ruby の実行ファイルを指定する")
     ruby, candidate = args.ruby.resolve(), args.sonicop.resolve()
-    env = dict(os.environ)
-    env.pop("RUBOCOP_TARGET_RUBY_VERSION", None)
-    env.pop("RUBYOPT", None)
+    env = _environment()
     metadata_script = (
         'gem "parser", "3.3.12.0"; gem "rubocop", "1.89.0"; '
         'require "rubocop"; require "json"; '
