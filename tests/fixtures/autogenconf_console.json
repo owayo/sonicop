@@ -1,0 +1,1107 @@
+{
+  "reference": "RuboCop 1.89.0 / parser 3.3.12.0 / Prism 1.8.1 actual CLI",
+  "normalization": "report transport CRLF -> LF only; source and generated file raw bytes retained",
+  "cases": [
+    {
+      "name": "offense",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "clean",
+      "files": {
+        "sample.rb": "x = 1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a2e0d0a0d0a312066696c6520696e737065637465642c206e6f206f6666656e7365732064657465637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n.\n\n1 file inspected, no offenses detected\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "zero",
+      "files": {},
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "empty"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "directories": [
+        "empty"
+      ],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720302066696c65730d0a0d0a0d0a302066696c657320696e737065637465642c206e6f206f6666656e7365732064657465637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 0 files\n\n\n0 files inspected, no offenses detected\n",
+      "stderr": "",
+      "files_after": {},
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "two-offending",
+      "files": {
+        "a.rb": "x=1\r\n",
+        "b.rb": "y=2\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "a.rb",
+        "b.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720322066696c65730d0a43430d0a0d0a322066696c657320696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e736573206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 2 files\nCC\n\n2 files inspected, 2 offenses detected, 2 offenses autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "a.rb": "783d310d0a",
+        "b.rb": "793d320d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "clean-then-offending",
+      "files": {
+        "a.rb": "x = 1\r\n",
+        "b.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "a.rb",
+        "b.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720322066696c65730d0a2e430d0a0d0a322066696c657320696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 2 files\n.C\n\n2 files inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "a.rb": "78203d20310d0a",
+        "b.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "explicit-reverse-order",
+      "files": {
+        "a.rb": "x = 1\r\n",
+        "b.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "b.rb",
+        "a.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720322066696c65730d0a432e0d0a0d0a322066696c657320696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 2 files\nC.\n\n2 files inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "a.rb": "78203d20310d0a",
+        "b.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "fail-fast",
+      "files": {
+        "a.rb": "x=1\r\n",
+        "b.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--fail-fast",
+        "a.rb",
+        "b.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "mtime": 100,
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720322066696c65730d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 2 files\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "a.rb": "783d310d0a",
+        "b.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "fail-fast-after-clean",
+      "files": {
+        "a.rb": "x = 1\r\n",
+        "b.rb": "x=1\r\n",
+        "c.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--fail-fast",
+        "a.rb",
+        "b.rb",
+        "c.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "mtime": 100,
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720332066696c65730d0a2e430d0a0d0a322066696c657320696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 3 files\n.C\n\n2 files inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "a.rb": "78203d20310d0a",
+        "b.rb": "783d310d0a",
+        "c.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "alias",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "a",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "unicode",
+      "files": {
+        "sample.rb": "あ=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "e381823d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "without-final-newline",
+      "files": {
+        "sample.rb": "x=1"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d31"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "lf-input",
+      "files": {
+        "sample.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-offense",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[33mC\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-clean",
+      "files": {
+        "sample.rb": "x = 1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33326d2e1b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33326d6e6f206f6666656e7365731b5b306d2064657465637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[32m.\u001b[0m\n\n1 file inspected, \u001b[32mno offenses\u001b[0m detected\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-info",
+      "files": {
+        "sample.rb": "x=1\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Severity: info\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33383b353b3138386d491b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[38;5;188mI\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a20696e666f0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-refactor",
+      "files": {
+        "sample.rb": "x=1\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Severity: refactor\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d521b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[33mR\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a207265666163746f720a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-warning",
+      "files": {
+        "sample.rb": "x=1\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Severity: warning\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33356d571b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[35mW\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-error",
+      "files": {
+        "sample.rb": "x=1\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Severity: error\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33316d451b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[31mE\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a206572726f720a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-fatal",
+      "files": {
+        "sample.rb": "x=1\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Severity: fatal\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--format",
+        "autogenconf",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33316d461b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[31mF\u001b[0m\n\n1 file inspected, \u001b[31m1 offense\u001b[0m detected, \u001b[33m1 offense\u001b[0m autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a20666174616c0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "disk-safe",
+      "files": {
+        "sample.rb": "x=1\r\nputs x == 0\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-a",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2032206f6666656e7365732064657465637465642c2031206f6666656e736520636f727265637465642c2031206d6f7265206f6666656e73652063616e20626520636f72726563746564207769746820607275626f636f70202d41600d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 2 offenses detected, 1 offense corrected, 1 more offense can be corrected with `rubocop -A`\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a707574732078203d3d20300d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "stdin-safe",
+      "files": {},
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-a",
+        "--stdin",
+        "sample.rb"
+      ],
+      "input_hex": "783d310d0a707574732078203d3d20300d0a",
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2032206f6666656e7365732064657465637465642c2031206f6666656e736520636f727265637465642c2031206d6f7265206f6666656e73652063616e20626520636f72726563746564207769746820607275626f636f70202d41600d0a3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a78203d20310d0a707574732078203d3d20300d0a",
+      "raw_stderr_hex": "",
+      "corrected_stdin_hex": "78203d20310d0a707574732078203d3d20300d0a",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 2 offenses detected, 1 offense corrected, 1 more offense can be corrected with `rubocop -A`\n",
+      "stderr": "",
+      "files_after": {},
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-safe",
+      "files": {
+        "sample.rb": "x=1\r\nputs x == 0\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-a",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d32206f6666656e7365731b5b306d2064657465637465642c201b5b33366d31206f6666656e73651b5b306d20636f727265637465642c201b5b33336d31206d6f7265206f6666656e73651b5b306d2063616e20626520636f72726563746564207769746820607275626f636f70202d41600d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[33mC\u001b[0m\n\n1 file inspected, \u001b[31m2 offenses\u001b[0m detected, \u001b[36m1 offense\u001b[0m corrected, \u001b[33m1 more offense\u001b[0m can be corrected with `rubocop -A`\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a707574732078203d3d20300d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "disk-all",
+      "files": {
+        "sample.rb": "x=1\r\nputs x == 0\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-A",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e73657320636f727265637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 2 offenses detected, 2 offenses corrected\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a7075747320782e7a65726f3f0d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "stdin-all",
+      "files": {},
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-A",
+        "--stdin",
+        "sample.rb"
+      ],
+      "input_hex": "783d310d0a707574732078203d3d20300d0a",
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e73657320636f727265637465640d0a3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a78203d20310d0a7075747320782e7a65726f3f0d0a",
+      "raw_stderr_hex": "",
+      "corrected_stdin_hex": "78203d20310d0a7075747320782e7a65726f3f0d0a",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 2 offenses detected, 2 offenses corrected\n",
+      "stderr": "",
+      "files_after": {},
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "color-all",
+      "files": {
+        "sample.rb": "x=1\r\nputs x == 0\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators,Style/NumericPredicate",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-A",
+        "--color",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33316d32206f6666656e7365731b5b306d2064657465637465642c201b5b33326d32206f6666656e7365731b5b306d20636f727265637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n\u001b[33mC\u001b[0m\n\n1 file inspected, \u001b[31m2 offenses\u001b[0m detected, \u001b[32m2 offenses\u001b[0m corrected\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a7075747320782e7a65726f3f0d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "clean-correction",
+      "files": {
+        "sample.rb": "x = 1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "-a",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 0,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a2e0d0a0d0a312066696c6520696e737065637465642c206e6f206f6666656e7365732064657465637465640d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\n.\n\n1 file inspected, no offenses detected\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "78203d20310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "stdin-inspection",
+      "files": {},
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--stdin",
+        "sample.rb"
+      ],
+      "input_hex": "783d310d0a",
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {},
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "stdout-to-file",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--out",
+        "console.txt",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [
+        "console.txt"
+      ],
+      "exit": 1,
+      "raw_stdout_hex": "",
+      "raw_stderr_hex": "",
+      "stdout": "",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {
+        "console.txt": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "generated_files": {}
+    },
+    {
+      "name": "stderr",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--stderr",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "",
+      "raw_stderr_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "stdout": "",
+      "stderr": "Inspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "separate-outputs",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "autogenconf",
+        "--out",
+        "console.txt",
+        "--format",
+        "simple",
+        "--out",
+        "simple.txt",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [
+        "console.txt",
+        "simple.txt"
+      ],
+      "exit": 1,
+      "raw_stdout_hex": "",
+      "raw_stderr_hex": "",
+      "stdout": "",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {
+        "console.txt": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "simple.txt": "3d3d2073616d706c652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "generated_files": {}
+    },
+    {
+      "name": "separate-outputs-reversed",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "simple",
+        "--out",
+        "simple.txt",
+        "--format",
+        "autogenconf",
+        "--out",
+        "console.txt",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [
+        "simple.txt",
+        "console.txt"
+      ],
+      "exit": 1,
+      "raw_stdout_hex": "",
+      "raw_stderr_hex": "",
+      "stdout": "",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {
+        "simple.txt": "3d3d2073616d706c652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "console.txt": "496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "generated_files": {}
+    },
+    {
+      "name": "progress-control",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "progress",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a4f6666656e7365733a0d0a0d0a73616d706c652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Inspecting 1 file\nC\n\nOffenses:\n\nsample.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nx=1\n ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    },
+    {
+      "name": "simple-control",
+      "files": {
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--force-default-config",
+        "--enable-pending-cops",
+        "--format",
+        "simple",
+        "sample.rb"
+      ],
+      "input_hex": null,
+      "outputs": [],
+      "exit": 1,
+      "raw_stdout_hex": "3d3d2073616d706c652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+      "raw_stderr_hex": "",
+      "stdout": "== sample.rb ==\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": "",
+      "files_after": {
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {}
+    }
+  ],
+  "todo_controls": [
+    {
+      "name": "ordinary-path",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+        "sample.rb": "x=1\r\n"
+      },
+      "args": [
+        "--config",
+        ".rubocop.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--auto-gen-config",
+        "--auto-gen-only-exclude",
+        "--no-auto-gen-timestamp",
+        "--no-auto-gen-enforced-style",
+        "sample.rb"
+      ],
+      "exit": 0,
+      "raw_stdout_hex": "416464656420696e6865726974616e63652066726f6d20602e7275626f636f705f746f646f2e796d6c6020696e20602e7275626f636f702e796d6c602e0d0a50686173652031206f6620323a2072756e204c61796f75742f4c696e654c656e67746820636f702028736b69707065642062656361757365206f6e6c79206578636c756465732077696c6c2062652067656e6572617465642064756520746f20602d2d6175746f2d67656e2d6f6e6c792d6578636c7564656020666c6167290d0a50686173652032206f6620323a2072756e20616c6c20636f70730d0a496e7370656374696e6720312066696c650d0a430d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a43726561746564202e7275626f636f705f746f646f2e796d6c2e0d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Added inheritance from `.rubocop_todo.yml` in `.rubocop.yml`.\nPhase 1 of 2: run Layout/LineLength cop (skipped because only excludes will be generated due to `--auto-gen-only-exclude` flag)\nPhase 2 of 2: run all cops\nInspecting 1 file\nC\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\nCreated .rubocop_todo.yml.\n",
+      "stderr": "",
+      "files_after": {
+        ".rubocop.yml": "696e68657269745f66726f6d3a202e7275626f636f705f746f646f2e796d6c0d0a0d0a416c6c436f70733a0d0a20204e6577436f70733a2064697361626c650d0a20205461726765745275627956657273696f6e3a20322e370d0a",
+        "sample.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {
+        ".rubocop_todo.yml": "23205468697320636f6e66696775726174696f6e207761732067656e6572617465642062790d0a2320607275626f636f70202d2d6175746f2d67656e2d636f6e666967202d2d6175746f2d67656e2d6f6e6c792d6578636c756465202d2d6e6f2d6175746f2d67656e2d74696d657374616d70202d2d6e6f2d6175746f2d67656e2d656e666f726365642d7374796c65600d0a23207573696e67205275626f436f702076657273696f6e20312e38392e302e0d0a232054686520706f696e7420697320666f7220746865207573657220746f2072656d6f766520746865736520636f6e66696775726174696f6e207265636f7264730d0a23206f6e65206279206f6e6520617320746865206f6666656e736573206172652072656d6f7665642066726f6d2074686520636f646520626173652e0d0a23204e6f74652074686174206368616e67657320696e2074686520696e7370656374656420636f64652c206f7220696e7374616c6c6174696f6e206f66206e65770d0a232076657273696f6e73206f66205275626f436f702c206d6179207265717569726520746869732066696c6520746f2062652067656e65726174656420616761696e2e0d0a0d0a23204f6666656e736520636f756e743a20310d0a23205468697320636f7020737570706f7274732073616665206175746f636f7272656374696f6e20282d2d6175746f636f7272656374292e0d0a2320436f6e66696775726174696f6e20706172616d65746572733a20416c6c6f77466f72416c69676e6d656e742c20456e666f726365645374796c65466f724578706f6e656e744f70657261746f722c20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c732e0d0a2320537570706f727465645374796c6573466f724578706f6e656e744f70657261746f723a2073706163652c206e6f5f73706163650d0a2320537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c733a2073706163652c206e6f5f73706163650d0a4c61796f75742f537061636541726f756e644f70657261746f72733a0d0a20204578636c7564653a0d0a202020202d202773616d706c652e7262270d0a"
+      }
+    },
+    {
+      "name": "exclude-limit",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+        "a.rb": "x=1\r\n",
+        "b.rb": "x=1\r\n"
+      },
+      "args": [
+        "--config",
+        ".rubocop.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--auto-gen-config",
+        "--auto-gen-only-exclude",
+        "--no-auto-gen-timestamp",
+        "--no-auto-gen-enforced-style",
+        "--exclude-limit",
+        "1",
+        "a.rb",
+        "b.rb"
+      ],
+      "exit": 0,
+      "raw_stdout_hex": "416464656420696e6865726974616e63652066726f6d20602e7275626f636f705f746f646f2e796d6c6020696e20602e7275626f636f702e796d6c602e0d0a50686173652031206f6620323a2072756e204c61796f75742f4c696e654c656e67746820636f702028736b69707065642062656361757365206f6e6c79206578636c756465732077696c6c2062652067656e6572617465642064756520746f20602d2d6175746f2d67656e2d6f6e6c792d6578636c7564656020666c6167290d0a50686173652032206f6620323a2072756e20616c6c20636f70730d0a496e7370656374696e6720322066696c65730d0a43430d0a0d0a322066696c657320696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e736573206175746f636f727265637461626c650d0a43726561746564202e7275626f636f705f746f646f2e796d6c2e0d0a",
+      "raw_stderr_hex": "",
+      "stdout": "Added inheritance from `.rubocop_todo.yml` in `.rubocop.yml`.\nPhase 1 of 2: run Layout/LineLength cop (skipped because only excludes will be generated due to `--auto-gen-only-exclude` flag)\nPhase 2 of 2: run all cops\nInspecting 2 files\nCC\n\n2 files inspected, 2 offenses detected, 2 offenses autocorrectable\nCreated .rubocop_todo.yml.\n",
+      "stderr": "",
+      "files_after": {
+        ".rubocop.yml": "696e68657269745f66726f6d3a202e7275626f636f705f746f646f2e796d6c0d0a0d0a416c6c436f70733a0d0a20204e6577436f70733a2064697361626c650d0a20205461726765745275627956657273696f6e3a20322e370d0a",
+        "a.rb": "783d310d0a",
+        "b.rb": "783d310d0a"
+      },
+      "outputs_after": {},
+      "generated_files": {
+        ".rubocop_todo.yml": "23205468697320636f6e66696775726174696f6e207761732067656e6572617465642062790d0a2320607275626f636f70202d2d6175746f2d67656e2d636f6e666967202d2d6175746f2d67656e2d6f6e6c792d6578636c756465202d2d6578636c7564652d6c696d69742031202d2d6e6f2d6175746f2d67656e2d74696d657374616d70202d2d6e6f2d6175746f2d67656e2d656e666f726365642d7374796c65600d0a23207573696e67205275626f436f702076657273696f6e20312e38392e302e0d0a232054686520706f696e7420697320666f7220746865207573657220746f2072656d6f766520746865736520636f6e66696775726174696f6e207265636f7264730d0a23206f6e65206279206f6e6520617320746865206f6666656e736573206172652072656d6f7665642066726f6d2074686520636f646520626173652e0d0a23204e6f74652074686174206368616e67657320696e2074686520696e7370656374656420636f64652c206f7220696e7374616c6c6174696f6e206f66206e65770d0a232076657273696f6e73206f66205275626f436f702c206d6179207265717569726520746869732066696c6520746f2062652067656e65726174656420616761696e2e0d0a0d0a23204f6666656e736520636f756e743a20320d0a23205468697320636f7020737570706f7274732073616665206175746f636f7272656374696f6e20282d2d6175746f636f7272656374292e0d0a2320436f6e66696775726174696f6e20706172616d65746572733a20416c6c6f77466f72416c69676e6d656e742c20456e666f726365645374796c65466f724578706f6e656e744f70657261746f722c20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c732e0d0a2320537570706f727465645374796c6573466f724578706f6e656e744f70657261746f723a2073706163652c206e6f5f73706163650d0a2320537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c733a2073706163652c206e6f5f73706163650d0a4c61796f75742f537061636541726f756e644f70657261746f72733a0d0a2020456e61626c65643a2066616c73650d0a"
+      }
+    }
+  ]
+}

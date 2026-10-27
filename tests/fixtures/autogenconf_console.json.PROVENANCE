@@ -1,0 +1,45 @@
+RuboCop 1.89.0 AutoGenConfigFormatter console record (proposed public sidecar).
+
+Original frozen CRLF-container fixture SHA-256: 6156159579e6440827f8ee12cba897bed9f6dd393e590b47916f56bd02144306
+Proposed LF-container fixture SHA-256: c9faaf20fe119b258f8ce5bd81a791d77a1a8404399dda12ae8802822e8b5fc8
+Only JSON container CRLF1107 pairs are removed; parsed values/raw-channel hex
+and field order are unchanged. The original file remains private and frozen.
+Original Ruby collector/environment-followup SHA-256:
+  scripts/record_autogenconf_console.py
+  2024b17e3567e0b662bf70fd2403d758ec8ba4be0dfd15f60f6c794242e9e3d1
+The original wrapper pins RuboCop 1.89.0, parser 3.3.12.0, Prism 1.8.1 and
+Rainbow 3.1.1. The fixture does not embed a loaded Ruby executable/version,
+AST dependency version or upstream source-file hash receipt; do not infer
+those historical observations from a newly hashed local installation.
+
+The fixed record contains 33 console cases and two TODO-generation controls.
+raw_stdout_hex/raw_stderr_hex, corrected stdin and filesystem bytes are
+retained. The original Rust test projects only report CRLF transport to LF;
+ANSI codes/blank lines, corrected stdin and original Ruby source bytes are
+compared separately. Output-file report text uses that same projection.
+TODO controls compare parsed generated YAML and Ruby source bytes. Native
+before/after raw equality is a separate historical preservation observation,
+not full upstream generated-file raw equality. A quoted-path auto-gen oracle
+failed exit2 on Windows (its.rb vs it's.rb); it is not a successful control.
+
+Publication followup collector SHA-256:
+  278fb036ce1ccbb4f0e19e12bf6cb3950096e84f468e504e048002e89f454dc3
+Only publication was changed; original _run, ENV4, gem pins, input cases and
+capture fields remain byte-identical. The JSON is written as UTF-8 bytes with
+LF container newlines to the same exclusively reserved handles.
+
+Regeneration example (choose a new, unused directory name each time):
+  python scripts/record_autogenconf_console.py --ruby ruby --output new-autogenconf-record/autogenconf_console.json
+Optional native-before capture may add --native-before sonicop-before.exe.
+Before any temporary work/reference child, all requested final, sibling
+.console-only.json and optional native_todo_before.json leaves are checked
+and reserved with xb. Existing leaves/symlinks or reservation races fail;
+already reserved empty/partial artifacts remain for inspection. Do not reuse
+failed output names. The completion line is printed only after all streams
+close successfully. This procedure is not a new reference observation and
+does not promote the quoted-path failure or change previous captured values.
+
+Upstream code: lib/rubocop/formatter/auto_gen_config_formatter.rb and its
+ProgressFormatter parent, RuboCop 1.89.0 (MIT). Existing full licence text:
+licenses/RUBOCOP.txt. The native --auto-gen-config generator is a distinct
+path; this console change does not rewrite its YAML implementation.

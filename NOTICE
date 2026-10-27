@@ -36,6 +36,17 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       The adjacent .PROVENANCE records capture/reuse and projection scope.
       Full licence text is retained at licenses/RUBOCOP.txt.
 
+  src/formatter.rs (AutoGenConfigFormatter console leaf)
+  tests/fixtures/autogenconf_console.json
+      AutoGenConfigFormatter console behavior ported from RuboCop 1.89.0,
+      with 33 constructed console cases and two separate TODO-generation
+      controls recorded from the real CLI. Full raw channels are retained;
+      the original report assertion projects CRLF transport to LF only.
+      Regenerate with scripts/record_autogenconf_console.py into a new,
+      unused output directory; requested output leaves are reserved with xb.
+      Finite scope and the unavailable quoted-path control are documented
+      in the neighbouring .PROVENANCE. Full text: licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.

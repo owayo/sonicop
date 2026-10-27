@@ -66,8 +66,8 @@ pub struct FormatOptions<'a> {
     pub extra_details: bool,
     pub color: bool,
     pub corrected_count: usize,
-    /// 検査開始前の対象数。JSONとFuubarのbarはこの値を使う。
-    /// fail-fast後のsummary件数は、完了したreports.len()から求める。
+    /// 検査前の started(target_files) が受け取った予定数。
+    /// fail-fast 後の reports 数とは分けて保持する。
     pub target_file_count: usize,
     pub fail_level: Severity,
     /// True for `-a`, where RuboCop points at `-A` instead of calling the rest autocorrectable.
@@ -93,7 +93,7 @@ pub fn render(
         Format::Files => Ok(render_files(reports, options.cwd)),
         Format::Offenses => Ok(render_offense_counts(reports, options)),
         Format::Worst => Ok(render_worst(reports, options.cwd)),
-        Format::Autogenconf => Ok(render_autogenconf(reports, options.cwd)),
+        Format::Autogenconf => Ok(render_autogenconf(reports, options)),
         Format::Simple => Ok(render_simple(reports, options, false)),
         Format::Quiet => Ok(render_simple(reports, options, true)),
         Format::Clang => Ok(render_clang(reports, options, false)),
@@ -923,14 +923,77 @@ pub(crate) fn offenses_by_cop(
     by_cop
 }
 
-fn render_autogenconf(reports: &[FileReport], cwd: &Path) -> String {
-    let mut output = String::new();
-    for (cop, offenses) in offenses_by_cop(reports, cwd) {
-        output.push_str(&format!("{cop}:\n  Exclude:\n"));
-        for path in &offenses.paths {
-            output.push_str(&format!("    - {}\n", yaml_single_quoted(path)));
-        }
+fn render_autogenconf(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
+    // AutoGenConfigFormatter は Progress の started/file_finished を継承するが、
+    // finished では違反一覧を出さない。設定 YAML は別の DisabledConfigFormatter の役割。
+    let mut output = format!("Inspecting {}\n", plural(options.target_file_count, "file"));
+    for report in reports {
+        let severity = report.offenses.iter().map(|offense| offense.severity).max();
+        let color = match severity {
+            // Rainbow の gray は通常の ANSI 90 ではなく、実出力では xterm 188 になる。
+            Some(Severity::Info) => "38;5;188",
+            Some(severity) => severity_color(severity),
+            None => "32",
+        };
+        output.push_str(&paint(
+            &severity.map_or('.', Severity::code).to_string(),
+            color,
+            options.color,
+        ));
     }
+    output.push_str("\n\n");
+
+    let count = offense_count(reports);
+    let correctable_count = reports
+        .iter()
+        .flat_map(|report| &report.offenses)
+        .filter(|offense| offense.is_correctable() && !offense.corrected)
+        .count();
+    let offenses = if count == 0 {
+        "no offenses".to_owned()
+    } else {
+        plural(count, "offense")
+    };
+    output.push_str(&format!(
+        "{} inspected, {} detected",
+        plural(reports.len(), "file"),
+        paint(
+            &offenses,
+            if count == 0 { "32" } else { "31" },
+            options.color
+        )
+    ));
+    if options.corrected_count > 0 {
+        output.push_str(&format!(
+            ", {} corrected",
+            paint(
+                &plural(options.corrected_count, "offense"),
+                if options.corrected_count == count {
+                    "32"
+                } else {
+                    "36"
+                },
+                options.color,
+            )
+        ));
+    }
+    if correctable_count > 0 {
+        let noun = if options.safe_autocorrect {
+            "more offense"
+        } else {
+            "offense"
+        };
+        output.push_str(&format!(
+            ", {}",
+            paint(&plural(correctable_count, noun), "33", options.color)
+        ));
+        output.push_str(if options.safe_autocorrect {
+            " can be corrected with `rubocop -A`"
+        } else {
+            " autocorrectable"
+        });
+    }
+    output.push('\n');
     output
 }
 
@@ -2400,7 +2463,7 @@ TvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{offenses_by_cop, render_autogenconf, smart_path, yaml_single_quoted};
+    use super::{offenses_by_cop, smart_path, yaml_single_quoted};
     use crate::diagnostic::{FileReport, Offense, Severity};
     use crate::source::SourceFile;
 
@@ -2467,18 +2530,5 @@ mod tests {
     fn single_quoted_scalars_double_an_embedded_quote() {
         assert_eq!(yaml_single_quoted("plain.rb"), "'plain.rb'");
         assert_eq!(yaml_single_quoted("it's/a.rb"), "'it''s/a.rb'");
-    }
-
-    #[test]
-    fn autogenconf_escapes_quotes_in_excluded_paths() {
-        // An absolute directory, which is the only shape a run produces: the working directory
-        // comes from `current_dir`, and file discovery expands every target against it.
-        let cwd = Path::new("/project");
-        let reports = [report(cwd.join("it's.rb"), &["Layout/TrailingWhitespace"])];
-
-        assert_eq!(
-            render_autogenconf(&reports, cwd),
-            "Layout/TrailingWhitespace:\n  Exclude:\n    - 'it''s.rb'\n"
-        );
     }
 }

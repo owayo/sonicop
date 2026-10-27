@@ -111,3 +111,10 @@ scripts/conformance/test_fuubar.py text eol=lf
 tests/fuubar.rs text eol=lf
 tests/fixtures/fuubar_reports.json text eol=lf
 tests/fixtures/fuubar_reports.json.PROVENANCE text eol=lf
+
+# AutoGenConfigFormatter の実記録と採取器を LF で保存する。
+scripts/record_autogenconf_console.py text eol=lf
+tests/fixtures/autogenconf_console.json text eol=lf
+tests/autogenconf_console.rs text eol=lf
+scripts/conformance/test_autogenconf_collector.py text eol=lf
+tests/fixtures/autogenconf_console.json.PROVENANCE text eol=lf
