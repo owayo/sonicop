@@ -47,6 +47,15 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Finite scope and the unavailable quoted-path control are documented
       in the neighbouring .PROVENANCE. Full text: licenses/RUBOCOP.txt.
 
+  src/cli.rs, src/engine.rs (directory stdin target and shared-buffer handling)
+  tests/fixtures/stdin_directory_reports.json
+      Target discovery and shared stdin behavior ported from RuboCop 1.89.0,
+      recorded in 51 constructed conditions. Intentional output safeguards
+      retain the original reference separately from the safe expectation.
+      Regenerate with scripts/conformance/record_stdin_directory.py.
+      Scope, byte transport and independent review are documented in the
+      neighbouring .PROVENANCE. Full text: licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.

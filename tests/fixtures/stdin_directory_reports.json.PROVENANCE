@@ -1,0 +1,60 @@
+RuboCop 1.89.0 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0
+Ruby 4.0.7 x64-mingw-ucrt、Windowsで2026-10-25に実CLIを記録。
+全Ruby childは親ENVのcopyを共有し、RUBYOPT/RUBYLIB/RUBOCOP_OPTS/
+RUBOCOP_TARGET_RUBY_VERSIONだけを除く。親自身とGEM_HOME/GEM_PATH/PATH/SystemRootは保つ。
+専用Python負対照と、通常/4変数同時poisonの有限実CLI対照で全report/stdout/payload/runtime一致を確認する。
+
+repository rootでの再生成:
+  python scripts/conformance/record_stdin_directory.py --ruby ruby --output tests/fixtures/stdin_directory_reports.json --raw-output path/to/local-raw-stdout.json
+
+51条件: cases 29（JSON23、target一覧2、改行なしpayload4）と echo_cases 22。
+空directory、複数target、inspect/-a/-A、dot/absolute/trailing slash、通常名/空名/不存在名、
+非Ruby拡張子・hidden・Exclude、明示hidden起点、文字列順・異なる整数秒mtime順、nested設定、
+共有補正本文・fail-fast・list-target-files・対象0のpayloadを記録した。
+明示crlfの共有LF view対照はOS非依存のRust回帰でも検査する。
+mtime tieと複数探索rootの順序はIssue #120の別単位で扱い、本fixtureの成功へ含めない。
+
+各条件の実ファイルbytes・設定・stdin本文・引数と終了値を保存する。
+cases.expectedは本家の全JSON（metadataのみ除外）またはstdout templateと生stderrである。
+echo_cases.referenceは実本家の終了・全JSON・stdout template・生stderr・payloadであり、
+echo_cases.expectedとは別に保持する。安全なalternateをactual upstreamへ読み替えない。
+公開stdout_hexの一時rootは、collectorが生成した既知workdirのforward-slash prefix bytesだけを、
+separator前のheader行頭で<WORKDIR>/へ置換する。本文、JSON、未知のpathには置換を広げない。
+testも自身が生成した同じworkdir prefixだけを置換し、残りのstdout全bytesを照合する。
+安全側のexpected.stdout_hexは同じ本家header templateと独立なsafe payloadを結合する。
+元の生stdoutは--raw-outputのlocal証跡へ退避し、各条件のraw_stdout_sha256と結ぶ。
+stdin本文・payload・runtimeのbytesはtemplate化せず、そのまま保持する。
+原本を別に非補正検査するときも、同じ複数formatter条件で全JSONを得る。
+対象順・target/inspected/offense数の完了と全disk原本不変をcollectorで検査する。
+collectorはSonicopを起動せず、固定した本家と原本・承認済みfixtureから期待を構成する。
+
+既存方針を適用するecho期待の範囲:
+- policy referenceは実本家の値をそのまま用いる。
+- approved102は同一source_hexのwindows_stdio.jsonとsafe payload/exitを結ぶ。
+  echo_source_fixture_sha256が元fixtureを固定し、Rustでも入力と承認済み値を照合する。
+- originalは既存の構文破壊防止。原本の同条件本家診断と生入力bytes、終了2へ限定する。
+  先行targetの有効な補正後に別targetが拒否する例でも、全体を原本・未補正診断へ戻す。
+- preserve-tailは既存DATA保持方針。実本家の補正済みcode prefixと原本の未変更tailから
+  独立に保存予定bytesを導出する。MRIで原本と安全出力のDATA bytesが同じで、
+  実本家出力の値が異なることを別々に記録する。新たな保護規則は追加しない。
+これらの安全側の意図差を、本家と完全互換の成功数へ混ぜない。
+
+追加境界: CRLF再検査、continuationの編集座標、最終targetが無変更、設定cycleで原本同値へ
+戻る例、mixed DATA、DATA/codeNUL、escaped literal、無効入力、rollback、JSON-only、
+list+autocorrectと対象0の-a/-A。最終echoだけを一度計画し、次targetへtransport結果を渡さない。
+改行の由来は対象をまたいで継承し、挿入LFを原本pairへ再分類しない。
+
+非UTF8対照はASCII-8BIT宣言と実E9 literal。複数targetでのASCII編集・引用符切替の前後に、
+MRIがSTDOUT.binmodeへ出すASCII JSONでbytesとencoding.nameを確認した。
+原本・実本家・保存予定出力は全てbytes [99,97,102,233]、encoding ASCII-8BITで一致する。
+SourceBufferのUTF8 viewを宣言で二重に復号しないことを検査する。
+
+Windows-1252成功補正は新しい限定intentとして別に2modeを記録した。通常名付きstdin、
+固定source、SpaceAroundOperators、白2.7、-a/-A、両exit0だけを
+windows_stdin_encoding_divergencesへ結ぶ。原本E9→本家C3A9による値変更を独立MRIでも確認し、
+原本の既知ASCII編集とnative改行だけから安全payloadを構成する。
+actual upstreamのraw/JSON/runtimeはreferenceへ保持し、安全出力と混ぜない。
+成功した補正と原本符号化保持の専用Rust回帰を持ち、refusal/error2群や任意のcodecへ広げない。
+
+既存の明示空名はIssue #107依存で、directoryと同一視しない。
+重複--onlyの既存差はIssue #115へ分離し、全記録で--onlyを一度だけ指定した。

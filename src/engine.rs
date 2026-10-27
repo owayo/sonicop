@@ -993,6 +993,29 @@ pub fn inspect_stdin(
     }
 }
 
+/// 共有 stdin は補正後の LF view と物理 CR の由来を同時に持つ。新しい原本として読み直さない。
+#[derive(Clone, Default)]
+pub(crate) struct SharedStdinState {
+    logical: Option<String>,
+    retained_crlf: Option<LineEndingProvenance>,
+    preserve_crlf: bool,
+}
+
+pub(crate) fn inspect_shared_stdin(
+    path: PathBuf,
+    bytes: &[u8],
+    state: &SharedStdinState,
+    config: &Config,
+    selection: &Selection,
+) -> Result<FileReport> {
+    if let Some(logical) = &state.logical {
+        // UTF-8 の解析 String を legacy 宣言で二重に復号しない。
+        inspect_source(path, logical.clone(), config, selection)
+    } else {
+        inspect_stdin(path, bytes.to_vec(), config, selection)
+    }
+}
+
 pub fn inspect_source(
     path: impl Into<PathBuf>,
     text: String,
@@ -1568,6 +1591,33 @@ pub fn discover_targets_with_store(
     force_exclusion: bool,
     only_recognized_file_types: bool,
 ) -> Result<Vec<PathBuf>> {
+    discover_target_paths(
+        arguments,
+        cwd,
+        configs,
+        force_exclusion,
+        only_recognized_file_types,
+        false,
+    )
+}
+
+/// TargetFinder#ruby_file? は stdin 時に拡張子や shebang を調べない。
+pub(crate) fn discover_stdin_targets_with_store(
+    directory: &Path,
+    cwd: &Path,
+    configs: &ConfigStore,
+) -> Result<Vec<PathBuf>> {
+    discover_target_paths(&[directory.to_path_buf()], cwd, configs, false, false, true)
+}
+
+fn discover_target_paths(
+    arguments: &[PathBuf],
+    cwd: &Path,
+    configs: &ConfigStore,
+    force_exclusion: bool,
+    only_recognized_file_types: bool,
+    stdin: bool,
+) -> Result<Vec<PathBuf>> {
     let roots = if arguments.is_empty() {
         vec![cwd.to_path_buf()]
     } else {
@@ -1603,10 +1653,15 @@ pub fn discover_targets_with_store(
             configs.for_path(&root)
         })?;
         let pruned = discovery_config.clone();
+        let hidden_stdin_root = stdin
+            && root
+                .file_name()
+                .is_some_and(|name| name.to_string_lossy().starts_with('.'));
         let mut builder = WalkBuilder::new(&root);
         builder
             .filter_entry(move |entry| {
                 !entry.file_type().is_some_and(|kind| kind.is_dir())
+                    || (stdin && entry.depth() == 0)
                     || crate::profile::phase(crate::profile::Phase::DirFilter, || {
                         !pruned.directory_excluded(entry.path())
                     })
@@ -1636,12 +1691,27 @@ pub fn discover_targets_with_store(
                 continue;
             }
             let verdict = crate::profile::phase(crate::profile::Phase::PathMatch, || {
+                // 明示した隠し起点だけは TargetFinder#hidden_dir? の分岐へ進む。
+                if hidden_stdin_root {
+                    return Verdict::Keep;
+                }
                 let included = discovery_config.path_included(path);
                 if discovery_config.path_excluded(path) {
                     return Verdict::Drop;
                 }
                 if included {
                     return Verdict::Keep;
+                }
+                if stdin {
+                    let hidden =
+                        path.strip_prefix(&root)
+                            .unwrap_or(path)
+                            .components()
+                            .any(|part| {
+                                let name = part.as_os_str().to_string_lossy();
+                                name.starts_with('.') && name != "." && name != ".."
+                            });
+                    return if hidden { Verdict::Drop } else { Verdict::Keep };
                 }
                 if discovery_config.path_hidden(path) {
                     return Verdict::Drop;
@@ -3465,12 +3535,62 @@ pub fn correct_file(
 
 /// stdin とディスクの補正は、復号前と書き戻し予定のバイト列で構文を比較する。
 pub(crate) fn correct_file_with_original(
+    report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+    original_bytes: Option<&[u8]>,
+    disk: bool,
+) -> Result<CorrectionOutcome> {
+    correct_file_with_views(report, mode, config, selection, original_bytes, disk, None)
+}
+
+pub(crate) fn correct_shared_stdin(
+    report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+    original: &[u8],
+    shared: &mut SharedStdinState,
+) -> Result<CorrectionOutcome> {
+    correct_file_with_views(
+        report,
+        mode,
+        config,
+        selection,
+        Some(original),
+        false,
+        Some(shared),
+    )
+}
+
+fn remember_stdin_state(
+    result: Result<CorrectionOutcome>,
+    shared: Option<&mut SharedStdinState>,
+    logical: Option<String>,
+    retained_crlf: Option<&LineEndingProvenance>,
+    preserve_crlf: bool,
+) -> Result<CorrectionOutcome> {
+    let outcome = result?;
+    if outcome.rollback.is_none()
+        && let Some(shared) = shared
+        && let Some(logical) = logical
+    {
+        shared.logical = Some(logical);
+        shared.retained_crlf = retained_crlf.cloned();
+        shared.preserve_crlf = preserve_crlf;
+    }
+    Ok(outcome)
+}
+
+fn correct_file_with_views(
     mut report: FileReport,
     mode: CorrectMode,
     config: &Config,
     selection: &Selection,
     original_bytes: Option<&[u8]>,
     disk: bool,
+    shared: Option<&mut SharedStdinState>,
 ) -> Result<CorrectionOutcome> {
     let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
         let configs = ConfigStore::new(config.clone(), false, false);
@@ -3493,25 +3613,32 @@ pub(crate) fn correct_file_with_original(
     }
 
     let original = text.clone();
-    let preserve_crlf = uses_crlf_only(&original);
+    let inherited = shared.as_deref().filter(|state| state.logical.is_some());
+    let preserve_crlf =
+        inherited.map_or_else(|| uses_crlf_only(&original), |state| state.preserve_crlf);
     let windows_disk = cfg!(windows) && disk;
     // 元 CRLF/mixed の保存方針は維持する。純 LF の通常コードだけ File.write に合わせる。
     let native_newlines = windows_disk && !original.contains("\r\n");
     // 全CRLFでも元bare CRだけは追跡する。元pairは書出しのdefault CRへ任せて二重計数しない。
-    let track_line_endings = if preserve_crlf {
-        original
-            .match_indices('\r')
-            .any(|(position, _)| original.as_bytes().get(position + 1) != Some(&b'\n'))
+    let mut retained_crlf = if let Some(inherited) = inherited {
+        // 対象間でも LF 座標の位置表を継承し、補正が挿入した LF を元 pair へ化けさせない。
+        inherited.retained_crlf.clone()
     } else {
-        original.contains('\r')
+        let track_line_endings = if preserve_crlf {
+            original
+                .match_indices('\r')
+                .any(|(position, _)| original.as_bytes().get(position + 1) != Some(&b'\n'))
+        } else {
+            original.contains('\r')
+        };
+        track_line_endings.then(|| {
+            let mut state = LineEndingProvenance::new(&original);
+            if preserve_crlf {
+                state.hidden_cr.clear();
+            }
+            state
+        })
     };
-    let mut retained_crlf = track_line_endings.then(|| {
-        let mut state = LineEndingProvenance::new(&original);
-        if preserve_crlf {
-            state.hidden_cr.clear();
-        }
-        state
-    });
     // 本家は無効な入力も補正するため、元から有効だったファイルだけを保護する。
     let started_valid = !holds_fatal_syntax(&report);
     let path = report.path.clone();
@@ -3578,7 +3705,11 @@ pub(crate) fn correct_file_with_original(
         }
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
-            return withhold_unparsable(
+            let next_logical = shared
+                .as_deref()
+                .filter(|state| rewritten || state.logical.is_some())
+                .map(|_| text.clone());
+            let result = withhold_unparsable(
                 restore_crlf(
                     CorrectionOutcome {
                         report,
@@ -3602,6 +3733,13 @@ pub(crate) fn correct_file_with_original(
                 config,
                 selection,
                 &plan,
+            );
+            return remember_stdin_state(
+                result,
+                shared,
+                next_logical,
+                retained_crlf.as_ref(),
+                preserve_crlf,
             );
         }
         if started_valid
@@ -3666,7 +3804,11 @@ pub(crate) fn correct_file_with_original(
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
             let root_cause = log.root_cause(loop_start, &report.offenses, mode, config, selection);
             let (report, corrected_count) = log.merge_into(report);
-            return withhold_unparsable(
+            let next_logical = shared
+                .as_deref()
+                .filter(|state| rewritten || state.logical.is_some())
+                .map(|_| corrected.clone());
+            let result = withhold_unparsable(
                 restore_crlf(
                     CorrectionOutcome {
                         report,
@@ -3693,6 +3835,13 @@ pub(crate) fn correct_file_with_original(
                 config,
                 selection,
                 &plan,
+            );
+            return remember_stdin_state(
+                result,
+                shared,
+                next_logical,
+                retained_crlf.as_ref(),
+                preserve_crlf,
             );
         }
 

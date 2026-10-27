@@ -12,9 +12,10 @@ use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
     CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection,
-    correct_file_with_original, correction_bytes, discover_targets_with_store, inspect_files,
-    inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop, native_textmode_bytes,
-    offense_count, stdin_output_bytes, write_correction,
+    SharedStdinState, correct_file_with_original, correct_shared_stdin, correction_bytes,
+    discover_stdin_targets_with_store, discover_targets_with_store, inspect_files,
+    inspect_files_with_store_cached, inspect_shared_stdin, inspect_stdin, is_mandatory_cop,
+    native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -711,19 +712,50 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if let Some(cache) = &result_cache {
         cache.prune();
     }
-    let (mut reports, target_count, stdin_original) = match inspection {
+    let (mut reports, target_count, stdin_original, stdin_directory) = match inspection {
         Inspection::Reports {
             reports,
             target_count,
             stdin_original,
-        } => (reports, target_count, stdin_original),
+        } => (reports, target_count, stdin_original, None),
+        Inspection::StdinDirectory { targets, bytes } => {
+            (Vec::new(), targets.len(), Some(bytes), Some(targets))
+        }
         Inspection::ListedTargets => return Ok(0),
+        Inspection::ListedStdin { bytes } => {
+            let run = inspect_stdin_directory(
+                &[],
+                &bytes,
+                &configs,
+                correct_mode,
+                &selection,
+                &cli,
+                fail_level,
+            )?;
+            if let Some(corrected) = run.stdin_corrected {
+                print_corrected_stdin(&cli, &corrected)?;
+            }
+            return Ok(if run.had_write_failures { 2 } else { 0 });
+        }
     };
 
     if cli.debug {
-        debug_report(&cwd, &config, reports.len(), parallel);
+        let inspected = stdin_directory.as_ref().map_or(reports.len(), Vec::len);
+        debug_report(&cwd, &config, inspected, parallel);
     }
     if cli.auto_gen_config || cli.regenerate_todo {
+        if let Some(targets) = &stdin_directory {
+            reports = inspect_stdin_directory(
+                targets,
+                stdin_original.as_deref().unwrap(),
+                &configs,
+                CorrectMode::None,
+                &selection,
+                &cli,
+                fail_level,
+            )?
+            .reports;
+        }
         generate_todo(&reports, &cwd, &cli)?;
         return Ok(0);
     }
@@ -733,23 +765,41 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         );
     }
 
+    let corrections = if let Some(targets) = &stdin_directory {
+        inspect_stdin_directory(
+            targets,
+            stdin_original.as_deref().unwrap(),
+            &configs,
+            correct_mode,
+            &selection,
+            &cli,
+            fail_level,
+        )?
+    } else {
+        apply_corrections(
+            reports,
+            stdin_original.as_deref().map(|original| StdinCorrection {
+                original,
+                anonymous: cli
+                    .stdin
+                    .as_ref()
+                    .is_some_and(|path| path.as_os_str().is_empty()),
+                echo: prints_corrected_stdin(&cli),
+                shared: None,
+            }),
+            &configs,
+            correct_mode,
+            &selection,
+        )?
+    };
     let CorrectionRun {
         reports: corrected_reports,
         corrected_count,
         stdin_corrected,
         had_errors,
         had_write_failures,
-    } = apply_corrections(
-        reports,
-        stdin_original.as_deref(),
-        cli.stdin
-            .as_ref()
-            .is_some_and(|path| path.as_os_str().is_empty()),
-        &configs,
-        correct_mode,
-        &selection,
-        prints_corrected_stdin(&cli),
-    )?;
+        ..
+    } = corrections;
     reports = corrected_reports;
 
     // 検査や補正を完了できないファイルがあれば、通常の違反がなくても失敗になる。
@@ -891,6 +941,13 @@ enum Inspection {
         target_count: usize,
         stdin_original: Option<Vec<u8>>,
     },
+    StdinDirectory {
+        targets: Vec<PathBuf>,
+        bytes: Vec<u8>,
+    },
+    ListedStdin {
+        bytes: Vec<u8>,
+    },
     ListedTargets,
 }
 
@@ -949,12 +1006,34 @@ fn inspect_inputs(
     } else {
         stdin_path.clone()
     };
-    *selection = selection.with_project_index(std::slice::from_ref(&stdin_path), configs)?;
     // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
     let mut bytes = Vec::new();
     io::stdin()
         .read_to_end(&mut bytes)
         .context("failed to read source from stdin")?;
+    // 空名は #107 の仮想ファイル。cwd に展開してもディレクトリ探索へ変えない。
+    if !anonymous_stdin && stdin_path.is_dir() {
+        let mut targets = discover_stdin_targets_with_store(&stdin_path, cwd, configs)?;
+        *selection = selection.with_project_index(&targets, configs)?;
+        if cli.fail_fast {
+            targets.sort_by_key(|path| {
+                std::cmp::Reverse(
+                    fs::metadata(path)
+                        .and_then(|metadata| metadata.modified())
+                        .ok(),
+                )
+            });
+        }
+        if cli.list_target_files {
+            for path in targets {
+                let line = format!("{}\n", smart_path(&path, cwd));
+                io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
+            }
+            return Ok(Inspection::ListedStdin { bytes });
+        }
+        return Ok(Inspection::StdinDirectory { targets, bytes });
+    }
+    *selection = selection.with_project_index(std::slice::from_ref(&stdin_path), configs)?;
     let target_config = if anonymous_stdin {
         anonymous_stdin_config(configs, &stdin_path)?
     } else {
@@ -979,21 +1058,186 @@ struct CorrectionRun {
     /// Team#autocorrect は書き換え時だけ stdin バッファを更新するため、
     /// 補正がなければ本家と同じく読み込んだ元のバッファを出力する。
     stdin_corrected: Option<Vec<u8>>,
+    /// 最後の対象が無変更でも、途中の補正による物理 CRLF 復元を二重に変換しない。
+    stdin_rewritten: bool,
+    stdin_rollback: bool,
     had_errors: bool,
     had_write_failures: bool,
 }
 
-fn apply_corrections(
-    reports: Vec<FileReport>,
-    stdin_original: Option<&[u8]>,
-    anonymous_stdin: bool,
+struct StdinCorrection<'a> {
+    original: &'a [u8],
+    anonymous: bool,
+    echo: bool,
+    shared: Option<&'a mut SharedStdinState>,
+}
+
+/// Runner と Team が共有する本文は logical のまま次へ渡し、echo は最後に一度だけ作る。
+fn inspect_stdin_directory(
+    targets: &[PathBuf],
+    original: &[u8],
     configs: &ConfigStore,
     correct_mode: CorrectMode,
     selection: &Selection,
-    stdin_echo: bool,
+    cli: &Cli,
+    fail_level: FailLevel,
 ) -> Result<CorrectionRun> {
+    let mut current = original.to_vec();
+    let mut shared = SharedStdinState::default();
+    let mut result = CorrectionRun {
+        reports: Vec::with_capacity(targets.len()),
+        corrected_count: 0,
+        stdin_corrected: None,
+        stdin_rewritten: false,
+        stdin_rollback: false,
+        had_errors: false,
+        had_write_failures: false,
+    };
+    for path in targets {
+        let config = configs.for_path(path)?;
+        let report = inspect_shared_stdin(path.clone(), &current, &shared, &config, selection)?;
+        let before = shared.clone();
+        let mut run = apply_corrections(
+            vec![report],
+            Some(StdinCorrection {
+                original: &current,
+                anonymous: false,
+                echo: false,
+                shared: Some(&mut shared),
+            }),
+            configs,
+            correct_mode,
+            selection,
+        )?;
+        if run.had_write_failures {
+            shared = before;
+        }
+        if let Some(corrected) = run.stdin_corrected {
+            current = corrected;
+        }
+        let failed = cli.fail_fast && {
+            let mut displayed = run.reports.clone();
+            filter_displayed_offenses(&mut displayed, cli, fail_level);
+            fail_level.failing(&displayed) || run.had_errors
+        };
+        result.corrected_count += run.corrected_count;
+        result.stdin_rewritten |= run.stdin_rewritten;
+        result.stdin_rollback |= run.stdin_rollback;
+        result.had_errors |= run.had_errors;
+        result.had_write_failures |= run.had_write_failures;
+        result.reports.append(&mut run.reports);
+        if failed {
+            break;
+        }
+    }
+    if result.stdin_rollback || result.had_write_failures {
+        return rollback_stdin_directory(result, original, configs, selection);
+    }
+    if correct_mode != CorrectMode::None {
+        // 対象0でも本家は受け取った本文を返す。JSON等の抑制時は計画も拒否も増やさない。
+        if cfg!(windows) && prints_corrected_stdin(cli) {
+            let path = result.reports.last().map_or_else(
+                || cli.stdin.as_deref().unwrap(),
+                |report| report.path.as_path(),
+            );
+            let config = configs.for_path(path)?;
+            current = match planned_stdin_echo(
+                &current,
+                original,
+                &config,
+                result.stdin_rewritten,
+                selection,
+            ) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    report_stdin_echo_failure(path, &error);
+                    return rollback_stdin_directory(result, original, configs, selection);
+                }
+            };
+        }
+        result.stdin_corrected = Some(current);
+    }
+    Ok(result)
+}
+
+fn rollback_stdin_directory(
+    mut run: CorrectionRun,
+    original: &[u8],
+    configs: &ConfigStore,
+    selection: &Selection,
+) -> Result<CorrectionRun> {
+    // 返す全体が原本へ戻るため、途中の共有本文に対する corrected 記録も残さない。
+    run.reports = run
+        .reports
+        .into_iter()
+        .map(|report| {
+            let config = configs.for_path(&report.path)?;
+            inspect_stdin(report.path, original.to_vec(), &config, selection)
+        })
+        .collect::<Result<_>>()?;
+    run.corrected_count = 0;
+    run.stdin_corrected = Some(original.to_vec());
+    run.stdin_rollback = true;
+    run.had_errors = true;
+    run.had_write_failures = true;
+    Ok(run)
+}
+
+enum StdinEchoFailure {
+    Transport(anyhow::Error),
+    Syntax,
+}
+
+fn planned_stdin_echo(
+    bytes: &[u8],
+    original: &[u8],
+    config: &Config,
+    rewritten: bool,
+    selection: &Selection,
+) -> std::result::Result<Vec<u8>, StdinEchoFailure> {
+    let bytes =
+        stdin_output_bytes(bytes, config, rewritten).map_err(StdinEchoFailure::Transport)?;
+    if bytes.as_ref() != original
+        && !selection.skip_syntax_guard
+        && std::env::var_os(NO_SYNTAX_GUARD).is_none()
+        && crate::prism::would_invalidate(original, &bytes, config.target_ruby_version())
+    {
+        return Err(StdinEchoFailure::Syntax);
+    }
+    Ok(bytes.into_owned())
+}
+
+fn report_stdin_echo_failure(path: &Path, failure: &StdinEchoFailure) {
+    match failure {
+        StdinEchoFailure::Transport(error) => {
+            eprintln!(
+                "refusing to print corrected stdin {}: {error:#}",
+                path.display()
+            );
+        }
+        StdinEchoFailure::Syntax => {
+            eprintln!(
+                "Autocorrection was not written to {} because it introduced a syntax error.",
+                path.display()
+            );
+        }
+    }
+}
+
+fn apply_corrections(
+    reports: Vec<FileReport>,
+    mut stdin: Option<StdinCorrection<'_>>,
+    configs: &ConfigStore,
+    correct_mode: CorrectMode,
+    selection: &Selection,
+) -> Result<CorrectionRun> {
+    let stdin_original = stdin.as_ref().map(|input| input.original);
+    let anonymous_stdin = stdin.as_ref().is_some_and(|input| input.anonymous);
+    let stdin_echo = stdin.as_ref().is_some_and(|input| input.echo);
     let mut corrected_count = 0;
     let mut stdin_corrected = None;
+    let mut stdin_rewritten = false;
+    let mut stdin_rollback = false;
     let mut had_errors = false;
     let mut had_write_failures = false;
     let mut corrected_reports = Vec::with_capacity(reports.len());
@@ -1012,14 +1256,28 @@ fn apply_corrections(
         } else {
             None
         };
-        let outcome = correct_file_with_original(
-            report,
-            correct_mode,
-            &target_config,
-            selection,
-            stdin_original.or(disk_original.as_deref()),
-            stdin_original.is_none(),
-        )?;
+        let outcome =
+            if let Some(shared) = stdin.as_mut().and_then(|input| input.shared.as_deref_mut()) {
+                correct_shared_stdin(
+                    report,
+                    correct_mode,
+                    &target_config,
+                    selection,
+                    stdin_original.unwrap(),
+                    shared,
+                )?
+            } else {
+                correct_file_with_original(
+                    report,
+                    correct_mode,
+                    &target_config,
+                    selection,
+                    stdin_original.or(disk_original.as_deref()),
+                    stdin_original.is_none(),
+                )?
+            };
+        stdin_rewritten |= stdin_original.is_some() && outcome.rewritten;
+        stdin_rollback |= outcome.rollback.is_some();
         if let Some(message) = &outcome.infinite_loop {
             // 本家は反復が収束しないファイルでも最後の補正を書き、残りの処理を続ける。
             eprintln!("{message}");
@@ -1055,14 +1313,16 @@ fn apply_corrections(
                 };
                 // Windows の transport が加える変更を検査し、Unix は既存の補正判定を使う。
                 if stdin_echo && cfg!(windows) && outcome.rollback.is_none() {
-                    let bytes = match stdin_output_bytes(&bytes, &target_config, outcome.rewritten)
-                    {
+                    let bytes = match planned_stdin_echo(
+                        &bytes,
+                        original,
+                        &target_config,
+                        outcome.rewritten,
+                        selection,
+                    ) {
                         Ok(bytes) => bytes,
                         Err(error) => {
-                            eprintln!(
-                                "refusing to print corrected stdin {}: {error:#}",
-                                path.display()
-                            );
+                            report_stdin_echo_failure(&path, &error);
                             had_errors = true;
                             had_write_failures = true;
                             stdin_corrected = Some(original.to_vec());
@@ -1070,26 +1330,7 @@ fn apply_corrections(
                             continue;
                         }
                     };
-                    if bytes.as_ref() != original
-                        && !selection.skip_syntax_guard
-                        && std::env::var_os(NO_SYNTAX_GUARD).is_none()
-                        && crate::prism::would_invalidate(
-                            original,
-                            &bytes,
-                            target_config.target_ruby_version(),
-                        )
-                    {
-                        eprintln!(
-                            "Autocorrection was not written to {} because it introduced a syntax error.",
-                            path.display()
-                        );
-                        had_errors = true;
-                        had_write_failures = true;
-                        stdin_corrected = Some(original.to_vec());
-                        corrected_reports.extend(original_stdin_report);
-                        continue;
-                    }
-                    stdin_corrected = Some(bytes.into_owned());
+                    stdin_corrected = Some(bytes);
                 } else {
                     stdin_corrected = Some(bytes);
                 }
@@ -1121,6 +1362,8 @@ fn apply_corrections(
         reports: corrected_reports,
         corrected_count,
         stdin_corrected,
+        stdin_rewritten,
+        stdin_rollback,
         had_errors,
         had_write_failures,
     })
