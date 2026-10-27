@@ -1,0 +1,23 @@
+未知builtin formatterのRuboCop 1.89.0実CLI記録。
+
+2026-10-28 JST、Windows x64 UCRT / Ruby 4.0.7 / parser 3.3.12.0 /
+Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。各childの実loaded版を照合した。
+TargetRubyVersion 2.7、候補を起動せず、pipe・非TTY・直列で採取した。
+
+再採取（保存済み期待値は上書きしない）:
+  python scripts/conformance/record_formatter_lookup.py <新JSON> --ruby <Ruby-4.0.7の実体> --evidence-directory <私有の新領域>
+
+17入力: 未知名が先頭、JSONの後、後続JSONを開く前に停止の3件と、
+Unicode・引用・backslash・LF・CR・VT・FF・補間開始・非表示文字の名前9件、
+近似名の候補3件、強制カラー2件。色の有無は各ケースで単独指定する。
+終了2・空stdout・本家の見出し・最初のFile初期化・後続Fileの状態・
+原本と設定のbytes/mtime/mode・固定版を採取時に検査する。
+
+本家 FormatterSet#builtin_formatter_class のメッセージprefixと、全出力Fileの物理bytesを比較する。
+名前はinspectせず原文を埋め込むため、引用・改行・制御文字をそのまま保つ。
+Rubyの実formatterソース位置から最初のframeを認識し、その前の実stderr bytesを保存する。
+Ruby実装固有のbacktraceは私有のraw記録に保持し、新規の全stderr一致へ数えない。
+RubyのGemパスやframeをnativeのものとして偽装しない。新しい意図差manifestは追加しない。
+Unixの回帰ではWindowsのCRLF終端だけをLFへ投影し、Unix本家の実測とは数えない。
+共通の参照loaderはrecord_formatter_colors.pyから使い、Rubyへの4つの環境注入だけを
+子copyから外す。Gem/PATH/OSの探索と親環境を保つ。

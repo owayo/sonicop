@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use serde::Serialize;
 
 use crate::config::Config;
@@ -37,6 +37,45 @@ pub enum Format {
     Autogenconf,
 }
 
+/// CLI は本家の見出しを出し、一般の formatter API は従来の説明を保つ。
+#[derive(Debug)]
+pub(crate) struct FormatterLookupFailure {
+    pub(crate) name: String,
+}
+
+// DidYouMean の同点時にも、本家の辞書の登録順を使う。
+pub(crate) const BUILTIN_FORMATTER_NAMES: &[&str] = &[
+    "autogenconf",
+    "clang",
+    "emacs",
+    "files",
+    "fuubar",
+    "github",
+    "html",
+    "json",
+    "junit",
+    "markdown",
+    "offenses",
+    "pacman",
+    "progress",
+    "quiet",
+    "simple",
+    "tap",
+    "worst",
+];
+
+impl std::fmt::Display for FormatterLookupFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "unknown formatter: {}. Available formatters: progress, simple, clang, emacs, json, junit, html, markdown, github, tap, files, fuubar, offenses, worst, quiet, pacman, autogenconf",
+            self.name
+        )
+    }
+}
+
+impl std::error::Error for FormatterLookupFailure {}
+
 impl Format {
     pub fn parse(value: &str) -> Result<Self> {
         match value.to_ascii_lowercase().as_str() {
@@ -57,9 +96,10 @@ impl Format {
             "quiet" | "q" => Ok(Self::Quiet),
             "pacman" | "pa" => Ok(Self::Pacman),
             "autogenconf" | "a" => Ok(Self::Autogenconf),
-            _ => bail!(
-                "unknown formatter: {value}. Available formatters: progress, simple, clang, emacs, json, junit, html, markdown, github, tap, files, fuubar, offenses, worst, quiet, pacman, autogenconf"
-            ),
+            _ => Err(FormatterLookupFailure {
+                name: value.to_owned(),
+            }
+            .into()),
         }
     }
 }

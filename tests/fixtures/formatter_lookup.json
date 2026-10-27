@@ -1,0 +1,431 @@
+{
+  "reference": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0"
+  },
+  "platform": "win32-pipe-non-tty",
+  "source_hex": "783d310a",
+  "config_hex": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a",
+  "scope": "builtin formatter error message prefix and physical output files; Ruby implementation backtrace is not a new full-stderr equality",
+  "cases": [
+    {
+      "name": "unknown-first",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "unknown_formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022756e6b6e6f776e5f666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "json-then-unknown",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "json",
+        "-o",
+        "first.txt",
+        "-f",
+        "unknown_formatter",
+        "-o",
+        "second.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022756e6b6e6f776e5f666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": ""
+      }
+    },
+    {
+      "name": "unknown-stops-later",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "unknown_formatter",
+        "-o",
+        "first.txt",
+        "-f",
+        "json",
+        "-o",
+        "second.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022756e6b6e6f776e5f666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "unicode",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "未知formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022e69caae79fa5666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "quote",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\" formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261642220666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "backslash",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\\ formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261645c20666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "newline",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\n formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261640d0a20666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "carriage-return",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\r formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261640d20666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "vertical-tab",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\u000b formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261640b20666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "form-feed",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad\f formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226261640c20666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "interpolation",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad#{value}",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022626164237b76616c75657d22206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "nonprintable",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "bad formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d61747465722022626164c28520666f726d617474657222206e6f7420666f756e642e0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "suggest-jsn",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "jsn",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d617474657220226a736e22206e6f7420666f756e642e2044696420796f75206d65616e3f20226a736f6e220d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "suggest-progres",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "progres",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d6174746572202270726f6772657322206e6f7420666f756e642e2044696420796f75206d65616e3f202270726f6772657373220d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "suggest-file",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-color",
+        "-f",
+        "file",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "466f726d6174746572202266696c6522206e6f7420666f756e642e2044696420796f75206d65616e3f202266696c6573220d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "color-unknown",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--color",
+        "-f",
+        "unknown_formatter",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "1b5b33316d466f726d61747465722022756e6b6e6f776e5f666f726d617474657222206e6f7420666f756e642e1b5b306d0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    },
+    {
+      "name": "color-suggestion",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--color",
+        "-f",
+        "jsn",
+        "-o",
+        "first.txt",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_message_prefix_hex": "1b5b33316d466f726d617474657220226a736e22206e6f7420666f756e642e2044696420796f75206d65616e3f20226a736f6e221b5b306d0d0a",
+      "files_hex": {
+        "first.txt": "",
+        "second.txt": "7365636f6e642d6f726967696e616c0a"
+      }
+    }
+  ]
+}

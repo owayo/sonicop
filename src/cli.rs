@@ -18,8 +18,8 @@ use crate::engine::{
     native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
-    Format, FormatOptions, Lifecycle, Output, OutputSet, absolute_path, offenses_by_cop, render,
-    smart_path, yaml_single_quoted,
+    BUILTIN_FORMATTER_NAMES, Format, FormatOptions, FormatterLookupFailure, Lifecycle, Output,
+    OutputSet, absolute_path, offenses_by_cop, render, smart_path, yaml_single_quoted,
 };
 use crate::name_distance::{jaro_winkler, levenshtein};
 use crate::rules::rule_names;
@@ -325,12 +325,28 @@ fn run_inner() -> i32 {
     };
     cli.cache_message_options = cache_message_options(&arguments);
     let outputs = output_paths_by_format(&matches);
+    let formatter_error_color = !cli.no_color
+        && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));
     match try_run(cli, &outputs) {
         Ok(code) => code,
         Err(error) => {
             if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<FormatterLookupFailure>() {
+                // builtin_formatter_class は名前を原文で埋め込み、Ruby の frame と分ける。
+                let suggestion =
+                    similar_names(&failure.name, BUILTIN_FORMATTER_NAMES.iter().copied())
+                        .first()
+                        .map(|name| format!(" Did you mean? \"{name}\""))
+                        .unwrap_or_default();
+                let message = format!("Formatter \"{}\" not found.{suggestion}", failure.name);
+                let text = if formatter_error_color {
+                    format!("\x1b[31m{message}\x1b[0m\n")
+                } else {
+                    format!("{message}\n")
+                };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else {
                 eprintln!("Error: {error:#}");
@@ -1924,12 +1940,16 @@ fn selector_dictionary(config: &Config) -> Vec<&str> {
 }
 
 fn similar_cop_names(input: &str, config: &Config) -> Vec<String> {
+    similar_names(input, selector_dictionary(config))
+}
+
+fn similar_names<'a>(input: &str, dictionary: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     // NameSimilarityはDidYouMean::SpellCheckerを使う。最初の一候補だけに切り詰めない。
     let normalized = input.to_lowercase().replace('@', "");
     let length = normalized.chars().count();
     let threshold = if length > 3 { 0.834 } else { 0.77 };
     let normalize = |name: &str| name.to_lowercase().replace('@', "");
-    let mut words: Vec<_> = selector_dictionary(config)
+    let mut words: Vec<_> = dictionary
         .into_iter()
         .filter(|word| *word != input && jaro_winkler(&normalize(word), &normalized) >= threshold)
         .collect();

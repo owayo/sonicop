@@ -194,3 +194,10 @@ scripts/conformance/test_windows_argv.py text eol=lf
 tests/fixtures/windows_argv.json text eol=lf
 tests/fixtures/windows_argv.json.PROVENANCE text eol=lf
 tests/windows_argv.rs text eol=lf
+
+# formatter lookup の参照採取と raw message を LF で保存する。
+scripts/conformance/record_formatter_lookup.py text eol=lf
+scripts/conformance/test_formatter_lookup.py text eol=lf
+tests/formatter_lookup.rs text eol=lf
+tests/fixtures/formatter_lookup.json text eol=lf
+tests/fixtures/formatter_lookup.json.PROVENANCE text eol=lf
