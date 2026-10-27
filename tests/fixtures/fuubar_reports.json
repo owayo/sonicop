@@ -1,0 +1,2213 @@
+{
+  "reference": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0",
+    "ruby_progressbar": "1.13.0"
+  },
+  "cases": [
+    {
+      "case": {
+        "name": "disk-offense",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "disk-crlf",
+        "files": {
+          "case.rb": "783d310d0a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310d0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "disk-eof",
+        "files": {
+          "case.rb": "783d31"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d31"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "disk-clean",
+        "files": {
+          "case.rb": "78203d20310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c206e6f206f6666656e7365732064657465637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "78203d20310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "stdin-lf",
+        "files": {},
+        "stdin_hex": "783d310a",
+        "targets": [
+          "sample.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a73616d706c652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {},
+      "report": {
+        "files": [
+          {
+            "path": "sample.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "stdin-crlf",
+        "files": {},
+        "stdin_hex": "783d310d0a",
+        "targets": [
+          "sample.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a73616d706c652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {},
+      "report": {
+        "files": [
+          {
+            "path": "sample.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "explicit-no-color",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--no-color"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "no-cop-name",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--no-display-cop-names"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "alias",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fu",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "default-formatter",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  DefaultFormatter: fuubar\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "color",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a1b5b33336d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "color-clean",
+        "files": {
+          "case.rb": "78203d20310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d1b5b33326d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33326d6e6f206f6666656e7365731b5b306d2064657465637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "78203d20310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "color-warning",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Severity: warning\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a323a201b5b33356d571b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a1b5b33356d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "color-info",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Severity: info\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a323a201b5b33383b353b3138386d491b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a1b5b33383b353b3138386d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "info",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "safe-correction",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "-a"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637465645d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e736520636f727265637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "78203d20310d0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "all-correction",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "-A"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637465645d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e736520636f727265637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "78203d20310d0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "color-correction",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color",
+          "-a"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33326d5b436f727265637465645d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a1b5b33326d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33326d31206f6666656e73651b5b306d20636f727265637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "78203d20310d0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "safe-remaining",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "-a"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Style/FrozenStringLiteralComment",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a313a20433a205b436f727265637461626c655d205374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e743a204d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e0d0a783d310d0a5e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206d6f7265206f6666656e73652063616e20626520636f72726563746564207769746820607275626f636f70202d41600d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Missing frozen string literal comment.",
+                "cop_name": "Style/FrozenStringLiteralComment",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 1,
+                  "last_line": 1,
+                  "last_column": 1,
+                  "length": 1,
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "partial-correction-color",
+        "files": {
+          "case.rb": "23206162636465666768696a6b6c6d6e6f700a783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color",
+          "-a"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Severity: error\nLayout/LineLength:\n  Max: 10\n  Severity: warning\n",
+        "only": "Layout/SpaceAroundOperators,Layout/LineLength",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a31313a201b5b33356d571b5b306d3a204c61796f75742f4c696e654c656e6774683a204c696e6520697320746f6f206c6f6e672e205b31382f31305d0d0a23206162636465666768696a6b6c6d6e6f700d0a202020202020202020205e5e5e5e5e5e5e5e0d0a1b5b33366d636173652e72621b5b306d3a323a323a201b5b33316d451b5b306d3a201b5b33326d5b436f727265637465645d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a1b5b33356d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d32206f6666656e7365731b5b306d2064657465637465642c201b5b33366d31206f6666656e73651b5b306d20636f727265637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "23206162636465666768696a6b6c6d6e6f700d0a78203d20310d0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Line is too long. [18/10]",
+                "cop_name": "Layout/LineLength",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 11,
+                  "last_line": 1,
+                  "last_column": 18,
+                  "length": 8,
+                  "line": 1,
+                  "column": 11
+                }
+              },
+              {
+                "severity": "error",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 2,
+                  "start_column": 2,
+                  "last_line": 2,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 2,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "annotated-color",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--color",
+          "-D",
+          "-E",
+          "-S"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Details: 'Review `size`.'\n  StyleGuide: '#operator'\n  References: ['https://example.test/ref']\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "1b5b33326d0d0a50726f67726573733a207c1b5b306d0d0a1b5b33366d636173652e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e20526576696577201b5b33336d73697a651b5b306d2e202868747470733a2f2f727562797374796c652e6775696465236f70657261746f722c2068747470733a2f2f6578616d706c652e746573742f726566290d0a783d310d0a205e0d0a1b5b33336d50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a1b5b306d0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`. Review `size`. (https://rubystyle.guide#operator, https://example.test/ref)",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "width20",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "20",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "width12",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "12",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "width-small",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "4",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "width-ruby-prefix",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "  +20tail",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "width-invalid",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "unknown",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "stderr",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--stderr"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "stderr",
+      "outputs_hex": {
+        "stdout": "",
+        "stderr": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "empty",
+        "files": {},
+        "stdin_hex": null,
+        "targets": [
+          "."
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 0,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a302066696c657320696e737065637465642c206e6f206f6666656e7365732064657465637465640d0a",
+        "stderr": ""
+      },
+      "after_hex": {},
+      "report": {
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 0,
+          "inspected_file_count": 0
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "two-offenses",
+        "files": {
+          "a.rb": "783d310a",
+          "b.rb": "793d320a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "a.rb",
+          "b.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "events"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a612e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a622e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a793d320d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a322066696c657320696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e736573206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 2,
+          "inspected_file_count": 2
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "three-mixed",
+        "files": {
+          "a.rb": "783d310a",
+          "b.rb": "79203d20320a",
+          "c.rb": "7a3d330a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "a.rb",
+          "b.rb",
+          "c.rb"
+        ],
+        "flags": [],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "events"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a612e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a632e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a7a3d330d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a332066696c657320696e737065637465642c2032206f6666656e7365732064657465637465642c2032206f6666656e736573206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "a.rb": "783d310a",
+        "b.rb": "79203d20320a",
+        "c.rb": "7a3d330a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "b.rb",
+            "offenses": []
+          },
+          {
+            "path": "c.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 3,
+          "inspected_file_count": 3
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "fail-fast",
+        "files": {
+          "a.rb": "783d310a",
+          "b.rb": "793d320a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "a.rb",
+          "b.rb"
+        ],
+        "flags": [
+          "--fail-fast"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "events"
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a612e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "separate-fuubar-first",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--no-display-cop-names"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            "fuubar.txt"
+          ],
+          [
+            "simple",
+            "simple.txt"
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "fuubar.txt",
+      "outputs_hex": {
+        "stdout": "",
+        "stderr": "",
+        "fuubar.txt": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "simple.txt": "3d3d20636173652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "separate-fuubar-last",
+        "files": {
+          "case.rb": "783d310a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "case.rb"
+        ],
+        "flags": [
+          "--no-display-cop-names"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "simple",
+            "simple.txt"
+          ],
+          [
+            "fuubar",
+            "fuubar.txt"
+          ]
+        ],
+        "comparison": "strict"
+      },
+      "exit": 1,
+      "primary": "fuubar.txt",
+      "outputs_hex": {
+        "stdout": "",
+        "stderr": "",
+        "simple.txt": "3d3d20636173652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "fuubar.txt": "0d0a50726f67726573733a207c0d0a636173652e72623a313a323a20433a205b436f727265637461626c655d20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d7c0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a"
+      },
+      "after_hex": {
+        "case.rb": "783d310a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "case": {
+        "name": "fail-fast-equal-mtime",
+        "files": {
+          "a.rb": "783d310a",
+          "b.rb": "793d320a"
+        },
+        "stdin_hex": null,
+        "targets": [
+          "a.rb",
+          "b.rb"
+        ],
+        "flags": [
+          "--fail-fast"
+        ],
+        "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+        "only": "Layout/SpaceAroundOperators",
+        "env": {
+          "RUBY_PROGRESS_BAR_LENGTH": "80",
+          "RUBY_PROGRESS_BAR_FORMAT": "ignored in non-TTY"
+        },
+        "formats": [
+          [
+            "fuubar",
+            null
+          ]
+        ],
+        "comparison": "events",
+        "mtime_ns": 1700000000000000000
+      },
+      "exit": 1,
+      "primary": "stdout",
+      "outputs_hex": {
+        "stdout": "0d0a50726f67726573733a207c0d0a612e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a50726f67726573733a207c3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr": ""
+      },
+      "after_hex": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      }
+    }
+  ]
+}

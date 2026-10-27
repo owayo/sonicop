@@ -1,0 +1,43 @@
+Fuubar の非 TTY 出力を、固定版 RuboCop の実 CLI から採取した 33 件。
+Ruby 4.0.7 / RuboCop 1.89.0 / Parser 3.3.12.0 / Prism 1.8.1 /
+rubocop-ast 1.50.0 / ruby-progressbar 1.13.0 / Rainbow 3.1.1、Windows x64-mingw-ucrt。
+候補版を期待値の生成へ使っていない。各 Fuubar 実行と同じ原本・設定・検査条件を
+独立ディレクトリの JSON 実行でも検査し、対象順・診断全項目・完了件数・終了を確認する。
+診断証拠側は formatter だけを json へ替えるため、cop 名等の message 注釈は Fuubar の実出力から取得する。
+
+再生成（固定版 Ruby の実行ファイルを指定できる）:
+python scripts/conformance/record_fuubar.py --ruby ruby --output tmp/fuubar-reference-new.json
+単独ケースの入口:
+python scripts/conformance/record_fuubar.py --ruby ruby --case disk-offense --output tmp/fuubar-one-case-new.json
+
+親directoryを用意し、既存file・directory・symlinkの無い未使用outputを指定する。
+採取前に元leafを排他予約するため、既存の正式fixtureを上書きしない。
+採取・保存が失敗した場合の新しい0B/partial予約fileは失敗証拠として保持する。
+
+stdout / stderr / --out の raw bytes は outputs_hex、原本と補正後は files / after_hex に保存する。
+JSON コンテナ自体は UTF-8 / LF で、各出力の CRLF は hex 内にそのまま残す。
+検証は既知の formatter transport の CRLF だけを LF へ投影する。
+単一ファイル等 29 件は、ANSI・空白・順序を含む renderer content を厳密比較する。
+生の CLI transport bytes の互換性は #102 の完全依存を統合した候補で別途確認する。
+補正後の本文も #95 の物理書出しとは分けて照合し、#112 から CLI / engine を変更しない。
+
+追加の複数ファイル・fail-fast 3 件は、先頭 bar、違反本文、summary の順、完了 bar を比較する。
+RuboCop の NonTty は 10ms の Throttle を持つので、中間 glyph が描かれる回数と位置は
+各プロセスの実処理時間に依存する。ここを固定した byte 互換とは数えない。
+予備反復は単一 offense 3 回、2 offense 8 回、3 mixed 4 回、fail-fast 3 回を実 CLI で採取した。
+同じケース内の予備出力は同一だったが、3 mixed の clean 2/3 更新は描かれず、1/3 の glyph が残った。
+候補の完成済み report からの描画は各完了時点の状態を出し、ライブの間引きや TTY の ETA・CR・
+時刻・端末リサイズを再現した証拠にはしない。TTY の完全互換はこの記録の評価範囲外である。
+
+元の 32 件の raw 記録を残し、mtime を等値にした fail-fast 対照を実 CLI から追加した。
+元の fail-fast は本家と候補で対象の順が異なる通常差 #120 の証拠として保持する。
+この 1 件を Fuubar leaf の成功へ加算せず、active 比較は 29 strict + 3 event の 32 件である。
+共有 stdout の複数 formatter のイベント順は #116 で別に追跡し、別 --out の両順だけを leaf 対照にする。
+いずれも安全上の意図差へ登録していない。CLI / engine / raw offense / cache / Progress / Pacman は変更しない。
+
+初回取得の元 32 件の JSON SHA256:
+676687d1bdb3b046606b1e0424c2d221ffce2b1c67a94d2b60af93dc33886d20
+fail-fast-equal-mtime の独立追加記録（1 件）の JSON SHA256:
+713054100d47fff33e12230e92a1ee7ca5f96e6820e3d6b05ad9e82ba47d3d58
+fuubar_reports.json（元 32 件 + 追加 1 件）SHA256:
+1a559ce3201bf707f081864a63318e060ae9eb128a8503760af2d76acd575af1

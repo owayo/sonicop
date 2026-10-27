@@ -66,8 +66,8 @@ pub struct FormatOptions<'a> {
     pub extra_details: bool,
     pub color: bool,
     pub corrected_count: usize,
-    /// How many files the run set out to inspect, which `JSONFormatter#started` takes from
-    /// `target_files` before any of them is read. Only `json` reports it. See [`render_json`].
+    /// 検査開始前の対象数。JSONとFuubarのbarはこの値を使う。
+    /// fail-fast後のsummary件数は、完了したreports.len()から求める。
     pub target_file_count: usize,
     pub fail_level: Severity,
     /// True for `-a`, where RuboCop points at `-A` instead of calling the rest autocorrectable.
@@ -97,9 +97,8 @@ pub fn render(
         Format::Simple => Ok(render_simple(reports, options, false)),
         Format::Quiet => Ok(render_simple(reports, options, true)),
         Format::Clang => Ok(render_clang(reports, options, false)),
-        Format::Progress | Format::Fuubar | Format::Pacman => {
-            Ok(render_clang(reports, options, true))
-        }
+        Format::Fuubar => render_fuubar(reports, options),
+        Format::Progress | Format::Pacman => Ok(render_clang(reports, options, true)),
     }
 }
 
@@ -178,6 +177,235 @@ fn render_clang(reports: &[FileReport], options: &FormatOptions<'_>, progress: b
     }
     output.push('\n');
     output.push_str(&summary(reports, options));
+    output
+}
+
+/// FuubarStyleFormatter は NonTty でも progress と異なり、違反を各 file_finished で出す。
+/// 中間 bar の 10ms 間引きは本家の実処理時間に依存するため、完了した bar と診断順を分けて検証する。
+fn render_fuubar(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<String> {
+    let width = fuubar_bar_width();
+    let mut bar = String::new();
+    bar.try_reserve_exact(width.saturating_add(12))?;
+    bar.push_str("Progress: |");
+    bar.extend(std::iter::repeat_n('=', width));
+    bar.push('|');
+
+    let mut output = String::new();
+    let mut last_length = 0;
+    let mut severest = None;
+    // NonTty#refresh の最初の length_changed? は clear を呼び、先頭にも改行を出す。
+    if options.color {
+        output.push_str("\x1b[32m");
+    }
+    output.push('\n');
+    fuubar_increment(
+        &mut output,
+        &bar,
+        &mut last_length,
+        0,
+        options.target_file_count,
+    );
+    if options.color {
+        output.push_str("\x1b[0m");
+    }
+    for (index, report) in reports.iter().enumerate() {
+        if let Some(severity) = report
+            .offenses
+            .iter()
+            .filter(|offense| !offense.corrected)
+            .map(|offense| offense.severity)
+            .max()
+        {
+            severest = Some(severest.map_or(severity, |previous: Severity| previous.max(severity)));
+        }
+        if !report.offenses.is_empty() {
+            output.push('\n');
+            last_length = 0;
+            fuubar_report_file(&mut output, report, options);
+        }
+        if options.color {
+            output.push_str(&format!(
+                "\x1b[{}m",
+                severest.map_or("32", fuubar_severity_color)
+            ));
+        }
+        fuubar_increment(
+            &mut output,
+            &bar,
+            &mut last_length,
+            index + 1,
+            options.target_file_count,
+        );
+        if options.color {
+            output.push_str("\x1b[0m");
+        }
+    }
+    output.push('\n');
+    output.push_str(&fuubar_summary(reports, options));
+    Ok(output)
+}
+
+fn fuubar_increment(
+    output: &mut String,
+    bar: &str,
+    last_length: &mut usize,
+    completed: usize,
+    total: usize,
+) {
+    // %b は百分率を先に整数へ切り捨てる。2/3 で幅68なら45本ではなく44本になる。
+    let percentage = if total == 0 {
+        100
+    } else {
+        ((completed as u128 * 100) / total as u128).min(100) as usize
+    };
+    let finished = completed >= total;
+    let length = 11 + (bar.len() - 12) * percentage / 100 + usize::from(finished);
+    output.push_str(bar.get(*last_length..length).unwrap_or(""));
+    *last_length = length;
+    if finished {
+        output.push('\n');
+    }
+}
+
+fn fuubar_bar_width() -> usize {
+    let Ok(value) = std::env::var("RUBY_PROGRESS_BAR_LENGTH") else {
+        return 68;
+    };
+    // ruby-progressbar の Length は ENV の String#to_i を使い、無効値・負値の bar 幅は0になる。
+    let mut value = value.trim_start_matches(|character: char| character.is_ascii_whitespace());
+    if value.starts_with('-') {
+        return 0;
+    }
+    value = value.strip_prefix('+').unwrap_or(value);
+    let mut digits = value.bytes().peekable();
+    let mut width = 0usize;
+    let mut seen = false;
+    while let Some(byte) = digits.next() {
+        if byte.is_ascii_digit() {
+            seen = true;
+            width = width
+                .saturating_mul(10)
+                .saturating_add(usize::from(byte - b'0'));
+        } else if byte != b'_' || !seen || !digits.peek().is_some_and(u8::is_ascii_digit) {
+            break;
+        }
+    }
+    width.saturating_sub(12)
+}
+
+fn fuubar_severity_color(severity: Severity) -> &'static str {
+    match severity {
+        // 本家 COLOR_FOR_SEVERITY の gray は Rainbow 3.1.1 で indexed 188 になる。
+        Severity::Info => "38;5;188",
+        Severity::Refactor | Severity::Convention => "33",
+        Severity::Warning => "35",
+        Severity::Error | Severity::Fatal => "31",
+    }
+}
+
+fn fuubar_report_file(output: &mut String, report: &FileReport, options: &FormatOptions<'_>) {
+    let path = paint(&smart_path(&report.path, options.cwd), "36", options.color);
+    for offense in &report.offenses {
+        let location = offense.location(&report.source);
+        let severity = paint(
+            &offense.severity.code().to_string(),
+            fuubar_severity_color(offense.severity),
+            options.color,
+        );
+        let status = status_marker(offense);
+        let mut message = if status.is_empty() {
+            String::new()
+        } else {
+            paint(
+                status,
+                if offense.corrected { "32" } else { "33" },
+                options.color,
+            )
+        };
+        let annotated = annotated_message(offense, options);
+        let mut rest = annotated.as_str();
+        while let Some(open) = rest.find('`') {
+            let Some(close) = rest[open + 1..].find('`') else {
+                break;
+            };
+            message.push_str(&rest[..open]);
+            message.push_str(&paint(
+                &rest[open + 1..open + close + 1],
+                "33",
+                options.color,
+            ));
+            rest = &rest[open + close + 2..];
+        }
+        message.push_str(rest);
+        output.push_str(&format!(
+            "{path}:{}:{}: {severity}: {message}\n",
+            location.line, location.column
+        ));
+        if let Some((quoted, carets)) = source_excerpt(offense, report) {
+            if location.last_line > location.start_line
+                && let Some(line) = quoted.strip_suffix(" ...")
+            {
+                output.push_str(line);
+                output.push(' ');
+                output.push_str(&paint("...", "33", options.color));
+            } else {
+                output.push_str(&quoted);
+            }
+            output.push('\n');
+            output.push_str(&carets);
+            output.push('\n');
+        }
+    }
+}
+
+fn fuubar_summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
+    if !options.color {
+        return summary(reports, options);
+    }
+    let count = offense_count(reports);
+    let offenses = if count == 0 {
+        "no offenses".to_owned()
+    } else {
+        plural(count, "offense")
+    };
+    let mut output = format!(
+        "{} inspected, {} detected",
+        plural(reports.len(), "file"),
+        paint(&offenses, if count == 0 { "32" } else { "31" }, true)
+    );
+    if options.corrected_count > 0 {
+        output.push_str(&format!(
+            ", {} corrected",
+            paint(
+                &plural(options.corrected_count, "offense"),
+                if options.corrected_count == count {
+                    "32"
+                } else {
+                    "36"
+                },
+                true
+            )
+        ));
+    }
+    let correctable = reports
+        .iter()
+        .flat_map(|report| &report.offenses)
+        .filter(|offense| offense.is_correctable() && !offense.corrected)
+        .count();
+    if correctable > 0 {
+        if options.safe_autocorrect {
+            output.push_str(&format!(
+                ", {} can be corrected with `rubocop -A`",
+                paint(&plural(correctable, "more offense"), "33", true)
+            ));
+        } else {
+            output.push_str(&format!(
+                ", {} autocorrectable",
+                paint(&plural(correctable, "offense"), "33", true)
+            ));
+        }
+    }
+    output.push('\n');
     output
 }
 
