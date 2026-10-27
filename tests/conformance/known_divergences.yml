@@ -1518,6 +1518,38 @@ encoding_multipass_divergences:
       原本由来だけが残る最終出力を安全に書き戻し、LF/CRLF と file/stdin の両モードで
       終了 0 を検査する。仕様版更新時に本家を再測定し、符号化が維持されたら削除する。
 
+# 成功した stdin 補正の原本符号化保持。構文拒否やエラー終了の許可へ広げない。
+windows_stdin_encoding_divergences:
+  - cop: Layout/SpaceAroundOperators
+    case: windows1252_stdin_autocorrection_preserves_original_encoding
+    kind: original-encoding
+    platform: windows
+    target_engines: ["2.7/parser_whitequark"]
+    modes: ["-a", "-A"]
+    source_hex: 2320636f64696e673a2057696e646f77732d313235320a783d310a76616c7565203d2027636166e9270a7265717569726520276a736f6e270a5354444f55542e62696e6d6f64653b205354444f55542e7772697465284a534f4e2e67656e65726174652862797465733a2076616c75652e62797465732c20656e636f64696e673a2076616c75652e656e636f64696e672e6e616d6529290a
+    original:
+      value_bytes: [99, 97, 102, 233]
+      value_encoding: Windows-1252
+    upstream:
+      exit: 0
+      payload_hex: 2320636f64696e673a2057696e646f77732d313235320d0a78203d20310d0a76616c7565203d2027636166c3a9270d0a7265717569726520276a736f6e270d0a5354444f55542e62696e6d6f64653b205354444f55542e7772697465284a534f4e2e67656e65726174652862797465733a2076616c75652e62797465732c20656e636f64696e673a2076616c75652e656e636f64696e672e6e616d6529290d0a
+      value_bytes: [99, 97, 102, 195, 169]
+      value_encoding: Windows-1252
+    sonicop:
+      exit: 0
+      payload_hex: 2320636f64696e673a2057696e646f77732d313235320d0a78203d20310d0a76616c7565203d2027636166e9270d0a7265717569726520276a736f6e270d0a5354444f55542e62696e6d6f64653b205354444f55542e7772697465284a534f4e2e67656e65726174652862797465733a2076616c75652e62797465732c20656e636f64696e673a2076616c75652e656e636f64696e672e6e616d6529290d0a
+      value_bytes: [99, 97, 102, 233]
+      value_encoding: Windows-1252
+    note: >-
+      固定した本家1.89.0/Ruby4.0.7の通常名付きstdinへ、Windows-1252のE9 literalを渡した。
+      -a/-AのASCII空白補正は終了0だが、本家は同じ符号化宣言のままE9をC3A9へ書き、
+      MRIのvalue.bytesを[99,97,102,233]から[99,97,102,195,169]へ変える。
+      encoding.nameは両方Windows-1252で、STDOUT.binmodeへのASCII JSONで検証した。
+      独立した実装監査が両modeの実CLI生bytesとMRI値を再確認し、原本符号化保持を支持した。
+      候補も補正を成功させ、診断は本家へ合わせつつ、ASCII編集とnative改行だけを原本へ適用する。
+      この固定source/engine/modeの成功補正だけを記録し、refusal/error2や任意のlegacy符号化へ広げない。
+      ASCII-8BITの独立互換対照と、実本家/安全出力を分けたstdin_directory_reports.jsonへ結び付ける。
+
 # Windows の File.write による未解析 tail の変更と、その保存から生じる差だけ。
 # 通常の純 LF コード・private/method 削除の互換修正を包括的に除外しない。
 windows_native_tail_divergences:
