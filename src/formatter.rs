@@ -771,9 +771,9 @@ pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
         .replace('\\', "/")
 }
 
-/// The path RuboCop opened the file under: file discovery expands every target, so the absolute
-/// path is what a `Parser::Source::Buffer` is named after and what `Range#to_s` prints.
-fn absolute_path(path: &Path, cwd: &Path) -> String {
+/// 本家のSource::BufferとRange#to_sは、探索で展開した絶対パスを使う。
+/// debugのScanningも同じ表記を使い、別のパス展開規則を作らない。
+pub(crate) fn absolute_path(path: &Path, cwd: &Path) -> String {
     expanded(path, cwd).to_string_lossy().replace('\\', "/")
 }
 

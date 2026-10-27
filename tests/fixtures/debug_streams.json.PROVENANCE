@@ -1,0 +1,57 @@
+RuboCop1.89.0 / parser3.3.12.0 / MRI4.0.7 / Windows x64 の実CLI記録。
+
+再録:
+  python scripts/conformance/record_debug_streams.py --ruby <ruby.exe> --launcher <reference.rb> --work <fresh-directory> --out tests/fixtures/debug_streams.json
+
+reference.rb:
+  gem 'parser', '3.3.12.0'
+  gem 'rubocop', '1.89.0'
+  load Gem.bin_path('rubocop', 'rubocop', '1.89.0')
+
+27回の本家CLIと1回の実runtime probe。候補のsource/outputは参照しない。
+RUBYOPT/RUBYLIB/RUBOCOP_OPTS/RUBOCOP_TARGET_RUBY_VERSIONを全起動から除き、
+GemPath/OS環境は保持する。実CLIのidentityと全対象JSONの完了件数/順序/集計を検証する。
+全原本byteは不変。stdin補正の原本もdiskへ書き換えない。
+fail-fastの原本mtimeを同値へ固定し、別Issue120のmtime順差を混ぜない。
+
+21条件は共通interfaceの全stream/formatter file/JSON全フィールドを比較する。
+  JSON/simpleのfileとconsole、stderr、stdin、target0、2fileのinterleave、
+  fail-fast未到達fileを出さないこと、複数formatter、既定progress、
+  違反0file、stdin safe補正のecho、非debug陰性を含む。
+5条件はtimer/早期拒否phaseだけを比較する。
+1条件のlate UnknownCopは、採取当時の候補でIssue118のreport0/deferred-error接続が
+未完了だったためdeferred_error_residualに分類した。fixture内の分類は来歴として残す。
+現在の統合候補では、最初のScanning・空report・全stream/fileも専用テストで比較する。
+guardの未観測target_countは0と推測せずnullとする。
+
+動的metadataの投影:
+  Rubyのconfiguration/default configuration行はreference_headersへ分離する。
+  workdirは<cwd>、Ruby固有default config実pathは<reference-default-config>に置く。
+  末尾の実elapsed値だけを<elapsed>へ置く。timerのstreamと末尾位置は比較する。
+  JSONはmetadataのtool identityだけを外し、別のreports配列へ保持する。
+  診断message/location/length/件数等は投影しない。
+  JSONを取り出した後に、残るstreamのcwdだけを投影する。
+  stdout/stderrの原bytesとraw.jsonはworkdir配下へ保持し、public fixtureへは
+  raw SHA256を残す。RubyGemの個人pathを公開fixtureへ持ち出さない。
+  formatter保存fileの原bytesもraw_hexへ保持する。
+
+Nativeの構成3行は、真のcwd/configpath/実discovery件数/実cop情報をstdoutへ出す。
+その位置・件数・項目を別検証し、RubyGemPath/versionへ偽装して共通payloadへ混ぜない。
+JSONのNative identityもruby_engine=sonicop/ruby_version=n/aとして保持する。
+全体の生debug textが本家と同一という主張ではない。
+Windows出力のCRLFは保存し、POSIXテストではtext mode出力の改行だけOSへ合わせる。
+原本のbytesやJSON診断値にはこの改行変換を適用しない。
+
+Scanningは他のformatterと同じ出力eventの再生であり、実filesystem読取時刻ではない。
+並列の検査順序を変えず、実reportのpathだけを使いfile_startedの直前へ置く。
+file_startedに到達したがreportが無いlate errorは、このfixtureの成功数へ混ぜない。
+
+最新mainへの統合では既存27件のJSONをbyte不変で保持し、未知cop1件も
+空report・最初のScanning・全stream/fileを比較する専用テストへ接続した。
+残る早期エラー5件はphase/timer guardであり、全面互換の成功へ数えない。
+追加6条件はdebug_directories.jsonへ分離した。親configの下の2file/空directory、
+stdin、stderr、listing、未知copのfirst eventとfail-fast listingを実本家から直列採取。
+再録: python scripts/conformance/record_debug_directories.py --ruby <ruby.exe> --launcher <reference.rb> --work <fresh-directory> --out tests/fixtures/debug_directories.json
+configurationは検査directoryの親へ置き、stdin探索が設定も対象に含める条件と混ぜない。
+新採取の6条件はすべて共通payloadを比較し、nativeの真の構成行を別に確認する。
+macOSのtemp parentは作成時にcanonical表記へ揃える。Windowsのpathは一般正規化しない。

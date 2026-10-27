@@ -1,0 +1,546 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "parser": "3.3.12.0",
+    "rubocop": "1.89.0",
+    "platform": "x64-mingw-ucrt"
+  },
+  "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n",
+  "launcher_sha256": "4ff21afcc394ffa556b6b7ca6b2d0c8e79aaf2e714e30620746154903853fd13",
+  "cases": [
+    {
+      "id": "directory",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ".",
+        "--format",
+        "json",
+        "--out",
+        "report.out"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_source": "x=1\n",
+      "target_count": 2,
+      "listing": false,
+      "exit": 1,
+      "stdout": {
+        "text": "Scanning <cwd>/a.rb\r\nScanning <cwd>/b.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/directory/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": {
+        "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+        "report": {
+          "files": [
+            {
+              "path": "a.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            },
+            {
+              "path": "b.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 2,
+            "target_file_count": 2,
+            "inspected_file_count": 2
+          }
+        }
+      },
+      "raw_stdout_sha256": "fe9e23aaacea3353170544f3ae342a6f8da400213a7fedf82a16a95ebf765a3c",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "input_before": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      }
+    },
+    {
+      "id": "directory_stderr",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "--stdin",
+        ".",
+        "--format",
+        "json",
+        "--out",
+        "report.out"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_source": "x=1\n",
+      "target_count": 2,
+      "listing": false,
+      "exit": 1,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/directory_stderr/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/a.rb\r\nScanning <cwd>/b.rb\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": {
+        "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+        "report": {
+          "files": [
+            {
+              "path": "a.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            },
+            {
+              "path": "b.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 2,
+            "target_file_count": 2,
+            "inspected_file_count": 2
+          }
+        }
+      },
+      "raw_stdout_sha256": "9731d8d6af0c835c5af4a642a819bc1a8ab827db5f862df0eceeed4a8f41d8f0",
+      "raw_stderr_sha256": "b32cc8eef49a57c9e3e08eeb2e84442c8f931fcd892236e928f52fcd3b7385ba",
+      "input_before": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      }
+    },
+    {
+      "id": "empty_directory",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ".",
+        "--format",
+        "json",
+        "--out",
+        "report.out"
+      ],
+      "inputs": {},
+      "mtime_ns": {},
+      "stdin_source": "x=1\n",
+      "target_count": 0,
+      "listing": false,
+      "exit": 0,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/empty_directory/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": {
+        "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a302c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 0,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "raw_stdout_sha256": "b007d9a0722f2a04dbdc2de5992492d5002f08498c9df4a1d4a31d0e58d758e5",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "input_before": {},
+      "input_after": {}
+    },
+    {
+      "id": "listing",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stdin",
+        ".",
+        "--fail-fast",
+        "-L"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_source": "x=1\n",
+      "target_count": 2,
+      "listing": true,
+      "exit": 0,
+      "stdout": {
+        "text": "b.rb\r\na.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/listing/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": null,
+      "raw_stdout_sha256": "9029e9d964f3645de6afd9f280f0511df0bcb62e8809ee5f509cec76f97ad565",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "input_before": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      }
+    },
+    {
+      "id": "unknown_stderr",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Unknown/Cop",
+        "--stderr",
+        "--stdin",
+        ".",
+        "--format",
+        "json",
+        "--out",
+        "report.out"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_source": "x=1\n",
+      "target_count": 2,
+      "listing": false,
+      "exit": 2,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/unknown_stderr/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/a.rb\r\nUnrecognized cop or department: Unknown/Cop.\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": {
+        "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 2,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "raw_stdout_sha256": "4d71da684a13f4ea03d335d46e8fdae6be8b36ef409daeb65a01dacf851f5191",
+      "raw_stderr_sha256": "3b2a4eb56990696578e752b7d6f256f1d114c5f1cde89eefd1146f4d19967875",
+      "input_before": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      }
+    },
+    {
+      "id": "unknown_listing",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Unknown/Cop",
+        "--stdin",
+        ".",
+        "--fail-fast",
+        "-L"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_source": "x=1\n",
+      "target_count": 2,
+      "listing": true,
+      "exit": 0,
+      "stdout": {
+        "text": "b.rb\r\na.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from C:/temp/sonicop-compat-20261025/validation/issue122-directory-reference-r2/work/unknown_listing/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "output": null,
+      "raw_stdout_sha256": "fc98e094ec46be38cea36c7b845545d267648fb947aefe74f0c83b79563d5b72",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "input_before": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "hex": "783d310a",
+          "mtime_ns": 1700000000100000000,
+          "mode": 33206
+        },
+        "b.rb": {
+          "hex": "793d320a",
+          "mtime_ns": 1700000001100000000,
+          "mode": 33206
+        }
+      }
+    }
+  ]
+}

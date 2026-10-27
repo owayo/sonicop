@@ -1,0 +1,1605 @@
+{
+  "reference_version": {
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "ruby": "4.0.7",
+    "platform": "Windows"
+  },
+  "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n",
+  "runtime": {
+    "ruby": "4.0.7",
+    "parser": "3.3.12.0",
+    "rubocop": "1.89.0",
+    "platform": "x64-mingw-ucrt"
+  },
+  "cases": [
+    {
+      "id": "json_out",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "5cd85a6a7e14fc25d737c1e01e5e1b455a619aff126513e3044415f084b083c2",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "json_out_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "133f5bc711c298cc6460ac5661b6c6e2c3cebdb0e3f745643e6e7eb783733f7b",
+      "raw_stderr_sha256": "531e41c5f6e8108bae3e4045c97d187016cbeb33ca79e4dd6bc3f74b8030499f"
+    },
+    {
+      "id": "simple_out",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "simple",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "3d3d20636173652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "report": null
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "b92550002b2a0e6e6eb520afa1891b0ca7cb72b4b25e3951236e9b499c12431c",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "simple_out_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "simple",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "3d3d20636173652e7262203d3d0d0a433a2020313a2020323a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "report": null
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "f7276fbd52bbbfdabe985acae26b37958dac3eca13b4341966291fd19625a60e",
+      "raw_stderr_sha256": "731e534b15156ad881d1cd4222847b225d4a210356b73df7d720adb62646c2f4"
+    },
+    {
+      "id": "simple_console",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "simple",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\n== case.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "2427fbcbfcf2199f8a01a4c482385f275a4245d18a932448950851d1a6636e08",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "simple_console_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "simple",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n== case.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "7fd738d69d15efa7b9040bbce09b7197ffaa40479880fc5bb9eef411b22b6739",
+      "raw_stderr_sha256": "87d6ad4766062600d264e082c10226a5e736bdbad89961b44c55b7fdcfaa2a76"
+    },
+    {
+      "id": "json_console",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\n<JSON[0]>Finished in <elapsed> seconds\r\n",
+        "reports": [
+          {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        ],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "426d4696468c6934b1bdaf924400847692542cd98cc4c4bcdf2ab7f3295b5932",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "json_console_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "json",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n<JSON[0]>",
+        "reports": [
+          {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        ],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "f415531cff7fad77e8fd67e205a8619306b165d9367c433c0867180f2fb733b0",
+      "raw_stderr_sha256": "9e8465709ef2a31bcc0c5d368d87fa0073352f3e9cde8eb34ec1f18f273200db"
+    },
+    {
+      "id": "json_stdin_out",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "--stdin",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "22b761a0a4e3545224b913440cc530bb04aa7b118b97827793209c622f9a144f",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "json_no_target",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "report.out"
+      ],
+      "inputs": {},
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 0,
+      "target_count": 0,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a302c22696e737065637465645f66696c655f636f756e74223a307d7d",
+          "report": {
+            "files": [],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 0,
+              "inspected_file_count": 0
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "3e5417b4d46e65124bd700ef97b9c599af5ac8c5591df18f2891c68319ce6648",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "mixed_slots",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "-f",
+        "simple",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n== case.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "c852b98630fb70fb1ccd99e244cb7c26b3f154df40524e5feb9997836b350791",
+      "raw_stderr_sha256": "14acc39d92cb8c13da526bdcc8c7731d97873a1b73b81195894ff379471e0c36"
+    },
+    {
+      "id": "simple_two",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "simple",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/a.rb\r\n== a.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\nScanning <cwd>/b.rb\r\n== b.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n2 files inspected, 2 offenses detected, 2 offenses autocorrectable\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "acdc093ae0c29ca734d6c5f37f194be0da16904832d0749fa7ae17446e69c6bd",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "simple_two_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "simple",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/a.rb\r\n== a.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\nScanning <cwd>/b.rb\r\n== b.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n2 files inspected, 2 offenses detected, 2 offenses autocorrectable\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "ffda947b874722b2b307aff3660b3b5759def74c2c04f985dd7ee8b611e0ba5b",
+      "raw_stderr_sha256": "6fffda543f8456879c7ee776f224e60fd82487d5e6e2a717f94d5a74e22cf963"
+    },
+    {
+      "id": "json_two_out",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/a.rb\r\nScanning <cwd>/b.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "path": "b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 2,
+              "target_file_count": 2,
+              "inspected_file_count": 2
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "442773185e171bacc77a6ba3a39e54c31df11f455981ff67279233feddde775a",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "fail_fast_simple",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--fail-fast",
+        "-f",
+        "simple",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/a.rb\r\n== a.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "70126240592562ed8fdb2284cba2a40c867c5735558931021ed741c51bd47006",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "fail_fast_mixed",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--fail-fast",
+        "--stderr",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "-f",
+        "simple",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/a.rb\r\n== a.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 2,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "9212ade656ff365d575b5adf549741003a9eb5109d236d8a36baa77d2e7631e6",
+      "raw_stderr_sha256": "4411813a6279b352aa90ac1c2903e56bbe255741ec71fed63e0f4130779cbb8c"
+    },
+    {
+      "id": "no_debug_json_out",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": false,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+          "report": {
+            "files": [
+              {
+                "path": "case.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "no_debug_simple_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--stderr",
+        "-f",
+        "simple",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": false,
+      "exit": 1,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "== case.rb ==\r\nC:  1:  2: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense autocorrectable\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "9b46774eef88ac834e0308cf842411badb6ab4ace6e55334d98fe7ad7390946e"
+    },
+    {
+      "id": "no_offense",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "simple",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x = 1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 0,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\n\r\n1 file inspected, no offenses detected\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "4c204b1b014a415adb78f6d19d5c2258b72cf6feb061c685416ea19d32e44513",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "stdin_safe_stderr",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-a",
+        "--stderr",
+        "-f",
+        "simple",
+        "--stdin",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 0,
+      "target_count": 1,
+      "residual_issue": null,
+      "stdout": {
+        "text": "x = 1\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Scanning <cwd>/case.rb\r\n== case.rb ==\r\nC:  1:  2: [Corrected] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\n\r\n1 file inspected, 1 offense detected, 1 offense corrected\r\n====================\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "b57a40348eb1e250afd10d77697bed6d9aa7378c04c048aa76ef97dc9a5a91eb",
+      "raw_stderr_sha256": "01d3212807887eaead913cfdf743b71d1a0204adadef7e1c35edc27b3bd12eb2"
+    },
+    {
+      "id": "default_progress_two",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "a.rb",
+        "b.rb"
+      ],
+      "inputs": {
+        "a.rb": "x=1\n",
+        "b.rb": "y=2\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "interface",
+      "debug": true,
+      "exit": 1,
+      "target_count": 2,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Inspecting 2 files\r\nScanning <cwd>/a.rb\r\nCScanning <cwd>/b.rb\r\nC\r\n\r\nOffenses:\r\n\r\na.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\nx=1\r\n ^\r\nb.rb:1:2: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\r\ny=2\r\n ^\r\n\r\n2 files inspected, 2 offenses detected, 2 offenses autocorrectable\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "939b033b5d03733cea6862c6946ab97ad34f036b597b2661626dbb97b6ccef8f",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "version",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--version"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "phase_guard",
+      "debug": true,
+      "exit": 0,
+      "target_count": null,
+      "residual_issue": null,
+      "stdout": {
+        "text": "1.89.0\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "7d7cd36e969e0a38d40093a250d6c95fc64f3ce2b267b354eef4885bfd14a2f6",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "missing_only",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "phase_guard",
+      "debug": true,
+      "exit": 2,
+      "target_count": null,
+      "residual_issue": null,
+      "stdout": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "--only argument should be [COP1,COP2,...].\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "a02406499d149b6d6b3819698f865d6c25bec6b86dd7e91a15a28480e59c9aa2"
+    },
+    {
+      "id": "except_syntax",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--except",
+        "Lint/Syntax",
+        "-f",
+        "json",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "phase_guard",
+      "debug": true,
+      "exit": 2,
+      "target_count": null,
+      "residual_issue": null,
+      "stdout": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "Syntax checking cannot be turned off.\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "a70f60b8be42555996abc74d020dbec41ad6127f07b289406dea4ca8772e75e7"
+    },
+    {
+      "id": "invalid_fail_level",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--fail-level",
+        "invalid",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "phase_guard",
+      "debug": true,
+      "exit": 2,
+      "target_count": null,
+      "residual_issue": null,
+      "stdout": {
+        "text": "",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "invalid argument: --fail-level invalid\r\nFor usage information, use --help\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "19e4913dfdc82b25f9f3f9664b3a4bd8962b37fce01f9aa522fc646a576dabba"
+    },
+    {
+      "id": "unknown_cop",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "--only",
+        "Unknown/Cop",
+        "-f",
+        "json",
+        "-o",
+        "report.out",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "deferred_error_residual",
+      "debug": true,
+      "exit": 2,
+      "target_count": null,
+      "residual_issue": 118,
+      "stdout": {
+        "text": "Scanning <cwd>/case.rb\r\nFinished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": [
+          "configuration from <cwd>/config.yml\r\n",
+          "Default configuration from <reference-default-config>\r\n"
+        ]
+      },
+      "stderr": {
+        "text": "Unrecognized cop or department: Unknown/Cop.\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": {
+          "raw_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+          "report": {
+            "files": [],
+            "summary": {
+              "offense_count": 0,
+              "target_file_count": 1,
+              "inspected_file_count": 0
+            }
+          }
+        },
+        "other.out": null
+      },
+      "raw_stdout_sha256": "43eca50e04150f9e0e3955b0c3fd18e77f5fc11f67c5b05e141b9c33ea3e5b7d",
+      "raw_stderr_sha256": "46c46c77af333c77f8523ff9f9ea541986f1a32f01d69eaefd47738547f5f16c"
+    },
+    {
+      "id": "missing_config",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--cache",
+        "false",
+        "--no-color",
+        "--debug",
+        "case.rb"
+      ],
+      "inputs": {
+        "case.rb": "x=1\n"
+      },
+      "stdin_source": "x=1\n",
+      "coverage": "phase_guard",
+      "debug": true,
+      "exit": 2,
+      "target_count": null,
+      "residual_issue": null,
+      "stdout": {
+        "text": "Finished in <elapsed> seconds\r\n",
+        "reports": [],
+        "timer_count": 1,
+        "reference_headers": []
+      },
+      "stderr": {
+        "text": "Configuration file not found: <cwd>/missing.yml\r\n",
+        "reports": [],
+        "timer_count": 0,
+        "reference_headers": []
+      },
+      "outputs": {
+        "report.out": null,
+        "other.out": null
+      },
+      "raw_stdout_sha256": "7f4e8a39a7ee1b1087428fcd1c818dac2db96ed098a3701d8cd51356875d142d",
+      "raw_stderr_sha256": "de28aa7e3413472e394d30b32dab9ad2cbab4f09642fbf7e5d0542072645be2f"
+    }
+  ]
+}
