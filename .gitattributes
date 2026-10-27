@@ -176,3 +176,12 @@ tests/fixtures/debug_streams.json.PROVENANCE text eol=lf
 scripts/conformance/record_debug_directories.py text eol=lf
 scripts/conformance/test_record_debug_directories.py text eol=lf
 tests/fixtures/debug_directories.json text eol=lf
+
+# ANSI leaf の本家記録を LF で保存する。
+scripts/conformance/record_formatter_colors.py text eol=lf
+scripts/conformance/test_formatter_colors.py text eol=lf
+tests/formatter_colors.rs text eol=lf
+tests/fixtures/formatter_colors.json text eol=lf
+tests/fixtures/formatter_colors.json.PROVENANCE text eol=lf
+tests/fixtures/formatter_color_boundaries.json text eol=lf
+tests/fixtures/formatter_color_boundaries.json.PROVENANCE text eol=lf

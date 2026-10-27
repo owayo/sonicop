@@ -1,0 +1,21 @@
+RuboCop 1.89.0 の ANSI 境界の追加実 CLI 記録。
+
+2026-10-28 JST、Windows x64 UCRT / Ruby 4.0.7 / RuboCop 1.89.0 /
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+Ruby は mise installs/ruby/4.0.7/bin/ruby.exe を明示し、各 gem は loader で固定する。
+候補は採取に使わず、pipe・非TTYで stdout/stderr の生byteを捕捉した。
+
+採取:
+  python scripts/conformance/record_formatter_colors.py --ruby <Ruby-4.0.7の実体> --supplemental --output <未作成のJSONパス>
+  作成されたJSONをバイト不変で本ファイルの隣へ配置する。
+
+8条件: simple/clang の部分補正と --no-color を4件、Unicode Details の
+引用2組を simple/clang/tap で3件、閉じていない引用を simple で1件。
+部分補正は SpaceAroundOperators の1件を -a で補正し、LineLength の1件を残す。
+2 offenses の赤と 1 offense corrected の cyan を実出力で確認した。
+Unicode は漢字・絵文字・複数引用・閉じていない引用を含み、Tap の引用無色も確認する。
+
+元の formatter_colors.json の24条件を再生成・書換えしない。
+全条件の終了値、stdout、stderr、ディスク上の補正後byteと設定を検査する。
+非補正は原本mtimeも保持する。ANSIを取り除く比較をしない。
+Unixの回帰ではWindowsのCRLFだけをLFへ投影し、Unix本家の実測とは数えない。

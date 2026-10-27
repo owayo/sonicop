@@ -184,25 +184,19 @@ fn emit_simple_file(
         return Ok(());
     }
     let path = smart_path(&report.path, options.cwd);
-    // 色の既存byteは保持する。ANSIのleaf互換差は #123 で独立して追う。
-    if options.color {
-        output.write(&paint(&format!("== {path} ==\n"), "33", true))?;
-    } else {
-        output.puts(&format!("== {path} =="))?;
-    }
+    // 本家の puts は色の reset 後に LF を渡す。
+    output.puts(&paint(&format!("== {path} =="), "33", options.color))?;
     for offense in &report.offenses {
         let location = offense.location(&report.source);
-        let message = annotate_message(&display_message(offense, options));
-        let line = format!(
-            "{}:{:>3}:{:>3}: {message}\n",
-            offense.severity.code(),
-            location.line,
-            location.column
-        );
-        output.write(&paint(
-            &line,
+        let message = simple_message(offense, options);
+        let severity = paint(
+            &offense.severity.code().to_string(),
             severity_color(offense.severity),
             options.color,
+        );
+        output.write(&format!(
+            "{severity}:{:>3}:{:>3}: {message}\n",
+            location.line, location.column
         ))?;
     }
     Ok(())
@@ -214,16 +208,24 @@ fn emit_clang_file(
     options: &FormatOptions<'_>,
     tap: bool,
 ) -> Result<()> {
-    let path = smart_path(&report.path, options.cwd);
+    let path = paint(&smart_path(&report.path, options.cwd), "36", options.color);
     let prefix = if tap { "# " } else { "" };
     for offense in &report.offenses {
         let location = offense.location(&report.source);
-        let message = annotate_message(&display_message(offense, options));
+        // TapFormatter は status / backtick の色を override して外す。
+        let message = if tap {
+            annotate_message(&display_message(offense, options), false)
+        } else {
+            simple_message(offense, options)
+        };
+        let severity = paint(
+            &offense.severity.code().to_string(),
+            severity_color(offense.severity),
+            options.color,
+        );
         output.write(&format!(
-            "{prefix}{path}:{}:{}: {}: {message}\n",
-            location.line,
-            location.column,
-            offense.severity.code()
+            "{prefix}{path}:{}:{}: {severity}: {message}\n",
+            location.line, location.column
         ))?;
         if let Some((quoted, carets)) = source_excerpt(offense, report) {
             output.puts(&format!("{prefix}{quoted}"))?;
