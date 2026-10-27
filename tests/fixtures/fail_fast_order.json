@@ -1,0 +1,4616 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "revision": "229531a6cfbf07e3caef30dbac24a2a3f3fed482",
+    "platform": "x64-mingw-ucrt",
+    "long_bits": 32,
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0"
+  },
+  "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+  "cases": [
+    {
+      "name": "zero-subsecond",
+      "group": "zero-subsecond",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 100000000,
+        "b.rb": 900000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "small-subsecond-reverse",
+      "group": "small-subsecond-reverse",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 100900000000,
+        "b.rb": 100100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 100900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 100100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 100900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 100100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "small-distinct",
+      "group": "small-distinct",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 100900000000,
+        "b.rb": 101100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 100900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 101100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 100900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 101100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "modern-subsecond-reverse",
+      "group": "modern-subsecond-reverse",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000900000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "fixnum-min-key-tie",
+      "group": "fixnum-min-key-tie",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 1073741824000000000,
+        "b.rb": 1073741824000000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1073741824000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1073741824000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1073741824000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1073741824000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "bignum-negative-key-tie",
+      "group": "bignum-negative-key-tie",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 1073741825000000000,
+        "b.rb": 1073741825000000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1073741825000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1073741825000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1073741825000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1073741825000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "negative-fraction-tie",
+      "group": "negative-fraction-tie",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": -900000000,
+        "b.rb": -100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": -900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": -100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": -900000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": -100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cross-epoch",
+      "group": "cross-epoch",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": -100000000,
+        "b.rb": 100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": -100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": -100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "prefix-zero",
+      "group": "prefix-zero",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "z.rb": "783d310a",
+        "b.rb": "783d310a",
+        "a/zz.rb": "783d310a",
+        "a.x/zz.rb": "783d310a",
+        "a-/zz.rb": "783d310a",
+        "a/z/x.rb": "783d310a",
+        "a/y.rb": "783d310a",
+        "a0/xx.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "z.rb": 0,
+        "b.rb": 0,
+        "a/zz.rb": 0,
+        "a.x/zz.rb": 0,
+        "a-/zz.rb": 0,
+        "a/z/x.rb": 0,
+        "a/y.rb": 0,
+        "a0/xx.rb": 0
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a382c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 8,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\nz.rb\r\na/y.rb\r\na/zz.rb\r\na/z/x.rb\r\na-/zz.rb\r\na.x/zz.rb\r\na0/xx.rb\r\n",
+      "paths": [
+        "b.rb",
+        "z.rb",
+        "a/y.rb",
+        "a/zz.rb",
+        "a/z/x.rb",
+        "a-/zz.rb",
+        "a.x/zz.rb",
+        "a0/xx.rb"
+      ],
+      "input_before": {
+        "z.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "z.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "prefix-modern",
+      "group": "prefix-modern",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "z.rb": "783d310a",
+        "b.rb": "783d310a",
+        "a/zz.rb": "783d310a",
+        "a.x/zz.rb": "783d310a",
+        "a-/zz.rb": "783d310a",
+        "a/z/x.rb": "783d310a",
+        "a/y.rb": "783d310a",
+        "a0/xx.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "z.rb": 1700000000000000000,
+        "b.rb": 1700000000000000000,
+        "a/zz.rb": 1700000000000000000,
+        "a.x/zz.rb": 1700000000000000000,
+        "a-/zz.rb": 1700000000000000000,
+        "a/z/x.rb": 1700000000000000000,
+        "a/y.rb": 1700000000000000000,
+        "a0/xx.rb": 1700000000000000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a227a2e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a382c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "z.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 8,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "z.rb\r\na/y.rb\r\na/zz.rb\r\na/z/x.rb\r\na-/zz.rb\r\na.x/zz.rb\r\na0/xx.rb\r\nb.rb\r\n",
+      "paths": [
+        "z.rb",
+        "a/y.rb",
+        "a/zz.rb",
+        "a/z/x.rb",
+        "a-/zz.rb",
+        "a.x/zz.rb",
+        "a0/xx.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "z.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "z.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "explicit-groups",
+      "group": "explicit-groups",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "d1/a.rb": "783d310a",
+        "d1/b.rb": "783d310a",
+        "d2/a.rb": "783d310a",
+        "d2/b.rb": "783d310a",
+        "marker.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "d1/a.rb": 100000000000,
+        "d1/b.rb": 101000000000,
+        "d2/a.rb": 200000000000,
+        "d2/b.rb": 201000000000,
+        "marker.rb": 300000000000
+      },
+      "targets": [
+        "d1",
+        "marker.rb",
+        "d2"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a2264312f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a352c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "d1/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 5,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "d1/b.rb\r\nd1/a.rb\r\nmarker.rb\r\nd2/b.rb\r\nd2/a.rb\r\n",
+      "paths": [
+        "d1/b.rb",
+        "d1/a.rb",
+        "marker.rb",
+        "d2/b.rb",
+        "d2/a.rb"
+      ],
+      "input_before": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "reversed-groups",
+      "group": "reversed-groups",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "d1/a.rb": "783d310a",
+        "d1/b.rb": "783d310a",
+        "d2/a.rb": "783d310a",
+        "d2/b.rb": "783d310a",
+        "marker.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "d1/a.rb": 100000000000,
+        "d1/b.rb": 101000000000,
+        "d2/a.rb": 200000000000,
+        "d2/b.rb": 201000000000,
+        "marker.rb": 300000000000
+      },
+      "targets": [
+        "d2",
+        "marker.rb",
+        "d1"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a2264322f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a352c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "d2/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 5,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "d2/b.rb\r\nd2/a.rb\r\nmarker.rb\r\nd1/b.rb\r\nd1/a.rb\r\n",
+      "paths": [
+        "d2/b.rb",
+        "d2/a.rb",
+        "marker.rb",
+        "d1/b.rb",
+        "d1/a.rb"
+      ],
+      "input_before": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "dedupe-groups",
+      "group": "dedupe-groups",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "d1/a.rb": "783d310a",
+        "d1/b.rb": "783d310a",
+        "d2/a.rb": "783d310a",
+        "d2/b.rb": "783d310a",
+        "marker.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "d1/a.rb": 100000000000,
+        "d1/b.rb": 101000000000,
+        "d2/a.rb": 200000000000,
+        "d2/b.rb": 201000000000,
+        "marker.rb": 300000000000
+      },
+      "targets": [
+        "d1",
+        "d1/a.rb",
+        "d2",
+        "d1",
+        "d2/a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a2264312f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a342c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "d1/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 4,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "d1/b.rb\r\nd1/a.rb\r\nd2/b.rb\r\nd2/a.rb\r\n",
+      "paths": [
+        "d1/b.rb",
+        "d1/a.rb",
+        "d2/b.rb",
+        "d2/a.rb"
+      ],
+      "input_before": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "d1/a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d1/b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/a.rb": {
+          "mtime_ns": 200000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "d2/b.rb": {
+          "mtime_ns": 201000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "marker.rb": {
+          "mtime_ns": 300000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "stdin-zero",
+      "group": "stdin-zero",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a",
+        "c.txt": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 0,
+        "b.rb": 0,
+        "c.txt": 0
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": "783d310a",
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 3,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\nc.txt\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb",
+        "c.txt"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "c.txt": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "c.txt": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "stdin-modern",
+      "group": "stdin-modern",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a",
+        "c.txt": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000000000000,
+        "b.rb": 1700000000000000000,
+        "c.txt": 1700000000000000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": "783d310a",
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 3,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\nc.txt\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "c.txt",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "c.txt": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "c.txt": {
+          "mtime_ns": 1700000000000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "default-lexical",
+      "group": "default-lexical",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "z.rb": "783d310a",
+        "b.rb": "783d310a",
+        "a/zz.rb": "783d310a",
+        "a.x/zz.rb": "783d310a",
+        "a-/zz.rb": "783d310a",
+        "a/z/x.rb": "783d310a",
+        "a/y.rb": "783d310a",
+        "a0/xx.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "z.rb": 0,
+        "b.rb": 0,
+        "a/zz.rb": 0,
+        "a.x/zz.rb": 0,
+        "a-/zz.rb": 0,
+        "a/z/x.rb": 0,
+        "a/y.rb": 0,
+        "a0/xx.rb": 0
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": false,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612d2f7a7a2e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22612e782f7a7a2e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22612f792e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22612f7a2f782e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22612f7a7a2e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a2261302f78782e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a227a2e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a382c227461726765745f66696c655f636f756e74223a382c22696e737065637465645f66696c655f636f756e74223a387d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a-/zz.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a.x/zz.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a/y.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a/z/x.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a/zz.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a0/xx.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "z.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 8,
+          "target_file_count": 8,
+          "inspected_file_count": 8
+        }
+      },
+      "after_json": "",
+      "listing": "a-/zz.rb\r\na.x/zz.rb\r\na/y.rb\r\na/z/x.rb\r\na/zz.rb\r\na0/xx.rb\r\nb.rb\r\nz.rb\r\n",
+      "paths": [
+        "a-/zz.rb",
+        "a.x/zz.rb",
+        "a/y.rb",
+        "a/z/x.rb",
+        "a/zz.rb",
+        "a0/xx.rb",
+        "b.rb",
+        "z.rb"
+      ],
+      "input_before": {
+        "z.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "z.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a.x/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a-/zz.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/z/x.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a/y.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "a0/xx.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "default-explicit-reverse",
+      "group": "default-explicit-reverse",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 0,
+        "b.rb": 1000000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": false,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 2,
+          "inspected_file_count": 2
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 0,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "implicit-cwd",
+      "group": "implicit-cwd",
+      "repeat": 0,
+      "windows_only": false,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "783d310a"
+      },
+      "mtime_ns": {
+        "a.rb": 100000000000,
+        "b.rb": 101000000000
+      },
+      "targets": [],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 100000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 101000000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-same_second-explicit-false-0",
+      "group": "cache-same_second-explicit-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-same_second-explicit-true-0",
+      "group": "cache-same_second-explicit-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/484af9823668ebe825e6f0b7019b0c15e1238332": {
+          "mtime_ns": 1792927419973256400,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-same_second-explicit-true-1",
+      "group": "cache-same_second-explicit-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/484af9823668ebe825e6f0b7019b0c15e1238332": {
+          "mtime_ns": 1792927419973256400,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/484af9823668ebe825e6f0b7019b0c15e1238332": {
+          "mtime_ns": 1792927419973256400,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-same_second-reverse-false-0",
+      "group": "cache-same_second-reverse-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-same_second-reverse-true-0",
+      "group": "cache-same_second-reverse-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/1676dc4c034f8a8276f70c8062832dea636d4017": {
+          "mtime_ns": 1792927440828160700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-same_second-reverse-true-1",
+      "group": "cache-same_second-reverse-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/1676dc4c034f8a8276f70c8062832dea636d4017": {
+          "mtime_ns": 1792927440828160700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/1676dc4c034f8a8276f70c8062832dea636d4017": {
+          "mtime_ns": 1792927440828160700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-same_second-directory-false-0",
+      "group": "cache-same_second-directory-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-same_second-directory-true-0",
+      "group": "cache-same_second-directory-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/28024540beb315bd6fa76f892173941f51148e0f": {
+          "mtime_ns": 1792927463708905700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-same_second-directory-true-1",
+      "group": "cache-same_second-directory-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000900000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000900000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/28024540beb315bd6fa76f892173941f51148e0f": {
+          "mtime_ns": 1792927463708905700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/28024540beb315bd6fa76f892173941f51148e0f": {
+          "mtime_ns": 1792927463708905700,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-explicit-false-0",
+      "group": "cache-equal-explicit-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-equal-explicit-true-0",
+      "group": "cache-equal-explicit-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/90c77d145192e3d07ae5b577b5dd323152e4d127": {
+          "mtime_ns": 1792927486956627000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-explicit-true-1",
+      "group": "cache-equal-explicit-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/90c77d145192e3d07ae5b577b5dd323152e4d127": {
+          "mtime_ns": 1792927486956627000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/90c77d145192e3d07ae5b577b5dd323152e4d127": {
+          "mtime_ns": 1792927486956627000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-reverse-false-0",
+      "group": "cache-equal-reverse-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-equal-reverse-true-0",
+      "group": "cache-equal-reverse-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/c4040d943c7b55ab4337ee3f2f7e5bd24edd16e8": {
+          "mtime_ns": 1792927510167563300,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-reverse-true-1",
+      "group": "cache-equal-reverse-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/c4040d943c7b55ab4337ee3f2f7e5bd24edd16e8": {
+          "mtime_ns": 1792927510167563300,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/c4040d943c7b55ab4337ee3f2f7e5bd24edd16e8": {
+          "mtime_ns": 1792927510167563300,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-directory-false-0",
+      "group": "cache-equal-directory-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-equal-directory-true-0",
+      "group": "cache-equal-directory-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/ebd4d2d50e5f73b218a8cfc4854f9d2a6c102305": {
+          "mtime_ns": 1792927533897902100,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-equal-directory-true-1",
+      "group": "cache-equal-directory-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000000100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/ebd4d2d50e5f73b218a8cfc4854f9d2a6c102305": {
+          "mtime_ns": 1792927533897902100,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/ebd4d2d50e5f73b218a8cfc4854f9d2a6c102305": {
+          "mtime_ns": 1792927533897902100,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-explicit-false-0",
+      "group": "cache-different_second-explicit-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-different_second-explicit-true-0",
+      "group": "cache-different_second-explicit-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/cabfc04f2bb12265f56a848cd87c3040b39822c4": {
+          "mtime_ns": 1792927555626951000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-explicit-true-1",
+      "group": "cache-different_second-explicit-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "a.rb",
+        "b.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "a.rb\r\nb.rb\r\n",
+      "paths": [
+        "a.rb",
+        "b.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/cabfc04f2bb12265f56a848cd87c3040b39822c4": {
+          "mtime_ns": 1792927555626951000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/cabfc04f2bb12265f56a848cd87c3040b39822c4": {
+          "mtime_ns": 1792927555626951000,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-reverse-false-0",
+      "group": "cache-different_second-reverse-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-different_second-reverse-true-0",
+      "group": "cache-different_second-reverse-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/859e55beaf0ef29ff9dcdde8281f4200dc04cd80": {
+          "mtime_ns": 1792927576703509600,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-reverse-true-1",
+      "group": "cache-different_second-reverse-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "b.rb",
+        "a.rb"
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/859e55beaf0ef29ff9dcdde8281f4200dc04cd80": {
+          "mtime_ns": 1792927576703509600,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/859e55beaf0ef29ff9dcdde8281f4200dc04cd80": {
+          "mtime_ns": 1792927576703509600,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-directory-false-0",
+      "group": "cache-different_second-directory-false",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": false,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {}
+    },
+    {
+      "name": "cache-different_second-directory-true-0",
+      "group": "cache-different_second-directory-true",
+      "repeat": 0,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {},
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/4e87a8b1b9dbd5cc00600f0d8b9746b1542a0967": {
+          "mtime_ns": 1792927598119234500,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    },
+    {
+      "name": "cache-different_second-directory-true-1",
+      "group": "cache-different_second-directory-true",
+      "repeat": 1,
+      "windows_only": true,
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "targets": [
+        "."
+      ],
+      "stdin_hex": null,
+      "cached": true,
+      "fail_fast": true,
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 1
+        }
+      },
+      "after_json": "",
+      "listing": "b.rb\r\na.rb\r\n",
+      "paths": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "cache_before": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/4e87a8b1b9dbd5cc00600f0d8b9746b1542a0967": {
+          "mtime_ns": 1792927598119234500,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      },
+      "cache_after": {
+        "rubocop_cache/5745c9633d9f1644d64181825c1a7b68d8919095/c49c3bb9230e0f231b8e0b53e01b845b7599b9b4/4e87a8b1b9dbd5cc00600f0d8b9746b1542a0967": {
+          "mtime_ns": 1792927598119234500,
+          "size": 186,
+          "sha256": "fac61c7bc1cb23bff0f4add1499055ed4bd1970b943d9daa9d2cd3ab41eb7a31"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "revision": "229531a6cfbf07e3caef30dbac24a2a3f3fed482",
+    "platform": "x64-mingw-ucrt",
+    "long_bits": 32,
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0"
+  },
+  "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+  "cases": [
+    {
+      "name": "disk-directory",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Unknown/Cop",
+        "--fail-fast",
+        "-L",
+        "."
+      ],
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_hex": null,
+      "exit": 0,
+      "stdout_hex": "622e72620d0a612e72620d0a",
+      "stderr_hex": "",
+      "listing": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      }
+    },
+    {
+      "name": "stdin-directory",
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Unknown/Cop",
+        "--fail-fast",
+        "-L",
+        "--stdin",
+        "."
+      ],
+      "files": {
+        "a.rb": "783d310a",
+        "b.rb": "793d320a"
+      },
+      "mtime_ns": {
+        "a.rb": 1700000000100000000,
+        "b.rb": 1700000001100000000
+      },
+      "stdin_hex": "736861726564203d20747275650a",
+      "exit": 0,
+      "stdout_hex": "622e72620d0a612e72620d0a",
+      "stderr_hex": "",
+      "listing": [
+        "b.rb",
+        "a.rb"
+      ],
+      "input_before": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      },
+      "input_after": {
+        "a.rb": {
+          "mtime_ns": 1700000000100000000,
+          "size": 4,
+          "sha256": "98752ee28d5484bdc2814fb70adb6a0b2fb31f6a9b8ee7ae81fd2fc9cf300b3b"
+        },
+        "b.rb": {
+          "mtime_ns": 1700000001100000000,
+          "size": 4,
+          "sha256": "8d4fcaba37762a136956fa1c4d68af2caef50ccdbc0ebe930b05168657afbe29"
+        }
+      }
+    }
+  ]
+}

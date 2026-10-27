@@ -216,6 +216,17 @@ Ruby -- https://github.com/ruby/ruby -- 2-clause BSDL
   because the alternative -- saying nothing -- leaves the next reader to work
   out why the longer Ruby License is absent.
 
+  src/engine.rs の fail-fast directory ordering
+      Ruby 4.0.7 の enum.c にある uniform insertion/heap/intro sort を Rust へ移植。
+      Copyright (C) 1993-2007 Yukihiro Matsumoto。
+      参照 revision: 229531a6cfbf07e3caef30dbac24a2a3f3fed482。
+      同じ秒の key も本家の順序に合わせるため、安定 sort へ置き換えない。
+      元 source: https://github.com/ruby/ruby/blob/229531a6cfbf07e3caef30dbac24a2a3f3fed482/enum.c
+      完全な利用条件: licenses/RUBY_BSDL.txt（下記にも収録）。
+      720 組の実 sort_by 結果は tests/fixtures/fail_fast_sort.json に保存。
+      未知copの一覧表示の追加記録は tests/fixtures/fail_fast_rejected_order.json に保存。
+      再生成: python scripts/conformance/record_fail_fast_order.py --ruby ruby
+
 Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
   Copyright (c) 2009-present, Homebrew contributors
 
