@@ -121,10 +121,20 @@ impl Source {
         let at = |index: usize| self.offsets[index.min(self.offsets.len() - 1)];
         at(range.start)..at(range.end)
     }
+
+    /// lexer の先読みが EOF を越えた分は表示だけに残し、本文の読取範囲とは分ける。
+    fn diagnostic_range(&self, range: &Range<usize>) -> Range<usize> {
+        let mut bytes = self.byte_range(range);
+        bytes.end = bytes
+            .end
+            .saturating_add(range.end.saturating_sub(self.points.len()));
+        bytes
+    }
 }
 
 /// parser gem の診断を、生の順 (発生順) で返す。範囲は元の本文のバイト位置で、RuboCop の
 /// `Lint/Syntax#diagnostic_location` のとおりゼロ幅を 1 文字へ広げてある。
+/// EOF を越える終点は報告用なので、本文の切り出しや編集には渡さない。
 pub(crate) fn diagnostics(text: &str, version: Version) -> Vec<Diagnostic> {
     let source = Source::new(text);
     let raw = parse(&source.points, version);
@@ -139,7 +149,7 @@ pub(crate) fn diagnostics(text: &str, version: Version) -> Vec<Diagnostic> {
                     range.start -= 1;
                 }
             }
-            diagnostic.range = source.byte_range(range);
+            diagnostic.range = source.diagnostic_range(range);
             diagnostic
         })
         .collect()
@@ -208,6 +218,31 @@ pub fn debug_tokens(text: &str, target: RubyVersion) -> Option<DebugOutput> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diagnostic_lookahead_does_not_extend_source_reads() {
+        for (text, range, read, reported) in [
+            ("\"\\xx\"", 1..6, 1..5, 1..6),
+            ("\"あ\\xx\"", 2..7, 4..8, 4..9),
+            ("é\r\nx", 1..5, 2..5, 2..7),
+        ] {
+            let source = Source::new(text);
+            assert_eq!(source.byte_range(&range), read);
+            assert!(text.get(read).is_some());
+            assert_eq!(source.diagnostic_range(&range), reported);
+        }
+    }
+
+    #[test]
+    fn invalid_hex_escape_keeps_the_recorded_whitequark_eof_end() {
+        // RuboCop 1.89.0 の実 CLI は、5 byte の本文に対し文字範囲 1..6 を報告する。
+        for version in [Version::Ruby33, Version::Ruby34] {
+            let found = diagnostics("\"\\xx\"", version);
+            assert_eq!(found.len(), 1);
+            assert_eq!(found[0].message, "invalid hex escape");
+            assert_eq!(found[0].range, 1..6);
+        }
+    }
 
     fn messages(source: &str, version: Version) -> Vec<(usize, usize, String)> {
         parse(&Source::new(source).points, version)

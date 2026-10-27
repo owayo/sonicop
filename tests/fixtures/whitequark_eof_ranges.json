@@ -1,0 +1,445 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "rubocop-ast": "1.50.0",
+    "prism": "1.8.1",
+    "rainbow": "3.1.1"
+  },
+  "metadata_identity_keys": [
+    "ruby_engine",
+    "ruby_version",
+    "ruby_platform",
+    "sonicop_version"
+  ],
+  "sources": [
+    {
+      "id": "ascii-no-lf",
+      "path": "cases/ascii-no-lf.rb",
+      "source_hex": "225c787822"
+    },
+    {
+      "id": "ascii-lf",
+      "path": "cases/ascii-lf.rb",
+      "source_hex": "225c7878220a"
+    },
+    {
+      "id": "ascii-crlf",
+      "path": "cases/ascii-crlf.rb",
+      "source_hex": "225c7878220d0a"
+    },
+    {
+      "id": "unicode-no-lf",
+      "path": "cases/unicode-no-lf.rb",
+      "source_hex": "22e381825c787822"
+    },
+    {
+      "id": "unicode-lf",
+      "path": "cases/unicode-lf.rb",
+      "source_hex": "22e381825c7878220a"
+    },
+    {
+      "id": "valid-hex",
+      "path": "cases/valid-hex.rb",
+      "source_hex": "225c78343122"
+    }
+  ],
+  "groups": [
+    {
+      "target": "3.3",
+      "engine": "parser_prism",
+      "yaml": "# 版とbackendだけを明示し、他は仕様版の既定設定へmergeする。\nAllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "cases/ascii-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape sequence\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 3,
+                  "length": 2,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape sequence\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 3,
+                  "length": 2,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-crlf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape sequence\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 3,
+                  "length": 2,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape sequence\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 4,
+                  "length": 3,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape sequence\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 4,
+                  "length": 3,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/valid-hex.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 5,
+          "target_file_count": 6,
+          "inspected_file_count": 6
+        }
+      }
+    },
+    {
+      "target": "3.3",
+      "engine": "parser_whitequark",
+      "yaml": "# 版とbackendだけを明示し、他は仕様版の既定設定へmergeする。\nAllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_whitequark\n",
+      "exit": 1,
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "cases/ascii-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 6,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-crlf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 3,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 5,
+                  "line": 1,
+                  "column": 3
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 3
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/valid-hex.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 5,
+          "target_file_count": 6,
+          "inspected_file_count": 6
+        }
+      }
+    },
+    {
+      "target": "3.4",
+      "engine": "parser_whitequark",
+      "yaml": "# 版とbackendだけを明示し、他は仕様版の既定設定へmergeする。\nAllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: parser_whitequark\n",
+      "exit": 1,
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "cases/ascii-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 6,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/ascii-crlf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-no-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 3,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 5,
+                  "line": 1,
+                  "column": 3
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/unicode-lf.rb",
+            "offenses": [
+              {
+                "severity": "fatal",
+                "message": "invalid hex escape\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+                "cop_name": "Lint/Syntax",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 3,
+                  "last_line": 2,
+                  "last_column": 1,
+                  "length": 5,
+                  "line": 1,
+                  "column": 3
+                }
+              }
+            ]
+          },
+          {
+            "path": "cases/valid-hex.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 5,
+          "target_file_count": 6,
+          "inspected_file_count": 6
+        }
+      }
+    }
+  ],
+  "provenance_kind": "exact per-file union: three reused known noLF records plus fifteen fresh records; group summaries derived from records; no candidate expectation"
+}

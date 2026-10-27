@@ -26,6 +26,16 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  tests/fixtures/whitequark_eof_ranges.json
+      Eighteen exact per-file RuboCop 1.89.0 records for EOF reporting,
+      ASCII/UTF8 prefixes, LF/CRLF and valid-hex controls. Three existing
+      no-LF records are joined with fifteen newly recorded controls;
+      group completion/summary counts are derived from those records.
+      Regenerate from source_hex and group YAML with RuboCop --only
+      Lint/Syntax --format json; no dedicated public collector is claimed.
+      The adjacent .PROVENANCE records capture/reuse and projection scope.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.
