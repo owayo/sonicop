@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::ffi::{c_int, c_long, c_void};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -1584,12 +1585,36 @@ enum Verdict {
     AskShebang,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DirectoryOrder {
+    Lexical,
+    FailFast,
+}
+
 pub fn discover_targets_with_store(
     arguments: &[PathBuf],
     cwd: &Path,
     configs: &ConfigStore,
     force_exclusion: bool,
     only_recognized_file_types: bool,
+) -> Result<Vec<PathBuf>> {
+    discover_cli_targets_with_store(
+        arguments,
+        cwd,
+        configs,
+        force_exclusion,
+        only_recognized_file_types,
+        DirectoryOrder::Lexical,
+    )
+}
+
+pub(crate) fn discover_cli_targets_with_store(
+    arguments: &[PathBuf],
+    cwd: &Path,
+    configs: &ConfigStore,
+    force_exclusion: bool,
+    only_recognized_file_types: bool,
+    order: DirectoryOrder,
 ) -> Result<Vec<PathBuf>> {
     discover_target_paths(
         arguments,
@@ -1598,6 +1623,7 @@ pub fn discover_targets_with_store(
         force_exclusion,
         only_recognized_file_types,
         false,
+        order,
     )
 }
 
@@ -1606,8 +1632,17 @@ pub(crate) fn discover_stdin_targets_with_store(
     directory: &Path,
     cwd: &Path,
     configs: &ConfigStore,
+    order: DirectoryOrder,
 ) -> Result<Vec<PathBuf>> {
-    discover_target_paths(&[directory.to_path_buf()], cwd, configs, false, false, true)
+    discover_target_paths(
+        &[directory.to_path_buf()],
+        cwd,
+        configs,
+        false,
+        false,
+        true,
+        order,
+    )
 }
 
 fn discover_target_paths(
@@ -1617,6 +1652,7 @@ fn discover_target_paths(
     force_exclusion: bool,
     only_recognized_file_types: bool,
     stdin: bool,
+    order: DirectoryOrder,
 ) -> Result<Vec<PathBuf>> {
     let roots = if arguments.is_empty() {
         vec![cwd.to_path_buf()]
@@ -1730,18 +1766,259 @@ fn discover_target_paths(
             }
             walked.push(normalized_target_path(path));
         }
-        // 本家はディレクトリの展開を表示パスの文字列順にし、明示引数の順は保持する。
-        // Windows の区切りのままでは、foo1/bar.rb が foo/bar.rb より先になる。
-        #[cfg(windows)]
-        walked.sort_by_cached_key(|path| path.to_string_lossy().replace('\\', "/"));
-        #[cfg(not(windows))]
-        walked.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
+        // TargetFinder#order は各 directory にだけ適用し、明示引数の group 順は保つ。
+        order_directory_targets(&mut walked, order)?;
         targets.append(&mut walked);
     }
 
     let mut seen = HashSet::new();
     targets.retain(|target| seen.insert(target.clone()));
     Ok(targets)
+}
+
+fn order_directory_targets(paths: &mut Vec<PathBuf>, order: DirectoryOrder) -> Result<()> {
+    if order == DirectoryOrder::Lexical {
+        // Windows の区切りのままでは foo1/bar.rb が foo/bar.rb より先になる。
+        #[cfg(windows)]
+        paths.sort_by_cached_key(|path| path.to_string_lossy().replace('\\', "/"));
+        #[cfg(not(windows))]
+        paths.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
+        return Ok(());
+    }
+    // wanted_dir_patterns/Dir.glob は root の files、sibling 名順DFSの各 files の順。
+    // directory の完成文字列では a-/ が a/ より先になるため、component列を比較する。
+    paths.sort_by_cached_key(|path| {
+        let parent = path.parent().unwrap_or(Path::new(""));
+        let directories = parent
+            .components()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        (
+            directories,
+            path.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+        )
+    });
+    let mut entries = paths
+        .iter()
+        .enumerate()
+        .map(|(index, path)| {
+            let metadata = fs::metadata(path)
+                .with_context(|| format!("failed to read modification time: {}", path.display()))?;
+            Ok(MtimeEntry {
+                seconds: ruby_mtime_seconds(&metadata)?,
+                index,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    sort_entries(&mut entries, c_long::BITS);
+    let mut original: Vec<_> = std::mem::take(paths).into_iter().map(Some).collect();
+    paths.extend(entries.into_iter().map(|entry| {
+        original[entry.index]
+            .take()
+            .expect("qsort changed the index permutation")
+    }));
+    Ok(())
+}
+
+fn ruby_mtime_seconds(metadata: &fs::Metadata) -> Result<i64> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        // Ruby 4.0.7 filetime_split と同じ unsigned subtraction を discovery key だけへ使う。
+        // 生FILETIME/負のEpoch/実File.mtimeの照合で、cacheの時刻表現とは異なることを確認した。
+        Ok((metadata
+            .last_write_time()
+            .wrapping_sub(116_444_736_000_000_000)
+            / 10_000_000) as i64)
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        Ok(metadata.mtime())
+    }
+    #[cfg(not(any(windows, unix)))]
+    {
+        let seconds = match metadata.modified()?.duration_since(std::time::UNIX_EPOCH) {
+            Ok(duration) => i128::from(duration.as_secs()),
+            Err(error) => {
+                -i128::from(error.duration().as_secs())
+                    - i128::from(error.duration().subsec_nanos() != 0)
+            }
+        };
+        i64::try_from(seconds).context("modification time is outside signed 64-bit seconds")
+    }
+}
+
+// Ruby enum.c revision 229531a6cfbf07e3caef30dbac24a2a3f3fed482 の uniform sort を移植。
+// Copyright (C) 1993-2007 Yukihiro Matsumoto.
+// 2-clause BSDLを選択。手順・revisionはNOTICE、全文はlicenses/RUBY_BSDL.txtを参照。
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+struct MtimeEntry {
+    seconds: i64,
+    index: usize,
+}
+
+unsafe extern "C" {
+    #[link_name = "qsort"]
+    fn crt_qsort(
+        base: *mut c_void,
+        count: usize,
+        width: usize,
+        compare: unsafe extern "C" fn(*const c_void, *const c_void) -> c_int,
+    );
+}
+
+unsafe extern "C" fn compare_mtime(left: *const c_void, right: *const c_void) -> c_int {
+    // SAFETY: 呼出し元の qsort は同じ生存中の MtimeEntry 配列要素を渡す。
+    // 所有物を持たない Copy record の整列済み pointer を、この呼出し内だけ読む。
+    let left = unsafe { &*left.cast::<MtimeEntry>() };
+    let right = unsafe { &*right.cast::<MtimeEntry>() };
+    match right.seconds.cmp(&left.seconds) {
+        Ordering::Less => -1,
+        Ordering::Equal => 0,
+        Ordering::Greater => 1,
+    }
+}
+
+fn mtime_key_is_fixnum(seconds: i64, long_bits: u32) -> bool {
+    // Ruby FIXNUM_MIN/MAX は pointer 幅ではなく C long の範囲の半分を使う。
+    // i64::MIN の negation も先に i128 へ広げてから行う。
+    let boundary = 1_i128 << (long_bits - 2);
+    (-boundary..boundary).contains(&-i128::from(seconds))
+}
+
+fn mtime_less(left: MtimeEntry, right: MtimeEntry) -> bool {
+    // TargetFinder#order の -Integer(mtime) と同じ向きで、同値 index を比較しない。
+    left.seconds > right.seconds
+}
+
+fn insertion_sort(entries: &mut [MtimeEntry]) {
+    for index in 1..entries.len() {
+        let value = entries[index];
+        let mut position = index;
+        while position > 0 && mtime_less(value, entries[position - 1]) {
+            entries[position] = entries[position - 1];
+            position -= 1;
+        }
+        entries[position] = value;
+    }
+}
+
+fn heap_down(entries: &mut [MtimeEntry], mut offset: usize, length: usize) {
+    let value = entries[offset];
+    loop {
+        let mut child = offset * 2 + 1;
+        if child > length {
+            break;
+        }
+        if child < length && mtime_less(entries[child], entries[child + 1]) {
+            child += 1;
+        }
+        if !mtime_less(value, entries[child]) {
+            break;
+        }
+        entries[offset] = entries[child];
+        offset = child;
+    }
+    entries[offset] = value;
+}
+
+fn heap_sort(entries: &mut [MtimeEntry]) {
+    for offset in (0..entries.len() / 2).rev() {
+        heap_down(entries, offset, entries.len() - 1);
+    }
+    for offset in (1..entries.len()).rev() {
+        entries.swap(0, offset);
+        heap_down(entries, 0, offset - 1);
+    }
+}
+
+fn uniform_quicksort(entries: &mut [MtimeEntry], depth: u32) {
+    if entries.len() <= 16 {
+        insertion_sort(entries);
+        return;
+    }
+    if depth == 0 {
+        heap_sort(entries);
+        return;
+    }
+    let (a, b, c) = (
+        entries[0],
+        entries[entries.len() / 2],
+        entries[entries.len() - 1],
+    );
+    let pivot = if mtime_less(a, b) {
+        if mtime_less(b, c) {
+            b
+        } else if mtime_less(c, a) {
+            a
+        } else {
+            c
+        }
+    } else if mtime_less(c, b) {
+        b
+    } else if mtime_less(a, c) {
+        a
+    } else {
+        c
+    };
+    let mut left = 0;
+    let mut right = entries.len() as isize - 1;
+    loop {
+        while mtime_less(entries[left], pivot) {
+            left += 1;
+        }
+        while mtime_less(pivot, entries[right as usize]) {
+            right -= 1;
+        }
+        if left as isize <= right {
+            entries.swap(left, right as usize);
+            left += 1;
+            right -= 1;
+        }
+        if left as isize > right {
+            break;
+        }
+    }
+    let right = (right + 1) as usize;
+    // Ruby は右側を先に処理する。depth は2*log2(n)で有界なのでAST深さに依存しない。
+    if entries.len() - right > 1 {
+        uniform_quicksort(&mut entries[right..], depth - 1);
+    }
+    if left > 1 {
+        uniform_quicksort(&mut entries[..left], depth - 1);
+    }
+}
+
+fn sort_entries(entries: &mut [MtimeEntry], long_bits: u32) {
+    if entries.len() < 2 {
+        return;
+    }
+    if entries
+        .iter()
+        .all(|entry| mtime_key_is_fixnum(entry.seconds, long_bits))
+    {
+        if entries.windows(2).any(|pair| mtime_less(pair[1], pair[0])) {
+            uniform_quicksort(entries, entries.len().ilog2() * 2);
+        }
+    } else {
+        // SAFETY: qsort に渡すのは初期化済みで有効な配列の生存中の範囲だけ。
+        // MtimeEntry は drop 対象を持たず Copy でき、byte 単位の交換で所有権は壊れない。
+        // comparator はこの配列の要素を読み、整数比較だけを行い、panic/保持/I/Oはない。
+        // qsort は同期的に完了し、pointer を保持しない。PathBuf 自体は C へ渡さない。
+        unsafe {
+            crt_qsort(
+                entries.as_mut_ptr().cast(),
+                entries.len(),
+                std::mem::size_of::<MtimeEntry>(),
+                compare_mtime,
+            );
+        }
+    }
 }
 
 fn normalized_target_path(path: &Path) -> PathBuf {
@@ -7360,5 +7637,57 @@ mod tests {
         let as_utf8 = String::from_utf8(std::fs::read(&path).unwrap()).unwrap();
         assert_eq!(as_utf8.lines().nth(1).unwrap().chars().count(), 16);
         assert_eq!(text.lines().nth(1).unwrap().chars().count(), 18);
+    }
+}
+
+#[cfg(test)]
+mod fail_fast_order_tests {
+    use super::*;
+
+    #[test]
+    fn recorded_ruby_sort_order_is_preserved() {
+        let document: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/fail_fast_sort.json")).unwrap();
+        let cases = document["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 720);
+        let mut checked = 0;
+        for (number, row) in cases.iter().enumerate() {
+            // WindowsのCRT fallbackを他libcの期待へ流用しない。POSIX極端Epochは未測定。
+            if !cfg!(windows) && row["uniform"] != true {
+                continue;
+            }
+            let mut entries = row["keys"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .enumerate()
+                .map(|(index, key)| MtimeEntry {
+                    seconds: -key.as_i64().unwrap(),
+                    index,
+                })
+                .collect::<Vec<_>>();
+            sort_entries(&mut entries, c_long::BITS);
+            let indices = entries
+                .iter()
+                .map(|entry| entry.index as u64)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                serde_json::json!(indices),
+                row["indices"],
+                "reference {number}"
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, if cfg!(windows) { 720 } else { 403 });
+    }
+
+    #[test]
+    fn ruby_c_long_boundaries_do_not_overflow() {
+        assert!(mtime_key_is_fixnum(1 << 30, 32));
+        assert!(!mtime_key_is_fixnum((1 << 30) + 1, 32));
+        assert!(mtime_key_is_fixnum(-((1 << 30) - 1), 32));
+        assert!(!mtime_key_is_fixnum(-(1 << 30), 32));
+        assert!(!mtime_key_is_fixnum(i64::MIN, 64));
+        assert!(!mtime_key_is_fixnum(i64::MAX, 64));
     }
 }

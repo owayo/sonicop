@@ -1,0 +1,41 @@
+fail_fast_order.json の出典
+
+仕様: RuboCop 1.89.0 / Ruby 4.0.7 revision 229531a6cfbf07e3caef30dbac24a2a3f3fed482
+parser 3.3.12.0 / prism 1.8.1 / rubocop-ast 1.50.0
+Oracle platform: x64-mingw-ucrt、C long 32bit。版・platformは採取時に拒否付きで検査する。
+
+採取: 45入力・実CLI90回。構成入力だけを生成し、期待は実RuboCop CLI / Ruby sort_byから保存した。
+Sonicopの実行結果やnative sorterの値を期待として採取しない。
+exit、stderr、正の完了件数、全path集合/順序/重複、summary、原本bytes/mtimeを検査する。
+cache無効 / cold / warmは同じ入力・path・mtimeのまま切り替える。
+raw stdout/stderrをhex、原本をhex、mtimeをnsで残す。cache相対identity/statも生記録する。
+
+再生成（Windows、repo root、固定版Ruby/gemsを導入した環境）:
+  python scripts/conformance/record_fail_fast_order.py --ruby ruby
+代表入口だけ:
+  python scripts/conformance/record_fail_fast_order.py --ruby ruby --names zero-subsecond --output tmp/entry.json --sort-output tmp/sort.json
+
+全Ruby childは親ENVのcopyからRUBYOPT/RUBYLIB/RUBOCOP_OPTS/RUBOCOP_TARGET_RUBY_VERSIONだけを除く。
+GEM_HOME/GEM_PATH/PATH/SystemRoot等と親ENVは保持する。Python陰性回帰と実poison入口で確認する。
+collector SHA256: a2213b1022e8067eeba316a7b712c33404540ce42f09e65d92fc4897ead1a505
+fixture SHA256: eb85df7717dcffe8acbdbc65a8aa912d41474b6b40b62798bd2b797b9da7d3ab
+canonical behavioral SHA256: 95d865891411ea565e4e110068abd022fb743020f7ca0037de26d84974de3536
+
+CLI canonicalはcache_before/cache_afterの測定statだけを除く。cacheのopaque identityとmtimeは
+独立tempdirでの採取ごとに変わるため、元記録を残したまま振る舞いのhashを別に記す。
+JSON/PROVENANCE/source containerはLF固定し、hex/escape内の意味のあるbytesは変換しない。
+
+テストは実装名・実行環境metadataだけをJSON比較から除き、files全項目・summary・順序を照合する。
+構成ASCII入力のlisting/残stdoutについてのみ既知transport CRLFをLFへ投影する。
+raw wholeCLI bytesの一般的一致や、TTY/時刻依存の別formatterの互換性を主張しない。
+modern Bignum/負のEpoch等のWindows記録をPOSIX期待へ無条件に流用しない。
+POSIXの極端なepoch / libc fallbackの実CLIは未測定。通常経路のpublic discoveryはlexicalを維持。
+
+Rubyのuniform手順の移植元:
+  https://github.com/ruby/ruby/blob/229531a6cfbf07e3caef30dbac24a2a3f3fed482/enum.c
+Ruby 2-clause BSDLを選択し、NOTICE / licenses/RUBY_BSDL.txtに著作権・利用条件を収録。
+
+fail_fast_rejected_order.json は同じ固定runtimeから別途採取した実CLI2条件。
+未知copのdisk-directory/stdin-directory一覧が同じ順序を使うことを確認する。
+再生成は record_fail_fast_rejected_order.py --ruby ruby --output <new-file>。
+元の45入力90CLIと720sortの記録はbyte不変で保持する。

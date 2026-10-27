@@ -11,9 +11,9 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection,
+    CorrectMode, CorrectionEncodingError, DirectoryOrder, NO_SYNTAX_GUARD, ResultCache, Selection,
     SharedStdinState, correct_file_with_original, correct_shared_stdin, correction_bytes,
-    discover_stdin_targets_with_store, discover_targets_with_store, inspect_files,
+    discover_cli_targets_with_store, discover_stdin_targets_with_store, inspect_files,
     inspect_files_with_store_cached, inspect_shared_stdin, inspect_stdin, is_mandatory_cop,
     native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
 };
@@ -268,6 +268,14 @@ impl Cli {
             CorrectMode::Safe
         } else {
             CorrectMode::None
+        }
+    }
+
+    fn directory_order(&self) -> DirectoryOrder {
+        if self.fail_fast {
+            DirectoryOrder::FailFast
+        } else {
+            DirectoryOrder::Lexical
         }
     }
 }
@@ -1098,7 +1106,8 @@ fn inspect_rejected_inputs(
             .context("failed to read source from stdin")?;
         if !anonymous && path.is_dir() {
             // stdinの名前もTargetFinderが展開する。対象ゼロと一覧ではmobilizeへ届かない。
-            let targets = discover_stdin_targets_with_store(path, cwd, configs)?;
+            let targets =
+                discover_stdin_targets_with_store(path, cwd, configs, cli.directory_order())?;
             if cli.list_target_files {
                 for target in targets {
                     let line = format!("{}\n", smart_path(&target, cwd));
@@ -1180,23 +1189,25 @@ fn rejected_selection_targets(
     configs: &ConfigStore,
 ) -> Result<Vec<PathBuf>> {
     if cli.paths.is_empty() {
-        return discover_targets_with_store(
+        return discover_cli_targets_with_store(
             &[],
             cwd,
             configs,
             cli.force_exclusion,
             cli.only_recognized_file_types,
+            cli.directory_order(),
         );
     }
     let mut targets = Vec::new();
     for path in &cli.paths {
         if path.exists() {
-            targets.extend(discover_targets_with_store(
+            targets.extend(discover_cli_targets_with_store(
                 std::slice::from_ref(path),
                 cwd,
                 configs,
                 cli.force_exclusion,
                 cli.only_recognized_file_types,
+                cli.directory_order(),
             )?);
         } else {
             // TargetFinder#process_explicit_pathは不存在の明示名もfirst File.readまで保持する。
@@ -1235,13 +1246,15 @@ fn inspect_inputs(
     cache: Option<&ResultCache>,
     selection_warnings: &[String],
 ) -> Result<Inspection> {
+    let directory_order = cli.directory_order();
     let Some(stdin_path) = &cli.stdin else {
-        let mut targets = discover_targets_with_store(
+        let targets = discover_cli_targets_with_store(
             &cli.paths,
             cwd,
             configs,
             cli.force_exclusion,
             cli.only_recognized_file_types,
+            directory_order,
         )?;
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
@@ -1257,13 +1270,6 @@ fn inspect_inputs(
             cache.prepare(targets.len());
         }
         let reports = if cli.fail_fast {
-            targets.sort_by_key(|path| {
-                std::cmp::Reverse(
-                    fs::metadata(path)
-                        .and_then(|metadata| metadata.modified())
-                        .ok(),
-                )
-            });
             inspect_fail_fast(&targets, configs, selection, cache)?
         } else {
             inspect_files_with_store_cached(&targets, configs, selection, parallel, cache)?
@@ -1292,17 +1298,9 @@ fn inspect_inputs(
         .context("failed to read source from stdin")?;
     // 空名は #107 の仮想ファイル。cwd に展開してもディレクトリ探索へ変えない。
     if !anonymous_stdin && stdin_path.is_dir() {
-        let mut targets = discover_stdin_targets_with_store(&stdin_path, cwd, configs)?;
+        let targets =
+            discover_stdin_targets_with_store(&stdin_path, cwd, configs, directory_order)?;
         *selection = selection.with_project_index(&targets, configs)?;
-        if cli.fail_fast {
-            targets.sort_by_key(|path| {
-                std::cmp::Reverse(
-                    fs::metadata(path)
-                        .and_then(|metadata| metadata.modified())
-                        .ok(),
-                )
-            });
-        }
         if cli.list_target_files {
             for path in targets {
                 let line = format!("{}\n", smart_path(&path, cwd));
