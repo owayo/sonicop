@@ -1,0 +1,33 @@
+RuboCop 1.89.0 / parser 3.3.12.0 / Ruby 4.0.7 / Prism 1.8.1
+Windows x64-mingw-ucrt / Recorded: 2026-10-25
+
+全88ケースの期待値は実本家CLIから記録した。候補source/outputから期待を作っていない。
+44形 × file/通常名stdin。単独empty対照を追加し、実本家の呼出しは92回。
+source/yaml/argv/.rubocop/RUBOCOP_OPTS、stdout/stderr全hex、report全項目、
+formatter出力fileの存在・全hex・report、非補正原本のbyte保全を保持する。
+環境は記録ケースのRUBOCOP_OPTSだけを明示し、周囲のRUBOCOP_OPTS/TARGET/RUBYOPT/RUBYLIBは除く。
+既存dotfile/outputを混ぜないため、work内の各case directoryが既存なら記録を拒否する。
+
+coverageの意味:
+- full_json 56件: --only/--except両順・3回・同値・equals・CSV集合置換・独立除外、
+  unknown/Syntax/禁止cop/emptyが先にあり有効指定が最後の場合、dotfile<env<CLI、
+  appendされた複数format/outの位置と「先頭outを保持/無関係outを作らない」を検査する。
+  正常stdout/fileはmetadataだけを除いたJSON全項目、終了値・空stderr・原本byteを比較する。
+- rejection_envelope 24件: missing値、invalid earlier severity/limit、明示conflictの
+  終了2・空stdout・関連flag/tokenを持つstderr・原本byteを検査する。
+  人向けのClap/OptionParserエラー文面全体の互換を成功として数えない。
+- rejection_only 4件: unknownが最後の拒否gate。既存#118により本家の空JSONreportと
+  候補stdoutは未一致。全rawは保持するが、この4件をfull JSON一致へ数えない。
+- single_equivalence 4件: empty末尾は単独emptyと同じ値になることを本家で証明し、
+  候補でもその同値性を検査する。既存#117の単独empty仕様の不一致を成功扱いしない。
+  候補を本家期待値として使うテストではなく、上書き機構の同値関係を監視する。
+
+既存ordinary残差:
+#117: --only=/--except=/comma-only/leading-emptyの値処理。重複指定と別原因。
+#118: unknown copの検証段階・空JSONレポート/stderr。単独指定でも再現する。
+これらをknown_divergences.ymlへ許可差として登録していない。
+
+再生成:
+python scripts/conformance/record_repeated_selectors.py --ruby <Ruby4.0.7> --launcher <RuboCop1.89.0 pin済launcher.rb> --work <fresh-scratch> --out <new.json>
+正常実行は本家VM/版、対象path/順、正の検査数、診断集計、空stderrを検証して保存する。
+否定対照と単独同値性も記録時に検証し、Ruby原本が変わった場合は記録を失敗させる。

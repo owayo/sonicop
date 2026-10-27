@@ -42,9 +42,20 @@ struct Cli {
     fix_layout: bool,
     #[arg(long, help_heading = "Basic Options")]
     safe: bool,
-    #[arg(long, value_name = "COP1,COP2", help_heading = "Basic Options")]
+    // 本家の add_cop_selection_csv_option は、後の指定で集合全体を置き換える。
+    #[arg(
+        long,
+        overrides_with = "only",
+        value_name = "COP1,COP2",
+        help_heading = "Basic Options"
+    )]
     only: Option<String>,
-    #[arg(long, value_name = "COP1,COP2", help_heading = "Basic Options")]
+    #[arg(
+        long,
+        overrides_with = "except",
+        value_name = "COP1,COP2",
+        help_heading = "Basic Options"
+    )]
     except: Option<String>,
     #[arg(long, help_heading = "Basic Options")]
     only_guide_cops: bool,

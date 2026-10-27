@@ -125,3 +125,9 @@ scripts/conformance/test_stdin_directory.py text eol=lf
 tests/stdin_directory.rs text eol=lf
 tests/fixtures/stdin_directory_reports.json text eol=lf
 tests/fixtures/stdin_directory_reports.json.PROVENANCE text eol=lf
+
+# 重複 selector の参照記録と採取器を LF で保存する。
+scripts/conformance/record_repeated_selectors.py text eol=lf
+tests/repeated_selectors.rs text eol=lf
+tests/fixtures/repeated_selectors.json text eol=lf
+tests/fixtures/repeated_selectors.json.PROVENANCE text eol=lf
