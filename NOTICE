@@ -56,6 +56,15 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Scope, byte transport and independent review are documented in the
       neighbouring .PROVENANCE. Full text: licenses/RUBOCOP.txt.
 
+  src/cli.rs (repeated --only/--except selector replacement)
+  tests/fixtures/repeated_selectors.json
+      CSV selector replacement ported from RuboCop 1.89.0 options.rb.
+      The record separates 56 full-JSON conditions, 24 rejection envelopes,
+      four unresolved late errors and four single-value equivalence controls.
+      Regenerate with scripts/conformance/record_repeated_selectors.py;
+      scope and remaining differences are documented in the neighbouring
+      .PROVENANCE. Full text: licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.
