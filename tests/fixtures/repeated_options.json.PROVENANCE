@@ -1,0 +1,26 @@
+cache/config複数指定のRuboCop 1.89.0実CLI記録。
+
+2026-10-28 JST、Windows x64 UCRT、Ruby 4.0.7 / parser 3.3.12.0 /
+Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。実loaded版を全childで確認。
+TargetRubyVersion 3.3、UseProjectIndex false、pipe・非TTY・直列で採取した。
+候補nativeは期待値の採取に使わない。
+
+再採取（既存ファイルを上書きしない）:
+  python scripts/conformance/record_repeated_options.py <新JSON> --ruby <Ruby-4.0.7の実体> --evidence-directory <私有の新領域>
+
+42条件中31条件は終了値、stderrなし、実装metadataを除くJSON全フィールド・
+対象順・出力Fileの割当と全共通JSON・cacheへの書込み有無を比較する。
+短縮形と=形式、先行する不正cache・空値・存在しない/壊れたconfig、
+独立したcache/config、.rubocop→RUBOCOP_OPTS→CLI、onlyとformatter/outを含む。
+formatter/outの間の再指定と、formatter前のoutも実測する。
+cache書込みありは6条件。両実装のcacheファイル形式やraw reportのmetadataは分ける。
+
+残る11条件は、最後の不正値・必要値の欠落・他オプションの検証を拒否する境界。
+終了2・空stdout・stderrあり・出力先・cache状態・入力保持を確認する。
+stderrメッセージまでの完全互換件数へ加算しない。実stderrは私有raw記録へ保存する。
+拒否中の絶対パスや実装stackを公開JSONのhexへ埋め込まない。
+
+原本・設定・.rubocopのbytes/mtime/modeを採取時とnative回帰で検査する。
+Rubyへ注入される4変数だけを子copyから除き、Gem/PATH/OSと親を保持する。
+優先度を検査する条件は明示したRUBOCOP_OPTSをその子へ設定する。
+XDG_CACHE_HOMEとRUBOCOP_CACHE_ROOTは各複製内へ向け、利用者のcacheへ書かない。

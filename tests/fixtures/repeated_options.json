@@ -1,0 +1,2131 @@
+{
+  "reference": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop_ast": "1.50.0"
+  },
+  "source_hex": "78203d20322a2a330a",
+  "config_a_hex": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20332e330a202055736550726f6a656374496e6465783a2066616c73650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e666f726365645374796c65466f724578706f6e656e744f70657261746f723a2073706163650a",
+  "config_b_hex": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20332e330a202055736550726f6a656374496e6465783a2066616c73650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e666f726365645374796c65466f724578706f6e656e744f70657261746f723a206e6f5f73706163650a",
+  "scope": "report: full common JSON and cache writing; rejection: exit/stdout/input guard only",
+  "cases": [
+    {
+      "id": "cache-true-false",
+      "options": [
+        "--cache",
+        "true",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "true",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-false-true",
+      "options": [
+        "--cache",
+        "false",
+        "--cache",
+        "true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache",
+        "true",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-same-false",
+      "options": [
+        "--cache",
+        "false",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-same-true",
+      "options": [
+        "--cache",
+        "true",
+        "--cache",
+        "true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "true",
+        "--cache",
+        "true",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-three",
+      "options": [
+        "--cache",
+        "false",
+        "--cache",
+        "invalid",
+        "--cache",
+        "true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache",
+        "invalid",
+        "--cache",
+        "true",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-invalid-first",
+      "options": [
+        "--cache",
+        "invalid",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "invalid",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-empty-first",
+      "options": [
+        "--cache=",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache=",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-equals",
+      "options": [
+        "--cache=true",
+        "--cache=false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache=true",
+        "--cache=false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-short",
+      "options": [
+        "-Ctrue",
+        "-Cfalse"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-Ctrue",
+        "-Cfalse",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-mixed",
+      "options": [
+        "-C",
+        "false",
+        "--cache=true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-C",
+        "false",
+        "--cache=true",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-a-b",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config",
+        "b.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config",
+        "b.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-b-a",
+      "options": [
+        "--config",
+        "b.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "b.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-same",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-absent-first",
+      "options": [
+        "--config",
+        "missing.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "missing.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-invalid-first",
+      "options": [
+        "--config",
+        "invalid.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "invalid.yml",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-empty-first",
+      "options": [
+        "--config=",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config=",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-equals",
+      "options": [
+        "--config=a.yml",
+        "--config=b.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config=a.yml",
+        "--config=b.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-short",
+      "options": [
+        "-ca.yml",
+        "-cb.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-ca.yml",
+        "-cb.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "config-mixed",
+      "options": [
+        "-c",
+        "b.yml",
+        "--config=a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-c",
+        "b.yml",
+        "--config=a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "combined",
+      "options": [
+        "--config",
+        "missing.yml",
+        "--cache",
+        "invalid",
+        "--config",
+        "b.yml",
+        "--cache",
+        "true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "missing.yml",
+        "--cache",
+        "invalid",
+        "--config",
+        "b.yml",
+        "--cache",
+        "true",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "single-cache",
+      "options": [
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "single-config",
+      "options": [
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "dot-env-cli-cache",
+      "dotfile": "--cache invalid",
+      "env_options": "--cache false",
+      "options": [
+        "--cache",
+        "true"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "true",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": true,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "env-cli-cache",
+      "env_options": "--cache invalid",
+      "options": [
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "dot-env-cli-config",
+      "dotfile": "--config missing.yml",
+      "env_options": "--config a.yml",
+      "options": [
+        "--config",
+        "b.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "b.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "env-beats-dot-config",
+      "dotfile": "--config a.yml",
+      "env_options": "--config b.yml",
+      "options": [
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cli-beats-dot-config",
+      "dotfile": "--config b.yml",
+      "options": [
+        "--config",
+        "a.yml",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "formatter-slots",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config",
+        "b.yml",
+        "--cache",
+        "true",
+        "--cache",
+        "false"
+      ],
+      "formats": [
+        "-f",
+        "json",
+        "-o",
+        "first.json",
+        "-f",
+        "json",
+        "-o",
+        "second.json"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "first.json",
+        "-f",
+        "json",
+        "-o",
+        "second.json",
+        "--config",
+        "a.yml",
+        "--config",
+        "b.yml",
+        "--cache",
+        "true",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": null,
+      "outputs": {
+        "first.json": {
+          "files": [
+            {
+              "path": "case.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "second.json": {
+          "files": [
+            {
+              "path": "case.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "selector-override",
+      "options": [
+        "--only",
+        "Unknown/Cop",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--cache",
+        "true",
+        "--cache",
+        "false"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--only",
+        "Unknown/Cop",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--cache",
+        "true",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 1,
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "formatter-options-interleaved",
+      "options": [],
+      "formats": [
+        "-f",
+        "json",
+        "-o",
+        "first.json",
+        "--config",
+        "a.yml",
+        "--cache",
+        "true",
+        "-f",
+        "json",
+        "--config",
+        "b.yml",
+        "--cache",
+        "false",
+        "-o",
+        "second.json"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "-o",
+        "first.json",
+        "--config",
+        "a.yml",
+        "--cache",
+        "true",
+        "-f",
+        "json",
+        "--config",
+        "b.yml",
+        "--cache",
+        "false",
+        "-o",
+        "second.json",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": null,
+      "outputs": {
+        "first.json": {
+          "files": [
+            {
+              "path": "case.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        },
+        "second.json": {
+          "files": [
+            {
+              "path": "case.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "out-before-formatter-interleaved",
+      "options": [],
+      "formats": [
+        "-o",
+        "first.json",
+        "--cache",
+        "true",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "-o",
+        "second.json",
+        "--cache",
+        "false",
+        "--config",
+        "b.yml"
+      ],
+      "kind": "report",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-o",
+        "first.json",
+        "--cache",
+        "true",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "-o",
+        "second.json",
+        "--cache",
+        "false",
+        "--config",
+        "b.yml",
+        "case.rb"
+      ],
+      "exit": 0,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": {
+          "files": [
+            {
+              "path": "case.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "cache_files": false,
+      "stderr_nonempty": false
+    },
+    {
+      "id": "cache-invalid-last",
+      "options": [
+        "--cache",
+        "false",
+        "--cache",
+        "invalid"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache",
+        "invalid",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "cache-empty-last",
+      "options": [
+        "--cache",
+        "false",
+        "--cache="
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache=",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "cache-missing-last",
+      "options": [
+        "--cache",
+        "false",
+        "--cache"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "false",
+        "--cache",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "cache-missing-first",
+      "options": [
+        "--cache",
+        "--cache",
+        "false"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--cache",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "config-missing-last",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "config-missing-first",
+      "options": [
+        "--config",
+        "--config",
+        "a.yml"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "--config",
+        "a.yml",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "config-absent-last",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config",
+        "missing.yml"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config",
+        "missing.yml",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "config-invalid-last",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config",
+        "invalid.yml"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config",
+        "invalid.yml",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "config-empty-last",
+      "options": [
+        "--config",
+        "a.yml",
+        "--config="
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--config",
+        "a.yml",
+        "--config=",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "severity-invalid-first",
+      "options": [
+        "--fail-level",
+        "invalid",
+        "--fail-level",
+        "error",
+        "--cache",
+        "false"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--fail-level",
+        "invalid",
+        "--fail-level",
+        "error",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    },
+    {
+      "id": "limit-invalid-first",
+      "options": [
+        "--exclude-limit",
+        "invalid",
+        "--exclude-limit",
+        "1",
+        "--cache",
+        "false"
+      ],
+      "kind": "rejection",
+      "args": [
+        "--no-color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "-f",
+        "json",
+        "--exclude-limit",
+        "invalid",
+        "--exclude-limit",
+        "1",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "exit": 2,
+      "report": null,
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      },
+      "cache_files": false,
+      "stderr_nonempty": true
+    }
+  ]
+}
