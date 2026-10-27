@@ -118,7 +118,14 @@ struct Cli {
     )]
     fail_level: String,
 
-    #[arg(short = 'C', long, value_name = "FLAG", help_heading = "Caching")]
+    // 本家のOptions#optionは最後のStringを保存し、cacheの検証はparse後に行う。
+    #[arg(
+        short = 'C',
+        long,
+        overrides_with = "cache",
+        value_name = "FLAG",
+        help_heading = "Caching"
+    )]
     cache: Option<String>,
     #[arg(long, value_name = "DIR", help_heading = "Caching")]
     cache_root: Option<PathBuf>,
@@ -230,8 +237,14 @@ struct Cli {
     #[arg(
         short = 'c',
         long,
+        overrides_with = "config",
         value_name = "FILE",
-        help_heading = "General Options"
+        help_heading = "General Options",
+        // 空文字も先行値として保存し、最後のconfigだけをファイルとして解決する。
+        value_parser = clap::builder::TypedValueParser::map(
+            clap::builder::OsStringValueParser::new(),
+            PathBuf::from,
+        ),
     )]
     config: Option<PathBuf>,
     #[arg(short = 'd', long, help_heading = "General Options")]

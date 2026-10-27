@@ -204,3 +204,10 @@ tests/fixtures/formatter_lookup.json.PROVENANCE text eol=lf
 
 # splat参照採取の環境契約
 scripts/conformance/test_splat_block_environment.py text eol=lf
+
+# 本家のcache/config複数指定記録
+scripts/conformance/record_repeated_options.py text eol=lf
+scripts/conformance/test_repeated_options.py text eol=lf
+tests/repeated_options.rs text eol=lf
+tests/fixtures/repeated_options.json text eol=lf
+tests/fixtures/repeated_options.json.PROVENANCE text eol=lf
