@@ -740,19 +740,23 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
 
 fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if cli.version {
-        println!("{VERSION}");
+        write_output(&format!("{VERSION}\n"), None, false)?;
         return Ok(0);
     }
     if cli.verbose_version {
         let cwd = std::env::current_dir().context("failed to determine current directory")?;
         let config =
             Config::load_with_options(cli.config.as_deref(), &cwd, cli.force_default_config)?;
-        println!(
-            "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby {}) [{} {}]",
-            config.target_ruby_version(),
-            std::env::consts::OS,
-            std::env::consts::ARCH
-        );
+        write_output(
+            &format!(
+                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby {}) [{} {}]\n",
+                config.target_ruby_version(),
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            ),
+            None,
+            false,
+        )?;
         return Ok(0);
     }
     validate_compatibility(&cli)?;
