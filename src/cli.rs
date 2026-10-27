@@ -18,7 +18,8 @@ use crate::engine::{
     native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
-    Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
+    Format, FormatOptions, Lifecycle, Output, OutputSet, offenses_by_cop, render, smart_path,
+    yaml_single_quoted,
 };
 use crate::rules::rule_names;
 use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
@@ -654,6 +655,40 @@ fn split_external_arguments(source: &str) -> Result<Vec<String>> {
 
 fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     let started = Instant::now();
+    if !cli.version && !cli.verbose_version {
+        // Options.parse内の拒否ではCLI @optionsが未代入で、上流ensureのtimerも無効。
+        // 既存の判定だけを先に確認し、config/検査中の失敗とは段階を分ける。
+        validate_compatibility(&cli)?;
+    } else {
+        // これらはOptions.parseの判定なので、versionの早期returnより先に拒否される。
+        validate_syntax_selection(&cli)?;
+    }
+    FailLevel::parse(&cli.fail_level)?;
+    let display_time = cli.display_time || cli.debug;
+    let result = try_run_with_outputs(cli, outputs);
+    // CLI#run の ensure は formatter と stdin echo の後、失敗時も stdout へ一度だけ出す。
+    let timer = if display_time {
+        let mut seconds = format!("{:.5}", started.elapsed().as_secs_f64());
+        while seconds.ends_with('0') {
+            seconds.pop();
+        }
+        if seconds.ends_with('.') {
+            seconds.push('0');
+        }
+        write_output(&format!("Finished in {seconds} seconds\n"), None, false)
+    } else {
+        Ok(())
+    };
+    match result {
+        Ok(code) => {
+            timer?;
+            Ok(code)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if cli.version {
         println!("{VERSION}");
         return Ok(0);
@@ -826,7 +861,6 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             outputs,
             corrected_count,
             target_count,
-            elapsed: started.elapsed().as_secs_f64(),
         },
         &reports,
     )?;
@@ -1444,13 +1478,7 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
     }) {
         bail!("Lint/RedundantCopDisableDirective cannot be used with --only.");
     }
-    if cli.except.as_deref().is_some_and(|value| {
-        csv(Some(value))
-            .iter()
-            .any(|name| is_mandatory_cop(name.as_str()))
-    }) {
-        bail!("Syntax checking cannot be turned off.");
-    }
+    validate_syntax_selection(cli)?;
     if let Some(cache) = &cli.cache
         && !matches!(cache.as_str(), "true" | "false")
     {
@@ -1472,6 +1500,17 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
     }
     if cli.lsp && cli.editor_mode {
         bail!("--lsp cannot be combined with --editor-mode");
+    }
+    Ok(())
+}
+
+fn validate_syntax_selection(cli: &Cli) -> Result<()> {
+    if cli.except.as_deref().is_some_and(|value| {
+        csv(Some(value))
+            .iter()
+            .any(|name| is_mandatory_cop(name.as_str()))
+    }) {
+        bail!("Syntax checking cannot be turned off.");
     }
     Ok(())
 }
@@ -1842,7 +1881,6 @@ struct RenderRequest<'a> {
     /// How many files discovery produced, which is not how many were inspected once `--fail-fast`
     /// stops the run early. See [`Inspection::Reports`].
     target_count: usize,
-    elapsed: f64,
 }
 
 fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result<()> {
@@ -1854,7 +1892,6 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         outputs,
         corrected_count,
         target_count,
-        elapsed,
     } = *request;
     let formats = if cli.formats.is_empty() {
         vec![
@@ -1868,34 +1905,57 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     let display_cop_names = message_display_cop_names(cli, config);
     let color = !cli.no_color
         && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));
-    for (index, name) in formats.iter().enumerate() {
-        let format = Format::parse(name)?;
-        let mut rendered = render(
-            format,
-            reports,
-            &FormatOptions {
-                cwd,
-                config,
-                display_cop_names,
-                display_style_guide: cli.display_style_guide,
-                extra_details: cli.extra_details,
-                color,
-                corrected_count,
-                target_file_count: target_count,
-                fail_level: fail_level.severity(),
-                safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
-                display_only_failed: cli.display_only_failed,
-            },
-        )?;
-        if cli.display_time {
-            rendered.push_str(&format!("Finished in {elapsed:.3} seconds\n"));
-        }
-        write_output(
-            &rendered,
-            outputs.get(index).and_then(Option::as_deref),
-            cli.stderr,
-        )?;
+    let options = FormatOptions {
+        cwd,
+        config,
+        display_cop_names,
+        display_style_guide: cli.display_style_guide,
+        extra_details: cli.extra_details,
+        color,
+        corrected_count,
+        target_file_count: target_count,
+        fail_level: fail_level.severity(),
+        safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
+        display_only_failed: cli.display_only_failed,
+    };
+    let paths = (0..formats.len())
+        .map(|index| outputs.get(index).cloned().flatten())
+        .collect::<Vec<_>>();
+    let mut parsed_formats = Vec::with_capacity(formats.len());
+    // FormatterSet#add_formatterは各Fileを開いた後にそのclassを解決する。
+    // 未知名でも当該Fileはtruncateされ、後続entryはまだ開かれない。
+    let mut destinations = OutputSet::open(&paths, cli.stderr, |index| {
+        parsed_formats.push(Format::parse(&formats[index])?);
+        Ok(())
+    })?;
+    let formats = parsed_formats;
+    if formats.len() == 1 {
+        // 同じ File を共有する別formatterがなければ、公開StringSink経路を一度で書ける。
+        // compact JSON の余分な段階bufferとwrite syscallを増やさない。
+        destinations
+            .writer(0)
+            .write(&render(formats[0], reports, &options)?)?;
+        return destinations.finish();
     }
+    let mut formatters = formats
+        .iter()
+        .map(|format| Lifecycle::new(*format, reports, &options))
+        .collect::<Vec<_>>();
+    for (index, formatter) in formatters.iter_mut().enumerate() {
+        formatter.started(&mut destinations.writer(index))?;
+    }
+    for file in 0..reports.len() {
+        for (index, formatter) in formatters.iter_mut().enumerate() {
+            formatter.file_started(file, &mut destinations.writer(index))?;
+        }
+        for (index, formatter) in formatters.iter_mut().enumerate() {
+            formatter.file_finished(file, &mut destinations.writer(index))?;
+        }
+    }
+    for (index, formatter) in formatters.iter_mut().enumerate() {
+        formatter.finished(&mut destinations.writer(index))?;
+    }
+    destinations.finish()?;
     Ok(())
 }
 
