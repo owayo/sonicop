@@ -167,6 +167,14 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Choose new, unused --output and --table-output paths; existing leaves are refused.
       Full licence text is retained at licenses/RUBOCOP.txt.
 
+  tests/fixtures/version_textmode.json
+      Constructed version/verbose-version controls paired with actual RuboCop
+      1.89.0 raw channels, exit statuses and original-file preservation.
+      Native identity and the four pending issue #137 cases are recorded separately.
+      Regenerate: scripts/conformance/record_version_textmode.py
+      Source hashes and scope: the neighbouring .PROVENANCE file.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/upstream_spec_cases.jsonl
   tests/fixtures/upstream_spec_divergences.jsonl
       Input text taken out of RuboCop's own cop specs, each paired with what

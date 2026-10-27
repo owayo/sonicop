@@ -1,0 +1,24 @@
+RuboCop 1.89.0のWindows version/verbose-version実CLI記録。
+
+2026-10-28 JST、Ruby 4.0.7 / revision229531a6cfbf07e3caef30dbac24a2a3f3fed482 /
+x64-mingw-ucrt、parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+各CLIの実loaded版と、cli.rb/options.rb/version.rb/cli/command/version.rbの
+4原本SHAを取得する。固定版の原本SHAは採取器でも検査する。
+
+再採取（出力・作業directoryは新規のもの）:
+  python scripts/conformance/record_version_textmode.py --ruby <Ruby-4.0.7> --output <新JSON> --work-dir <私有の新領域>
+
+20条件のうち16条件が今回のversion輸送・早期終了の比較対象。
+4aliasの通常/--stderr、out未作成とsentinel保持、parallel、存在しない入力を含む。
+実stdout/stderr bytes・終了値・原本と設定のbytes/mtime/permissions・out状態を確認する。
+本家はstdoutの1行を一度のCRLFで終える。Sonicop自身のVERSIONとverbose identityは
+nativeのAPI契約として別に保持し、Ruby/RuboCopのidentityへ書き換えない。
+versionによる情報表示の検証であり、ソース検査の完了件数には数えない。
+
+残る4条件は不正cache指定の本家終了2を記録し、residual_issue137で追跡する。
+今回のnative輸送一致へ加算しない。cache検証の順序は別Issueの対象。
+Rust回帰のUnix側はnative identityとLF維持を確認し、Unix本家の実測とは数えない。
+
+明示した--no-colorで条件を固定し、Rubyへ注入される4変数だけを子copyから除く。
+親とGem/PATH/OS/色関連の探索環境は保持する。候補は期待値採取で起動しない。
+保存済み出力と作業領域を先に拒否し、最後の保存も排他的に行う。

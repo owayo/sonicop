@@ -211,3 +211,10 @@ scripts/conformance/test_repeated_options.py text eol=lf
 tests/repeated_options.rs text eol=lf
 tests/fixtures/repeated_options.json text eol=lf
 tests/fixtures/repeated_options.json.PROVENANCE text eol=lf
+
+# versionの輸送と本家参照記録
+scripts/conformance/record_version_textmode.py text eol=lf
+scripts/conformance/test_record_version_textmode.py text eol=lf
+tests/version_textmode.rs text eol=lf
+tests/fixtures/version_textmode.json text eol=lf
+tests/fixtures/version_textmode.json.PROVENANCE text eol=lf
