@@ -1,0 +1,29 @@
+Windows Ruby 4.0.7、RUBY_REVISION 229531a6cfbf07e3caef30dbac24a2a3f3fed482 の実開始時ARGV。
+実argvを記録するRuby scriptを、Pythonのlist2cmdlineと明示raw引用で起動した238入力。
+候補のparser出力から期待値を作っていない。OS起動prefixと一時パスは公開容器に含めず、
+実際に渡したtailと対応するARGV全単語を保存した。
+
+LF/CRLF/VT/FF/CR、space/tab、空文字、後続known/unknown/option/末尾無し、引用・埋込control、
+backslash0..5、単引用/二重引用/隣接quote、Windows風path、Unicodeの陰性対照を含む。
+glob展開の入力と実装は今回の範囲へ含めない。不正UTF16の拒否は#100の安全契約として
+source単体で別に検査し、Rubyが同じ不正入力を拒否したという互換件数に数えない。
+
+cliの10条件は RuboCop 1.89.0 / parser3.3.12.0 / Prism1.8.1 / Rainbow3.1.1 の実CLI。
+only/exceptのLF/CRLF/VT/通常値とstdinを、JSON全fields・終了値・stderr・原本bytesで記録した。
+#117/#118が扱う空selector/未知名のlate errorを、この10件の成功へ混ぜない。
+
+RUBYOPT/RUBYLIB/RUBOCOP_OPTS/RUBOCOP_TARGET_RUBY_VERSIONを全子環境から除き、gemとOS環境は保持。
+公開JSONコンテナはLF固定。tail内のcontrolとsource_hex/raw_hexの値は変更しない。
+
+再生成（Windowsと仕様版Rubyが必要）:
+  python scripts/record_windows_argv.py <未作成のJSONパス> --ruby <Ruby-4.0.7の実体>
+
+保存済みの公開記録は上書きせず、直列で再採取する。
+実CLIのrubocop-astも1.50.0へ固定し、各childでRubyのrevisionと全gemの実loaded版を照合する。
+元の238+10条件の記録は変更せず、再採取との一致を別途確認する。
+実CLI回帰ではnativeの識別情報を分け、残りのJSON全体・設定bytes・原本/設定mtimeも検査する。
+
+移植元の正確なソース:
+https://github.com/ruby/ruby/blob/229531a6cfbf07e3caef30dbac24a2a3f3fed482/win32/win32.c
+src/cli/windows_argv.rs はこの限定部分を Artistic-1.0-Perl で移植した。
+著作権・変更日・標準版取得先はNOTICE、全文はlicenses/RUBY_WIN32_ARTISTIC.txtを参照。
