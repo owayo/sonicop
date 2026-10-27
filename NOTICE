@@ -70,6 +70,13 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Full licence text is retained at licenses/RUBOCOP.txt. The existing
       Prism 1.8.1 identifier query uses the separately inventoried Prism code.
 
+  tests/fixtures/symbol_array_byte_safety.json
+      Constructed symbol arrays paired with actual RuboCop 1.89.0 CLI reports,
+      original-preserving internal failures and correction/runtime evidence.
+      Invalid originals have no observed Symbol value; no value is invented.
+      The adjacent .PROVENANCE records the finite scope and unresolved errors.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/word_array_byte_safety.json
       Constructed literal arrays paired with actual RuboCop 1.89.0 diagnostic
       API bytes, failed JSON CLI records and correction/runtime evidence.

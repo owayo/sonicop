@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::{CorrectionRejection, Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 
@@ -34,7 +34,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if items.is_empty() || !items.iter().all(|item| is_symbol(context, *item)) {
             continue;
         }
-        let Some(values) = values(context, &items) else {
+        let Some((values, loses_bytes)) = values(context, &items) else {
             continue;
         };
         let sources: Vec<&str> = items
@@ -49,24 +49,30 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let replacement = percent_replacement(context, &array, 'i', &values);
-        offenses.push(
-            context
-                .offense(PERCENT_MSG, node.byte_range())
-                .corrected_by(Edit {
-                    start: node.start_byte(),
-                    end: node.end_byte(),
-                    replacement,
-                    safe: true,
-                }),
-        );
+        let offense = context
+            .offense(PERCENT_MSG, node.byte_range())
+            .corrected_by(Edit {
+                start: node.start_byte(),
+                end: node.end_byte(),
+                replacement,
+                safe: true,
+            });
+        offenses.push(if loses_bytes {
+            offense.reject_corrections(CorrectionRejection::SymbolArrayInvalidBytes)
+        } else {
+            offense
+        });
     }
 
     for node in context.nodes_of("symbol_array") {
         let items = elements(context, node);
-        let values: Vec<String> = percent_values(context, node, &items)
-            .into_iter()
-            .map(|decoded| decoded.value)
-            .collect();
+        let decoded = percent_values(context, node, &items);
+        // 本家は不正なSymbol名の生成で失敗する。lossy値から別名を発明して書かない。
+        let loses_bytes = items
+            .iter()
+            .zip(&decoded)
+            .any(|(item, value)| !item.interpolated && !value.valid);
+        let values: Vec<String> = decoded.into_iter().map(|decoded| decoded.value).collect();
         let text = context.source.text();
         let sources: Vec<&str> = items.iter().map(|item| &text[item.range.clone()]).collect();
         let interpolations: Vec<bool> = items.iter().map(|item| item.interpolated).collect();
@@ -80,7 +86,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .map(|(item, value)| symbol_source(&text[item.range.clone()], item, value))
             .collect();
         let bracketed = bracketed_replacement(context, node, &items, &written);
-        offenses.push(percent_array_offense(context, node, ARRAY_MSG, bracketed));
+        let offense = percent_array_offense(context, node, ARRAY_MSG, bracketed);
+        offenses.push(if loses_bytes {
+            offense.reject_corrections(CorrectionRejection::SymbolArrayInvalidBytes)
+        } else {
+            offense
+        });
     }
 }
 
@@ -98,11 +109,19 @@ fn interpolated(node: Node<'_>) -> bool {
         .any(|child| child.kind_str() == "interpolation")
 }
 
-fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Option<Vec<String>> {
-    items
+fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Option<(Vec<String>, bool)> {
+    // 復号は一度だけ行い、percent形式へ書き出す側にもvalidの情報を渡す。
+    let mut loses_bytes = false;
+    let values = items
         .iter()
-        .map(|item| node_value(context, *item).map(|decoded| decoded.value))
-        .collect()
+        .map(|item| {
+            node_value(context, *item).map(|decoded| {
+                loses_bytes |= !decoded.valid;
+                decoded.value
+            })
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some((values, loses_bytes))
 }
 
 /// `complex_content?`: a name the percent form cannot spell, because it holds a blank or a bracket
