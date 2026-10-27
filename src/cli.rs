@@ -28,6 +28,9 @@ use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 #[path = "cache_string_printable_table.rs"]
 mod cache_string_printable_table;
 
+#[cfg(any(windows, test))]
+mod windows_argv;
+
 #[derive(Debug, Parser)]
 #[command(name = "sonicop")]
 #[command(about = "A fast, native RuboCop-compatible Ruby linter and formatter")]
@@ -594,6 +597,9 @@ fn cache_message_options(arguments: &[String]) -> String {
 
 fn composed_arguments() -> Result<Vec<String>> {
     // String の CLI へ渡せない名前は拒否する。置換文字へ変えると別ファイルを指してしまう。
+    #[cfg(windows)]
+    let mut command_line = windows_argv::arguments()?.into_iter();
+    #[cfg(not(windows))]
     let mut command_line = std::env::args_os();
     let mut arguments = vec![
         command_line

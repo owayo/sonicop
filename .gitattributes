@@ -185,3 +185,12 @@ tests/fixtures/formatter_colors.json text eol=lf
 tests/fixtures/formatter_colors.json.PROVENANCE text eol=lf
 tests/fixtures/formatter_color_boundaries.json text eol=lf
 tests/fixtures/formatter_color_boundaries.json.PROVENANCE text eol=lf
+
+# Windows argv の本家記録を LF で保存する。
+src/cli/windows_argv.rs text eol=lf
+licenses/RUBY_WIN32_ARTISTIC.txt text eol=lf
+scripts/record_windows_argv.py text eol=lf
+scripts/conformance/test_windows_argv.py text eol=lf
+tests/fixtures/windows_argv.json text eol=lf
+tests/fixtures/windows_argv.json.PROVENANCE text eol=lf
+tests/windows_argv.rs text eol=lf

@@ -1,0 +1,2886 @@
+{
+  "ruby_version": "4.0.7",
+  "ruby_revision": "229531a6cfbf07e3caef30dbac24a2a3f3fed482",
+  "environment": {
+    "RUBYOPT": null,
+    "RUBYLIB": null,
+    "RUBOCOP_OPTS": null,
+    "RUBOCOP_TARGET_RUBY_VERSION": null
+  },
+  "cases": [
+    {
+      "name": "legacy/--only/lf/known",
+      "tail": "--only \n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf/unknown",
+      "tail": "--only \n Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf/option",
+      "tail": "--only \n --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf/other-selector",
+      "tail": "--only \n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf/end",
+      "tail": "--only \n",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/crlf/known",
+      "tail": "--only \r\n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/crlf/unknown",
+      "tail": "--only \r\n Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/crlf/option",
+      "tail": "--only \r\n --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/crlf/other-selector",
+      "tail": "--only \r\n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/crlf/end",
+      "tail": "--only \r\n",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/space/known",
+      "tail": "--only \" \" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        " ",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/space/unknown",
+      "tail": "--only \" \" Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        " ",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/space/option",
+      "tail": "--only \" \" --format json case.rb",
+      "words": [
+        "--only",
+        " ",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/space/other-selector",
+      "tail": "--only \" \" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        " ",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/space/end",
+      "tail": "--only \" \"",
+      "words": [
+        "--only",
+        " "
+      ]
+    },
+    {
+      "name": "legacy/--only/tab/known",
+      "tail": "--only \"\t\" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "\t",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/tab/unknown",
+      "tail": "--only \"\t\" Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "\t",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/tab/option",
+      "tail": "--only \"\t\" --format json case.rb",
+      "words": [
+        "--only",
+        "\t",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/tab/other-selector",
+      "tail": "--only \"\t\" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "\t",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/tab/end",
+      "tail": "--only \"\t\"",
+      "words": [
+        "--only",
+        "\t"
+      ]
+    },
+    {
+      "name": "legacy/--only/vt/known",
+      "tail": "--only \u000b Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/vt/unknown",
+      "tail": "--only \u000b Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/vt/option",
+      "tail": "--only \u000b --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/vt/other-selector",
+      "tail": "--only \u000b --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/vt/end",
+      "tail": "--only \u000b",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/ff/known",
+      "tail": "--only \f Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/ff/unknown",
+      "tail": "--only \f Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/ff/option",
+      "tail": "--only \f --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/ff/other-selector",
+      "tail": "--only \f --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/ff/end",
+      "tail": "--only \f",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/cr/known",
+      "tail": "--only \r Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/cr/unknown",
+      "tail": "--only \r Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/cr/option",
+      "tail": "--only \r --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/cr/other-selector",
+      "tail": "--only \r --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/cr/end",
+      "tail": "--only \r",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_twice/known",
+      "tail": "--only \n\n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_twice/unknown",
+      "tail": "--only \n\n Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_twice/option",
+      "tail": "--only \n\n --format json case.rb",
+      "words": [
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_twice/other-selector",
+      "tail": "--only \n\n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_twice/end",
+      "tail": "--only \n\n",
+      "words": [
+        "--only"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_space/known",
+      "tail": "--only \"\n \" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "\n ",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_space/unknown",
+      "tail": "--only \"\n \" Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "\n ",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_space/option",
+      "tail": "--only \"\n \" --format json case.rb",
+      "words": [
+        "--only",
+        "\n ",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_space/other-selector",
+      "tail": "--only \"\n \" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "\n ",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/lf_space/end",
+      "tail": "--only \"\n \"",
+      "words": [
+        "--only",
+        "\n "
+      ]
+    },
+    {
+      "name": "legacy/--only/empty/known",
+      "tail": "--only \"\" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/empty/unknown",
+      "tail": "--only \"\" Unknown/Cop --format json case.rb",
+      "words": [
+        "--only",
+        "",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/empty/option",
+      "tail": "--only \"\" --format json case.rb",
+      "words": [
+        "--only",
+        "",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/empty/other-selector",
+      "tail": "--only \"\" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--only",
+        "",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--only/empty/end",
+      "tail": "--only \"\"",
+      "words": [
+        "--only",
+        ""
+      ]
+    },
+    {
+      "name": "legacy/--except/lf/known",
+      "tail": "--except \n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf/unknown",
+      "tail": "--except \n Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf/option",
+      "tail": "--except \n --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf/other-selector",
+      "tail": "--except \n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf/end",
+      "tail": "--except \n",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/crlf/known",
+      "tail": "--except \r\n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/crlf/unknown",
+      "tail": "--except \r\n Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/crlf/option",
+      "tail": "--except \r\n --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/crlf/other-selector",
+      "tail": "--except \r\n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/crlf/end",
+      "tail": "--except \r\n",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/space/known",
+      "tail": "--except \" \" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        " ",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/space/unknown",
+      "tail": "--except \" \" Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        " ",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/space/option",
+      "tail": "--except \" \" --format json case.rb",
+      "words": [
+        "--except",
+        " ",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/space/other-selector",
+      "tail": "--except \" \" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        " ",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/space/end",
+      "tail": "--except \" \"",
+      "words": [
+        "--except",
+        " "
+      ]
+    },
+    {
+      "name": "legacy/--except/tab/known",
+      "tail": "--except \"\t\" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "\t",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/tab/unknown",
+      "tail": "--except \"\t\" Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "\t",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/tab/option",
+      "tail": "--except \"\t\" --format json case.rb",
+      "words": [
+        "--except",
+        "\t",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/tab/other-selector",
+      "tail": "--except \"\t\" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "\t",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/tab/end",
+      "tail": "--except \"\t\"",
+      "words": [
+        "--except",
+        "\t"
+      ]
+    },
+    {
+      "name": "legacy/--except/vt/known",
+      "tail": "--except \u000b Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/vt/unknown",
+      "tail": "--except \u000b Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/vt/option",
+      "tail": "--except \u000b --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/vt/other-selector",
+      "tail": "--except \u000b --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/vt/end",
+      "tail": "--except \u000b",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/ff/known",
+      "tail": "--except \f Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/ff/unknown",
+      "tail": "--except \f Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/ff/option",
+      "tail": "--except \f --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/ff/other-selector",
+      "tail": "--except \f --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/ff/end",
+      "tail": "--except \f",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/cr/known",
+      "tail": "--except \r Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/cr/unknown",
+      "tail": "--except \r Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/cr/option",
+      "tail": "--except \r --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/cr/other-selector",
+      "tail": "--except \r --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/cr/end",
+      "tail": "--except \r",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_twice/known",
+      "tail": "--except \n\n Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_twice/unknown",
+      "tail": "--except \n\n Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_twice/option",
+      "tail": "--except \n\n --format json case.rb",
+      "words": [
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_twice/other-selector",
+      "tail": "--except \n\n --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_twice/end",
+      "tail": "--except \n\n",
+      "words": [
+        "--except"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_space/known",
+      "tail": "--except \"\n \" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "\n ",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_space/unknown",
+      "tail": "--except \"\n \" Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "\n ",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_space/option",
+      "tail": "--except \"\n \" --format json case.rb",
+      "words": [
+        "--except",
+        "\n ",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_space/other-selector",
+      "tail": "--except \"\n \" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "\n ",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/lf_space/end",
+      "tail": "--except \"\n \"",
+      "words": [
+        "--except",
+        "\n "
+      ]
+    },
+    {
+      "name": "legacy/--except/empty/known",
+      "tail": "--except \"\" Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/empty/unknown",
+      "tail": "--except \"\" Unknown/Cop --format json case.rb",
+      "words": [
+        "--except",
+        "",
+        "Unknown/Cop",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/empty/option",
+      "tail": "--except \"\" --format json case.rb",
+      "words": [
+        "--except",
+        "",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/empty/other-selector",
+      "tail": "--except \"\" --except Layout/SpaceAroundOperators --format json case.rb",
+      "words": [
+        "--except",
+        "",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "legacy/--except/empty/end",
+      "tail": "--except \"\"",
+      "words": [
+        "--except",
+        ""
+      ]
+    },
+    {
+      "name": "quoted/lf",
+      "tail": "--only \"\n\" Known case.rb",
+      "words": [
+        "--only",
+        "\n",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "quoted/crlf",
+      "tail": "--only \"\r\n\" Known case.rb",
+      "words": [
+        "--only",
+        "\r\n",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "quoted/vt",
+      "tail": "--only \"\u000b\" Known case.rb",
+      "words": [
+        "--only",
+        "\u000b",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "quoted/ff",
+      "tail": "--only \"\f\" Known case.rb",
+      "words": [
+        "--only",
+        "\f",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "quoted/cr",
+      "tail": "--only \"\r\" Known case.rb",
+      "words": [
+        "--only",
+        "\r",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "position/inside_vt",
+      "tail": "--only Known\u000bTail case.rb",
+      "words": [
+        "--only",
+        "Known\u000bTail",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "position/leading_vt",
+      "tail": "--only \u000bKnown case.rb",
+      "words": [
+        "--only",
+        "Known",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "position/inside_crlf",
+      "tail": "--only Known\r\nTail case.rb",
+      "words": [
+        "--only",
+        "Known\r",
+        "Tail",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "position/inside_lf",
+      "tail": "--only Known\nTail case.rb",
+      "words": [
+        "--only",
+        "Known",
+        "Tail",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/lf",
+      "tail": "--config config.yml --cache false --format json --only \n Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/crlf",
+      "tail": "--config config.yml --cache false --format json --only \r\n Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/space",
+      "tail": "--config config.yml --cache false --format json --only \" \" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        " ",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/vt",
+      "tail": "--config config.yml --cache false --format json --only \u000b Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/unknown",
+      "tail": "--config config.yml --cache false --format json --only \n Unknown/Cop case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Unknown/Cop",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/option",
+      "tail": "--config config.yml --cache false --format json --only \n --format json case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/end",
+      "tail": "--config config.yml --cache false --format json --only \n",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only"
+      ]
+    },
+    {
+      "name": "cli/--only/quoted",
+      "tail": "--config config.yml --cache false --format json --only \"\n\" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "\n",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--only/lf-space",
+      "tail": "--config config.yml --cache false --format json --only \"\n \" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "\n ",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/lf",
+      "tail": "--config config.yml --cache false --format json --except \n Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/crlf",
+      "tail": "--config config.yml --cache false --format json --except \r\n Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/space",
+      "tail": "--config config.yml --cache false --format json --except \" \" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        " ",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/vt",
+      "tail": "--config config.yml --cache false --format json --except \u000b Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/unknown",
+      "tail": "--config config.yml --cache false --format json --except \n Unknown/Cop case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "Unknown/Cop",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/option",
+      "tail": "--config config.yml --cache false --format json --except \n --format json case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "--format",
+        "json",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/end",
+      "tail": "--config config.yml --cache false --format json --except \n",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except"
+      ]
+    },
+    {
+      "name": "cli/--except/quoted",
+      "tail": "--config config.yml --cache false --format json --except \"\n\" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "\n",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "cli/--except/lf-space",
+      "tail": "--config config.yml --cache false --format json --except \"\n \" Layout/SpaceAroundOperators case.rb",
+      "words": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "\n ",
+        "Layout/SpaceAroundOperators",
+        "case.rb"
+      ]
+    },
+    {
+      "name": "extended/lf/''/only",
+      "tail": "--only \n Tail",
+      "words": [
+        "--only",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/''/leading",
+      "tail": "--only \nKnown Tail",
+      "words": [
+        "--only",
+        "Known",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/''/inside",
+      "tail": "--only left\nright Tail",
+      "words": [
+        "--only",
+        "left",
+        "right",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/\"'\"/only",
+      "tail": "--only '\n' Tail",
+      "words": [
+        "--only",
+        "\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/\"'\"/leading",
+      "tail": "--only '\nKnown' Tail",
+      "words": [
+        "--only",
+        "\nKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/\"'\"/inside",
+      "tail": "--only 'left\nright' Tail",
+      "words": [
+        "--only",
+        "left\nright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/'\"'/only",
+      "tail": "--only \"\n\" Tail",
+      "words": [
+        "--only",
+        "\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/'\"'/leading",
+      "tail": "--only \"\nKnown\" Tail",
+      "words": [
+        "--only",
+        "\nKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/'\"'/inside",
+      "tail": "--only \"left\nright\" Tail",
+      "words": [
+        "--only",
+        "left\nright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-0",
+      "tail": "--only \"prefix\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-1",
+      "tail": "--only \"prefix\\\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\n Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-2",
+      "tail": "--only \"prefix\\\\\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-3",
+      "tail": "--only \"prefix\\\\\\\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\n Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-4",
+      "tail": "--only \"prefix\\\\\\\\\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/slashes-5",
+      "tail": "--only \"prefix\\\\\\\\\\\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\\\n Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/double",
+      "tail": "--only \"a\"\"b\nc\" Tail",
+      "words": [
+        "--only",
+        "a\"b",
+        "c Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/single",
+      "tail": "--only 'a\"b\nc' Tail",
+      "words": [
+        "--only",
+        "a\"b\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/mixed",
+      "tail": "--only \"a'b\nc\" Tail",
+      "words": [
+        "--only",
+        "a'b\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/path",
+      "tail": "--only \"C:\\space dir\\\nfile.rb\" Tail",
+      "words": [
+        "--only",
+        "C:\\space dir\\\nfile.rb",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/emoji",
+      "tail": "--only \"日本語💎é\n終\" Tail",
+      "words": [
+        "--only",
+        "日本語💎é\n終",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/lf/escaped",
+      "tail": "--only \"a\\\"b\nc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/''/only",
+      "tail": "--only \r\n Tail",
+      "words": [
+        "--only",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/''/leading",
+      "tail": "--only \r\nKnown Tail",
+      "words": [
+        "--only",
+        "Known",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/''/inside",
+      "tail": "--only left\r\nright Tail",
+      "words": [
+        "--only",
+        "left\r",
+        "right",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/\"'\"/only",
+      "tail": "--only '\r\n' Tail",
+      "words": [
+        "--only",
+        "\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/\"'\"/leading",
+      "tail": "--only '\r\nKnown' Tail",
+      "words": [
+        "--only",
+        "\r\nKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/\"'\"/inside",
+      "tail": "--only 'left\r\nright' Tail",
+      "words": [
+        "--only",
+        "left\r\nright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/'\"'/only",
+      "tail": "--only \"\r\n\" Tail",
+      "words": [
+        "--only",
+        "\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/'\"'/leading",
+      "tail": "--only \"\r\nKnown\" Tail",
+      "words": [
+        "--only",
+        "\r\nKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/'\"'/inside",
+      "tail": "--only \"left\r\nright\" Tail",
+      "words": [
+        "--only",
+        "left\r\nright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-0",
+      "tail": "--only \"prefix\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-1",
+      "tail": "--only \"prefix\\\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-2",
+      "tail": "--only \"prefix\\\\\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-3",
+      "tail": "--only \"prefix\\\\\\\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-4",
+      "tail": "--only \"prefix\\\\\\\\\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/slashes-5",
+      "tail": "--only \"prefix\\\\\\\\\\\r\n\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\\\r\n",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/double",
+      "tail": "--only \"a\"\"b\r\nc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\r",
+        "c Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/single",
+      "tail": "--only 'a\"b\r\nc' Tail",
+      "words": [
+        "--only",
+        "a\"b\r\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/mixed",
+      "tail": "--only \"a'b\r\nc\" Tail",
+      "words": [
+        "--only",
+        "a'b\r\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/path",
+      "tail": "--only \"C:\\space dir\\\r\nfile.rb\" Tail",
+      "words": [
+        "--only",
+        "C:\\space dir\\\r\nfile.rb",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/emoji",
+      "tail": "--only \"日本語💎é\r\n終\" Tail",
+      "words": [
+        "--only",
+        "日本語💎é\r\n終",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/crlf/escaped",
+      "tail": "--only \"a\\\"b\r\nc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\r\nc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/''/only",
+      "tail": "--only \u000b Tail",
+      "words": [
+        "--only",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/''/leading",
+      "tail": "--only \u000bKnown Tail",
+      "words": [
+        "--only",
+        "Known",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/''/inside",
+      "tail": "--only left\u000bright Tail",
+      "words": [
+        "--only",
+        "left\u000bright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/\"'\"/only",
+      "tail": "--only '\u000b' Tail",
+      "words": [
+        "--only",
+        "\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/\"'\"/leading",
+      "tail": "--only '\u000bKnown' Tail",
+      "words": [
+        "--only",
+        "\u000bKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/\"'\"/inside",
+      "tail": "--only 'left\u000bright' Tail",
+      "words": [
+        "--only",
+        "left\u000bright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/'\"'/only",
+      "tail": "--only \"\u000b\" Tail",
+      "words": [
+        "--only",
+        "\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/'\"'/leading",
+      "tail": "--only \"\u000bKnown\" Tail",
+      "words": [
+        "--only",
+        "\u000bKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/'\"'/inside",
+      "tail": "--only \"left\u000bright\" Tail",
+      "words": [
+        "--only",
+        "left\u000bright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-0",
+      "tail": "--only \"prefix\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-1",
+      "tail": "--only \"prefix\\\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-2",
+      "tail": "--only \"prefix\\\\\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-3",
+      "tail": "--only \"prefix\\\\\\\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-4",
+      "tail": "--only \"prefix\\\\\\\\\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/slashes-5",
+      "tail": "--only \"prefix\\\\\\\\\\\u000b\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\\\u000b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/double",
+      "tail": "--only \"a\"\"b\u000bc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\u000bc Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/single",
+      "tail": "--only 'a\"b\u000bc' Tail",
+      "words": [
+        "--only",
+        "a\"b\u000bc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/mixed",
+      "tail": "--only \"a'b\u000bc\" Tail",
+      "words": [
+        "--only",
+        "a'b\u000bc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/path",
+      "tail": "--only \"C:\\space dir\\\u000bfile.rb\" Tail",
+      "words": [
+        "--only",
+        "C:\\space dir\\\u000bfile.rb",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/emoji",
+      "tail": "--only \"日本語💎é\u000b終\" Tail",
+      "words": [
+        "--only",
+        "日本語💎é\u000b終",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/vt/escaped",
+      "tail": "--only \"a\\\"b\u000bc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\u000bc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/''/only",
+      "tail": "--only \f Tail",
+      "words": [
+        "--only",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/''/leading",
+      "tail": "--only \fKnown Tail",
+      "words": [
+        "--only",
+        "Known",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/''/inside",
+      "tail": "--only left\fright Tail",
+      "words": [
+        "--only",
+        "left\fright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/\"'\"/only",
+      "tail": "--only '\f' Tail",
+      "words": [
+        "--only",
+        "\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/\"'\"/leading",
+      "tail": "--only '\fKnown' Tail",
+      "words": [
+        "--only",
+        "\fKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/\"'\"/inside",
+      "tail": "--only 'left\fright' Tail",
+      "words": [
+        "--only",
+        "left\fright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/'\"'/only",
+      "tail": "--only \"\f\" Tail",
+      "words": [
+        "--only",
+        "\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/'\"'/leading",
+      "tail": "--only \"\fKnown\" Tail",
+      "words": [
+        "--only",
+        "\fKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/'\"'/inside",
+      "tail": "--only \"left\fright\" Tail",
+      "words": [
+        "--only",
+        "left\fright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-0",
+      "tail": "--only \"prefix\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-1",
+      "tail": "--only \"prefix\\\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-2",
+      "tail": "--only \"prefix\\\\\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-3",
+      "tail": "--only \"prefix\\\\\\\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-4",
+      "tail": "--only \"prefix\\\\\\\\\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/slashes-5",
+      "tail": "--only \"prefix\\\\\\\\\\\f\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\\\f",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/double",
+      "tail": "--only \"a\"\"b\fc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\fc Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/single",
+      "tail": "--only 'a\"b\fc' Tail",
+      "words": [
+        "--only",
+        "a\"b\fc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/mixed",
+      "tail": "--only \"a'b\fc\" Tail",
+      "words": [
+        "--only",
+        "a'b\fc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/path",
+      "tail": "--only \"C:\\space dir\\\ffile.rb\" Tail",
+      "words": [
+        "--only",
+        "C:\\space dir\\\ffile.rb",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/emoji",
+      "tail": "--only \"日本語💎é\f終\" Tail",
+      "words": [
+        "--only",
+        "日本語💎é\f終",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/ff/escaped",
+      "tail": "--only \"a\\\"b\fc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\fc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/''/only",
+      "tail": "--only \r Tail",
+      "words": [
+        "--only",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/''/leading",
+      "tail": "--only \rKnown Tail",
+      "words": [
+        "--only",
+        "Known",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/''/inside",
+      "tail": "--only left\rright Tail",
+      "words": [
+        "--only",
+        "left\rright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/\"'\"/only",
+      "tail": "--only '\r' Tail",
+      "words": [
+        "--only",
+        "\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/\"'\"/leading",
+      "tail": "--only '\rKnown' Tail",
+      "words": [
+        "--only",
+        "\rKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/\"'\"/inside",
+      "tail": "--only 'left\rright' Tail",
+      "words": [
+        "--only",
+        "left\rright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/'\"'/only",
+      "tail": "--only \"\r\" Tail",
+      "words": [
+        "--only",
+        "\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/'\"'/leading",
+      "tail": "--only \"\rKnown\" Tail",
+      "words": [
+        "--only",
+        "\rKnown",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/'\"'/inside",
+      "tail": "--only \"left\rright\" Tail",
+      "words": [
+        "--only",
+        "left\rright",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-0",
+      "tail": "--only \"prefix\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-1",
+      "tail": "--only \"prefix\\\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-2",
+      "tail": "--only \"prefix\\\\\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-3",
+      "tail": "--only \"prefix\\\\\\\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-4",
+      "tail": "--only \"prefix\\\\\\\\\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/slashes-5",
+      "tail": "--only \"prefix\\\\\\\\\\\r\" Tail",
+      "words": [
+        "--only",
+        "prefix\\\\\\\\\\\r",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/double",
+      "tail": "--only \"a\"\"b\rc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\rc Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/single",
+      "tail": "--only 'a\"b\rc' Tail",
+      "words": [
+        "--only",
+        "a\"b\rc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/mixed",
+      "tail": "--only \"a'b\rc\" Tail",
+      "words": [
+        "--only",
+        "a'b\rc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/path",
+      "tail": "--only \"C:\\space dir\\\rfile.rb\" Tail",
+      "words": [
+        "--only",
+        "C:\\space dir\\\rfile.rb",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/emoji",
+      "tail": "--only \"日本語💎é\r終\" Tail",
+      "words": [
+        "--only",
+        "日本語💎é\r終",
+        "Tail"
+      ]
+    },
+    {
+      "name": "extended/cr/escaped",
+      "tail": "--only \"a\\\"b\rc\" Tail",
+      "words": [
+        "--only",
+        "a\"b\rc",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/empty",
+      "tail": "--only \"\" Tail",
+      "words": [
+        "--only",
+        "",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/space",
+      "tail": "--only \" \" Tail",
+      "words": [
+        "--only",
+        " ",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/tab",
+      "tail": "--only \"\t\" Tail",
+      "words": [
+        "--only",
+        "\t",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/nbsp",
+      "tail": "--only a b Tail",
+      "words": [
+        "--only",
+        "a b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/line-separator",
+      "tail": "--only a b Tail",
+      "words": [
+        "--only",
+        "a b",
+        "Tail"
+      ]
+    },
+    {
+      "name": "ordinary/trailing-backslash",
+      "tail": "--only \"C:\\work dir\\\\\" Tail",
+      "words": [
+        "--only",
+        "C:\\work dir\\",
+        "Tail"
+      ]
+    }
+  ],
+  "cli": [
+    {
+      "name": "--only/lf",
+      "tail": "--config config.yml --cache false --format json --only \n Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--only/crlf",
+      "tail": "--config config.yml --cache false --format json --only \r\n Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--only/vt",
+      "tail": "--config config.yml --cache false --format json --only \u000b Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--only/ordinary",
+      "tail": "--config config.yml --cache false --format json --only  Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--only/stdin-lf",
+      "tail": "--config config.yml --cache false --format json --only \n Layout/SpaceAroundOperators --stdin input.rb",
+      "stdin": true,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--except/lf",
+      "tail": "--config config.yml --cache false --format json --except \n Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "warning",
+              "message": "Useless assignment to variable - `x`.",
+              "cop_name": "Lint/UselessAssignment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "convention",
+              "message": "Missing frozen string literal comment.",
+              "cop_name": "Style/FrozenStringLiteralComment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 2,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a225573656c6573732061737369676e6d656e7420746f207661726961626c65202d206078602e222c22636f705f6e616d65223a224c696e742f5573656c65737341737369676e6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e222c22636f705f6e616d65223a225374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--except/crlf",
+      "tail": "--config config.yml --cache false --format json --except \r\n Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "warning",
+              "message": "Useless assignment to variable - `x`.",
+              "cop_name": "Lint/UselessAssignment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "convention",
+              "message": "Missing frozen string literal comment.",
+              "cop_name": "Style/FrozenStringLiteralComment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 2,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a225573656c6573732061737369676e6d656e7420746f207661726961626c65202d206078602e222c22636f705f6e616d65223a224c696e742f5573656c65737341737369676e6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e222c22636f705f6e616d65223a225374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--except/vt",
+      "tail": "--config config.yml --cache false --format json --except \u000b Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "warning",
+              "message": "Useless assignment to variable - `x`.",
+              "cop_name": "Lint/UselessAssignment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "convention",
+              "message": "Missing frozen string literal comment.",
+              "cop_name": "Style/FrozenStringLiteralComment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 2,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a225573656c6573732061737369676e6d656e7420746f207661726961626c65202d206078602e222c22636f705f6e616d65223a224c696e742f5573656c65737341737369676e6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e222c22636f705f6e616d65223a225374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--except/ordinary",
+      "tail": "--config config.yml --cache false --format json --except  Layout/SpaceAroundOperators input.rb",
+      "stdin": false,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "warning",
+              "message": "Useless assignment to variable - `x`.",
+              "cop_name": "Lint/UselessAssignment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "convention",
+              "message": "Missing frozen string literal comment.",
+              "cop_name": "Style/FrozenStringLiteralComment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 2,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a225573656c6573732061737369676e6d656e7420746f207661726961626c65202d206078602e222c22636f705f6e616d65223a224c696e742f5573656c65737341737369676e6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e222c22636f705f6e616d65223a225374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    },
+    {
+      "name": "--except/stdin-lf",
+      "tail": "--config config.yml --cache false --format json --except \n Layout/SpaceAroundOperators --stdin input.rb",
+      "stdin": true,
+      "source_hex": "783d310d0a",
+      "config": "AllCops:\n  NewCops: disable\n  UseProjectIndex: false\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n",
+      "exit": 1,
+      "files": [
+        {
+          "path": "input.rb",
+          "offenses": [
+            {
+              "severity": "warning",
+              "message": "Useless assignment to variable - `x`.",
+              "cop_name": "Lint/UselessAssignment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            },
+            {
+              "severity": "convention",
+              "message": "Missing frozen string literal comment.",
+              "cop_name": "Style/FrozenStringLiteralComment",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 1,
+                "last_line": 1,
+                "last_column": 1,
+                "length": 1,
+                "line": 1,
+                "column": 1
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 2,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      },
+      "raw_stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a225573656c6573732061737369676e6d656e7420746f207661726961626c65202d206078602e222c22636f705f6e616d65223a224c696e742f5573656c65737341737369676e6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224d697373696e672066726f7a656e20737472696e67206c69746572616c20636f6d6d656e742e222c22636f705f6e616d65223a225374796c652f46726f7a656e537472696e674c69746572616c436f6d6d656e74222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a312c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "raw_stderr_hex": ""
+    }
+  ]
+}

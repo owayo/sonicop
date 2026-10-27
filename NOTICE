@@ -244,6 +244,28 @@ Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
       out rather than reasoned about. Only permissively licensed corpora are
       used, and dropping mastodon cost 218 of 10,966 patterns.
 
+Ruby Windows argv tokenizer -- Artistic-1.0-Perl
+  Copyright (c) 1993 Intergraph Corporation
+
+  src/cli/windows_argv.rs
+      Ruby 4.0.7 の win32/win32.c、revision
+      229531a6cfbf07e3caef30dbac24a2a3f3fed482 の argv 字句処理を Rust へ移植した。
+      2026-10-25 の変更: UTF-16 を保持し、LF/CR/VT/FF を含む OS commandline だけを
+      対象とする。glob 展開を除外し、不正 UTF-16 を拒否する。非Windowsと file/env
+      引数の取り込みは従来どおり。この限定部分は上の Ruby BSDL 選択へ含めない。
+      Ruby の LEGAL が win32/win32.c に認める Artistic License を選択して配布する。
+      全文: licenses/RUBY_WIN32_ARTISTIC.txt
+
+      原本:
+      https://github.com/ruby/ruby/blob/229531a6cfbf07e3caef30dbac24a2a3f3fed482/win32/win32.c
+      標準版 Ruby 4.0.7 のソース:
+      https://github.com/ruby/ruby/archive/229531a6cfbf07e3caef30dbac24a2a3f3fed482.tar.gz
+      標準版の取得案内: https://www.ruby-lang.org/en/downloads/
+      公開する修正版ソース: https://github.com/owayo/sonicop
+      ソース gem もこの Rust ファイルを含む。非標準の実行ファイル名 sonicop は
+      Ruby 標準実行ファイルを置換しない。NOTICE とライセンス全文は source/platform
+      の両 gem に同梱する。
+
 tree-sitter-ruby -- https://github.com/owayo/tree-sitter-ruby -- MIT
   Copyright (c) 2016 Rob Rix and contributors
 
