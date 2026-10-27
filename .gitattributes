@@ -131,3 +131,10 @@ scripts/conformance/record_repeated_selectors.py text eol=lf
 tests/repeated_selectors.rs text eol=lf
 tests/fixtures/repeated_selectors.json text eol=lf
 tests/fixtures/repeated_selectors.json.PROVENANCE text eol=lf
+
+# formatter のイベント順と物理 File 境界の参照記録を LF で保存する。
+src/formatter/lifecycle.rs text eol=lf
+src/formatter/output.rs text eol=lf
+tests/formatter_lifecycle.rs text eol=lf
+tests/fixtures/formatter_lifecycle.json text eol=lf
+tests/fixtures/formatter_lifecycle.json.PROVENANCE text eol=lf

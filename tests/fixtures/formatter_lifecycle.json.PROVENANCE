@@ -1,0 +1,23 @@
+RuboCop 1.89.0 / Ruby 4.0.7 / Parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Windows x64 UCRT
+
+Raw subprocess pipes and physical report files were recorded from the pinned real Ruby CLI. Inputs are a.rb containing x=1 LF (one or 1000 lines) and clean b.rb containing y = 2 LF. All runs use --cache false --only Layout/SpaceAroundOperators --no-color and the exact formats/flags stored per case. The source SHA and byte length distinguish the long controls. Every run exited 1, stderr was empty and source bytes remained unchanged. Same-output files are opened separately by FormatterSet; no whole-render overwrite was substituted for the actual file.
+
+Only non-overlapping stream/file outputs may project Windows CRLF to LF on Unix. Overlapping same-file cases are explicitly Windows observations. No Sonicop output supplied these expectations.
+
+The buffer_cases add 21 actual File controls: ASCII small/1000-offense (3), leading Unicode at logical 8191/8192/8193 with forced ANSI or no-color in both formatter orders plus independent out controls (14), and a UTF-8 character or ANSI escape starting at logical 8191 in both orders (4). The raw IO object itself kept its class and methods; only write(*objects) was wrapped to record arguments before calling super unchanged. Each instrumented physical file exactly matched an unmodified Ruby CLI run. The arrays preserve every actual write argument and final file bytes; no expected buffer model supplied these bytes.
+
+The timer_cases preserve five actual multi-formatter stdout/stderr/File and corrected-stdin --display-time observations. Duration values are observations, not deterministic expectations; the timer occurs exactly once on stdout after the final raw stdin echo. The failure_cases preserve real File-open failures, including an already-created directory and read-only Windows output, an independently opened earlier File truncated before a later failure, missing-parent creation, and timer-on-error controls. Only the reference first error line is published because the rest is an implementation backtrace with local gem paths. Tests compare error status/routing/output-file bytes, not tool-specific backtrace wording.
+
+Three additional actual callback controls cover progress+simple with --fail-fast (two targets, one inspected file) and both one-file Fuubar/simple orders. The completed one-file bar avoids treating a time-throttled intermediate refresh as a deterministic byte expectation.
+
+An actual --debug --out report.txt control confirms the ensure timer on stdout without --display-time. Debug scanning/config-log content and its channel remain separately tracked by #122; only the final timer line and physical report bytes are published here to avoid local gem/config paths.
+
+Eight independently recorded debug boundaries distinguish Options.parse failures (missing --only, --except Lint/Syntax, invalid --fail-level: no timer) from version and later config/Unknown-Cop failures (timer). Version combined with an invalid --fail-level or mandatory --except also fails before timer activation. Public data retain exact safe arguments, statuses, and the observed timer line; configuration/scanning metadata are not assigned new deterministic expectations here.
+
+The missing_config timer-scope control was separately re-recorded with only one --config occurrence. The independent initial capture passed --config twice, which exercises an existing option-parser difference before the intended late-config phase. Five original scope records remain unchanged; the one-occurrence replacement was actually executed under the same pinned Ruby/RuboCop versions. Repeated-option parsing is not changed by this formatter lifecycle patch.
+
+The progress/simple fail-fast control was re-recorded with explicit file mtimes a.rb=1700000020 and b.rb=1700000000 Unix seconds. This isolates callback target/inspected counts while the existing native mtime-priority behavior is tracked by #120. The source hashes and original unpinned capture are retained in author evidence; no product inspection-order change is made by this patch.
+
+Three additional real CLI constructor controls preserve open-before-class-resolution order: unknown first, JSON then unknown, and timed unknown then known. Reference exit, safe first error line, timer presence and every output file byte are recorded; native enum rejection and Ruby class-loader error wording remain an existing difference. No local backtrace paths are published. All three leave the Ruby input unchanged.
+
+Raw fixture SHA256: f538af97ffb0f04c3f52865f456ab7ca16f9a182330134b34ac65d74de3d8992

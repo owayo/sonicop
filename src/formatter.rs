@@ -10,6 +10,12 @@ use crate::diagnostic::{FileReport, Location, Offense, Severity};
 use crate::display_width::display_width;
 use crate::{RUBOCOP_COMPAT_FULL_VERSION, VERSION};
 
+mod lifecycle;
+mod output;
+
+pub(crate) use lifecycle::Lifecycle;
+pub(crate) use output::{Output, OutputSet};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Format {
     Progress,
@@ -82,189 +88,15 @@ pub fn render(
     reports: &[FileReport],
     options: &FormatOptions<'_>,
 ) -> Result<String> {
-    match format {
-        Format::Json => render_json(reports, options),
-        Format::Emacs => Ok(render_emacs(reports, options)),
-        Format::Github => Ok(render_github(reports, options)),
-        Format::Junit => Ok(render_junit(reports, options)),
-        Format::Html => Ok(render_html(reports, options)),
-        Format::Markdown => Ok(render_markdown(reports, options)),
-        Format::Tap => Ok(render_tap(reports, options)),
-        Format::Files => Ok(render_files(reports, options.cwd)),
-        Format::Offenses => Ok(render_offense_counts(reports, options)),
-        Format::Worst => Ok(render_worst(reports, options.cwd)),
-        Format::Autogenconf => Ok(render_autogenconf(reports, options)),
-        Format::Simple => Ok(render_simple(reports, options, false)),
-        Format::Quiet => Ok(render_simple(reports, options, true)),
-        Format::Clang => Ok(render_clang(reports, options, false)),
-        Format::Fuubar => render_fuubar(reports, options),
-        Format::Progress | Format::Pacman => Ok(render_clang(reports, options, true)),
-    }
-}
-
-/// `quiet` is RuboCop's `SimpleTextFormatter` with the summary skipped when nothing was found,
-/// which for a clean run leaves no output at all.
-fn render_simple(
-    reports: &[FileReport],
-    options: &FormatOptions<'_>,
-    silent_when_clean: bool,
-) -> String {
     let mut output = String::new();
-    if silent_when_clean && offense_count(reports) == 0 {
-        return output;
+    let mut lifecycle = Lifecycle::new(format, reports, options);
+    lifecycle.started(&mut output)?;
+    for index in 0..reports.len() {
+        lifecycle.file_started(index, &mut output)?;
+        lifecycle.file_finished(index, &mut output)?;
     }
-    for report in reports {
-        if report.offenses.is_empty() {
-            continue;
-        }
-        let path = smart_path(&report.path, options.cwd);
-        output.push_str(&paint(&format!("== {path} ==\n"), "33", options.color));
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            let message = annotate_message(&display_message(offense, options));
-            let line = format!(
-                "{}:{:>3}:{:>3}: {message}\n",
-                offense.severity.code(),
-                location.line,
-                location.column
-            );
-            output.push_str(&paint(
-                &line,
-                severity_color(offense.severity),
-                options.color,
-            ));
-        }
-    }
-    output.push('\n');
-    output.push_str(&summary(reports, options));
-    output
-}
-
-fn render_clang(reports: &[FileReport], options: &FormatOptions<'_>, progress: bool) -> String {
-    let mut output = String::new();
-    if progress {
-        output.push_str(&format!("Inspecting {}\n", plural(reports.len(), "file")));
-        for report in reports {
-            let severity = report.offenses.iter().map(|offense| offense.severity).max();
-            output.push(severity.map_or('.', Severity::code));
-        }
-        // `ProgressFormatter#finished` closes the line of marks, and only a run that found
-        // something opens the offence listing after it -- a clean run goes straight to the summary,
-        // whose own leading blank line is the one below.
-        output.push('\n');
-        if reports.iter().any(|report| !report.offenses.is_empty()) {
-            output.push_str("\nOffenses:\n\n");
-        }
-    }
-    for report in reports {
-        let path = smart_path(&report.path, options.cwd);
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            let message = annotate_message(&display_message(offense, options));
-            output.push_str(&format!(
-                "{path}:{}:{}: {}: {message}\n",
-                location.line,
-                location.column,
-                offense.severity.code()
-            ));
-            if let Some((quoted, carets)) = source_excerpt(offense, report) {
-                output.push_str(&quoted);
-                output.push('\n');
-                output.push_str(&carets);
-                output.push('\n');
-            }
-        }
-    }
-    output.push('\n');
-    output.push_str(&summary(reports, options));
-    output
-}
-
-/// FuubarStyleFormatter は NonTty でも progress と異なり、違反を各 file_finished で出す。
-/// 中間 bar の 10ms 間引きは本家の実処理時間に依存するため、完了した bar と診断順を分けて検証する。
-fn render_fuubar(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<String> {
-    let width = fuubar_bar_width();
-    let mut bar = String::new();
-    bar.try_reserve_exact(width.saturating_add(12))?;
-    bar.push_str("Progress: |");
-    bar.extend(std::iter::repeat_n('=', width));
-    bar.push('|');
-
-    let mut output = String::new();
-    let mut last_length = 0;
-    let mut severest = None;
-    // NonTty#refresh の最初の length_changed? は clear を呼び、先頭にも改行を出す。
-    if options.color {
-        output.push_str("\x1b[32m");
-    }
-    output.push('\n');
-    fuubar_increment(
-        &mut output,
-        &bar,
-        &mut last_length,
-        0,
-        options.target_file_count,
-    );
-    if options.color {
-        output.push_str("\x1b[0m");
-    }
-    for (index, report) in reports.iter().enumerate() {
-        if let Some(severity) = report
-            .offenses
-            .iter()
-            .filter(|offense| !offense.corrected)
-            .map(|offense| offense.severity)
-            .max()
-        {
-            severest = Some(severest.map_or(severity, |previous: Severity| previous.max(severity)));
-        }
-        if !report.offenses.is_empty() {
-            output.push('\n');
-            last_length = 0;
-            fuubar_report_file(&mut output, report, options);
-        }
-        if options.color {
-            output.push_str(&format!(
-                "\x1b[{}m",
-                severest.map_or("32", fuubar_severity_color)
-            ));
-        }
-        fuubar_increment(
-            &mut output,
-            &bar,
-            &mut last_length,
-            index + 1,
-            options.target_file_count,
-        );
-        if options.color {
-            output.push_str("\x1b[0m");
-        }
-    }
-    output.push('\n');
-    output.push_str(&fuubar_summary(reports, options));
+    lifecycle.finished(&mut output)?;
     Ok(output)
-}
-
-fn fuubar_increment(
-    output: &mut String,
-    bar: &str,
-    last_length: &mut usize,
-    completed: usize,
-    total: usize,
-) {
-    // %b は百分率を先に整数へ切り捨てる。2/3 で幅68なら45本ではなく44本になる。
-    let percentage = if total == 0 {
-        100
-    } else {
-        ((completed as u128 * 100) / total as u128).min(100) as usize
-    };
-    let finished = completed >= total;
-    let length = 11 + (bar.len() - 12) * percentage / 100 + usize::from(finished);
-    output.push_str(bar.get(*last_length..length).unwrap_or(""));
-    *last_length = length;
-    if finished {
-        output.push('\n');
-    }
 }
 
 fn fuubar_bar_width() -> usize {
@@ -300,61 +132,6 @@ fn fuubar_severity_color(severity: Severity) -> &'static str {
         Severity::Refactor | Severity::Convention => "33",
         Severity::Warning => "35",
         Severity::Error | Severity::Fatal => "31",
-    }
-}
-
-fn fuubar_report_file(output: &mut String, report: &FileReport, options: &FormatOptions<'_>) {
-    let path = paint(&smart_path(&report.path, options.cwd), "36", options.color);
-    for offense in &report.offenses {
-        let location = offense.location(&report.source);
-        let severity = paint(
-            &offense.severity.code().to_string(),
-            fuubar_severity_color(offense.severity),
-            options.color,
-        );
-        let status = status_marker(offense);
-        let mut message = if status.is_empty() {
-            String::new()
-        } else {
-            paint(
-                status,
-                if offense.corrected { "32" } else { "33" },
-                options.color,
-            )
-        };
-        let annotated = annotated_message(offense, options);
-        let mut rest = annotated.as_str();
-        while let Some(open) = rest.find('`') {
-            let Some(close) = rest[open + 1..].find('`') else {
-                break;
-            };
-            message.push_str(&rest[..open]);
-            message.push_str(&paint(
-                &rest[open + 1..open + close + 1],
-                "33",
-                options.color,
-            ));
-            rest = &rest[open + close + 2..];
-        }
-        message.push_str(rest);
-        output.push_str(&format!(
-            "{path}:{}:{}: {severity}: {message}\n",
-            location.line, location.column
-        ));
-        if let Some((quoted, carets)) = source_excerpt(offense, report) {
-            if location.last_line > location.start_line
-                && let Some(line) = quoted.strip_suffix(" ...")
-            {
-                output.push_str(line);
-                output.push(' ');
-                output.push_str(&paint("...", "33", options.color));
-            } else {
-                output.push_str(&quoted);
-            }
-            output.push('\n');
-            output.push_str(&carets);
-            output.push('\n');
-        }
     }
 }
 
@@ -405,163 +182,12 @@ fn fuubar_summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String
             ));
         }
     }
-    output.push('\n');
-    output
-}
-
-/// RuboCop's `EmacsStyleFormatter` prints the path it was handed rather than routing it through
-/// `smart_path`, and the paths it holds are the absolute ones file discovery produced -- which is
-/// the point of the format, since an editor jumps to the file without knowing where the run started.
-fn render_emacs(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut output = String::new();
-    for report in reports {
-        // The expanded path, `..` segments and all resolved: RuboCop names its buffers after what
-        // file discovery produced, so a target typed as `../sub/a.rb` is reported from the root
-        // down rather than as a path that walks back out through the run's own directory.
-        let path = absolute_path(&report.path, options.cwd);
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            output.push_str(&format!(
-                "{}:{}:{}: {}: {}\n",
-                path,
-                location.line,
-                location.column,
-                offense.severity.code(),
-                // `EmacsStyleFormatter#message` closes with `tr("\n", ' ')`: one offense is one
-                // line, which is what makes the format machine-parsable, and a cop whose message
-                // spans lines must not break that.
-                display_message(offense, options).replace('\n', " ")
-            ));
-        }
-    }
-    output
-}
-
-fn render_github(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut output = String::new();
-    for report in reports {
-        let path = smart_path(&report.path, options.cwd);
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            let level = if offense.severity >= options.fail_level {
-                "error"
-            } else {
-                "warning"
-            };
-            // RuboCop separates annotations with a single leading newline and escapes only the
-            // message, then closes the stream with one final newline.
-            output.push_str(&format!(
-                "\n::{level} file={path},line={},col={}::{}",
-                location.line,
-                location.column,
-                github_escape(&annotated_message(offense, options))
-            ));
-        }
-    }
-    output.push('\n');
-    output
-}
-
-fn render_tap(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut output = format!("1..{}\n", reports.len());
-    for (index, report) in reports.iter().enumerate() {
-        let path = smart_path(&report.path, options.cwd);
-        if report.offenses.is_empty() {
-            output.push_str(&format!("ok {} - {path}\n", index + 1));
-            continue;
-        }
-        output.push_str(&format!("not ok {} - {path}\n", index + 1));
-        // `TapFormatter` is a `ClangStyleFormatter` whose every line is a TAP comment, so it carries
-        // the offending line and its carets across as well.
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            output.push_str(&format!(
-                "# {path}:{}:{}: {}: {}\n",
-                location.line,
-                location.column,
-                offense.severity.code(),
-                annotate_message(&display_message(offense, options))
-            ));
-            if let Some((quoted, carets)) = source_excerpt(offense, report) {
-                output.push_str(&format!("# {quoted}\n# {carets}\n"));
-            }
-        }
-    }
-    // It inherits the summary along with the rest of `ClangStyleFormatter`.
-    output.push('\n');
-    output.push_str(&summary(reports, options));
     output
 }
 
 /// `Offense::NO_LOCATION.to_s`. `PseudoSourceRange` is a plain `Struct`, so it inherits
 /// `Struct#to_s` -- an inspection of the singleton's frozen fields, which is a constant.
 const PSEUDO_SOURCE_RANGE: &str = "#<struct RuboCop::Cop::Offense::PseudoSourceRange line=1, column=0, source_line=\"\", begin_pos=0, end_pos=0>";
-
-/// RuboCop's `JUnitFormatter`, which reports one `<testcase>` per *cop* per file rather than one
-/// per file.
-///
-/// `file_finished` (`junit_formatter.rb:36-46`) walks `Cop::Registry.all` for every inspected file
-/// and emits a test case whether or not that cop found anything, so a two-file run yields 1,218
-/// test cases. Its own comment calls this out as inherited from rubocop-junit-formatter and worth
-/// narrowing to enabled cops one day; until upstream does, a report that lists only the offending
-/// cops is a different document to every JUnit consumer -- a cop that stops firing has to show up
-/// as a passing test, not as a test that vanished.
-fn render_junit(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut body = String::new();
-    // `@offense_count` is accumulated inside the per-cop loop, so an offense from a cop the
-    // registry does not know is left out of the failure tally as well as out of the body.
-    let mut offense_count = 0usize;
-    for report in reports {
-        let classname = xml_escape(&junit_classname(&report.path, options.cwd));
-        let path = absolute_path(&report.path, options.cwd);
-        let mut by_cop: BTreeMap<&str, Vec<&Offense>> = BTreeMap::new();
-        for offense in &report.offenses {
-            by_cop.entry(offense.cop_name).or_default().push(offense);
-        }
-        for cop in COP_REGISTRY_ORDER {
-            let offenses = by_cop.remove(cop).unwrap_or_default();
-            // The tally is raised before the filter below, so `--display-only-failed` shortens the
-            // body without changing the `failures` count the suite reports.
-            offense_count += offenses.len();
-            if offenses.is_empty() {
-                // `relevant_for_output?` (`junit_formatter.rb:76-78`): `--display-only-failed`
-                // drops the passing test cases, leaving only the cops that found something.
-                if options.display_only_failed {
-                    continue;
-                }
-                body.push_str(&format!(
-                    "    <testcase classname='{classname}' name='{cop}'/>\n"
-                ));
-                continue;
-            }
-            body.push_str(&format!(
-                "    <testcase classname='{classname}' name='{cop}'>\n"
-            ));
-            for offense in offenses {
-                let location = offense.location(&report.source);
-                // `FailureElement#text` is `offense.location.to_s`, and a `Parser::Source::Range`
-                // names itself after its buffer -- the absolute path RuboCop opened, not the
-                // shortened one the `classname` carries. A global offense has no range at all, so
-                // what lands here is `Struct#to_s` over the frozen `NO_LOCATION` singleton.
-                let text = if is_global_offense(offense) {
-                    PSEUDO_SOURCE_RANGE.to_owned()
-                } else {
-                    format!("{path}:{}:{}", location.line, location.column)
-                };
-                body.push_str(&format!(
-                    "      <failure type='{cop}' message='{}'>\n        {}\n      </failure>\n",
-                    xml_escape(&annotated_message(offense, options)),
-                    xml_escape(&text)
-                ));
-            }
-            body.push_str("    </testcase>\n");
-        }
-    }
-    format!(
-        "<?xml version='1.0'?>\n<testsuites>\n  <testsuite name='rubocop' tests='{}' failures='{offense_count}'>\n{body}  </testsuite>\n</testsuites>\n",
-        reports.len()
-    )
-}
 
 /// The `classname` attribute of a JUnit test case (`junit_formatter.rb:92-97`): the file's path
 /// with `.rb` cut off, the run's directory dropped and the separators turned into dots, so
@@ -728,121 +354,6 @@ fn html_escape(value: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-/// RuboCop's `MarkdownFormatter` (`markdown_formatter.rb:33-70`): a report headed
-/// `# RuboCop Inspection Report`, a one-line summary, then a section per offending file with each
-/// offense as a bullet followed by the line it was found on in a fenced block.
-fn render_markdown(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut output = String::from("# RuboCop Inspection Report\n\n");
-    output.push_str(&format!(
-        "{} inspected, {} detected:\n\n",
-        plural(reports.len(), "file"),
-        // `pluralize(..., no_for_zero: true)`, the wording the summary line alone uses.
-        if offense_count(reports) == 0 {
-            "no offenses".to_owned()
-        } else {
-            plural(offense_count(reports), "offense")
-        }
-    ));
-    for report in reports {
-        if report.offenses.is_empty() {
-            continue;
-        }
-        output.push_str(&format!(
-            "### {} - ({})\n",
-            relative_path(&report.path, options.cwd),
-            plural(report.offenses.len(), "offense")
-        ));
-        for offense in &report.offenses {
-            let location = offense.location(&report.source);
-            output.push_str(&format!(
-                "  * **Line # {} - {}:** {}\n\n",
-                location.line,
-                offense.severity.as_str(),
-                annotated_message(offense, options)
-            ));
-            let mut code = quoted_source_line(offense, report).to_owned();
-            // `write_code` appends an ellipsis for an offense whose range runs past the line it
-            // starts on, so the quoted line does not read as the whole of what was flagged.
-            if location.last_line != location.start_line {
-                code.push_str(" ...");
-            }
-            // `unless code.blank?`: RuboCop's `String#blank?` (`core_ext/string.rb:15-17`) is
-            // `empty? || lstrip.empty?`, so an offense on a blank line quotes nothing at all.
-            if !code.trim_start().is_empty() {
-                output.push_str(&format!("    ```rb\n    {code}\n    ```\n\n"));
-            }
-        }
-    }
-    output
-}
-
-/// `FileListFormatter`, which prints the path it was handed rather than a shortened one -- the same
-/// absolute path `emacs` reports, since both formats exist to be fed to another program.
-fn render_files(reports: &[FileReport], cwd: &Path) -> String {
-    let mut output = String::new();
-    for report in reports.iter().filter(|report| !report.offenses.is_empty()) {
-        output.push_str(&absolute_path(&report.path, cwd));
-        output.push('\n');
-    }
-    output
-}
-
-/// `OffenseCountFormatter`: how many offenses each cop found, worst first, then a total.
-///
-/// `cop_information` (`offense_count_formatter.rb:64-72`) tags a cop that can autocorrect with the
-/// safety of doing so. RuboCop asks the cop class, which knows whether it supports autocorrection
-/// at all; the registry here carries no such flag, so the run's own offenses stand in for it. The
-/// two answers part company only for a cop that can correct but corrected nothing in this run, and
-/// closing that gap means recording the capability on `rules::Rule`.
-fn render_offense_counts(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    let mut counts: BTreeMap<&str, (usize, bool)> = BTreeMap::new();
-    let mut links: BTreeMap<&str, String> = BTreeMap::new();
-    let mut offending_files = 0;
-    for report in reports {
-        if !report.offenses.is_empty() {
-            offending_files += 1;
-        }
-        for offense in &report.offenses {
-            let entry = counts.entry(offense.cop_name).or_default();
-            entry.0 += 1;
-            entry.1 |= offense.is_correctable();
-            if options.display_style_guide {
-                links
-                    .entry(offense.cop_name)
-                    .or_insert_with(|| style_guide_suffix(&annotated_message(offense, options)));
-            }
-        }
-    }
-    let mut rows = counts.into_iter().collect::<Vec<_>>();
-    // `sort_by { |k, v| [-v, k] }`, so cops tying on count fall back to their name.
-    rows.sort_by(|left, right| right.1.0.cmp(&left.1.0).then_with(|| left.0.cmp(right.0)));
-    let total = rows.iter().map(|(_, (count, _))| count).sum::<usize>();
-    let width = total.to_string().len() + 2;
-    let mut output = String::from("\n");
-    for (cop, (count, correctable)) in &rows {
-        let correctable = if *correctable {
-            let safety =
-                if options.config.rule_safe(cop) && options.config.rule_safe_autocorrect(cop) {
-                    "Safe"
-                } else {
-                    "Unsafe"
-                };
-            format!(" [{safety} Correctable]")
-        } else {
-            String::new()
-        };
-        output.push_str(&format!(
-            "{:<width$}{cop}{correctable}{}\n",
-            count.to_string(),
-            links.get(cop).map(String::as_str).unwrap_or_default()
-        ));
-    }
-    output.push_str(&format!(
-        "--\n{total}  Total in {offending_files} files\n\n"
-    ));
-    output
-}
-
 /// The trailing ` (https://...)` `--display-style-guide` left on a message, which
 /// `OffenseCountFormatter` lifts back out with `/ \(http\S+\)\Z/`. The pattern admits no spaces, so
 /// a cop that named more than one URL -- they are joined with `, ` -- keeps none of them.
@@ -856,36 +367,6 @@ fn style_guide_suffix(message: &str) -> String {
     } else {
         String::new()
     }
-}
-
-/// `WorstOffendersFormatter`: the offending files by descending offense count, then a total.
-///
-/// `report_summary` (`worst_offenders_formatter.rb:36-52`) pads the count to the width of the
-/// total plus two, which is what lines the paths up, and brackets the table with a blank line at
-/// either end.
-fn render_worst(reports: &[FileReport], cwd: &Path) -> String {
-    let mut rows = reports
-        .iter()
-        .filter(|report| !report.offenses.is_empty())
-        .map(|report| {
-            let path = relative_path(&report.path, cwd);
-            // WorstOffendersFormatter は smart_path ではなく Pathname の相対名を使う。
-            (
-                report.offenses.len(),
-                if path.is_empty() { ".".into() } else { path },
-            )
-        })
-        .collect::<Vec<_>>();
-    // `sort_by { |k, v| [-v, k] }`, so files tying on count fall back to their path.
-    rows.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
-    let total = rows.iter().map(|(count, _)| count).sum::<usize>();
-    let width = total.to_string().len() + 2;
-    let mut output = String::from("\n");
-    for (count, path) in &rows {
-        output.push_str(&format!("{:<width$}{path}\n", count.to_string()));
-    }
-    output.push_str(&format!("--\n{total}  Total in {} files\n\n", rows.len()));
-    output
 }
 
 /// One cop's offenses as the config-generating outputs need them. RuboCop's
@@ -921,80 +402,6 @@ pub(crate) fn offenses_by_cop(
         }
     }
     by_cop
-}
-
-fn render_autogenconf(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
-    // AutoGenConfigFormatter は Progress の started/file_finished を継承するが、
-    // finished では違反一覧を出さない。設定 YAML は別の DisabledConfigFormatter の役割。
-    let mut output = format!("Inspecting {}\n", plural(options.target_file_count, "file"));
-    for report in reports {
-        let severity = report.offenses.iter().map(|offense| offense.severity).max();
-        let color = match severity {
-            // Rainbow の gray は通常の ANSI 90 ではなく、実出力では xterm 188 になる。
-            Some(Severity::Info) => "38;5;188",
-            Some(severity) => severity_color(severity),
-            None => "32",
-        };
-        output.push_str(&paint(
-            &severity.map_or('.', Severity::code).to_string(),
-            color,
-            options.color,
-        ));
-    }
-    output.push_str("\n\n");
-
-    let count = offense_count(reports);
-    let correctable_count = reports
-        .iter()
-        .flat_map(|report| &report.offenses)
-        .filter(|offense| offense.is_correctable() && !offense.corrected)
-        .count();
-    let offenses = if count == 0 {
-        "no offenses".to_owned()
-    } else {
-        plural(count, "offense")
-    };
-    output.push_str(&format!(
-        "{} inspected, {} detected",
-        plural(reports.len(), "file"),
-        paint(
-            &offenses,
-            if count == 0 { "32" } else { "31" },
-            options.color
-        )
-    ));
-    if options.corrected_count > 0 {
-        output.push_str(&format!(
-            ", {} corrected",
-            paint(
-                &plural(options.corrected_count, "offense"),
-                if options.corrected_count == count {
-                    "32"
-                } else {
-                    "36"
-                },
-                options.color,
-            )
-        ));
-    }
-    if correctable_count > 0 {
-        let noun = if options.safe_autocorrect {
-            "more offense"
-        } else {
-            "offense"
-        };
-        output.push_str(&format!(
-            ", {}",
-            paint(&plural(correctable_count, noun), "33", options.color)
-        ));
-        output.push_str(if options.safe_autocorrect {
-            " can be corrected with `rubocop -A`"
-        } else {
-            " autocorrectable"
-        });
-    }
-    output.push('\n');
-    output
 }
 
 #[derive(Serialize)]
@@ -1334,7 +741,6 @@ fn summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
             ));
         }
     }
-    output.push('\n');
     output
 }
 

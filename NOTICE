@@ -65,6 +65,15 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       scope and remaining differences are documented in the neighbouring
       .PROVENANCE. Full text: licenses/RUBOCOP.txt.
 
+  src/formatter/lifecycle.rs
+  src/formatter/output.rs
+  tests/fixtures/formatter_lifecycle.json
+      Formatter callback order and independent File buffering ported from
+      RuboCop 1.89.0 FormatterSet and the recorded Ruby CLI output.
+      The neighbouring .PROVENANCE documents the finite CLI, timer and
+      physical write-argument observations and the unmeasured scopes.
+      Full text: licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.
