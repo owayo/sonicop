@@ -740,7 +740,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 
     let correct_mode = cli.correct_mode();
-    let mut selection = build_selection(&cli, &config, correct_mode)?;
+    let (mut selection, selection_warnings) = build_selection(&cli, &config, correct_mode)?;
     let result_cache = result_cache(&cli, &cwd, &selection, &config)?;
     if !cli.list_target_files {
         warn_unimplemented_enabled(&config, &selection);
@@ -754,6 +754,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         &mut selection,
         parallel,
         result_cache.as_ref(),
+        &selection_warnings,
     )?;
     if let Some(cache) = &result_cache {
         cache.prune();
@@ -876,20 +877,27 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     })
 }
 
-fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Result<Selection> {
-    let mut only = csv(cli.only.as_deref());
+fn build_selection(
+    cli: &Cli,
+    config: &Config,
+    correct_mode: CorrectMode,
+) -> Result<(Selection, Vec<String>)> {
+    let mut only = selector_csv(cli.only.as_deref(), true);
     if cli.lint {
         only.push("Lint".to_owned());
     }
     if cli.fix_layout {
         only.push("Layout".to_owned());
     }
+    let (only, mut warnings) = qualify_selectors(only, "--only", config);
     validate_selection(&only, "--only", config)?;
 
-    let except = csv(cli.except.as_deref());
+    let except = selector_csv(cli.except.as_deref(), false);
+    let (except, except_warnings) = qualify_selectors(except, "--except", config);
+    warnings.extend(except_warnings);
     validate_selection(&except, "--except", config)?;
 
-    Ok(Selection {
+    let selection = Selection {
         only,
         except,
         disable_all: cli.disable_all_cops,
@@ -907,7 +915,8 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
         // only, and even then per case; a run reaches the environment variable or nothing.
         skip_syntax_guard: false,
         project_index: None,
-    })
+    };
+    Ok((selection, warnings))
 }
 
 fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
@@ -1003,6 +1012,7 @@ fn inspect_inputs(
     selection: &mut Selection,
     parallel: bool,
     cache: Option<&ResultCache>,
+    selection_warnings: &[String],
 ) -> Result<Inspection> {
     let Some(stdin_path) = &cli.stdin else {
         let mut targets = discover_targets_with_store(
@@ -1018,6 +1028,9 @@ fn inspect_inputs(
                 println!("{}", smart_path(&path, cwd));
             }
             return Ok(Inspection::ListedTargets);
+        }
+        if !targets.is_empty() {
+            emit_selection_warnings(selection_warnings)?;
         }
         if let Some(cache) = cache {
             cache.prepare(targets.len());
@@ -1076,6 +1089,9 @@ fn inspect_inputs(
             }
             return Ok(Inspection::ListedStdin { bytes });
         }
+        if !targets.is_empty() {
+            emit_selection_warnings(selection_warnings)?;
+        }
         return Ok(Inspection::StdinDirectory { targets, bytes });
     }
     *selection = selection.with_project_index(std::slice::from_ref(&stdin_path), configs)?;
@@ -1084,6 +1100,7 @@ fn inspect_inputs(
     } else {
         configs.for_path(&stdin_path)?
     };
+    emit_selection_warnings(selection_warnings)?;
     let report = inspect_stdin(stdin_path, bytes.clone(), &target_config, selection)?;
     Ok(Inspection::Reports {
         reports: vec![report],
@@ -1469,7 +1486,7 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
     // to say, so a run narrowed to a handful of cops could only ever report every directive in the
     // file. RuboCop refuses the combination rather than answering wrongly.
     if cli.only.as_deref().is_some_and(|value| {
-        csv(Some(value)).iter().any(|name| {
+        selector_csv(Some(value), true).iter().any(|name| {
             matches!(
                 name.as_str(),
                 "Lint/RedundantCopDisableDirective" | "RedundantCopDisableDirective"
@@ -1506,7 +1523,7 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
 
 fn validate_syntax_selection(cli: &Cli) -> Result<()> {
     if cli.except.as_deref().is_some_and(|value| {
-        csv(Some(value))
+        selector_csv(Some(value), false)
             .iter()
             .any(|name| is_mandatory_cop(name.as_str()))
     }) {
@@ -2000,6 +2017,116 @@ fn init_config(cwd: &Path) -> Result<i32> {
     Ok(0)
 }
 
+fn selector_csv(value: Option<&str>, only: bool) -> Vec<String> {
+    let Some(value) = value else {
+        return Vec::new();
+    };
+    // Options#add_cop_selection_csv_option は空文字だけを残し、String#split は末尾の空要素を落とす。
+    let mut names: Vec<String> = value.split(',').map(ToOwned::to_owned).collect();
+    if !value.is_empty() {
+        while names.last().is_some_and(String::is_empty) {
+            names.pop();
+        }
+    }
+    // 明示した空リストを「全 cop」に戻さず、本家が常に先頭へ入れる実際の cop 名を保持する。
+    if only && !names.iter().any(|name| name == "Lint/Syntax") {
+        names.insert(0, "Lint/Syntax".to_owned());
+    }
+    names
+}
+
+fn qualify_selectors(
+    mut names: Vec<String>,
+    flag: &str,
+    config: &Config,
+) -> (Vec<String>, Vec<String>) {
+    let known: HashSet<&str> = config.known_cop_names().collect();
+    let mut warnings = Vec::new();
+    for name in &mut names {
+        if known.contains(name.as_str()) {
+            continue;
+        }
+        let (badge, has_department) = selector_badge(name);
+        if !has_department
+            && known
+                .iter()
+                .any(|known| known.rsplit('/').next() == Some(name.as_str()))
+        {
+            warnings.push(format!(
+                "{flag} option: Warning: no department given for {name}."
+            ));
+        }
+        // Registry#qualified_cop_name は登録済み badge なら正規化前の元名を返す。
+        if known.contains(badge.as_str()) {
+            continue;
+        }
+        let short_name = badge.rsplit('/').next().unwrap_or(&badge);
+        let mut matches = known
+            .iter()
+            .copied()
+            .filter(|known| known.rsplit('/').next() == Some(short_name));
+        let Some(qualified) = matches.next() else {
+            continue;
+        };
+        if matches.next().is_some() {
+            continue;
+        }
+        // resolve_badge の警告は元名でなく Badge.parse が正規化した表記を使う。
+        if has_department {
+            warnings.push(format!(
+                "{flag} option: Warning: {badge} has the wrong namespace - replace it with {qualified}"
+            ));
+        }
+        *name = qualified.to_owned();
+    }
+    (names, warnings)
+}
+
+fn selector_badge(name: &str) -> (String, bool) {
+    let mut parts: Vec<&str> = name.split('/').collect();
+    while parts.last().is_some_and(|part| part.is_empty()) {
+        parts.pop();
+    }
+    let qualified = parts.len() > 1;
+    let parts: Vec<String> = parts.into_iter().map(selector_badge_part).collect();
+    (parts.join("/"), qualified)
+}
+
+fn selector_badge_part(part: &str) -> String {
+    if part == "rspec" {
+        return "RSpec".to_owned();
+    }
+    // Badge.camel_case の /^[a-z]|_[a-z]/ は空白を消さず、ASCII 小文字だけを変える。
+    let mut result = String::with_capacity(part.len());
+    let mut characters = part.chars().peekable();
+    let mut line_start = true;
+    while let Some(character) = characters.next() {
+        if character == '_' && characters.peek().is_some_and(char::is_ascii_lowercase) {
+            result.push(characters.next().unwrap().to_ascii_uppercase());
+            line_start = false;
+        } else {
+            result.push(if line_start {
+                character.to_ascii_uppercase()
+            } else {
+                character
+            });
+            line_start = character == '\n';
+        }
+    }
+    result
+}
+
+fn emit_selection_warnings(warnings: &[String]) -> Result<()> {
+    // Runner#mobilized_cop_classes の初回だけに合わせ、対象ゼロや --list-target-files では出さない。
+    let mut stderr = io::stderr().lock();
+    let newline = if cfg!(windows) { "\r\n" } else { "\n" };
+    for warning in warnings {
+        stderr.write_all(warning.as_bytes())?;
+        stderr.write_all(newline.as_bytes())?;
+    }
+    Ok(())
+}
+
 fn csv(value: Option<&str>) -> Vec<String> {
     value
         .into_iter()
@@ -2024,12 +2151,52 @@ fn write_output(output: &str, path: Option<&Path>, stderr: bool) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, native_textmode_bytes};
+    use super::{Cli, native_textmode_bytes, selector_csv};
     use clap::CommandFactory;
 
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn selection_csv_matches_the_real_options_parser_before_name_resolution() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/selector_csv.json")).unwrap();
+        let mut count = 0;
+        for case in fixture["cases"].as_array().unwrap() {
+            let trace = &case["options_trace"];
+            // LF 単独 argv の OptionParser 消費規則は別原因であり、この CSV 修正の一致へ数えない。
+            if !trace["error"].is_null() || case["coverage"] == "parse_boundary" {
+                continue;
+            }
+            let args = case["reference"]["args"].as_array().unwrap();
+            for flag in ["only", "except"] {
+                let option = format!("--{flag}");
+                let equal_option = format!("{option}=");
+                let raw = args.iter().enumerate().find_map(|(index, value)| {
+                    let value = value.as_str().unwrap();
+                    if value == option {
+                        args.get(index + 1).and_then(serde_json::Value::as_str)
+                    } else {
+                        value.strip_prefix(&equal_option)
+                    }
+                });
+                let expected = if trace[flag].is_null() {
+                    Vec::<String>::new()
+                } else {
+                    serde_json::from_value(trace[flag].clone()).unwrap()
+                };
+                assert_eq!(
+                    selector_csv(raw, flag == "only"),
+                    expected,
+                    "{} / {flag}",
+                    case["id"]
+                );
+                count += 1;
+            }
+        }
+        assert_eq!(count, 196);
     }
 
     #[test]

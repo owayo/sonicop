@@ -1,0 +1,2107 @@
+{
+  "reference_version": {
+    "rubocop": "1.89.0",
+    "parser": "3.3.12.0",
+    "ruby": "4.0.7",
+    "platform": "Windows"
+  },
+  "yaml": "AllCops:\n  NewCops: disable\n  DisabledByDefault: true\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Enabled: true\nStyle/StringLiterals:\n  Enabled: true\n",
+  "cases": [
+    {
+      "id": "only_wrong_department_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "wrong/SpaceAroundOperators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d6f6e6c79206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "wrong/SpaceAroundOperators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_wrong_department_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "wrong/SpaceAroundOperators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d6f6e6c79206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "wrong/SpaceAroundOperators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_snake_cop_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Wrong/space_around_operators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d6f6e6c79206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Wrong/space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_snake_cop_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Wrong/space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d6f6e6c79206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Wrong/space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_canonical_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Layout/SpaceAroundOperators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Layout/SpaceAroundOperators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_canonical_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Layout/SpaceAroundOperators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Layout/SpaceAroundOperators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_empty_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a202e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          ""
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_empty_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a202e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          ""
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_separators_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          ",",
+          "input.rb"
+        ],
+        "exit": 0,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_separators_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          ",",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 0,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": []
+            }
+          ],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_unknown_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Unknown/Cop",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a20556e6b6e6f776e2f436f702e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Unknown/Cop"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_unknown_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "Unknown/Cop",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a20556e6b6e6f776e2f436f702e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "Unknown/Cop"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_bare_snake_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "space_around_operators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_bare_snake_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_registered_badge_original_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "layout/space_around_operators",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a206c61796f75742f73706163655f61726f756e645f6f70657261746f72732e0d0a44696420796f75206d65616e3f204c61796f75742f537061636541726f756e644f70657261746f72732c204c61796f75742f537061636541726f756e644b6579776f72640d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "layout/space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "only_registered_badge_original_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--only",
+          "layout/space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a206c61796f75742f73706163655f61726f756e645f6f70657261746f72732e0d0a44696420796f75206d65616e3f204c61796f75742f537061636541726f756e644f70657261746f72732c204c61796f75742f537061636541726f756e644b6579776f72640d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": true,
+        "only": [
+          "Lint/Syntax",
+          "layout/space_around_operators"
+        ],
+        "except_present": false,
+        "except": null,
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_wrong_department_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "wrong/SpaceAroundOperators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d657863657074206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "wrong/SpaceAroundOperators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_wrong_department_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "wrong/SpaceAroundOperators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d657863657074206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "wrong/SpaceAroundOperators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_snake_cop_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Wrong/space_around_operators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d657863657074206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Wrong/space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_snake_cop_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Wrong/space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "2d2d657863657074206f7074696f6e3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Wrong/space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_canonical_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Layout/SpaceAroundOperators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Layout/SpaceAroundOperators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_canonical_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Layout/SpaceAroundOperators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Layout/SpaceAroundOperators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_empty_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a202e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          ""
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_empty_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a202e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          ""
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_separators_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          ",",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                },
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 2,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_separators_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          ",",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d2c7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Surrounding space missing for operator `=`.",
+                  "cop_name": "Layout/SpaceAroundOperators",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 1,
+                    "start_column": 2,
+                    "last_line": 1,
+                    "last_column": 2,
+                    "length": 1,
+                    "line": 1,
+                    "column": 2
+                  }
+                },
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 2,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_unknown_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Unknown/Cop",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a20556e6b6e6f776e2f436f702e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Unknown/Cop"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_unknown_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "Unknown/Cop",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a20556e6b6e6f776e2f436f702e0d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "Unknown/Cop"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_bare_snake_file",
+      "mode": "file",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "space_around_operators",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_bare_snake_stdin",
+      "mode": "stdin",
+      "coverage": "full_json",
+      "residual_issue": null,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 1,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22696e7075742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a225072656665722073696e676c652d71756f74656420737472696e6773207768656e20796f7520646f6e2774206e65656420737472696e6720696e746572706f6c6174696f6e206f72207370656369616c2073796d626f6c732e222c22636f705f6e616d65223a225374796c652f537472696e674c69746572616c73222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a322c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a322c226c6173745f636f6c756d6e223a31362c226c656e677468223a362c226c696e65223a322c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "report": {
+          "files": [
+            {
+              "path": "input.rb",
+              "offenses": [
+                {
+                  "severity": "convention",
+                  "message": "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
+                  "cop_name": "Style/StringLiterals",
+                  "corrected": false,
+                  "correctable": true,
+                  "location": {
+                    "start_line": 2,
+                    "start_column": 11,
+                    "last_line": 2,
+                    "last_column": 16,
+                    "length": 6,
+                    "line": 2,
+                    "column": 11
+                  }
+                }
+              ]
+            }
+          ],
+          "summary": {
+            "offense_count": 1,
+            "target_file_count": 1,
+            "inspected_file_count": 1
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_registered_badge_original_file",
+      "mode": "file",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "layout/space_around_operators",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a206c61796f75742f73706163655f61726f756e645f6f70657261746f72732e0d0a44696420796f75206d65616e3f204c61796f75742f537061636541726f756e644f70657261746f72732c204c61796f75742f537061636541726f756e644b6579776f72640d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "layout/space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    },
+    {
+      "id": "except_registered_badge_original_stdin",
+      "mode": "stdin",
+      "coverage": "rejection_only",
+      "residual_issue": 118,
+      "inputs": {
+        "input.rb": "x=1\nmessage = \"text\"\n"
+      },
+      "stdin_source": "x=1\nmessage = \"text\"\n",
+      "reference": {
+        "args": [
+          "--cache",
+          "false",
+          "-f",
+          "json",
+          "--except",
+          "layout/space_around_operators",
+          "--stdin",
+          "input.rb"
+        ],
+        "exit": 2,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a206c61796f75742f73706163655f61726f756e645f6f70657261746f72732e0d0a44696420796f75206d65616e3f204c61796f75742f537061636541726f756e644f70657261746f72732c204c61796f75742f537061636541726f756e644b6579776f72640d0a",
+        "report": {
+          "files": [],
+          "summary": {
+            "offense_count": 0,
+            "target_file_count": 1,
+            "inspected_file_count": 0
+          }
+        }
+      },
+      "options_trace": {
+        "ruby": "4.0.7",
+        "parser": "3.3.12.0",
+        "rubocop": "1.89.0",
+        "only_present": false,
+        "only": null,
+        "except_present": true,
+        "except": [
+          "layout/space_around_operators"
+        ],
+        "paths": [
+          "input.rb"
+        ],
+        "error": null
+      },
+      "outputs": {
+        "first.json": null,
+        "second.json": null
+      }
+    }
+  ]
+}

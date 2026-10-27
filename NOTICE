@@ -74,6 +74,16 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       physical write-argument observations and the unmeasured scopes.
       Full text: licenses/RUBOCOP.txt.
 
+  src/cli.rs (selector CSV, Badge names and selection warnings)
+  tests/fixtures/selector_csv.json
+  tests/fixtures/selector_badges.json
+  tests/fixtures/selector_directory_warnings.json
+      Selector splitting and qualification ported from RuboCop 1.89.0
+      Options, Badge and Registry, with real CLI and Options.parse records.
+      The neighbouring selector_csv.PROVENANCE documents the finite
+      comparisons and the separate late-error and argv-consumption gaps.
+      Full text: licenses/RUBOCOP.txt.
+
   config/default.yml
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.

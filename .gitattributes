@@ -138,3 +138,12 @@ src/formatter/output.rs text eol=lf
 tests/formatter_lifecycle.rs text eol=lf
 tests/fixtures/formatter_lifecycle.json text eol=lf
 tests/fixtures/formatter_lifecycle.json.PROVENANCE text eol=lf
+
+# selector CSV と Badge の本家記録・採取器を LF で保存する。
+scripts/conformance/record_selector_csv.py text eol=lf
+scripts/conformance/test_record_selector_csv.py text eol=lf
+tests/selector_csv.rs text eol=lf
+tests/fixtures/selector_csv.json text eol=lf
+tests/fixtures/selector_csv.PROVENANCE text eol=lf
+tests/fixtures/selector_badges.json text eol=lf
+tests/fixtures/selector_directory_warnings.json text eol=lf
