@@ -417,6 +417,52 @@ impl Config {
         self.cop_value(name, "Description")
     }
 
+    /// 表示用の既定値も Symbol/Regexp の型を保つ。検査用の既存の射影は変更しない。
+    pub(crate) fn displayed_cop_settings(&self) -> Value {
+        static DEFAULT: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
+            serde_yaml_ng::from_str(&yaml_booleans::normalize(DEFAULT_CONFIG))
+                .expect("embedded configuration must be valid")
+        });
+        let merged = merge_config(DEFAULT.clone(), self.user.clone());
+        let mut settings = ordered_settings(&DEFAULT, &merged);
+        for name in self.known_cop_names() {
+            let Some(cop) = settings.get_mut(name).and_then(Value::as_mapping_mut) else {
+                continue;
+            };
+            let enabled = match (
+                self.rule_enabled_with_pending(name, true, false),
+                self.rule_enabled_with_pending(name, false, true),
+            ) {
+                (true, false) => Value::String("pending".to_owned()),
+                (true, true) => self
+                    .user_cop_mapping(name)
+                    .and_then(|cop| cop.get("Enabled"))
+                    .filter(|value| {
+                        !matches!(value, Value::Bool(_) | Value::Null)
+                            && value.as_str() != Some("override_department")
+                    })
+                    .cloned()
+                    .unwrap_or(Value::Bool(true)),
+                _ => Value::Bool(false),
+            };
+            cop.insert(Value::String("Enabled".to_owned()), enabled);
+            if let Some(Value::Sequence(excludes)) = cop.get_mut("Exclude") {
+                for exclude in excludes {
+                    if let Value::String(pattern) = exclude
+                        && !Path::new(pattern).is_absolute()
+                    {
+                        *pattern = self
+                            .path_base
+                            .join(&*pattern)
+                            .to_string_lossy()
+                            .replace('\\', "/");
+                    }
+                }
+            }
+        }
+        settings
+    }
+
     fn cop_mapping(&self, name: &str) -> Option<&Mapping> {
         self.raw.as_mapping()?.get(name)?.as_mapping()
     }
@@ -479,6 +525,25 @@ impl Config {
             .and_then(Value::as_bool)
             .unwrap_or(false)
     }
+}
+
+/// Hash の上書きは既存キーの位置を変えない。本家の既定順を merge 後にも保つ。
+fn ordered_settings(default: &Value, merged: &Value) -> Value {
+    let (Some(default), Some(merged)) = (default.as_mapping(), merged.as_mapping()) else {
+        return merged.clone();
+    };
+    let mut ordered = Mapping::new();
+    for key in default.keys().chain(merged.keys()) {
+        if !ordered.contains_key(key)
+            && let Some(value) = merged.get(key)
+        {
+            ordered.insert(
+                key.clone(),
+                ordered_settings(default.get(key).unwrap_or(&Value::Null), value),
+            );
+        }
+    }
+    Value::Mapping(ordered)
 }
 
 fn all_cops_bool(config: &Value, key: &str) -> bool {

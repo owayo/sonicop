@@ -1,0 +1,26 @@
+[
+  {
+    "input": "!ruby/symbol \"a: b\"",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: ! ':a: b'\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  },
+  {
+    "input": "!!binary YWJj",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: abc\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  },
+  {
+    "input": "\"<<\"",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: !!str '<<'\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  },
+  {
+    "input": "!!binary /w==",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: !binary |-\n    /w==\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  },
+  {
+    "input": "!!binary YQ",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: a\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  },
+  {
+    "input": "!ruby/symbol \"\"",
+    "stdout": "# Supports --autocorrect\nStyle/For:\n  Description: !ruby/symbol\n  StyleGuide: \"#no-for-loops\"\n  Enabled: true\n  SafeAutoCorrect: false\n  VersionAdded: '0.13'\n  VersionChanged: '1.26'\n  EnforcedStyle: each\n  SupportedStyles:\n  - each\n  - for\n\n"
+  }
+]

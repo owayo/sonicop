@@ -1,0 +1,9 @@
+RuboCop 1.89.0, Ruby 4.0.8, Psych 5.3.1, libyaml 0.2.5.
+macOS arm64, stdout captured through a pipe (LF).
+Configuration: AllCops/NewCops: disable, AllCops/TargetRubyVersion: 2.7.
+Command: rubocop _1.89.0_ --config config.yml --show-cops
+Only the first line containing the current directory was removed.
+show_cops_operators.yml is the same CLI with Layout/SpaceAroundOperators selected.
+Absolute current-directory prefixes were replaced with {{cwd}}.
+Psych also emits C:/Temp/project/**/*.rb as a plain scalar, unlike a POSIX path.
+show_cops_typed_values.json records six Description overrides through the same CLI.
