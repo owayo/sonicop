@@ -1,0 +1,3163 @@
+{
+  "schema": 1,
+  "api": {
+    "runtime": {
+      "ruby": "4.0.7",
+      "platform": "x64-mingw-ucrt",
+      "gems": {
+        "parser": "3.3.12.0",
+        "prism": "1.8.1",
+        "rubocop-ast": "1.50.0",
+        "rubocop": "1.89.0",
+        "rainbow": "3.1.1"
+      }
+    },
+    "registry": [
+      "Bundler/DuplicatedGem",
+      "Bundler/DuplicatedGroup",
+      "Bundler/GemComment",
+      "Bundler/GemFilename",
+      "Bundler/GemVersion",
+      "Bundler/InsecureProtocolSource",
+      "Bundler/OrderedGems",
+      "Gemspec/AddRuntimeDependency",
+      "Gemspec/AttributeAssignment",
+      "Gemspec/DependencyVersion",
+      "Gemspec/DeprecatedAttributeAssignment",
+      "Gemspec/DevelopmentDependencies",
+      "Gemspec/DuplicatedAssignment",
+      "Gemspec/OrderedDependencies",
+      "Gemspec/RequireMFA",
+      "Gemspec/RequiredRubyVersion",
+      "Gemspec/RubyVersionGlobalsUsage",
+      "Layout/AccessModifierIndentation",
+      "Layout/ArgumentAlignment",
+      "Layout/ArrayAlignment",
+      "Layout/AssignmentIndentation",
+      "Layout/BeginEndAlignment",
+      "Layout/BlockAlignment",
+      "Layout/BlockEndNewline",
+      "Layout/CaseIndentation",
+      "Layout/ClassStructure",
+      "Layout/ClosingHeredocIndentation",
+      "Layout/ClosingParenthesisIndentation",
+      "Layout/CommentIndentation",
+      "Layout/ConditionPosition",
+      "Layout/DefEndAlignment",
+      "Layout/DotPosition",
+      "Layout/ElseAlignment",
+      "Layout/EmptyComment",
+      "Layout/EmptyLineAfterGuardClause",
+      "Layout/EmptyLineAfterMagicComment",
+      "Layout/EmptyLineAfterMultilineCondition",
+      "Layout/EmptyLineBetweenDefs",
+      "Layout/EmptyLinesAfterModuleInclusion",
+      "Layout/EmptyLinesAroundAccessModifier",
+      "Layout/EmptyLinesAroundArguments",
+      "Layout/EmptyLinesAroundAttributeAccessor",
+      "Layout/EmptyLinesAroundBeginBody",
+      "Layout/EmptyLinesAroundBlockBody",
+      "Layout/EmptyLinesAroundClassBody",
+      "Layout/EmptyLinesAroundExceptionHandlingKeywords",
+      "Layout/EmptyLinesAroundMethodBody",
+      "Layout/EmptyLinesAroundModuleBody",
+      "Layout/EmptyLines",
+      "Layout/EndAlignment",
+      "Layout/EndOfLine",
+      "Layout/ExtraSpacing",
+      "Layout/FirstArgumentIndentation",
+      "Layout/FirstArrayElementIndentation",
+      "Layout/FirstArrayElementLineBreak",
+      "Layout/FirstHashElementIndentation",
+      "Layout/FirstHashElementLineBreak",
+      "Layout/FirstMethodArgumentLineBreak",
+      "Layout/FirstMethodParameterLineBreak",
+      "Layout/FirstParameterIndentation",
+      "Layout/HashAlignment",
+      "Layout/HeredocArgumentClosingParenthesis",
+      "Layout/HeredocIndentation",
+      "Layout/IndentationConsistency",
+      "Layout/IndentationStyle",
+      "Layout/IndentationWidth",
+      "Layout/InitialIndentation",
+      "Layout/LeadingCommentSpace",
+      "Layout/LeadingEmptyLines",
+      "Layout/LineContinuationLeadingSpace",
+      "Layout/LineContinuationSpacing",
+      "Layout/LineEndStringConcatenationIndentation",
+      "Layout/LineLength",
+      "Layout/MultilineArrayBraceLayout",
+      "Layout/MultilineArrayLineBreaks",
+      "Layout/MultilineAssignmentLayout",
+      "Layout/MultilineBlockLayout",
+      "Layout/MultilineHashBraceLayout",
+      "Layout/MultilineHashKeyLineBreaks",
+      "Layout/MultilineMethodArgumentLineBreaks",
+      "Layout/MultilineMethodCallBraceLayout",
+      "Layout/MultilineMethodCallIndentation",
+      "Layout/MultilineMethodDefinitionBraceLayout",
+      "Layout/MultilineMethodParameterLineBreaks",
+      "Layout/MultilineOperationIndentation",
+      "Layout/ParameterAlignment",
+      "Layout/RedundantLineBreak",
+      "Layout/RescueEnsureAlignment",
+      "Layout/SingleLineBlockChain",
+      "Layout/SpaceAfterColon",
+      "Layout/SpaceAfterComma",
+      "Layout/SpaceAfterMethodName",
+      "Layout/SpaceAfterNot",
+      "Layout/SpaceAfterSemicolon",
+      "Layout/SpaceAroundBlockParameters",
+      "Layout/SpaceAroundEqualsInParameterDefault",
+      "Layout/SpaceAroundKeyword",
+      "Layout/SpaceAroundMethodCallOperator",
+      "Layout/SpaceAroundOperators",
+      "Layout/SpaceBeforeBlockBraces",
+      "Layout/SpaceBeforeBrackets",
+      "Layout/SpaceBeforeComma",
+      "Layout/SpaceBeforeComment",
+      "Layout/SpaceBeforeFirstArg",
+      "Layout/SpaceBeforeSemicolon",
+      "Layout/SpaceInLambdaLiteral",
+      "Layout/SpaceInsideArrayPercentLiteral",
+      "Layout/SpaceInsideArrayLiteralBrackets",
+      "Layout/SpaceInsideBlockBraces",
+      "Layout/SpaceInsideHashLiteralBraces",
+      "Layout/SpaceInsideParens",
+      "Layout/SpaceInsidePercentLiteralDelimiters",
+      "Layout/SpaceInsideRangeLiteral",
+      "Layout/SpaceInsideReferenceBrackets",
+      "Layout/SpaceInsideStringInterpolation",
+      "Layout/TrailingEmptyLines",
+      "Layout/TrailingWhitespace",
+      "Lint/AmbiguousAssignment",
+      "Lint/AmbiguousBlockAssociation",
+      "Lint/AmbiguousOperator",
+      "Lint/AmbiguousOperatorPrecedence",
+      "Lint/AmbiguousRange",
+      "Lint/AmbiguousRegexpLiteral",
+      "Lint/ArrayLiteralInRegexp",
+      "Lint/AssignmentInCondition",
+      "Lint/BigDecimalNew",
+      "Lint/BinaryOperatorWithIdenticalOperands",
+      "Lint/BooleanSymbol",
+      "Lint/CircularArgumentReference",
+      "Lint/ConstantDefinitionInBlock",
+      "Lint/ConstantOverwrittenInRescue",
+      "Lint/ConstantReassignment",
+      "Lint/ConstantResolution",
+      "Lint/CopDirectiveSyntax",
+      "Lint/DataDefineOverride",
+      "Lint/Debugger",
+      "Lint/DeprecatedClassMethods",
+      "Lint/DeprecatedConstants",
+      "Lint/DeprecatedOpenSSLConstant",
+      "Lint/DeprecatedReference",
+      "Lint/DisjunctiveAssignmentInConstructor",
+      "Lint/DuplicateBranch",
+      "Lint/DuplicateCaseCondition",
+      "Lint/DuplicateElsifCondition",
+      "Lint/DuplicateHashKey",
+      "Lint/DuplicateMagicComment",
+      "Lint/DuplicateMatchPattern",
+      "Lint/DuplicateMethods",
+      "Lint/DuplicateRegexpCharacterClassElement",
+      "Lint/DuplicateRequire",
+      "Lint/DuplicateRescueException",
+      "Lint/DuplicateSetElement",
+      "Lint/EachWithObjectArgument",
+      "Lint/ElseLayout",
+      "Lint/EmptyBlock",
+      "Lint/EmptyClass",
+      "Lint/EmptyConditionalBody",
+      "Lint/EmptyEnsure",
+      "Lint/EmptyExpression",
+      "Lint/EmptyFile",
+      "Lint/EmptyInPattern",
+      "Lint/EmptyInterpolation",
+      "Lint/EmptyWhen",
+      "Lint/EnsureReturn",
+      "Lint/SharedMutableDefault",
+      "Lint/ErbNewArguments",
+      "Lint/FlipFlop",
+      "Lint/FloatComparison",
+      "Lint/FloatOutOfRange",
+      "Lint/FormatParameterMismatch",
+      "Lint/HashCompareByIdentity",
+      "Lint/HashNewWithKeywordArgumentsAsDefault",
+      "Lint/HeredocMethodCallPosition",
+      "Lint/IdentityComparison",
+      "Lint/ImplicitStringConcatenation",
+      "Lint/IncompatibleIoSelectWithFiberScheduler",
+      "Lint/IneffectiveAccessModifier",
+      "Lint/InheritException",
+      "Lint/InterpolationCheck",
+      "Lint/ItWithoutArgumentsInBlock",
+      "Lint/LambdaWithoutLiteralBlock",
+      "Lint/LiteralAsCondition",
+      "Lint/LiteralAssignmentInCondition",
+      "Lint/LiteralInInterpolation",
+      "Lint/Loop",
+      "Lint/MissingCopEnableDirective",
+      "Lint/MissingSuper",
+      "Lint/MixedCaseRange",
+      "Lint/MixedRegexpCaptureTypes",
+      "Lint/MultipleComparison",
+      "Lint/NameTypo",
+      "Lint/NestedMethodDefinition",
+      "Lint/NestedPercentLiteral",
+      "Lint/NextWithoutAccumulator",
+      "Lint/NoReturnInBeginEndBlocks",
+      "Lint/NonAtomicFileOperation",
+      "Lint/NonDeterministicRequireOrder",
+      "Lint/NonLocalExitFromIterator",
+      "Lint/NumberConversion",
+      "Lint/NumberedParameterAssignment",
+      "Lint/NumericOperationWithConstantResult",
+      "Lint/OrAssignmentToConstant",
+      "Lint/OrderedMagicComments",
+      "Lint/OutOfRangeRegexpRef",
+      "Lint/ParenthesesAsGroupedExpression",
+      "Lint/PercentStringArray",
+      "Lint/PercentSymbolArray",
+      "Lint/RaiseException",
+      "Lint/RandOne",
+      "Lint/RedundantCopDisableDirective",
+      "Lint/RedundantCopEnableDirective",
+      "Lint/RedundantDirGlobSort",
+      "Lint/RedundantRegexpQuantifiers",
+      "Lint/RedundantRequireStatement",
+      "Lint/RedundantSafeNavigation",
+      "Lint/RedundantSplatExpansion",
+      "Lint/RedundantStringCoercion",
+      "Lint/RedundantTypeConversion",
+      "Lint/RedundantWithIndex",
+      "Lint/RedundantWithObject",
+      "Lint/RefinementImportMethods",
+      "Lint/RegexpAsCondition",
+      "Lint/RequireParentheses",
+      "Lint/RequireRangeParentheses",
+      "Lint/RequireRelativeSelfPath",
+      "Lint/RescueException",
+      "Lint/RescueType",
+      "Lint/ReturnInVoidContext",
+      "Lint/SafeNavigationConsistency",
+      "Lint/SafeNavigationChain",
+      "Lint/SafeNavigationWithEmpty",
+      "Lint/ScriptPermission",
+      "Lint/SelfAssignment",
+      "Lint/SendWithMixinArgument",
+      "Lint/ShadowedArgument",
+      "Lint/ShadowedException",
+      "Lint/ShadowingOuterLocalVariable",
+      "Lint/StructNewOverride",
+      "Lint/SuppressedException",
+      "Lint/SuppressedExceptionInNumberConversion",
+      "Lint/SymbolConversion",
+      "Lint/Syntax",
+      "Lint/ToEnumArguments",
+      "Lint/ToJSON",
+      "Lint/TopLevelReturnWithArgument",
+      "Lint/TrailingCommaInAttributeDeclaration",
+      "Lint/TripleQuotes",
+      "Lint/UnderscorePrefixedVariableName",
+      "Lint/UnescapedBracketInRegexp",
+      "Lint/UnexpectedBlockArity",
+      "Lint/UnifiedInteger",
+      "Lint/UnmodifiedReduceAccumulator",
+      "Lint/UnreachableCode",
+      "Lint/UnreachableLoop",
+      "Lint/UnreachablePatternBranch",
+      "Lint/UnusedBlockArgument",
+      "Lint/UnusedMethodArgument",
+      "Lint/UnusedPrivateMethod",
+      "Lint/UriEscapeUnescape",
+      "Lint/UriRegexp",
+      "Lint/UselessAccessModifier",
+      "Lint/UselessAssignment",
+      "Lint/UselessConstantScoping",
+      "Lint/UselessDefaultValueArgument",
+      "Lint/UselessDefined",
+      "Lint/UselessElseWithoutRescue",
+      "Lint/UselessMethodDefinition",
+      "Lint/UselessNumericOperation",
+      "Lint/UselessOr",
+      "Lint/UselessRescue",
+      "Lint/UselessRuby2Keywords",
+      "Lint/UselessSetterCall",
+      "Lint/UselessTimes",
+      "Lint/Void",
+      "Metrics/CyclomaticComplexity",
+      "Metrics/AbcSize",
+      "Metrics/BlockLength",
+      "Metrics/BlockNesting",
+      "Metrics/ClassLength",
+      "Metrics/CollectionLiteralLength",
+      "Metrics/MethodLength",
+      "Metrics/ModuleLength",
+      "Metrics/ParameterLists",
+      "Metrics/PerceivedComplexity",
+      "Migration/DepartmentName",
+      "Naming/AccessorMethodName",
+      "Naming/AsciiIdentifiers",
+      "Naming/BlockForwarding",
+      "Naming/BlockParameterName",
+      "Naming/ClassAndModuleCamelCase",
+      "Naming/ConstantName",
+      "Naming/FileName",
+      "Naming/HeredocDelimiterCase",
+      "Naming/HeredocDelimiterNaming",
+      "Naming/InclusiveLanguage",
+      "Naming/MemoizedInstanceVariableName",
+      "Naming/MethodName",
+      "Naming/MethodParameterName",
+      "Naming/BinaryOperatorParameterName",
+      "Naming/PredicateMethod",
+      "Naming/PredicatePrefix",
+      "Naming/RescuedExceptionsVariableName",
+      "Naming/VariableName",
+      "Naming/VariableNumber",
+      "Security/CompoundHash",
+      "Security/Eval",
+      "Security/IoMethods",
+      "Security/JSONLoad",
+      "Security/MarshalLoad",
+      "Security/Open",
+      "Security/YAMLLoad",
+      "Style/AccessModifierDeclarations",
+      "Style/AccessorGrouping",
+      "Style/Alias",
+      "Style/AmbiguousEndlessMethodDefinition",
+      "Style/AndOr",
+      "Style/ArgumentsForwarding",
+      "Style/ArrayCoercion",
+      "Style/ArrayFirstLast",
+      "Style/ArrayIntersect",
+      "Style/ArrayIntersectWithSingleElement",
+      "Style/ArrayJoin",
+      "Style/AsciiComments",
+      "Style/Attr",
+      "Style/AutoResourceCleanup",
+      "Style/BarePercentLiterals",
+      "Style/BeginBlock",
+      "Style/BisectedAttrAccessor",
+      "Style/BitwisePredicate",
+      "Style/BlockComments",
+      "Style/BlockDelimiters",
+      "Style/CaseEquality",
+      "Style/CaseLikeIf",
+      "Style/CharacterLiteral",
+      "Style/ClassAndModuleChildren",
+      "Style/ClassCheck",
+      "Style/ClassEqualityComparison",
+      "Style/ClassMethods",
+      "Style/ClassMethodsDefinitions",
+      "Style/ClassVars",
+      "Style/CollectionCompact",
+      "Style/CollectionMethods",
+      "Style/CollectionQuerying",
+      "Style/ColonMethodCall",
+      "Style/ColonMethodDefinition",
+      "Style/CombinableDefined",
+      "Style/CombinableLoops",
+      "Style/CommandLiteral",
+      "Style/CommentAnnotation",
+      "Style/CommentedKeyword",
+      "Style/ComparableBetween",
+      "Style/ComparableClamp",
+      "Style/ConcatArrayLiterals",
+      "Style/ConditionalAssignment",
+      "Style/ConstantVisibility",
+      "Style/Copyright",
+      "Style/DataInheritance",
+      "Style/DateTime",
+      "Style/DefWithParentheses",
+      "Style/DigChain",
+      "Style/Dir",
+      "Style/DirEmpty",
+      "Style/DisableCopsWithinSourceCodeDirective",
+      "Style/DocumentationMethod",
+      "Style/Documentation",
+      "Style/DocumentDynamicEvalDefinition",
+      "Style/DoubleCopDisableDirective",
+      "Style/DoubleNegation",
+      "Style/EachForSimpleLoop",
+      "Style/EachWithObject",
+      "Style/EmptyBlockParameter",
+      "Style/EmptyCaseCondition",
+      "Style/EmptyClassDefinition",
+      "Style/EmptyElse",
+      "Style/EmptyHeredoc",
+      "Style/EmptyLambdaParameter",
+      "Style/EmptyLiteral",
+      "Style/EmptyMethod",
+      "Style/EmptyStringInsideInterpolation",
+      "Style/EndlessMethod",
+      "Style/Encoding",
+      "Style/EndBlock",
+      "Style/EnvHome",
+      "Style/EvalWithLocation",
+      "Style/EvenOdd",
+      "Style/ExactRegexpMatch",
+      "Style/ExpandPathArguments",
+      "Style/ExplicitBlockArgument",
+      "Style/ExponentialNotation",
+      "Style/FetchEnvVar",
+      "Style/FileEmpty",
+      "Style/FileNull",
+      "Style/FileOpen",
+      "Style/FileRead",
+      "Style/FileTouch",
+      "Style/FileWrite",
+      "Style/FloatDivision",
+      "Style/For",
+      "Style/FormatString",
+      "Style/FormatStringToken",
+      "Style/FrozenStringLiteralComment",
+      "Style/GlobalStdStream",
+      "Style/GlobalVars",
+      "Style/GuardClause",
+      "Style/HashAsLastArrayItem",
+      "Style/HashConversion",
+      "Style/HashEachMethods",
+      "Style/HashExcept",
+      "Style/HashFetchChain",
+      "Style/HashLikeCase",
+      "Style/HashLookupMethod",
+      "Style/HashSlice",
+      "Style/HashSyntax",
+      "Style/HashTransformKeys",
+      "Style/HashTransformValues",
+      "Style/IdenticalConditionalBranches",
+      "Style/IfInsideElse",
+      "Style/IfUnlessModifier",
+      "Style/IfUnlessModifierOfIfUnless",
+      "Style/IfWithBooleanLiteralBranches",
+      "Style/IfWithSemicolon",
+      "Style/ImplicitRuntimeError",
+      "Style/InPatternThen",
+      "Style/InfiniteLoop",
+      "Style/ReduceToHash",
+      "Style/InverseMethods",
+      "Style/InlineComment",
+      "Style/InvertibleUnlessCondition",
+      "Style/IpAddresses",
+      "Style/ItAssignment",
+      "Style/ItBlockParameter",
+      "Style/KeywordArgumentsMerging",
+      "Style/KeywordParametersOrder",
+      "Style/Lambda",
+      "Style/LambdaCall",
+      "Style/LineEndConcatenation",
+      "Style/MagicCommentFormat",
+      "Style/MapIntoArray",
+      "Style/MapJoin",
+      "Style/MapToHash",
+      "Style/MapToSet",
+      "Style/MethodCallWithoutArgsParentheses",
+      "Style/MethodCallWithArgsParentheses",
+      "Style/MinMaxComparison",
+      "Style/ModuleMemberExistenceCheck",
+      "Style/MultilineInPatternThen",
+      "Style/NumberedParameters",
+      "Style/OneClassPerFile",
+      "Style/OpenStructUse",
+      "Style/OperatorMethodCall",
+      "Style/PartitionInsteadOfDoubleSelect",
+      "Style/RedundantArrayConstructor",
+      "Style/RedundantArrayFlatten",
+      "Style/RedundantAssignment",
+      "Style/RedundantConstantBase",
+      "Style/RedundantCurrentDirectoryInPath",
+      "Style/RedundantDoubleSplatHashBraces",
+      "Style/RedundantEach",
+      "Style/RedundantFetchBlock",
+      "Style/RedundantFileExtensionInRequire",
+      "Style/RedundantFilterChain",
+      "Style/RedundantFormat",
+      "Style/RedundantHeredocDelimiterQuotes",
+      "Style/RedundantInitialize",
+      "Style/RedundantInterpolationUnfreeze",
+      "Style/RedundantLineContinuation",
+      "Style/RedundantMinMaxBy",
+      "Style/RedundantRegexpArgument",
+      "Style/RedundantRegexpConstructor",
+      "Style/RedundantSelfAssignment",
+      "Style/RedundantSelfAssignmentBranch",
+      "Style/RedundantStructKeywordInit",
+      "Style/RequireOrder",
+      "Style/ReverseFind",
+      "Style/SafeNavigationChainLength",
+      "Style/SingleLineDoEndBlock",
+      "Style/SoleNestedConditional",
+      "Style/StaticClass",
+      "Style/MapCompactWithConditionalBlock",
+      "Style/MethodCalledOnDoEndBlock",
+      "Style/MethodDefParentheses",
+      "Style/MinMax",
+      "Style/MissingElse",
+      "Style/MissingRespondToMissing",
+      "Style/MixinGrouping",
+      "Style/MixinUsage",
+      "Style/ModuleFunction",
+      "Style/MultilineBlockChain",
+      "Style/MultilineIfThen",
+      "Style/MultilineIfModifier",
+      "Style/MultilineMethodSignature",
+      "Style/MultilineMemoization",
+      "Style/MultilineTernaryOperator",
+      "Style/MultilineWhenThen",
+      "Style/MultipleComparison",
+      "Style/MutableConstant",
+      "Style/NegatedIf",
+      "Style/NegatedIfElseCondition",
+      "Style/NegatedUnless",
+      "Style/NegatedWhile",
+      "Style/NegativeArrayIndex",
+      "Style/NestedFileDirname",
+      "Style/NestedModifier",
+      "Style/NestedParenthesizedCalls",
+      "Style/NestedTernaryOperator",
+      "Style/Next",
+      "Style/NilComparison",
+      "Style/NilLambda",
+      "Style/NonNilCheck",
+      "Style/Not",
+      "Style/NumberedParametersLimit",
+      "Style/NumericLiterals",
+      "Style/NumericLiteralPrefix",
+      "Style/NumericPredicate",
+      "Style/ObjectThen",
+      "Style/OneLineConditional",
+      "Style/OrAssignment",
+      "Style/OptionHash",
+      "Style/OptionalArguments",
+      "Style/OptionalBooleanParameter",
+      "Style/ParallelAssignment",
+      "Style/ParenthesesAroundCondition",
+      "Style/PercentLiteralDelimiters",
+      "Style/PercentQLiterals",
+      "Style/PerlBackrefs",
+      "Style/PredicateWithKind",
+      "Style/PreferredHashMethods",
+      "Style/Proc",
+      "Style/QuotedSymbols",
+      "Style/RaiseArgs",
+      "Style/RandomWithOffset",
+      "Style/RedundantArgument",
+      "Style/RedundantBegin",
+      "Style/RedundantCapitalW",
+      "Style/RedundantCondition",
+      "Style/RedundantConditional",
+      "Style/RedundantException",
+      "Style/RedundantFreeze",
+      "Style/RedundantInterpolation",
+      "Style/RedundantParentheses",
+      "Style/RedundantPercentQ",
+      "Style/RedundantRegexpCharacterClass",
+      "Style/RedundantRegexpEscape",
+      "Style/RedundantReturn",
+      "Style/RedundantSelf",
+      "Style/RedundantSort",
+      "Style/RedundantSortBy",
+      "Style/RedundantStringEscape",
+      "Style/RegexpLiteral",
+      "Style/RescueModifier",
+      "Style/RescueStandardError",
+      "Style/ReturnNil",
+      "Style/ReturnNilInPredicateMethodDefinition",
+      "Style/SafeNavigation",
+      "Style/Sample",
+      "Style/SelectByKind",
+      "Style/SelectByRange",
+      "Style/SelectByRegexp",
+      "Style/SelfAssignment",
+      "Style/Semicolon",
+      "Style/Send",
+      "Style/SendWithLiteralMethodName",
+      "Style/SignalException",
+      "Style/SingleArgumentDig",
+      "Style/SingleLineBlockParams",
+      "Style/SingleLineMethods",
+      "Style/SlicingWithRange",
+      "Style/SpecialGlobalVars",
+      "Style/StabbyLambdaParentheses",
+      "Style/StderrPuts",
+      "Style/StringChars",
+      "Style/StringConcatenation",
+      "Style/StringHashKeys",
+      "Style/StringLiterals",
+      "Style/StringLiteralsInInterpolation",
+      "Style/StringMethods",
+      "Style/Strip",
+      "Style/StructInheritance",
+      "Style/SuperArguments",
+      "Style/SuperWithArgsParentheses",
+      "Style/SwapValues",
+      "Style/SymbolArray",
+      "Style/SymbolLiteral",
+      "Style/SymbolProc",
+      "Style/TallyMethod",
+      "Style/TernaryParentheses",
+      "Style/TopLevelMethodDefinition",
+      "Style/TrailingBodyOnClass",
+      "Style/TrailingBodyOnMethodDefinition",
+      "Style/TrailingBodyOnModule",
+      "Style/TrailingCommaInArguments",
+      "Style/TrailingCommaInArrayLiteral",
+      "Style/TrailingCommaInBlockArgs",
+      "Style/TrailingCommaInHashLiteral",
+      "Style/TrailingMethodEndStatement",
+      "Style/TrailingUnderscoreVariable",
+      "Style/TrivialAccessors",
+      "Style/UnlessElse",
+      "Style/UnlessLogicalOperators",
+      "Style/UnpackFirst",
+      "Style/VariableInterpolation",
+      "Style/WhenThen",
+      "Style/WhileUntilDo",
+      "Style/WhileUntilModifier",
+      "Style/WordArray",
+      "Style/YAMLFileRead",
+      "Style/YodaCondition",
+      "Style/YodaExpression",
+      "Style/ZeroLengthPredicate"
+    ],
+    "legacy": [
+      "Layout/AlignArguments",
+      "Layout/AlignArray",
+      "Layout/AlignHash",
+      "Layout/AlignParameters",
+      "Layout/IndentArray",
+      "Layout/IndentAssignment",
+      "Layout/IndentFirstArgument",
+      "Layout/IndentFirstArrayElement",
+      "Layout/IndentFirstHashElement",
+      "Layout/IndentFirstParameter",
+      "Layout/IndentHash",
+      "Layout/IndentHeredoc",
+      "Layout/LeadingBlankLines",
+      "Layout/Tab",
+      "Layout/TrailingBlankLines",
+      "Lint/BlockAlignment",
+      "Lint/DefEndAlignment",
+      "Lint/DuplicatedKey",
+      "Lint/EndAlignment",
+      "Lint/EndInMethod",
+      "Lint/Eval",
+      "Lint/HandleExceptions",
+      "Lint/MultipleCompare",
+      "Lint/StringConversionInInterpolation",
+      "Lint/UnneededCopDisableDirective",
+      "Lint/UnneededCopEnableDirective",
+      "Lint/UnneededRequireStatement",
+      "Lint/UnneededSplatExpansion",
+      "Metrics/LineLength",
+      "Naming/PredicateName",
+      "Naming/UncommunicativeBlockParamName",
+      "Naming/UncommunicativeMethodParamName",
+      "Style/AccessorMethodName",
+      "Style/AsciiIdentifiers",
+      "Style/ClassAndModuleCamelCase",
+      "Style/ConstantName",
+      "Style/DeprecatedHashMethods",
+      "Style/FileName",
+      "Style/FlipFlop",
+      "Style/MethodCallParentheses",
+      "Style/MethodName",
+      "Style/OpMethod",
+      "Style/PredicateName",
+      "Style/SingleSpaceBeforeFirstArg",
+      "Style/UnneededCapitalW",
+      "Style/UnneededCondition",
+      "Style/UnneededInterpolation",
+      "Style/UnneededPercentQ",
+      "Style/UnneededSort",
+      "Style/VariableName",
+      "Style/VariableNumber",
+      "Gemspec/DateAssignment",
+      "Layout/SpaceAfterControlKeyword",
+      "Layout/SpaceBeforeModifierKeyword",
+      "Lint/InvalidCharacterLiteral",
+      "Lint/RescueWithoutErrorClass",
+      "Lint/SpaceBeforeFirstArg",
+      "Lint/UselessComparison",
+      "Style/BracesAroundHashParameters",
+      "Style/MethodMissingSuper",
+      "Style/SpaceAfterControlKeyword",
+      "Style/SpaceBeforeModifierKeyword",
+      "Style/TrailingComma",
+      "Style/TrailingCommaInLiteral",
+      "Style/MethodMissing",
+      "Performance/*",
+      "Rails/*"
+    ],
+    "obsoletion_sha256": "d3f52a93b379f33e301e853088a200b9913293b736a4477063b82c25d9f24900"
+  },
+  "cases": [
+    {
+      "id": "full",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "stderr_lf": "",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_false",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a2066616c73650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "wrong_namespace",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nWrong/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+      "stderr_lf": "config.yml: Warning: Wrong/SpaceAroundOperators has the wrong namespace - replace it with Layout/SpaceAroundOperators\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "93a8ae56f4c7523531953656a500274e74e5026c74447bfa78bc54f0232a2bc3",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a57726f6e672f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_snake",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nspace_around_operators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "stderr_lf": "",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a73706163655f61726f756e645f6f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "qualified_snake",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nlayout/space_around_operators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "rejection_envelope",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74206c61796f75742f73706163655f61726f756e645f6f70657261746f727320666f756e6420696e20636f6e6669672e796d6c0d0a44696420796f75206d65616e20604c61796f75742f537061636541726f756e644f70657261746f7273602c20604c61796f75742f537061636541726f756e644b6579776f7264603f0d0a",
+      "stderr_lf": "Error: unrecognized cop or department layout/space_around_operators found in config.yml\nDid you mean `Layout/SpaceAroundOperators`, `Layout/SpaceAroundKeyword`?\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "2ea1ca73bb909522da8a666055d9f584ca4e40b0ec9e7dda6f5f72dadca9a3d4",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a6c61796f75742f73706163655f61726f756e645f6f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "unknown",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nUnknown/Cop:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "rejection_envelope",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e7420556e6b6e6f776e2f436f7020666f756e6420696e20636f6e6669672e796d6c0d0a",
+      "stderr_lf": "Error: unrecognized cop or department Unknown/Cop found in config.yml\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "fc2ba099e2845b6a8d0442db407b42846d7c54471cd31b93bb85dfe1a965c75c",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a556e6b6e6f776e2f436f703a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "unknown_bare",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNoSuchCop:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "known_residual",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74204e6f53756368436f7020666f756e6420696e20636f6e6669672e796d6c0d0a",
+      "stderr_lf": "Error: unrecognized cop or department NoSuchCop found in config.yml\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "50058e1ca689c4cd2bcfa937451e20acd2752180a58296701d93c9e8415c3995",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4e6f53756368436f703a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "obsolete",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMetrics/LineLength:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "rejection_envelope",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604d6574726963732f4c696e654c656e6774686020636f7020686173206265656e206d6f76656420746f20604c61796f75742f4c696e654c656e677468602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "stderr_lf": "Error: The `Metrics/LineLength` cop has been moved to `Layout/LineLength`.\n(obsolete configuration found in config.yml, please update it)\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "3075580d08011b52646904c3352b64ac3f6eae980f1bd00095d22933dce73a8f",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d6574726963732f4c696e654c656e6774683a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "ambiguous_multiple",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "ambiguity_body",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c6377643e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for MultipleComparison.\nError: Ambiguous cop name `MultipleComparison` used in <cwd>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "ede875522ec66f6b0f3542b690ea34db5efaab18f0c841d00a2b5a4c14139176",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "ambiguous_wrong",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nWrong/MultipleComparison:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "ambiguity_body",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20416d626967756f757320636f70206e616d65206057726f6e672f4d756c7469706c65436f6d70617269736f6e60207573656420696e203c6377643e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "stderr_lf": "Error: Ambiguous cop name `Wrong/MultipleComparison` used in <cwd>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "051b879c99390f7060c2e3b553a0aa1cc0d80130719be0eff80c16a96b79c900",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a57726f6e672f4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "ambiguous_self",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSelfAssignment:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "ambiguity_body",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f722053656c6641737369676e6d656e742e0d0a4572726f723a20416d626967756f757320636f70206e616d65206053656c6641737369676e6d656e7460207573656420696e203c6377643e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f53656c6641737369676e6d656e74206f72205374796c652f53656c6641737369676e6d656e743f0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SelfAssignment.\nError: Ambiguous cop name `SelfAssignment` used in <cwd>/config.yml needs department qualifier. Did you mean Lint/SelfAssignment or Style/SelfAssignment?\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "56b34bb0bb85861ea6596d39e76e2702d76ef26e6dc998a1fa8b22e285a753de",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a53656c6641737369676e6d656e743a0a2020456e61626c65643a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "ambiguous_full",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/MultipleComparison:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "stderr_lf": "",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c696e742f4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "ruby_extension",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.rb": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.rb",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e72623a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e2052756e20607275626f636f70202d61202d2d6f6e6c79204d6967726174696f6e2f4465706172746d656e744e616d656020746f206669782e0d0a",
+      "stderr_lf": "config.rb: Warning: no department given for SpaceAroundOperators. Run `rubocop -a --only Migration/DepartmentName` to fix.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "f79b0b558ace98bf3f806fdddba2ad9f2f425f9abaa4b2ecc90d5150d64991dc",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.rb": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_parameter",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "b64e042408f4820a6b1a11ae5c9d7d6c0781b7f2d2548bc6c2594478f660e4f3",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "wrong_parameter",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nWrong/SpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "config.yml: Warning: Wrong/SpaceAroundOperators has the wrong namespace - replace it with Layout/SpaceAroundOperators\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "5bf8af9da64caafb29203f1aaabdbb4d89027aabb1b3a5a32ad06fd5ee66347d",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a57726f6e672f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "initial_color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a1b5b33336d5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a1b5b306d0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "41303df69dafa3e6fab0eb49ffad1a5f31a86dc205b76e2e136e794a110c1fc9",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "explicit_color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--color",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "b64e042408f4820a6b1a11ae5c9d7d6c0781b7f2d2548bc6c2594478f660e4f3",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "collision_short_first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: false\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a2066616c73650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "collision_full_first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nSpaceAroundOperators:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a2066616c73650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "collision_short_no_enabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nSpaceAroundOperators:\n  Severity: warning\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "bfe41b6f3cddb9a893e0b6ce24facd1c5b33c57b471ce901177c43db9f55d930",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "collision_full_no_enabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nLayout/SpaceAroundOperators:\n  Severity: warning\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "order_existing_target",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  FirstWrong: true\nStyle/StringLiterals:\n  Enabled: false\n  MiddleWrong: true\nLayout/SpaceAroundOperators:\n  Enabled: false\n  LastWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a205374796c652f537472696e674c69746572616c7320646f6573206e6f7420737570706f7274204d6964646c6557726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20456e666f726365645374796c650d0a20202d20537570706f727465645374796c65730d0a20202d20436f6e73697374656e7451756f746573496e4d756c74696c696e650d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f727420466972737457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Style/StringLiterals does not support MiddleWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n  - ConsistentQuotesInMultiline\nWarning: Layout/SpaceAroundOperators does not support FirstWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "4f8edd5ce01b9dc5c3d5601aa5fcdf7a474b18bfd1b883e2cd8adc96c4676440",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020466972737457726f6e673a20747275650a5374796c652f537472696e674c69746572616c733a0a2020456e61626c65643a2066616c73650a20204d6964646c6557726f6e673a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a2066616c73650a20204c61737457726f6e673a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "order_new_target",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  FirstWrong: true\nStyle/StringLiterals:\n  Enabled: false\n  MiddleWrong: true\nLint/Debugger:\n  Enabled: false\n  LastWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a205374796c652f537472696e674c69746572616c7320646f6573206e6f7420737570706f7274204d6964646c6557726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20456e666f726365645374796c650d0a20202d20537570706f727465645374796c65730d0a20202d20436f6e73697374656e7451756f746573496e4d756c74696c696e650d0a5761726e696e673a204c696e742f446562756767657220646f6573206e6f7420737570706f7274204c61737457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d2044656275676765724d6574686f64730d0a20202d20446562756767657252657175697265730d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f727420466972737457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Style/StringLiterals does not support MiddleWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n  - ConsistentQuotesInMultiline\nWarning: Lint/Debugger does not support LastWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - DebuggerMethods\n  - DebuggerRequires\nWarning: Layout/SpaceAroundOperators does not support FirstWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "352ffa31c6b17aaa5b3efc307af7c780e4ae4006ceca1d2d3dfba1fd870a65ce",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020466972737457726f6e673a20747275650a5374796c652f537472696e674c69746572616c733a0a2020456e61626c65643a2066616c73650a20204d6964646c6557726f6e673a20747275650a4c696e742f44656275676765723a0a2020456e61626c65643a2066616c73650a20204c61737457726f6e673a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "two_short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\nStringLiterals:\n  Enabled: false\n  AnotherWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537472696e674c69746572616c732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a5761726e696e673a205374796c652f537472696e674c69746572616c7320646f6573206e6f7420737570706f727420416e6f7468657257726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20456e666f726365645374796c650d0a20202d20537570706f727465645374796c65730d0a20202d20436f6e73697374656e7451756f746573496e4d756c74696c696e650d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\nconfig.yml: Warning: no department given for StringLiterals.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Style/StringLiterals does not support AnotherWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n  - ConsistentQuotesInMultiline\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "0f2b4d7add11774a8124f2b5fcbd69d159e338c758fb981a00cf8e9abeb033a7",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a537472696e674c69746572616c733a0a2020456e61626c65643a2066616c73650a2020416e6f7468657257726f6e673a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_short_child_full",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x = 2**3\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nLayout/SpaceAroundOperators:\n  Severity: warning\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  EnforcedStyleForExponentOperator: space\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220602a2a602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a362c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a372c226c656e677468223a322c226c696e65223a312c22636f6c756d6e223a367d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "626173652e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "9f6dc0b05bc5fb63e20787edd924a0228d2bbab8632946614a71c2ad66638246",
+      "raw_stderr_sha256": "429c6736ada8636d644e9fe93fb925d7f617bfa78081901eb260824339ee3d9d",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20322a2a330a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020456e666f726365645374796c65466f724578706f6e656e744f70657261746f723a2073706163650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Surrounding space missing for operator `**`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 6,
+                  "last_line": 1,
+                  "last_column": 7,
+                  "length": 2,
+                  "line": 1,
+                  "column": 6
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_full_child_short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x = 2**3\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nSpaceAroundOperators:\n  Severity: warning\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  EnforcedStyleForExponentOperator: space\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20322a2a330a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020456e666f726365645374796c65466f724578706f6e656e744f70657261746f723a2073706163650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_short_child_short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x = 2**3\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nSpaceAroundOperators:\n  Enabled: false\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  EnforcedStyleForExponentOperator: space\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "626173652e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\nconfig.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "2672e6a6a94e9141f3d82a66f25fa02553ca90b504202c86d8c0d7649a6fa5b8",
+      "raw_stderr_sha256": "c2113442348033efa9c08802f4f57b4783acac74720c2ee7a89418ae5fffecad",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20322a2a330a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a2066616c73650a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020456e666f726365645374796c65466f724578706f6e656e744f70657261746f723a2073706163650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_wrong_child_full",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nLayout/SpaceAroundOperators:\n  Severity: warning\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nWrong/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a227761726e696e67222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "626173652e796d6c3a205761726e696e673a2057726f6e672f537061636541726f756e644f70657261746f727320686173207468652077726f6e67206e616d657370616365202d207265706c6163652069742077697468204c61796f75742f537061636541726f756e644f70657261746f72730d0a",
+      "stderr_lf": "base.yml: Warning: Wrong/SpaceAroundOperators has the wrong namespace - replace it with Layout/SpaceAroundOperators\n",
+      "raw_stdout_sha256": "bfe41b6f3cddb9a893e0b6ce24facd1c5b33c57b471ce901177c43db9f55d930",
+      "raw_stderr_sha256": "66f913ca2f9d8c1a61e292e66b2bcdd119817df2bec6c05f1d2553c74112aa8b",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202053657665726974793a207761726e696e670a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a57726f6e672f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "warning",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "diamond",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: [left.yml, right.yml]\n",
+        "leaf.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n",
+        "left.yml": "inherit_from: leaf.yml\n",
+        "right.yml": "inherit_from: leaf.yml\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "6c6561662e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a6c6561662e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "leaf.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nleaf.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "2e43a8e6b9d1324c6ce7b7a36c94190843a3140cf7cf5018e5222ebaf3dbc47c",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a205b6c6566742e796d6c2c2072696768742e796d6c5d0a",
+        "leaf.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a",
+        "left.yml": "696e68657269745f66726f6d3a206c6561662e796d6c0a",
+        "right.yml": "696e68657269745f66726f6d3a206c6561662e796d6c0a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_parameter_child_short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nSpaceAroundOperators:\n  Enabled: true\n  ChildWrong: true\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "626173652e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f72742057726f6e674b657920706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f7274204368696c6457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nconfig.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support ChildWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "462d400ae656415fb2a4c75378a0ecdcb6341226654e4c27b048bd089c6ab443",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a20204368696c6457726f6e673a20747275650a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202057726f6e674b65793a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_safe",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-a",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "5a3ca978ca2966c2aeae2261a3dc714617a58759e79c09622d68d7f75c98fbf3",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_unsafe",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-A",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "5a3ca978ca2966c2aeae2261a3dc714617a58759e79c09622d68d7f75c98fbf3",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "full_safe",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-a",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "stderr_lf": "",
+      "raw_stdout_sha256": "5a3ca978ca2966c2aeae2261a3dc714617a58759e79c09622d68d7f75c98fbf3",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "78203d20310d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": true,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "short_stdin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "discovered_1",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "a.rb": "x=1\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nSpaceAroundOperators:\n  Enabled: true\n",
+        "nested/b.rb": "y=2\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb",
+        "nested/b.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb",
+        "nested/b.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a226e65737465642f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+      "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "nested/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "4b14fda6166318ee7cdf01727eea5cce595b165f06e5c0b71e328e0f5aef120c",
+      "raw_stderr_sha256": "468837f2dba970ccdb6b5a471ce568b67c4cb1a170de5eba0981fa87864064a7",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a",
+        "a.rb": "783d310a",
+        "nested/.rubocop.yml": "696e68657269745f66726f6d3a202e2e2f2e7275626f636f702e796d6c0a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+        "nested/b.rb": "793d320a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          },
+          {
+            "path": "nested/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 2,
+          "inspected_file_count": 2
+        }
+      }
+    },
+    {
+      "id": "discovered_2",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "a.rb": "x=1\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nSpaceAroundOperators:\n  Enabled: true\n",
+        "nested/b.rb": "y=2\n",
+        "nested/c.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb",
+        "nested/b.rb",
+        "nested/c.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb",
+        "nested/b.rb",
+        "nested/c.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a226e65737465642f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a226e65737465642f632e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a337d7d",
+      "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "nested/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "3e63554aeaf40e842515ccdb1cc013043f46c9f0608ef01410e0ea1b6e2d6a41",
+      "raw_stderr_sha256": "468837f2dba970ccdb6b5a471ce568b67c4cb1a170de5eba0981fa87864064a7",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a",
+        "a.rb": "783d310a",
+        "nested/.rubocop.yml": "696e68657269745f66726f6d3a202e2e2f2e7275626f636f702e796d6c0a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+        "nested/b.rb": "793d320a",
+        "nested/c.rb": "7a3d330a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          },
+          {
+            "path": "nested/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          },
+          {
+            "path": "nested/c.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 2,
+          "target_file_count": 3,
+          "inspected_file_count": 3
+        }
+      }
+    },
+    {
+      "id": "department_disabled_short_enabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout:\n  Enabled: false\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75743a0a2020456e61626c65643a2066616c73650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "department_disabled_short_inherited",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nLayout:\n  Enabled: false\nSpaceAroundOperators:\n  Enabled: true\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  ParentWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f727420506172656e7457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": "Warning: Layout/SpaceAroundOperators does not support ParentWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nconfig.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "fabb66c0900a2e17e7a050f5736a1aa9b3d33bfa853e5b2864fca234eefdd01c",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a4c61796f75743a0a2020456e61626c65643a2066616c73650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020506172656e7457726f6e673a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "parent_department_disabled_child_short",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nSpaceAroundOperators:\n  Enabled: true\n  ChildWrong: true\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout:\n  Enabled: false\nLayout/SpaceAroundOperators:\n  Enabled: true\n  ParentWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f727420506172656e7457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f7274204368696c6457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a",
+      "stderr_lf": "Warning: Layout/SpaceAroundOperators does not support ParentWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nconfig.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support ChildWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+      "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+      "raw_stderr_sha256": "aeca3b7dd3d0fbc4cf22e943871bed043fe23e56a578cfc48b7cdf92ae1f321e",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a20204368696c6457726f6e673a20747275650a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75743a0a2020456e61626c65643a2066616c73650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020506172656e7457726f6e673a20747275650a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "inherited_namespace_prefix_before_ambiguity",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\nStringLiterals:\n  Enabled: false\nMultipleComparison:\n  Enabled: true\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  ParentWrong: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "ambiguity_body",
+      "targets": [
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "626173652e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a5761726e696e673a204c61796f75742f537061636541726f756e644f70657261746f727320646f6573206e6f7420737570706f727420506172656e7457726f6e6720706172616d657465722e0d0a0d0a537570706f7274656420706172616d6574657273206172653a0d0a0d0a20202d20456e61626c65640d0a20202d20416c6c6f77466f72416c69676e6d656e740d0a20202d20456e666f726365645374796c65466f724578706f6e656e744f70657261746f720d0a20202d20537570706f727465645374796c6573466f724578706f6e656e744f70657261746f720d0a20202d20456e666f726365645374796c65466f72526174696f6e616c4c69746572616c730d0a20202d20537570706f727465645374796c6573466f72526174696f6e616c4c69746572616c730d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537472696e674c69746572616c732e0d0a636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c6377643e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\nWarning: Layout/SpaceAroundOperators does not support ParentWrong parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nconfig.yml: Warning: no department given for StringLiterals.\nconfig.yml: Warning: no department given for MultipleComparison.\nError: Ambiguous cop name `MultipleComparison` used in <cwd>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\n",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stderr_sha256": "3d2cfab90066473fafc5b75929a9fdee497d4f95840e98012197b55f87ebeab4",
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20626173652e796d6c0a537472696e674c69746572616c733a0a2020456e61626c65643a2066616c73650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "base.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020506172656e7457726f6e673a20747275650a"
+      },
+      "report": null
+    },
+    {
+      "id": "parent_exclude_namespace_reload",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nStringLiterals:\n  Enabled: false\n",
+        "nested/b.rb": "y=2\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/b.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "coverage": "json",
+      "targets": [
+        "nested/b.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a226e65737465642f622e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537472696e674c69746572616c732e0d0a2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a",
+      "stderr_lf": ".rubocop.yml: Warning: no department given for SpaceAroundOperators.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\nnested/.rubocop.yml: Warning: no department given for StringLiterals.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+      "raw_stdout_sha256": "a7ec0e79bb42d00cfc57b2bf6848ce690571cb5068ff20171d259b12fb7380b3",
+      "raw_stderr_sha256": "462f5cc79696aadb386cc3f03e22e16e574be7b10a40f266e838970bb9430d70",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+        "nested/.rubocop.yml": "696e68657269745f66726f6d3a202e2e2f2e7275626f636f702e796d6c0a537472696e674c69746572616c733a0a2020456e61626c65643a2066616c73650a",
+        "nested/b.rb": "793d320a"
+      },
+      "report": {
+        "files": [
+          {
+            "path": "nested/b.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Surrounding space missing for operator `=`.",
+                "cop_name": "Layout/SpaceAroundOperators",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 1,
+                  "start_column": 2,
+                  "last_line": 1,
+                  "last_column": 2,
+                  "length": 1,
+                  "line": 1,
+                  "column": 2
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    }
+  ]
+}

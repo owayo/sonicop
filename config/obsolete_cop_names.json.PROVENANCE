@@ -1,0 +1,9 @@
+RuboCop 1.89.0 ConfigObsoletion#legacy_cop_namesの実API出力（67名、2026-10-28）。
+ConfigLoader#add_missing_namespacesが先に除外する集合。pattern展開せずStringの完全一致を使う。
+生成元: scripts/conformance/record_config_cop_namespaces.py
+再生成: 同scriptに --ruby <ruby-4.0.7> --work <fresh-dir> --out <fixture.json> --legacy-out <new-legacy.json> を渡す。
+Ruby 4.0.7 / Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+Ruby注入ENV4だけを子copyから除きGEM/PATH/OSを保持する。既存entryとdangling symlinkは上書きしない。
+RuboCop config/obsoletion.yml SHA256: d3f52a93b379f33e301e853088a200b9913293b736a4477063b82c25d9f24900
+data SHA256: bca0c4e2704864dcf5e9d2c3fefe8cf63273511f3f790e3ad9b687269b2de774
+collector SHA256: 4676b3f119d8300735e54b700f704903ad5b7e035e2229aed322c22bf3e1ceeb

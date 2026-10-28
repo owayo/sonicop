@@ -1,5 +1,6 @@
 mod inheritance;
 mod loader;
+mod namespaces;
 mod paths;
 mod plugin;
 mod store;
@@ -21,13 +22,13 @@ use crate::ruby_version::{
 };
 
 use inheritance::{load_recorded, merge_config};
-use loader::{find_config, path_parameter_base_directory};
+use loader::{absolute_config_origin, find_config_with_origin, path_parameter_base_directory};
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub use store::ConfigStore;
-pub(crate) use validation::ConfigWarnings;
 use validation::ValidationBundle;
+pub(crate) use validation::{ConfigWarning, ConfigWarnings};
 
 const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 
@@ -126,20 +127,24 @@ impl Config {
         let default: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)
             .context("embedded RuboCop default configuration is invalid")?;
         let mut known_cops = cop_names(&default);
-        let config_path = if force_default {
+        let location = if force_default {
             None
         } else {
             match explicit {
-                Some(path) => Some(fs::canonicalize(path).with_context(|| {
-                    format!("configuration file not found: {}", path.display())
-                })?),
-                None => find_config(cwd),
+                Some(path) => Some((
+                    fs::canonicalize(path).with_context(|| {
+                        format!("configuration file not found: {}", path.display())
+                    })?,
+                    absolute_config_origin(path)?,
+                )),
+                None => find_config_with_origin(cwd),
             }
         };
+        let config_path = location.as_ref().map(|(path, _)| path.clone());
 
         let mut validation = Arc::new(ValidationBundle::default());
-        let (raw, user, unrecognized_cops) = if let Some(path) = &config_path {
-            let loaded = match load_recorded(path, &mut HashSet::new()) {
+        let (raw, user, unrecognized_cops) = if let Some((_, origin)) = &location {
+            let loaded = match load_recorded(origin, &mut HashSet::new()) {
                 Ok(loaded) => loaded,
                 Err(failure) => {
                     if let Some(warnings) = warnings {
@@ -239,7 +244,8 @@ impl Config {
         let Some(path) = self.config_path() else {
             return Ok(());
         };
-        let Some(parent) = loader::parent_exclusion_config(path, self.cwd()) else {
+        let origin = self.validation.origin.as_deref().unwrap_or(path);
+        let Some(parent) = loader::parent_exclusion_config(path, origin, self.cwd()) else {
             return Ok(());
         };
         if let Some(trace) = self
@@ -271,6 +277,10 @@ impl Config {
     /// accumulating in one ever-growing index.
     pub(crate) fn path_base(&self) -> &Path {
         &self.path_base
+    }
+
+    pub(super) fn config_origin(&self) -> Option<&Path> {
+        self.validation.origin.as_deref()
     }
 
     pub fn config_path(&self) -> Option<&Path> {

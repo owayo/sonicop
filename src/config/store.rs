@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Result, bail};
 
-use super::loader::find_config;
+use super::loader::find_config_with_origin;
 use super::{Config, ConfigWarnings};
 
 type ConfigCache = Mutex<HashMap<PathBuf, Arc<Config>>>;
@@ -39,7 +39,7 @@ impl ConfigStore {
         self.observed
             .get_mut()
             .expect("未使用の観測 lock は正常である")
-            .insert(self.root.config_path().map(Path::to_path_buf));
+            .insert(self.root.config_origin().map(Path::to_path_buf));
         self.warnings = Some(warnings);
         self
     }
@@ -47,7 +47,7 @@ impl ConfigStore {
     pub(crate) fn for_path_observed(&self, path: &Path) -> Result<Arc<Config>> {
         let config = self.for_path(path)?;
         if let Some(warnings) = &self.warnings {
-            let key = config.config_path().map(Path::to_path_buf);
+            let key = config.config_origin().map(Path::to_path_buf);
             let mut observed = self
                 .observed
                 .lock()
@@ -90,12 +90,17 @@ impl ConfigStore {
             return Ok(config);
         }
 
-        let discovered = find_config(start);
-        let config = if discovered.as_deref() == self.root.config_path() {
+        let location = find_config_with_origin(start);
+        let discovered = location.as_ref().map(|(path, _)| path.clone());
+        let origin = location.as_ref().map(|(_, origin)| origin.as_path());
+        let config = if discovered.as_deref() == self.root.config_path()
+            && origin == self.root.config_origin()
+        {
             Arc::clone(&self.root)
         } else {
-            let key = discovered
-                .clone()
+            // 同じcanonical設定でも、ConfigFinderのoriginが異なれば本家は再読込する。
+            let key = origin
+                .map(Path::to_path_buf)
                 .unwrap_or_else(|| fs::canonicalize(start).unwrap_or_else(|_| start.to_path_buf()));
             match cached(&self.cache, &key)? {
                 Some(config) => config,
@@ -103,17 +108,13 @@ impl ConfigStore {
                     // 探索の始点と診断のパス表示の基準を分ける。後者は常に実行時の cwd。
                     let config = Arc::new(if let Some(warnings) = &self.warnings {
                         Config::load_deferred(
-                            discovered.as_deref(),
+                            origin,
                             self.root.cwd(),
                             discovered.is_none(),
                             warnings,
                         )?
                     } else {
-                        Config::load_with_options(
-                            discovered.as_deref(),
-                            self.root.cwd(),
-                            discovered.is_none(),
-                        )?
+                        Config::load_with_options(origin, self.root.cwd(), discovered.is_none())?
                     });
                     if !self.ignore_unrecognized && !config.unrecognized_cop_names().is_empty() {
                         // 失敗する snapshot より前の継承警告だけを残す。成功時の先読みは無出力。

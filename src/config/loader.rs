@@ -2,14 +2,53 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(super) fn find_config(start: &Path) -> Option<PathBuf> {
+/// File.absolute_pathの親の短縮名・symlink表記を保ち、Windowsでは末尾の実名だけを戻す。
+pub(super) fn absolute_config_origin(path: &Path) -> std::io::Result<PathBuf> {
+    let full = crate::formatter::absolute_path(path, &std::env::current_dir()?);
+    let full = if let Some(unc) = full.strip_prefix("//?/UNC/") {
+        format!("//{unc}")
+    } else {
+        full.strip_prefix("//?/").unwrap_or(&full).to_owned()
+    };
+    let full = PathBuf::from(full);
+    #[cfg(windows)]
+    let full = expand_existing_basename(full);
+    Ok(full)
+}
+
+#[cfg(windows)]
+fn expand_existing_basename(mut path: PathBuf) -> PathBuf {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
+    use windows_sys::Win32::Storage::FileSystem::GetLongPathNameW;
+
+    let input: Vec<_> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut output = vec![0; 32_768];
+    let length =
+        unsafe { GetLongPathNameW(input.as_ptr(), output.as_mut_ptr(), output.len() as u32) };
+    if length > 0 && length < output.len() as u32 {
+        let expanded = PathBuf::from(OsString::from_wide(&output[..length as usize]));
+        if let Some(name) = expanded.file_name() {
+            // WindowsのFile.absolute_path/expand_pathは末尾だけ実名へ戻し、親の8.3名を保つ。
+            path.set_file_name(name);
+        }
+    }
+    path
+}
+
+pub(super) fn find_config_with_origin(start: &Path) -> Option<(PathBuf, PathBuf)> {
+    let origin = absolute_config_origin(start).ok()?;
     let start = fs::canonicalize(start).unwrap_or_else(|_| start.to_path_buf());
     let project_root = find_project_root(&start);
 
-    for directory in start.ancestors() {
+    for (depth, directory) in start.ancestors().enumerate() {
         let candidate = directory.join(".rubocop.yml");
         if candidate.is_file() {
-            return fs::canonicalize(candidate).ok();
+            let spelling = origin
+                .ancestors()
+                .nth(depth)
+                .map(|path| path.join(".rubocop.yml"));
+            return config_location(&candidate, spelling.as_deref());
         }
         // `break if dir == stop_dir || dir == FileFinder.root_level`
         //
@@ -32,7 +71,13 @@ pub(super) fn find_config(start: &Path) -> Option<PathBuf> {
             root.join(".config/rubocop/config.yml"),
         ] {
             if candidate.is_file() {
-                return fs::canonicalize(candidate).ok();
+                let depth = start.ancestors().position(|directory| directory == root)?;
+                let relative = candidate.strip_prefix(&root).ok()?;
+                let spelling = origin
+                    .ancestors()
+                    .nth(depth)
+                    .map(|path| path.join(relative));
+                return config_location(&candidate, spelling.as_deref());
             }
         }
     }
@@ -41,7 +86,7 @@ pub(super) fn find_config(start: &Path) -> Option<PathBuf> {
     if let Some(candidate) = home.as_ref().map(|home| home.join(".rubocop.yml"))
         && candidate.is_file()
     {
-        return fs::canonicalize(candidate).ok();
+        return config_location(&candidate, Some(&candidate));
     }
     let xdg = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
@@ -49,9 +94,18 @@ pub(super) fn find_config(start: &Path) -> Option<PathBuf> {
     if let Some(candidate) = xdg.map(|root| root.join("rubocop/config.yml"))
         && candidate.is_file()
     {
-        return fs::canonicalize(candidate).ok();
+        return config_location(&candidate, Some(&candidate));
     }
     None
+}
+
+/// 選択する設定は従来のcanonical探索で決め、同じfileを指す入力表記だけを表示用に残す。
+fn config_location(path: &Path, origin: Option<&Path>) -> Option<(PathBuf, PathBuf)> {
+    let canonical = fs::canonicalize(path).ok()?;
+    let origin = origin
+        .filter(|origin| fs::canonicalize(origin).is_ok_and(|path| path == canonical))
+        .unwrap_or(&canonical);
+    Some((canonical.clone(), absolute_config_origin(origin).ok()?))
 }
 
 fn home_directory() -> Option<PathBuf> {
@@ -124,20 +178,30 @@ pub(super) fn find_project_root(start: &Path) -> Option<PathBuf> {
 }
 
 /// add_excludes_from_files は最寄りではなく、起動時の境界までで最後の dotfile を読む。
-pub(super) fn parent_exclusion_config(config_path: &Path, cwd: &Path) -> Option<PathBuf> {
+pub(super) fn parent_exclusion_config(
+    config_path: &Path,
+    origin: &Path,
+    cwd: &Path,
+) -> Option<PathBuf> {
     let cwd = fs::canonicalize(cwd).unwrap_or_else(|_| cwd.to_path_buf());
     let boundary = find_project_root(&cwd);
     let mut last = None;
-    for directory in config_path.parent()?.ancestors() {
+    for (depth, directory) in config_path.parent()?.ancestors().enumerate() {
         let candidate = directory.join(".rubocop.yml");
         if candidate.is_file() {
-            last = fs::canonicalize(candidate).ok();
+            let spelling = origin
+                .parent()?
+                .ancestors()
+                .nth(depth)
+                .map(|path| path.join(".rubocop.yml"));
+            last = config_location(&candidate, spelling.as_deref());
         }
         if boundary.as_deref() == Some(directory) {
             break;
         }
     }
-    last.filter(|path| path != config_path)
+    last.filter(|(path, _)| path != config_path)
+        .map(|(_, origin)| origin)
 }
 
 #[cfg(test)]

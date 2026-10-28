@@ -1,0 +1,1093 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "rubocop": "1.89.0",
+    "platform": "x64-mingw-ucrt"
+  },
+  "long_filename": "long-configuration-name-to-measure.yml",
+  "groups": [
+    {
+      "id": "explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "inherit_from: base.yml\n",
+        "aliases_short_long.yml": "inherit_from: [\"<short>\\\\base.yml\", \"<long>\\\\base.yml\"]\n",
+        "aliases_long_short.yml": "inherit_from: [\"<long>\\\\base.yml\", \"<short>\\\\base.yml\"]\n",
+        "long-configuration-name-to-measure.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "cases": [
+        {
+          "id": "long_relative",
+          "cwd": "<long>",
+          "args": [
+            "--config",
+            "config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05"
+        },
+        {
+          "id": "short_relative",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05"
+        },
+        {
+          "id": "long_absolute_long",
+          "cwd": "<long>",
+          "args": [
+            "--config",
+            "<long>\\config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05"
+        },
+        {
+          "id": "short_absolute_short",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<short>\\config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05"
+        },
+        {
+          "id": "short_absolute_long",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<long>\\config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<long>/config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "d6b50077c4ad4dfafa90bf7c0d0527e8f0d16a6e9b38f46ca683335f48e776c8"
+        },
+        {
+          "id": "long_absolute_short",
+          "cwd": "<long>",
+          "args": [
+            "--config",
+            "<short>\\config.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<short>/config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "34c397d7ec51065711f4c781e06b17b0265462698f64123bb70d59a1d6b06b82"
+        },
+        {
+          "id": "short_relative_inherit",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "inherits.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "429c6736ada8636d644e9fe93fb925d7f617bfa78081901eb260824339ee3d9d"
+        },
+        {
+          "id": "short_absolute_long_inherit",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<long>\\inherits.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<long>/base.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "25ab8975b299cc17cd5d80a529bd0b8f78594076abdb99d3dce6cb961a19260b"
+        },
+        {
+          "id": "short_relative_ambiguous",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "ambiguous.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 2,
+          "report": null,
+          "stderr_lf": "ambiguous.yml: Warning: no department given for MultipleComparison.\nError: Ambiguous cop name `MultipleComparison` used in <short>/ambiguous.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\n",
+          "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "raw_stderr_sha256": "c97443bd01e87a64a42e1203b7055ce76963c2436450c5772b5ac7cca2c55ca5"
+        },
+        {
+          "id": "short_absolute_long_ambiguous",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<long>\\ambiguous.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 2,
+          "report": null,
+          "stderr_lf": "<long>/ambiguous.yml: Warning: no department given for MultipleComparison.\nError: Ambiguous cop name `MultipleComparison` used in <long>/ambiguous.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\n",
+          "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "raw_stderr_sha256": "54bae673c9929f20228ef6171c3b27aa8d8703e8c894c15d9d96be32224e61ca"
+        },
+        {
+          "id": "aliases_short_long",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "aliases_short_long.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "base.yml: Warning: no department given for SpaceAroundOperators.\n<long>/base.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "e473575856cf6f6267ed04927c257a6f0f9f3af633f57e80ec60100ab8cd01b9"
+        },
+        {
+          "id": "aliases_long_short",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "aliases_long_short.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<long>/base.yml: Warning: no department given for SpaceAroundOperators.\nbase.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "9a76b0485cc908c0402c6cfbee5622ccf9cacffcb83b4006b00e079859c3a3f0"
+        },
+        {
+          "id": "uppercase_filename",
+          "cwd": "<long>",
+          "args": [
+            "--config",
+            "CONFIG.YML",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "config.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "06afc64bcb7e150111f9c092496c2632eaa034b5497d3e95904291acb2438a05"
+        },
+        {
+          "id": "short_filename",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<short_file>",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "long-configuration-name-to-measure.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "bc685587da6cbb1dca6ff8a5e348def686cd4d2344b2a8631cecba8bcaa0862a"
+        }
+      ]
+    },
+    {
+      "id": "discovery",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "nested/.rubocop.yml": "inherit_from: ../.rubocop.yml\nStringLiterals:\n  Enabled: false\n",
+        "nested/b.rb": "y=2\n",
+        "a.rb": "x=1\n"
+      },
+      "cases": [
+        {
+          "id": "discovery_long_relative",
+          "cwd": "<long>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "nested/b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": ".rubocop.yml: Warning: no department given for SpaceAroundOperators.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\nnested/.rubocop.yml: Warning: no department given for StringLiterals.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "a7ec0e79bb42d00cfc57b2bf6848ce690571cb5068ff20171d259b12fb7380b3",
+          "raw_stderr_sha256": "462f5cc79696aadb386cc3f03e22e16e574be7b10a40f266e838970bb9430d70"
+        },
+        {
+          "id": "discovery_short_relative",
+          "cwd": "<short>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "nested/b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<hybrid>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\nnested/.rubocop.yml: Warning: no department given for StringLiterals.\n.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "a7ec0e79bb42d00cfc57b2bf6848ce690571cb5068ff20171d259b12fb7380b3",
+          "raw_stderr_sha256": "180cfa098d94032f3b8230fa8355df1c336a27269368d6a8ff2afb76be9fd0af"
+        },
+        {
+          "id": "discovery_short_target_long",
+          "cwd": "<short>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "<long>\\nested\\b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "<long>/nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<hybrid>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<long>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<long>/nested/.rubocop.yml: Warning: no department given for StringLiterals.\n<long>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "7d8bf89eedb5c5034b95f6440368d57d9cb285c33fde65446dc14c68f15d7b86",
+          "raw_stderr_sha256": "d4d9072061e59fcb6801e813060d45d378fe8355e2e9e768c2294f7da69aad8e"
+        },
+        {
+          "id": "discovery_long_target_short",
+          "cwd": "<long>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "<short>\\nested\\b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "<short>/nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": ".rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<short>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<short>/nested/.rubocop.yml: Warning: no department given for StringLiterals.\n<short>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "6b7b6a465281de0e11f1d50b0fd3a1e0c245778250b1fe308f771b5a06b3390e",
+          "raw_stderr_sha256": "eaa4a9bdc6f77a77d5b60226f9e0ccbab9b06d709e9d62ebec5e237e81125bb0"
+        },
+        {
+          "id": "explicit_short_long",
+          "cwd": "<short>",
+          "args": [
+            "--config",
+            "<long>\\nested\\.rubocop.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "nested/b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<long>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<long>/nested/.rubocop.yml: Warning: no department given for StringLiterals.\n",
+          "raw_stdout_sha256": "a7ec0e79bb42d00cfc57b2bf6848ce690571cb5068ff20171d259b12fb7380b3",
+          "raw_stderr_sha256": "b844dd66e45c414583a6df4e51ac19cdd83def074fb2223dbd931a017327b459"
+        },
+        {
+          "id": "explicit_long_short",
+          "cwd": "<long>",
+          "args": [
+            "--config",
+            "<short>\\nested\\.rubocop.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "nested/b.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "nested/b.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<short>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<short>/nested/.rubocop.yml: Warning: no department given for StringLiterals.\n",
+          "raw_stdout_sha256": "a7ec0e79bb42d00cfc57b2bf6848ce690571cb5068ff20171d259b12fb7380b3",
+          "raw_stderr_sha256": "61db86ad4860c0049175cb8d6cdaba2317a14a9e6de736a6383a9dfa7239f9d0"
+        },
+        {
+          "id": "root_long_relative",
+          "cwd": "<long>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": ".rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "e993a77cd4f3a7f85a5826aa9842410b37cbb1ecc84c93b5c0995abb94009606"
+        },
+        {
+          "id": "root_short_relative",
+          "cwd": "<short>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<hybrid>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "c84b156a816159926a3e20679506ffc5c1a8ba86419a7a7f60ad7d5404fe938d",
+          "raw_stderr_sha256": "eb494eb8ada7bfa2969a5eaf766fdae4c6a44886e4b8bbe8bd9926491b17bc1e"
+        },
+        {
+          "id": "root_short_target_long",
+          "cwd": "<short>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "<long>\\a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "<long>/a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": "<hybrid>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<long>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "38b3285de772970299ddba5a5779651b038c5888ce74d2319c64161cb7490118",
+          "raw_stderr_sha256": "38bc9dc89720e5f0bc72270df6c5d538139de191ede74b476266b2960508c65b"
+        },
+        {
+          "id": "root_long_target_short",
+          "cwd": "<long>",
+          "args": [
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "<short>\\a.rb"
+          ],
+          "exit": 1,
+          "report": {
+            "files": [
+              {
+                "path": "<short>/a.rb",
+                "offenses": [
+                  {
+                    "severity": "convention",
+                    "message": "Surrounding space missing for operator `=`.",
+                    "cop_name": "Layout/SpaceAroundOperators",
+                    "corrected": false,
+                    "correctable": true,
+                    "location": {
+                      "start_line": 1,
+                      "start_column": 2,
+                      "last_line": 1,
+                      "last_column": 2,
+                      "length": 1,
+                      "line": 1,
+                      "column": 2
+                    }
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "offense_count": 1,
+              "target_file_count": 1,
+              "inspected_file_count": 1
+            }
+          },
+          "stderr_lf": ".rubocop.yml: Warning: no department given for SpaceAroundOperators.\n<hybrid>/.rubocop.yml: Warning: no department given for SpaceAroundOperators.\n",
+          "raw_stdout_sha256": "7e9df9501fc39a64af6068cc40eec49e7f27ec11ece238975380a4e74a1c49c6",
+          "raw_stderr_sha256": "8a857a815a73151683491fdf60a95db256d4a73b0f3314812d0bea992e91c63b"
+        }
+      ]
+    }
+  ]
+}

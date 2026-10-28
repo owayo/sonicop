@@ -225,3 +225,19 @@ scripts/conformance/test_yaml_exponent_scalars.py text eol=lf
 tests/yaml_exponent_scalars.rs text eol=lf
 tests/fixtures/yaml_exponent_scalars.json text eol=lf
 tests/fixtures/yaml_exponent_scalars.json.PROVENANCE text eol=lf
+
+# 設定名の参照記録と出典 hash の改行を LF で保持する。
+config/obsolete_cop_names.json text eol=lf
+config/obsolete_cop_names.json.PROVENANCE text eol=lf
+scripts/conformance/record_config_cop_namespaces.py text eol=lf
+scripts/conformance/test_record_config_cop_namespaces.py text eol=lf
+src/config/namespaces.rs text eol=lf
+tests/config_cop_namespaces.rs text eol=lf
+tests/fixtures/config_cop_namespaces.json text eol=lf
+tests/fixtures/config_cop_namespaces.json.PROVENANCE text eol=lf
+
+# 設定originのWindows実測コンテナと採取器はLFで保持する。
+scripts/conformance/record_config_namespace_origins.py text eol=lf
+scripts/conformance/test_record_config_namespace_origins.py text eol=lf
+tests/fixtures/config_cop_namespace_origins.json text eol=lf
+tests/fixtures/config_cop_namespace_origins.json.PROVENANCE text eol=lf

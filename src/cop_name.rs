@@ -38,6 +38,41 @@ pub fn selector_matches(selector: &str, cop_name: &str) -> bool {
     selector == cop_name || selector == department(cop_name)
 }
 
+/// Badge.parse と同じ表記変換を、CLI と設定文書の名前解決で共有する。
+pub(crate) fn parse_badge(name: &str) -> (String, bool) {
+    let mut parts: Vec<&str> = name.split('/').collect();
+    while parts.last().is_some_and(|part| part.is_empty()) {
+        parts.pop();
+    }
+    let qualified = parts.len() > 1;
+    let parts: Vec<String> = parts.into_iter().map(badge_part).collect();
+    (parts.join("/"), qualified)
+}
+
+fn badge_part(part: &str) -> String {
+    if part == "rspec" {
+        return "RSpec".to_owned();
+    }
+    // Badge.camel_case の /^[a-z]|_[a-z]/ は空白を消さず、ASCII 小文字だけを変える。
+    let mut result = String::with_capacity(part.len());
+    let mut characters = part.chars().peekable();
+    let mut line_start = true;
+    while let Some(character) = characters.next() {
+        if character == '_' && characters.peek().is_some_and(char::is_ascii_lowercase) {
+            result.push(characters.next().unwrap().to_ascii_uppercase());
+            line_start = false;
+        } else {
+            result.push(if line_start {
+                character.to_ascii_uppercase()
+            } else {
+                character
+            });
+            line_start = character == '\n';
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::{department, department_ancestors, selector_matches};

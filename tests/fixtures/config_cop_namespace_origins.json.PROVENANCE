@@ -1,0 +1,34 @@
+Windows local設定originのRuboCop 1.89.0実CLI記録（2026-10-28）。
+Ruby 4.0.7 x64-mingw-ucrt / Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 /
+rubocop-ast 1.50.0 / Rainbow 3.1.1。schema: 1。
+
+生成元: scripts/conformance/record_config_namespace_origins.py
+再生成（8.3名を持つWindows volumeの新規workへ）:
+  python scripts/conformance/record_config_namespace_origins.py --ruby <ruby-4.0.7> --work <fresh-long-work-directory> --out <new-fixture.json>
+候補は起動しない。既存entry/dangling symlinkは上書きせず、全24条件と検査完了/対象path/診断件数/入力不変を確認する。
+既存42条件fixtureは別に維持する。新collectorはこのfixtureの入力templateだけを再利用し、期待の出力は本家から再採取する。
+ENV4除去とgem pinningはrecord_config_cop_namespaces.pyを共用し、GEM/PATH/OS環境を保持する。
+
+24条件 = 明示設定14 + 自動探索/parent reload10。
+- 正常22件はidentity以外の全JSON fields、exit、警告の全CRLF bytes、全入力file bytesを照合する。
+- 曖昧名2件はstdout空・exit2・警告順/本文・未変更原本。一般Errorの末尾text modeは既存の別件#150として本文で照合する。
+- relative、同表記absolute、異表記absolute、relative inherit、同じfileのalias2辺の両順序、
+  大文字のfilename、8.3 filename、nested/root targetのdiscovery、parent Exclude再読込を含む。
+- <long>はGetLongPathNameWによる全長名、<short>はGetShortPathNameWの実alias、
+  <hybrid>はshortの親componentsを保ち末尾directoryだけlong名へ戻したpath。
+  <short_file>はlong_filenameの実8.3名。動的root/filenameだけを復元し、警告や診断の任意部分を消さない。
+- alias継承のYAMLに含む絶対rootもtokenへ投影する。JSON文字列内の残りのescapeは保持する。
+- report/stderr_lfの動的root以外は実測値。raw stdout/stderrのSHA256は採取workに依存して変わるため、
+  raw bytes自体はwork内の*.raw.jsonへ保存する。再採取ではこれらhash以外の全fields一致も検査した。
+
+本家File.absolute_path/expand_pathのWindows実測では、親の短縮名を保ち、最後の実在componentだけ実名へ戻す。
+FileFinderがcwdから始める自動探索ではdirectoryの末尾が展開され、相対configを直接読む場合はfilenameだけが展開される。
+同一canonicalでもConfigFinderのoriginが異なればConfigStoreは再読込し、各originの警告を再生する。
+canonicalはread/parse/cycleと設定値のidentity用に保持し、警告だけを無条件にcwdのcanonical表記へ揃えない。
+
+Rust回帰はlong/short/hybridの3表記が異なる場合に24件すべてを実行する。
+8.3を作れないvolumeは「未計測」と表示して省略し、互換成功とは数えない。
+2026-10-28のローカルWindows検証は省略なしで24件を照合した。remoteのcache origin差#201は本記録の対象外。
+
+fixture SHA256: 19b16b71a3326e29778357a441c0ff1391f37a54eb0d0e971c848ba155ff548e
+collector SHA256: 4178eb9abe752c646776329bab313e600fbd2ee269a7678c34b383428085271d

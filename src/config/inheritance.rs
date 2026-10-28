@@ -9,6 +9,8 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use serde_yaml_ng::{Mapping, Value};
 
+use super::loader::absolute_config_origin;
+use super::namespaces::{self, Origin};
 use super::validation::{OrderedKeys, ValidationBundle, ValidationTrace};
 
 const MAX_REMOTE_CONFIG_BYTES: u64 = 5 * 1024 * 1024;
@@ -20,10 +22,12 @@ struct ResolvedDocument {
     trace: Arc<ValidationTrace>,
 }
 
-/// visited は再帰の途中だけを表す。値は文書ごとに一度だけ解決し、検証履歴は辺ごとに再生する。
+/// visitedはcanonicalの再帰途中だけを表す。読取/parseは共有し、検証履歴はorigin別・辺ごとに再生する。
 #[derive(Default)]
 struct ResolvedConfigs {
+    // 値とTraceはorigin別。別aliasのrelative inheritや警告を最初の表記へ固定しない。
     local: HashMap<PathBuf, ResolvedDocument>,
+    parsed: HashMap<PathBuf, Value>,
     remote: HashMap<String, ResolvedDocument>,
 }
 
@@ -62,6 +66,7 @@ pub(super) fn load_recorded(
         Ok(document) => Ok(RecordedConfig {
             value: document.value,
             validation: ValidationBundle {
+                origin: absolute_config_origin(path).ok(),
                 trace: document.trace,
                 documents: resolved
                     .local
@@ -84,25 +89,32 @@ fn load_local_with_inheritance(
     completed: &mut Vec<Arc<ValidationTrace>>,
 ) -> Result<ResolvedDocument> {
     let checkpoint = completed.len();
+    let origin = absolute_config_origin(path)?;
     let canonical = fs::canonicalize(path)
         .with_context(|| format!("configuration file not found: {}", path.display()))?;
-    if let Some(cached) = resolved.local.get(&canonical) {
+    if let Some(cached) = resolved.local.get(&origin) {
         completed.push(Arc::clone(&cached.trace));
         return Ok(cached.clone());
     }
     if !visited.insert(canonical.clone()) {
         bail!("circular inherit_from detected at {}", canonical.display());
     }
-    let contents = fs::read_to_string(&canonical)
-        .with_context(|| format!("failed to read configuration: {}", canonical.display()))?;
-    #[cfg(test)]
-    PARSED_CONFIG_COUNT.with(|count| count.set(count.get() + 1));
-    let mut current = parse_yaml_configuration(&contents, canonical.display())?;
+    let mut current = if let Some(parsed) = resolved.parsed.get(&canonical) {
+        parsed.clone()
+    } else {
+        let contents = fs::read_to_string(&canonical)
+            .with_context(|| format!("failed to read configuration: {}", canonical.display()))?;
+        #[cfg(test)]
+        PARSED_CONFIG_COUNT.with(|count| count.set(count.get() + 1));
+        let parsed = parse_yaml_configuration(&contents, canonical.display())?;
+        resolved.parsed.insert(canonical.clone(), parsed.clone());
+        parsed
+    };
     // meta key の削除や native の値 merge が Ruby Hash の順序を動かす前に記録する。
     let mut keys = OrderedKeys::from_value(&current);
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let inherit_gem = take_mapping_key(&mut current, "inherit_gem");
-    let parent = canonical.parent().unwrap_or(Path::new("."));
+    let parent = origin.parent().unwrap_or(Path::new("."));
     let mut inherited_paths = resolve_inherit_gems(inherit_gem)?;
     inherited_paths.extend(parse_inherit_paths(inherit)?);
     let mut merged = Value::Mapping(Mapping::new());
@@ -126,16 +138,32 @@ fn load_local_with_inheritance(
     for base in inherited_keys.iter().rev() {
         keys.inherit(base);
     }
-    let value = merge_inherited_config(merged, current);
+    let mut value = merge_inherited_config(merged, current);
+    let mut namespace_warnings = Vec::new();
+    if let Err(error) = namespaces::normalize(
+        &mut value,
+        &mut keys,
+        Origin::File(&origin),
+        &mut namespace_warnings,
+    ) {
+        // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
+        completed.push(ValidationTrace::namespaces(namespace_warnings));
+        return Err(error);
+    }
     // 完了した子を一つの共有履歴へ畳む。失敗時は完了済み部分だけが completed に残る。
-    let trace = ValidationTrace::document(completed.split_off(checkpoint), &keys, &value);
+    let trace = ValidationTrace::document(
+        completed.split_off(checkpoint),
+        &keys,
+        &value,
+        namespace_warnings,
+    );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {
         value,
         keys: Arc::new(keys),
         trace,
     };
-    resolved.local.insert(canonical, document.clone());
+    resolved.local.insert(origin, document.clone());
     Ok(document)
 }
 
@@ -174,8 +202,24 @@ fn load_remote_with_inheritance(
     for base in inherited_keys.iter().rev() {
         keys.inherit(base);
     }
-    let value = merge_inherited_config(merged, current);
-    let trace = ValidationTrace::document(completed.split_off(checkpoint), &keys, &value);
+    let mut value = merge_inherited_config(merged, current);
+    let mut namespace_warnings = Vec::new();
+    if let Err(error) = namespaces::normalize(
+        &mut value,
+        &mut keys,
+        Origin::Remote(url),
+        &mut namespace_warnings,
+    ) {
+        // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
+        completed.push(ValidationTrace::namespaces(namespace_warnings));
+        return Err(error);
+    }
+    let trace = ValidationTrace::document(
+        completed.split_off(checkpoint),
+        &keys,
+        &value,
+        namespace_warnings,
+    );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {
         value,
@@ -567,6 +611,112 @@ mod tests {
             stream.write_all(&body).unwrap();
         });
         (format!("http://{address}/config.yml"), server)
+    }
+
+    #[test]
+    fn remote_short_names_resolve_before_validation() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/config_cop_namespaces.json"
+        ))
+        .unwrap();
+        let short = fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["id"] == "short")
+            .unwrap();
+        let body = short["files"]["config.yml"].as_str().unwrap();
+        let (url, server) = serve_once(body.as_bytes().to_vec());
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("config.yml");
+        fs::write(&path, format!("inherit_from: {url}\n")).unwrap();
+        let loaded = super::load_recorded(&path, &mut HashSet::new()).unwrap();
+        server.join().unwrap();
+        assert_eq!(loaded.value["Layout/SpaceAroundOperators"]["Enabled"], true);
+        assert!(loaded.value.get("SpaceAroundOperators").is_none());
+
+        let emitted = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let output = std::sync::Arc::clone(&emitted);
+        let warnings = crate::config::ConfigWarnings::new(false, false, move |warning| {
+            let crate::config::ConfigWarning::Namespace(text) = warning else {
+                panic!("未対応parameterを含まない本家対照である");
+            };
+            output.lock().unwrap().push(text.clone());
+            Ok(())
+        });
+        warnings.emit(&loaded.validation.trace).unwrap();
+        let emitted = emitted.lock().unwrap();
+        assert_eq!(emitted.len(), 1);
+        // 本家はremoteをcacheへ保存するためoriginが異なる (#201)。値と実測済み本文だけを照合する。
+        assert_eq!(
+            emitted[0].split_once(": Warning:").unwrap().1,
+            short["stderr_lf"]
+                .as_str()
+                .unwrap()
+                .split_once(": Warning:")
+                .unwrap()
+                .1
+        );
+    }
+
+    #[test]
+    fn aliases_share_parsing_but_keep_their_own_validation_traces() {
+        let directory = tempdir().unwrap();
+        let real = directory.path().join("configuration-origin-real-directory");
+        fs::create_dir(&real).unwrap();
+        #[cfg(unix)]
+        let alias = {
+            let alias = directory.path().join("alias");
+            std::os::unix::fs::symlink(&real, &alias).unwrap();
+            alias
+        };
+        #[cfg(windows)]
+        let alias = {
+            use std::ffi::OsString;
+            use std::os::windows::ffi::{OsStrExt, OsStringExt};
+            use windows_sys::Win32::Storage::FileSystem::GetShortPathNameW;
+            let input: Vec<_> = real.as_os_str().encode_wide().chain(Some(0)).collect();
+            let mut output = vec![0; 32_768];
+            let length = unsafe {
+                GetShortPathNameW(input.as_ptr(), output.as_mut_ptr(), output.len() as u32)
+            };
+            assert!(length > 0 && length < output.len() as u32);
+            let alias = std::path::PathBuf::from(OsString::from_wide(&output[..length as usize]));
+            let hybrid = alias.parent().unwrap().join(real.file_name().unwrap());
+            if alias == real || hybrid == real || hybrid == alias {
+                eprintln!(
+                    "未計測: long/short/hybridの3表記を作れないvolumeのため別origin対照を省略する"
+                );
+                return;
+            }
+            alias
+        };
+        fs::write(real.join("base.yml"), "inherit_from: leaf.yml\n").unwrap();
+        fs::write(
+            real.join("leaf.yml"),
+            "SpaceAroundOperators:\n  Enabled: true\n",
+        )
+        .unwrap();
+        let path = directory.path().join("root.yml");
+        let paths = [real.join("base.yml"), alias.join("base.yml")];
+        fs::write(
+            &path,
+            format!("inherit_from: {}\n", serde_json::to_string(&paths).unwrap()),
+        )
+        .unwrap();
+        taken_parse_count();
+        let loaded = super::load_recorded(&path, &mut HashSet::new()).unwrap();
+        // 本家は両originで継承を辿るが、原本の読取とparseはcanonicalごとに一度でよい。
+        assert_eq!(taken_parse_count(), 3);
+        assert_eq!(loaded.validation.documents.len(), 5);
+        let real_leaf = super::absolute_config_origin(&real.join("leaf.yml")).unwrap();
+        let alias_leaf = super::absolute_config_origin(&alias.join("leaf.yml")).unwrap();
+        assert_ne!(real_leaf, alias_leaf);
+        assert!(!std::sync::Arc::ptr_eq(
+            &loaded.validation.documents[&real_leaf],
+            &loaded.validation.documents[&alias_leaf]
+        ));
+        assert_eq!(loaded.value["Layout/SpaceAroundOperators"]["Enabled"], true);
     }
 
     fn cop_exclude(merged: &Value, cop: &str) -> Value {
