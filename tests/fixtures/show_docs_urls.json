@@ -1,0 +1,100 @@
+[
+  {
+    "selector": null,
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Style/For,Layout/SpaceAroundOperators,Style/For",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_style.html#stylefor\nhttps://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\nhttps://docs.rubocop.org/rubocop/cops_style.html#stylefor\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Lint/NoSuchCop",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": ",",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": ",Layout/SpaceAroundOperators,",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": " Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout:\n  DocumentationBaseURL: https://example.invalid/docs\n  DocumentationExtension: .adoc\n",
+    "stdout": "https://example.invalid/docs/cops_layout.adoc#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout:\n  DocumentationBaseURL: ''\n  DocumentationExtension: ''\n",
+    "stdout": "/cops_layout#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout:\n  DocumentationBaseURL: null\n  DocumentationExtension: false\n",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "selector": "Layout/SpaceAroundOperators",
+    "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Enabled: false\n",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  }
+]

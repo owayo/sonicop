@@ -1,0 +1,5 @@
+RuboCop 1.89.0, Ruby 4.0.8, macOS arm64.
+非 TTY の stdout/stderr と終了値を実 CLI から記録した。
+rubocop _1.89.0_ --config config.yml --show-docs-url[=selector]
+各 config を config.yml にそのまま書き、selector が null の場合は値を省略した。
+Windows の report 改行は既存の native text mode 検証に従って変換する。
