@@ -1,0 +1,407 @@
+[
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "prefix": "",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stdout"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stdout"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--no-parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stdout"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--fail-fast",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with -F/--fail-fast, --cache false.\n",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stdout"
+  },
+  {
+    "args": [
+      "--parallel",
+      "--fail-fast",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with -F/--fail-fast.\n",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stdout"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--version"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 0,
+    "stderr": "",
+    "stdout": "1.89.0\n"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--no-parallel",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 0,
+    "stderr": "",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n"
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--out",
+      "report.json",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 1,
+    "stderr": "",
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "file",
+    "stdout": ""
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--stderr",
+      "case.rb"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 1,
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    },
+    "report_destination": "stderr",
+    "stdout": ""
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--except",
+      "Lint/Syntax",
+      "case.rb"
+    ],
+    "prefix": "",
+    "exit": 2,
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "stdout": ""
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--parallel",
+      "--config",
+      "missing.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 2,
+    "error_after_notice": true,
+    "stdout": ""
+  },
+  {
+    "args": [
+      "--cache",
+      "false",
+      "--cache",
+      "true",
+      "--parallel",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix": "",
+    "exit": 0,
+    "stderr": "",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n"
+  },
+  {
+    "args": [
+      "--cache",
+      "true",
+      "--cache",
+      "false",
+      "--parallel",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix": "-P/--parallel is being ignored because it is not compatible with --cache false.\n",
+    "exit": 0,
+    "stderr": "",
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n"
+  }
+]

@@ -208,3 +208,16 @@ pub fn offenses(stdout: &[u8]) -> Vec<JsonOffense> {
         .flat_map(|file| file.offenses)
         .collect()
 }
+
+/// --cache false と明示した並列指定の本家通知を、一度だけ必須として取り除く。
+/// 二重の通知は本文へ残るため、呼び出し側の JSON 検査でも拒否される。
+pub fn without_cache_parallel_notice(stdout: &[u8]) -> &[u8] {
+    let prefix: &[u8] = if cfg!(windows) {
+        b"-P/--parallel is being ignored because it is not compatible with --cache false.\r\n"
+    } else {
+        b"-P/--parallel is being ignored because it is not compatible with --cache false.\n"
+    };
+    stdout
+        .strip_prefix(prefix)
+        .expect("--cache false と明示した並列指定の通知が一致しない")
+}

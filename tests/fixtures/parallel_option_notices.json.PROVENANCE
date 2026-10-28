@@ -1,0 +1,7 @@
+RuboCop 1.89.0、Ruby 4.0.8、macOS arm64、非 TTY の実 CLI 記録13件。
+case.rb は x=1 と LF。設定は AllCops/NewCops: disable、TargetRubyVersion: 2.7。
+各 args を本家へそのまま渡し、stdout の通知と本文・stderr・終了値を記録した。
+JSON は製品と実行環境を表す metadata だけを除き、全診断と集計を保持する。
+missing.yml のケースは通知後のエラー発生だけを検査し、既存の設定エラー本文差は対象にしない。
+版表示は本家の製品番号を記録し、テスト時だけ Sonicop の製品番号へ置き換える。
+キャッシュは一時ディレクトリ内に隔離した。Windows の通知は native text mode に従う。

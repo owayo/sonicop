@@ -1,6 +1,6 @@
 //! CRLF 保存形式と Ruby 文字列値を区別し、本家の全診断・補正 bytes と照合する。
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
@@ -89,7 +89,8 @@ fn crlf_string_literal_corrections_preserve_the_runtime_value() {
             .args(group.files.iter().map(|case| &case.path))
             .output()
             .unwrap();
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let report: Value =
+            serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
         let label = format!(
             "{}/{}/{}/{}/{}/{}",
             group.target, group.cop, group.style, group.consistent, group.ending, group.mode

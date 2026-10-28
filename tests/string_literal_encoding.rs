@@ -1,6 +1,6 @@
 //! 候補から期待を作らず、本家の全診断・保存 bytes と実 MRI の値を比較する。
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
@@ -106,7 +106,8 @@ fn check_groups(recording: &str, cli_count: usize, condition_count: usize, heade
             .args(group.files.iter().map(|case| &case.path))
             .output()
             .unwrap();
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let report: Value =
+            serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
         let label = format!(
             "{}/{}/{}/{}/{}",
             group.target, group.cop, group.style, group.ending, group.mode

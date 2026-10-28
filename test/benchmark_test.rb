@@ -153,4 +153,24 @@ class BenchmarkTest < Minitest::Test
       assert_raises(RuntimeError) { runner.target_versions('mastodon', root, commands) }
     end
   end
+
+  def test_timed_parallel_notice_is_required_exactly_once
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      path = File.join(root, 'report.json')
+      records = JSON.parse(File.read(File.expand_path('../tests/fixtures/parallel_option_notices.json', __dir__)))
+      prefix = records.fetch(1).fetch('prefix')
+      prefix = prefix.gsub("\n", "\r\n") if File::ALT_SEPARATOR
+      text = JSON.generate(document)
+      expected = SonicopBenchmark::Report.new(document)
+      File.binwrite(path, prefix + text)
+      assert_equal 1, runner.verify_run(path, expected, parallel_notice: true).fetch('offenses')
+      assert_raises(JSON::ParserError) { runner.verify_run(path, expected) }
+      File.binwrite(path, text)
+      assert_raises(RuntimeError) { runner.verify_run(path, expected, parallel_notice: true) }
+      File.binwrite(path, prefix + prefix + text)
+      assert_raises(JSON::ParserError) { runner.verify_run(path, expected, parallel_notice: true) }
+    end
+  end
 end

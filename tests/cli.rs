@@ -177,7 +177,12 @@ fn reports_keep_the_reference_file_and_argument_order() {
                         .get_output()
                         .stdout
                         .clone();
-                    let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                    let body = if cache == "false" && !parallel {
+                        support::project::without_cache_parallel_notice(&output)
+                    } else {
+                        &output
+                    };
+                    let found: serde_json::Value = serde_json::from_slice(body).unwrap();
                     assert_eq!(found["summary"]["inspected_file_count"], expected.len());
                     assert_eq!(found["summary"]["target_file_count"], expected.len());
                     assert_eq!(found["summary"]["offense_count"], 0);
@@ -6803,6 +6808,89 @@ fn syntax_selection_errors_match_the_upstream_early_rejection() {
             assert_eq!(
                 fs::read_to_string(directory.path().join("config.yml")).unwrap(),
                 config
+            );
+        }
+    }
+}
+
+#[test]
+fn explicit_parallel_option_notices_match_the_upstream_cli() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/parallel_option_notices.json")).unwrap();
+    for crlf in [false, true] {
+        for (index, case) in cases.iter().enumerate() {
+            let directory = project(&[]);
+            fs::write(
+                directory.path().join(".rubocop.yml"),
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+            )
+            .unwrap();
+            let source: &[u8] = if crlf { b"x=1\r\n" } else { b"x=1\n" };
+            fs::write(directory.path().join("case.rb"), source).unwrap();
+            let mut cmd = command(directory.path());
+            for arg in case["args"].as_array().unwrap() {
+                cmd.arg(arg.as_str().unwrap());
+            }
+            let output = cmd.output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(case["exit"].as_i64().unwrap() as i32),
+                "{index}"
+            );
+            let prefix = native_textmode_expected(case["prefix"].as_str().unwrap().as_bytes());
+            let body = output
+                .stdout
+                .strip_prefix(prefix.as_slice())
+                .unwrap_or_else(|| panic!("通知が一致しない: {index}"));
+            if case["error_after_notice"].as_bool() == Some(true) {
+                assert!(!output.stderr.is_empty(), "{index}");
+            } else if let Some(expected) = case.get("stderr") {
+                assert_eq!(
+                    output.stderr,
+                    native_textmode_expected(expected.as_str().unwrap().as_bytes()),
+                    "{index}"
+                );
+            }
+            if let Some(expected) = case.get("stdout") {
+                // 製品番号だけは意図した差であり、本家から通知や本文の期待値を変えない。
+                let expected = if case["args"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|arg| arg == "--version")
+                {
+                    expected
+                        .as_str()
+                        .unwrap()
+                        .replace("1.89.0", env!("CARGO_PKG_VERSION"))
+                } else {
+                    expected.as_str().unwrap().to_owned()
+                };
+                assert_eq!(
+                    body,
+                    native_textmode_expected(expected.as_bytes()),
+                    "{index}"
+                );
+            }
+            if let Some(expected) = case.get("report") {
+                let file_report;
+                let bytes = match case["report_destination"].as_str().unwrap() {
+                    "file" => {
+                        file_report = fs::read(directory.path().join("report.json")).unwrap();
+                        file_report.as_slice()
+                    }
+                    "stderr" => output.stderr.as_slice(),
+                    "stdout" => body,
+                    other => panic!("未知の出力先: {other}"),
+                };
+                let mut actual: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+                actual.as_object_mut().unwrap().remove("metadata");
+                assert_eq!(&actual, expected, "{index}");
+            }
+            assert_eq!(
+                fs::read(directory.path().join("case.rb")).unwrap(),
+                source,
+                "{index}"
             );
         }
     }

@@ -145,8 +145,17 @@ module SonicopBenchmark
       record
     end
 
-    def verify_run(path, expected)
-      actual = Report.new(JSON.parse(File.read(path)))
+    def verify_run(path, expected, parallel_notice: false)
+      stdout = File.binread(path)
+      if parallel_notice
+        # 明示した組み合わせの通知だけを必須とし、未知の前置や二重通知は拒否する。
+        prefix = "-P/--parallel is being ignored because it is not compatible with --cache false.\n"
+        prefix = prefix.gsub("\n", "\r\n") if File::ALT_SEPARATOR
+        raise "parallel notice missing: #{path}" unless stdout.start_with?(prefix)
+
+        stdout = stdout.delete_prefix(prefix)
+      end
+      actual = Report.new(JSON.parse(stdout))
       unless actual.paths == expected.paths && actual.offenses == expected.offenses
         raise "timed inspection changed: #{path}"
       end
@@ -283,7 +292,8 @@ module SonicopBenchmark
             # 計測する実行そのものの JSON を照合する。事前検査だけでは途中中断を検出できない。
             path = File.join(out, "#{condition}-#{side}-#{number}.json")
             record = process(command + suffix + ['--no-color', '-f', 'json', '.'], tree, path)
-            record.merge!(verify_run(path, reports.fetch(side)))
+            record.merge!(verify_run(path, reports.fetch(side),
+                                     parallel_notice: condition == 'single' && side == 'candidate'))
             record['cache_files'] = Dir.glob(File.join(cache, '**', '*')).count { |file| File.file?(file) } if condition == 'parallel'
             File.write("#{path}.run.json", JSON.pretty_generate(record))
             (row.fetch('conditions')["#{condition}-#{side}"] ||= []) << record

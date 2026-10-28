@@ -716,6 +716,10 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         validate_syntax_selection(&cli)?;
     }
     FailLevel::parse(&cli.fail_level)?;
+    if let Some(notice) = parallel_option_notice(&cli) {
+        // Options の通知は formatter の出力先を選ぶ前に、一度だけ stdout へ出す。
+        write_output(&notice, None, false)?;
+    }
     let display_time = cli.display_time || cli.debug;
     let result = try_run_with_outputs(cli, outputs);
     // CLI#run の ensure は formatter と stdin echo の後、失敗時も stdout へ一度だけ出す。
@@ -1761,6 +1765,26 @@ impl FailLevel {
                 .flat_map(|report| &report.offenses)
                 .any(Offense::is_correctable)
     }
+}
+
+fn parallel_option_notice(cli: &Cli) -> Option<String> {
+    if !cli.parallel && !cli.no_parallel {
+        return None;
+    }
+    let mut reasons = Vec::new();
+    // OptionsValidator は argv の順序にかかわらず、この順で理由を列挙する。
+    if cli.fail_fast {
+        reasons.push("-F/--fail-fast");
+    }
+    if cli.cache.as_deref() == Some("false") {
+        reasons.push("--cache false");
+    }
+    (!reasons.is_empty()).then(|| {
+        format!(
+            "-P/--parallel is being ignored because it is not compatible with {}.\n",
+            reasons.join(", ")
+        )
+    })
 }
 
 fn validate_compatibility(cli: &Cli) -> Result<()> {
