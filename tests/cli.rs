@@ -6771,3 +6771,39 @@ fn show_docs_urls_matches_the_upstream_cli() {
         );
     }
 }
+
+#[test]
+fn syntax_selection_errors_match_the_upstream_early_rejection() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/syntax_selection_error.json")).unwrap();
+    for crlf in [false, true] {
+        let source: &[u8] = if crlf { b"x=1\r\n" } else { b"x=1\n" };
+        let config = "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n";
+        let directory = project(&[]);
+        fs::write(directory.path().join("config.yml"), config).unwrap();
+        fs::write(directory.path().join("case.rb"), source).unwrap();
+        for case in &cases {
+            let mut cmd = command(directory.path());
+            cmd.args(["--config", "config.yml", "--except", "Lint/Syntax"]);
+            for flag in case["flags"].as_array().unwrap() {
+                cmd.arg(flag.as_str().unwrap());
+            }
+            let output = cmd.arg("case.rb").output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(case["exit"].as_i64().unwrap() as i32)
+            );
+            assert_eq!(output.stdout, case["stdout"].as_str().unwrap().as_bytes());
+            assert_eq!(
+                output.stderr,
+                native_textmode_expected(case["stderr"].as_str().unwrap().as_bytes())
+            );
+            // 拒否は設定ロード・補正より前なので、両方の原本を保持する。
+            assert_eq!(fs::read(directory.path().join("case.rb")).unwrap(), source);
+            assert_eq!(
+                fs::read_to_string(directory.path().join("config.yml")).unwrap(),
+                config
+            );
+        }
+    }
+}
