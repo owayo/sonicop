@@ -1,6 +1,6 @@
 //! 本家の実 CLI と MRI の DATA.read を記録し、コードの補正と DATA の保存を分けて照合する。
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::fs;
 use std::process::Command;
@@ -98,7 +98,8 @@ fn semicolon_corrections_keep_data_and_only_change_code_tokens() {
             let label = format!("{}/{}/{}/{phase}", group.target, group.ending, group.mode);
             assert_eq!(output.status.code(), Some(expected.exit), "{label}");
             assert!(output.stderr.is_empty(), "{label}: {:?}", output.stderr);
-            let mut actual: Value = serde_json::from_slice(&output.stdout).unwrap();
+            let mut actual: Value =
+                serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
             let mut wanted = expected.report.clone();
             actual.as_object_mut().unwrap().remove("metadata");
             wanted.as_object_mut().unwrap().remove("metadata");

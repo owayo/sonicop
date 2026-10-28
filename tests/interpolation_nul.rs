@@ -1,6 +1,6 @@
 //! 補間内の raw NUL を configured parser の実 str / dstr 分類に合わせる。
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
@@ -86,7 +86,8 @@ fn interpolated_nul_strings_follow_the_real_parser_tokens() {
             .args(group.files.iter().map(|case| &case.path))
             .output()
             .unwrap();
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let report: Value =
+            serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
         let label = format!(
             "{}/{}/{}/{}/{}",
             group.target, group.cop, group.style, group.ending, group.mode

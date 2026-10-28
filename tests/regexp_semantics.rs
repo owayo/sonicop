@@ -2,7 +2,7 @@
 //! 再記録は `python3 scripts/record_regexp_semantics.py`。期待値を候補から採らない。
 
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
@@ -121,13 +121,14 @@ fn static_regexps_follow_the_selected_parser_and_version() {
         }
         command.args(group.files.iter().map(|case| &case.path));
         let output = command.output().unwrap();
-        let found: Value = serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
-            panic!(
-                "{}: {error}: {}",
-                group.id,
-                String::from_utf8_lossy(&output.stderr)
-            )
-        });
+        let found: Value = serde_json::from_slice(without_cache_parallel_notice(&output.stdout))
+            .unwrap_or_else(|error| {
+                panic!(
+                    "{}: {error}: {}",
+                    group.id,
+                    String::from_utf8_lossy(&output.stderr)
+                )
+            });
         for field in ["inspected_file_count", "target_file_count"] {
             assert_eq!(
                 found["summary"][field],
@@ -360,7 +361,8 @@ fn invalid_character_boundary_is_a_separately_recorded_existing_difference() {
             ])
             .output()
             .unwrap();
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let report: Value =
+            serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
         assert_eq!(
             output.status.code().map(i64::from),
             entry["candidate_exit"].as_i64()

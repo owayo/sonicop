@@ -1,6 +1,6 @@
 //! 期待値は実 RuboCop CLI と MRI 2.7.8 の記録。raw NUL と escape の AST 分類を区別する。
 mod support;
-use support::project::recorded_disk_bytes;
+use support::project::{recorded_disk_bytes, without_cache_parallel_notice};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
@@ -84,7 +84,8 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
             .args(group.files.iter().map(|case| &case.path))
             .output()
             .unwrap();
-        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let report: Value =
+            serde_json::from_slice(without_cache_parallel_notice(&output.stdout)).unwrap();
         let label = format!(
             "{}/{}/{}/{}",
             group.target, group.ending, group.mode, group.kind
