@@ -102,7 +102,7 @@ struct SectionKeys {
     enabled: Enabled,
 }
 
-/// 値の merge は変更せず、Ruby Hash の検証順と部門による並べ替えだけを別に保存する。
+/// Ruby Hash の検証順を値とは別に保存し、部門による並べ替えと名前の置換を再現する。
 #[derive(Clone, Debug, Default)]
 pub(super) struct OrderedKeys {
     sections: Vec<SectionKeys>,
@@ -218,6 +218,29 @@ impl OrderedKeys {
         }
     }
 
+    pub(super) fn names(&self) -> Vec<String> {
+        self.sections
+            .iter()
+            .map(|section| section.name.clone())
+            .collect()
+    }
+
+    pub(super) fn rename(&mut self, old: &str, new: &str) {
+        let index = self
+            .sections
+            .iter()
+            .position(|section| section.name == old)
+            .unwrap();
+        let mut source = self.sections.remove(index);
+        source.name = new.to_owned();
+        // Hash#[]= は衝突先の slot を保ち、parameter 順や Enabled も節ごと置き換える。
+        if let Some(target) = self.sections.iter_mut().find(|section| section.name == new) {
+            *target = source;
+        } else {
+            self.sections.push(source);
+        }
+    }
+
     fn prepare(&self, value: &Value) -> Prepared {
         let plugins = configured_plugin_departments(value);
         let mut unknown: Vec<_> = super::cop_names(value)
@@ -244,14 +267,18 @@ impl OrderedKeys {
                         continue;
                     }
                     let parameter = parameter_name(key);
-                    warnings.push(format!(
+                    warnings.push(ConfigWarning::Parameter(format!(
                         "Warning: {name} does not support {parameter} parameter.\n\nSupported parameters are:\n\n  - {}\n",
                         schema.supported,
-                    ));
+                    )));
                 }
             }
         }
-        Prepared { warnings, unknown }
+        Prepared {
+            warnings,
+            unknown,
+            namespaces: Vec::new(),
+        }
     }
 }
 
@@ -272,9 +299,17 @@ fn parameter_name(value: &Value) -> String {
     }
 }
 
+/// Namespace は Registry が常に plain で出し、parameter は CLI phase の色に従う。
+#[derive(Debug)]
+pub(crate) enum ConfigWarning {
+    Namespace(String),
+    Parameter(String),
+}
+
 #[derive(Debug, Default)]
 struct Prepared {
-    warnings: Vec<String>,
+    namespaces: Vec<ConfigWarning>,
+    warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
 }
 
@@ -292,8 +327,21 @@ impl ValidationTrace {
         inherited: Vec<Arc<Self>>,
         keys: &OrderedKeys,
         value: &Value,
+        namespaces: Vec<ConfigWarning>,
     ) -> Arc<Self> {
-        Self::new(inherited, keys.prepare(value))
+        let mut own = keys.prepare(value);
+        own.namespaces = namespaces;
+        Self::new(inherited, own)
+    }
+
+    pub(super) fn namespaces(warnings: Vec<ConfigWarning>) -> Arc<Self> {
+        Self::new(
+            Vec::new(),
+            Prepared {
+                namespaces: warnings,
+                ..Prepared::default()
+            },
+        )
     }
 
     pub(super) fn sequence(inherited: Vec<Arc<Self>>) -> Arc<Self> {
@@ -302,7 +350,8 @@ impl ValidationTrace {
 
     fn new(inherited: Vec<Arc<Self>>, own: Prepared) -> Arc<Self> {
         Arc::new(Self {
-            has_warnings: !own.warnings.is_empty()
+            has_warnings: !own.namespaces.is_empty()
+                || !own.warnings.is_empty()
                 || inherited.iter().any(|trace| trace.has_warnings),
             has_unknown: !own.unknown.is_empty() || inherited.iter().any(|trace| trace.has_unknown),
             inherited,
@@ -313,7 +362,7 @@ impl ValidationTrace {
     fn replay(
         &self,
         ignore_unknown: bool,
-        emit: &(dyn Fn(&str) -> Result<()> + Send + Sync),
+        emit: &(dyn Fn(&ConfigWarning) -> Result<()> + Send + Sync),
     ) -> Result<()> {
         enum Visit<'a> {
             Tree(&'a ValidationTrace),
@@ -331,6 +380,9 @@ impl ValidationTrace {
                     stack.extend(trace.inherited.iter().rev().map(|child| Visit::Tree(child)));
                 }
                 Visit::Own(prepared) => {
+                    for warning in &prepared.namespaces {
+                        emit(warning)?;
+                    }
                     if !ignore_unknown && !prepared.unknown.is_empty() {
                         bail!("unrecognized cop(s): {}", prepared.unknown.join(", "));
                     }
@@ -346,13 +398,14 @@ impl ValidationTrace {
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct ValidationBundle {
+    pub(super) origin: Option<PathBuf>,
     pub(super) trace: Arc<ValidationTrace>,
     pub(super) documents: HashMap<PathBuf, Arc<ValidationTrace>>,
 }
 
-type WarningOutput = dyn Fn(&str) -> Result<()> + Send + Sync;
+type WarningOutput = dyn Fn(&ConfigWarning) -> Result<()> + Send + Sync;
 
-/// library の値解決と CLI の警告出力を分ける。色は出力時の CLI phase が決める。
+/// library の値解決と CLI の警告出力を分ける。parameter の色は出力時の CLI phase が決める。
 #[derive(Clone)]
 pub(crate) struct ConfigWarnings {
     pub(super) ignore_unknown: bool,
@@ -374,7 +427,7 @@ impl ConfigWarnings {
     pub(crate) fn new(
         ignore_unknown: bool,
         parent_exclusion: bool,
-        output: impl Fn(&str) -> Result<()> + Send + Sync + 'static,
+        output: impl Fn(&ConfigWarning) -> Result<()> + Send + Sync + 'static,
     ) -> Self {
         Self {
             ignore_unknown,

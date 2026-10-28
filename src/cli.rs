@@ -11,7 +11,7 @@ use std::time::Instant;
 use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
-use crate::config::{Config, ConfigStore, ConfigWarnings};
+use crate::config::{Config, ConfigStore, ConfigWarning, ConfigWarnings};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
@@ -795,10 +795,13 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         cli.ignore_unrecognized_cops,
         cli.config.is_none() && !cli.force_default_config && !cli.ignore_parent_exclusion,
         move |message| {
-            let text = if color.load(Ordering::Relaxed) {
-                format!("\x1b[33m{message}\x1b[0m\n")
-            } else {
-                message.to_owned()
+            let text = match message {
+                ConfigWarning::Parameter(message) if color.load(Ordering::Relaxed) => {
+                    format!("\x1b[33m{message}\x1b[0m\n")
+                }
+                ConfigWarning::Namespace(message) | ConfigWarning::Parameter(message) => {
+                    message.to_owned()
+                }
             };
             write_output(&text, None, true)
         },
@@ -2511,7 +2514,7 @@ fn qualify_selectors(
         if known.contains(name.as_str()) {
             continue;
         }
-        let (badge, has_department) = selector_badge(name);
+        let (badge, has_department) = crate::cop_name::parse_badge(name);
         if !has_department
             && known
                 .iter()
@@ -2556,40 +2559,6 @@ fn qualify_selectors(
         *name = qualified.to_owned();
     }
     (names, warnings, None)
-}
-
-fn selector_badge(name: &str) -> (String, bool) {
-    let mut parts: Vec<&str> = name.split('/').collect();
-    while parts.last().is_some_and(|part| part.is_empty()) {
-        parts.pop();
-    }
-    let qualified = parts.len() > 1;
-    let parts: Vec<String> = parts.into_iter().map(selector_badge_part).collect();
-    (parts.join("/"), qualified)
-}
-
-fn selector_badge_part(part: &str) -> String {
-    if part == "rspec" {
-        return "RSpec".to_owned();
-    }
-    // Badge.camel_case の /^[a-z]|_[a-z]/ は空白を消さず、ASCII 小文字だけを変える。
-    let mut result = String::with_capacity(part.len());
-    let mut characters = part.chars().peekable();
-    let mut line_start = true;
-    while let Some(character) = characters.next() {
-        if character == '_' && characters.peek().is_some_and(char::is_ascii_lowercase) {
-            result.push(characters.next().unwrap().to_ascii_uppercase());
-            line_start = false;
-        } else {
-            result.push(if line_start {
-                character.to_ascii_uppercase()
-            } else {
-                character
-            });
-            line_start = character == '\n';
-        }
-    }
-    result
 }
 
 fn emit_selection_warnings(warnings: &[String]) -> Result<()> {
