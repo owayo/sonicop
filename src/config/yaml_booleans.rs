@@ -6,6 +6,7 @@ use std::mem::MaybeUninit;
 use unsafe_libyaml as unsafe_yaml;
 
 /// Psych は YAML 1.1 の真偽値と、引用されていない `:name` を Ruby の Symbol にする。
+/// 小数点や指数符号のない指数表記は、数値として読み終えると元の String を復元できない。
 /// 引用符とタグの解決結果は値にしてからでは失われるため、Psych の scalar 判定を字句上で補う。
 pub(super) fn normalize(contents: &str) -> Cow<'_, str> {
     // 本家は BOM 付き設定を拒否する。スキャナの位置も BOM を数えないため、変換せず診断へ渡す。
@@ -118,6 +119,18 @@ pub(super) fn normalize(contents: &str) -> Cow<'_, str> {
                 unsafe_yaml::YAML_SCALAR_TOKEN => {
                     let scalar = token.data.scalar;
                     let value = std::slice::from_raw_parts(scalar.value, scalar.length as usize);
+                    if scalar.style == unsafe_yaml::YAML_PLAIN_SCALAR_STYLE
+                        && explicit_tag_range.is_none()
+                        && let Ok(text) = std::str::from_utf8(value)
+                        && psych_string_exponent(text)
+                    {
+                        // !!float 等の明示タグは変えず、暗黙 scalar だけを Psych の String 判定へ戻す。
+                        replacements.push((
+                            token.start_mark.index as usize,
+                            token.end_mark.index as usize,
+                            serde_json::to_string(text).expect("UTF-8 exponent scalar"),
+                        ));
+                    }
                     // 引用した ":name" は String のまま残す。未知のタグは Psych と同様に無視する。
                     if symbol_tag || binary_tag {
                         // Symbol の名前と binary の符号化文字列は、数値・真偽値へ変換すると元に戻せない。
@@ -218,6 +231,14 @@ pub(super) fn normalize(contents: &str) -> Cow<'_, str> {
     }
     normalized.push_str(&contents[previous..]);
     Cow::Owned(normalized)
+}
+
+/// Psych::ScalarScanner::FLOAT は指数形に小数点と指数の符号を要求する。
+fn psych_string_exponent(text: &str) -> bool {
+    let Some((mantissa, exponent)) = text.split_once(['e', 'E']) else {
+        return false;
+    };
+    text.parse::<f64>().is_ok() && (!mantissa.contains('.') || !exponent.starts_with(['+', '-']))
 }
 
 /// Psych の quoted Symbol は末尾を固定せず、最も後ろの引用符までを名前にする。

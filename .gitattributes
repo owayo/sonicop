@@ -218,3 +218,10 @@ scripts/conformance/test_record_version_textmode.py text eol=lf
 tests/version_textmode.rs text eol=lf
 tests/fixtures/version_textmode.json text eol=lf
 tests/fixtures/version_textmode.json.PROVENANCE text eol=lf
+
+# 指数表記の参照記録と採取器の改行を LF で保持する。
+scripts/conformance/record_yaml_exponent_scalars.py text eol=lf
+scripts/conformance/test_yaml_exponent_scalars.py text eol=lf
+tests/yaml_exponent_scalars.rs text eol=lf
+tests/fixtures/yaml_exponent_scalars.json text eol=lf
+tests/fixtures/yaml_exponent_scalars.json.PROVENANCE text eol=lf
