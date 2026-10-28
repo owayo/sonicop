@@ -243,3 +243,12 @@ tests/fixtures/config_cop_namespace_origins.json text eol=lf
 tests/fixtures/config_cop_namespace_origins.json.PROVENANCE text eol=lf
 
 tests/display_only_failed_validation.rs text eol=lf
+
+# 設定file不足の実stderr bytesと出典hashをLFのcontainerで保つ。
+scripts/conformance/record_missing_config_errors.py text eol=lf
+scripts/conformance/test_record_missing_config_errors.py text eol=lf
+tests/missing_config_errors.rs text eol=lf
+tests/fixtures/missing_config_errors.json text eol=lf
+tests/fixtures/missing_config_errors.json.PROVENANCE text eol=lf
+tests/fixtures/missing_config_early_phases.json text eol=lf
+tests/fixtures/missing_config_early_phases.json.PROVENANCE text eol=lf

@@ -11,7 +11,7 @@ use std::time::Instant;
 use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
-use crate::config::{Config, ConfigStore, ConfigWarning, ConfigWarnings};
+use crate::config::{Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
@@ -352,6 +352,14 @@ fn run_inner() -> i32 {
             if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(missing) = error.downcast_ref::<MissingConfigError>() {
+                // ConfigNotFoundErrorだけはError:もOS detailも足さず、native改行を一度だけ通す。
+                let text = if missing.color() {
+                    format!("\x1b[31m{missing}\x1b[0m\n")
+                } else {
+                    format!("{missing}\n")
+                };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<FormatterLookupFailure>() {
                 // builtin_formatter_class は名前を原文で埋め込み、Ruby の frame と分ける。
@@ -743,34 +751,6 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
 }
 
 fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
-    if cli.version {
-        write_output(&format!("{VERSION}\n"), None, false)?;
-        return Ok(0);
-    }
-    if cli.verbose_version {
-        let cwd = std::env::current_dir().context("failed to determine current directory")?;
-        let config =
-            Config::load_with_options(cli.config.as_deref(), &cwd, cli.force_default_config)?;
-        write_output(
-            &format!(
-                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby {}) [{} {}]\n",
-                config.target_ruby_version(),
-                std::env::consts::OS,
-                std::env::consts::ARCH
-            ),
-            None,
-            false,
-        )?;
-        return Ok(0);
-    }
-    let fail_level = FailLevel::parse(&cli.fail_level)?;
-    print_deprecation_warnings(&cli);
-    warn_if_syntax_guard_disabled();
-
-    let cwd = std::env::current_dir().context("failed to determine current directory")?;
-    if cli.init {
-        return init_config(&cwd);
-    }
     let initial_warning_color = std::env::var("CLICOLOR_FORCE").is_ok_and(|value| value == "1")
         || (io::stdout().is_terminal()
             && io::stderr().is_terminal()
@@ -806,6 +786,61 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             write_output(&text, None, true)
         },
     );
+    let phase = Arc::clone(&warning_color);
+    try_run_with_warning_phase(
+        cli,
+        outputs,
+        config_warnings,
+        warning_color,
+        option_warning_color,
+    )
+    .map_err(|error| MissingConfigError::with_color(error, phase.load(Ordering::Relaxed)))
+}
+
+fn try_run_with_warning_phase(
+    cli: Cli,
+    outputs: &[Option<PathBuf>],
+    config_warnings: ConfigWarnings,
+    warning_color: Arc<AtomicBool>,
+    option_warning_color: bool,
+) -> Result<i32> {
+    if (cli.version || cli.force_default_config)
+        && let Some(path) = cli.config.as_deref()
+    {
+        Config::observe_file_for_cli(path, &config_warnings)?;
+    }
+    if cli.version {
+        write_output(&format!("{VERSION}\n"), None, false)?;
+        return Ok(0);
+    }
+    if cli.verbose_version {
+        let cwd = std::env::current_dir().context("failed to determine current directory")?;
+        let config = Config::load_for_cli(
+            cli.config.as_deref(),
+            &cwd,
+            cli.force_default_config,
+            &config_warnings,
+        )?;
+        write_output(
+            &format!(
+                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby {}) [{} {}]\n",
+                config.target_ruby_version(),
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            ),
+            None,
+            false,
+        )?;
+        return Ok(0);
+    }
+    let fail_level = FailLevel::parse(&cli.fail_level)?;
+    print_deprecation_warnings(&cli);
+    warn_if_syntax_guard_disabled();
+
+    let cwd = std::env::current_dir().context("failed to determine current directory")?;
+    if cli.init {
+        return init_config(&cwd);
+    }
     let config = Config::load_for_cli(
         cli.config.as_deref(),
         &cwd,

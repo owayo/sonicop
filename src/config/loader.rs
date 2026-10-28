@@ -1,6 +1,82 @@
 use std::ffi::OsString;
+use std::fmt;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
+
+#[derive(Debug)]
+pub(crate) struct MissingConfigError {
+    path: String,
+    color: bool,
+}
+
+impl fmt::Display for MissingConfigError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "Configuration file not found: {}", self.path)
+    }
+}
+
+impl std::error::Error for MissingConfigError {}
+
+impl MissingConfigError {
+    pub(crate) fn with_color(mut error: anyhow::Error, color: bool) -> anyhow::Error {
+        if let Some(missing) = error.downcast_mut::<Self>() {
+            missing.color = color;
+        }
+        error
+    }
+
+    pub(crate) fn color(&self) -> bool {
+        self.color
+    }
+}
+
+/// Missing表示の由来だけを別に保つ。namespaceの明示verbatim表示は別件#204のままにする。
+pub(super) fn absolute_config_error_origin(path: &Path) -> io::Result<PathBuf> {
+    let text = path.to_string_lossy().replace('\\', "/");
+    #[cfg(windows)]
+    let (input, prefix) = if let Some(unc) = text.strip_prefix("//?/UNC/") {
+        (format!("//{unc}"), Some("UNC"))
+    } else if let Some(path) = text.strip_prefix("//?/") {
+        (path.to_owned(), Some("disk"))
+    } else {
+        (text, None)
+    };
+    #[cfg(not(windows))]
+    let input = text;
+    let full = crate::formatter::absolute_path(Path::new(&input), &std::env::current_dir()?);
+    #[cfg(windows)]
+    let full = match prefix {
+        Some("UNC") => format!("//?/UNC/{}", full.trim_start_matches('/')),
+        Some(_) => format!("//?/{full}"),
+        None => full,
+    }
+    .replace('/', "\\");
+    Ok(PathBuf::from(full))
+}
+
+pub(super) fn config_io_error(path: &Path, error: io::Error) -> anyhow::Error {
+    if error.kind() != io::ErrorKind::NotFound {
+        return error.into();
+    }
+    match absolute_config_error_origin(path) {
+        Ok(path) => MissingConfigError {
+            path: path.to_string_lossy().replace('\\', "/"),
+            color: false,
+        }
+        .into(),
+        Err(error) => error.into(),
+    }
+}
+
+pub(super) fn canonicalize_config_path(
+    path: &Path,
+    error_origin: &Path,
+) -> anyhow::Result<PathBuf> {
+    // File.absolute_pathは存在しない中間directoryも..で消す。空文字はcwdへのdirectory I/Oになる。
+    let path = absolute_config_origin(path)?;
+    fs::canonicalize(path).map_err(|error| config_io_error(error_origin, error))
+}
 
 /// File.absolute_pathの親の短縮名・symlink表記を保ち、Windowsでは末尾の実名だけを戻す。
 pub(super) fn absolute_config_origin(path: &Path) -> std::io::Result<PathBuf> {
@@ -218,6 +294,57 @@ mod tests {
                 .find(|(name, _)| *name == key)
                 .map(|(_, value)| OsString::from(*value))
         }
+    }
+
+    #[test]
+    fn missing_configuration_keeps_its_body_through_context() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("absent/../missing.yml");
+        let error = super::canonicalize_config_path(&path, &path)
+            .unwrap_err()
+            .context("outer resolution");
+        let error = super::MissingConfigError::with_color(error, true);
+        let missing = error.downcast_ref::<super::MissingConfigError>().unwrap();
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/missing_config_errors.json"
+        ))
+        .unwrap();
+        let case = fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["id"] == "parent")
+            .unwrap();
+        let expected = case["error_message_template"].as_str().unwrap().replace(
+            "{cwd}",
+            &directory.path().to_string_lossy().replace('\\', "/"),
+        );
+        assert_eq!(missing.to_string(), expected);
+        assert!(missing.color());
+    }
+
+    #[test]
+    fn other_io_errors_and_empty_directory_input_are_not_missing_files() {
+        for kind in [
+            std::io::ErrorKind::PermissionDenied,
+            std::io::ErrorKind::InvalidData,
+            std::io::ErrorKind::NotADirectory,
+        ] {
+            let error = super::config_io_error(
+                Path::new("config.yml"),
+                std::io::Error::new(kind, "preserved IO detail"),
+            );
+            assert!(error.downcast_ref::<super::MissingConfigError>().is_none());
+            assert_eq!(error.downcast_ref::<std::io::Error>().unwrap().kind(), kind);
+            assert_eq!(error.to_string(), "preserved IO detail");
+        }
+        let directory = super::canonicalize_config_path(Path::new(""), Path::new("")).unwrap();
+        assert!(directory.is_dir());
+        let error = super::config_io_error(
+            Path::new(""),
+            std::fs::read_to_string(directory).unwrap_err(),
+        );
+        assert!(error.downcast_ref::<super::MissingConfigError>().is_none());
     }
 
     #[test]

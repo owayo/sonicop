@@ -9,7 +9,9 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use serde_yaml_ng::{Mapping, Value};
 
-use super::loader::absolute_config_origin;
+use super::loader::{
+    absolute_config_error_origin, absolute_config_origin, canonicalize_config_path, config_io_error,
+};
 use super::namespaces::{self, Origin};
 use super::validation::{OrderedKeys, ValidationBundle, ValidationTrace};
 
@@ -60,9 +62,17 @@ pub(super) fn load_recorded(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<RecordedConfig, ReadFailure> {
+    load_recorded_with_error_origin(path, path, visited)
+}
+
+pub(super) fn load_recorded_with_error_origin(
+    path: &Path,
+    error_origin: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<RecordedConfig, ReadFailure> {
     let mut resolved = ResolvedConfigs::default();
     let mut completed = Vec::new();
-    match load_local_with_inheritance(path, visited, &mut resolved, &mut completed) {
+    match load_local_with_inheritance(path, error_origin, visited, &mut resolved, &mut completed) {
         Ok(document) => Ok(RecordedConfig {
             value: document.value,
             validation: ValidationBundle {
@@ -84,13 +94,15 @@ pub(super) fn load_recorded(
 
 fn load_local_with_inheritance(
     path: &Path,
+    error_origin: &Path,
     visited: &mut HashSet<PathBuf>,
     resolved: &mut ResolvedConfigs,
     completed: &mut Vec<Arc<ValidationTrace>>,
 ) -> Result<ResolvedDocument> {
     let checkpoint = completed.len();
     let origin = absolute_config_origin(path)?;
-    let canonical = fs::canonicalize(path)
+    let error_origin = absolute_config_error_origin(error_origin)?;
+    let canonical = canonicalize_config_path(path, &error_origin)
         .with_context(|| format!("configuration file not found: {}", path.display()))?;
     if let Some(cached) = resolved.local.get(&origin) {
         completed.push(Arc::clone(&cached.trace));
@@ -103,6 +115,7 @@ fn load_local_with_inheritance(
         parsed.clone()
     } else {
         let contents = fs::read_to_string(&canonical)
+            .map_err(|error| config_io_error(&error_origin, error))
             .with_context(|| format!("failed to read configuration: {}", canonical.display()))?;
         #[cfg(test)]
         PARSED_CONFIG_COUNT.with(|count| count.set(count.get() + 1));
@@ -124,12 +137,26 @@ fn load_local_with_inheritance(
             load_remote_with_inheritance(&inherited, &mut HashSet::new(), resolved, completed)?
         } else {
             let inherited = PathBuf::from(inherited);
+            let inherited_error_origin = if inherited.is_absolute() {
+                inherited.clone()
+            } else {
+                error_origin
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .join(&inherited)
+            };
             let inherited = if inherited.is_absolute() {
                 inherited
             } else {
                 parent.join(inherited)
             };
-            load_local_with_inheritance(&inherited, visited, resolved, completed)?
+            load_local_with_inheritance(
+                &inherited,
+                &inherited_error_origin,
+                visited,
+                resolved,
+                completed,
+            )?
         };
         inherited_keys.push(Arc::clone(&document.keys));
         merged = merge_inherited_config(merged, document.value);

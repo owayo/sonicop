@@ -1,0 +1,35 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt（2026-10-28実参照）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_missing_config_errors.py
+再生成:
+  python scripts/conformance/record_missing_config_errors.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json>
+
+候補は起動しない。record_config_cop_namespacesの固定LOADER/VERSIONS/reference_environmentを共用する。
+子copyからRuby注入ENV4だけを除き、親のGEM/PATH/OS環境を保持する。実loaded版とgem原本SHAを照合する。
+既存work/outputとdangling symlinkを拒否し、出力は全件完了後のx modeで新規保存する。
+選択caseの空・未知・重複、元17入力の欠落・重複・順序違い、検査未完了、原本bytes/mtimeやoutの変更を拒否する。
+
+本家load_file APIのerror class/messageと、実CLIのstdout/stderr/exit/全原本bytes/outを同じ入力で記録した。
+ConfigLoader#file_pathはFile.absolute_path、#read_fileはFile.readのErrno::ENOENTだけをConfigNotFoundErrorへ変える。
+File.exist?の事前推定でdirectory/アクセス拒否/ENOTDIRをMissingへ寄せない。
+
+17条件の比較scope:
+- Missing14: stdout/stderrの全bytes、終了2、原本bytes/mtime、out未作成または既存sentinel保持。
+- directory1: 終了2・stdout bytes・stderr非空でMissingではないI/O拒否envelope。backtrace全体の互換とは数えない。
+- normal1: 完了JSONのmetadata以外の全fields、native engine/rubocop版のidentity、stdout bytes、原本bytes/mtime。
+- empty1: 本家はdirectory I/OだがClap拒否の既知残差#147。metadataとして残し、成功16条件へ含めない。
+Windows専用backslash/verbatim/verbatim_inheritの3条件以外はOS共通回帰にし、Windows16/Unix13条件を実行する。
+Unixのpipe改行だけをLFへ合わせる。Windowsのshort cwdをcanonical化せず、Unixの子cwdはphysical pathに合わせる。
+
+相対/絶対、absent/../のlexical正規化、日本語/空白、継承、版表示、phaseの色、既存out、late discoveryを含む。
+root --colorは未反映、CLICOLOR_FORCEとlate --colorは赤。native改行は一度だけ通す。
+late失敗はfiles formatterの原記録を維持し、#152のfinished JSON欠落を成功へ混ぜない。
+Missing専用の表示由来は明示verbatimからrelative inheritへ保つ。namespace側のprefix差#204は変更しない。
+
+stderr_hexは実cwdだけを{cwd}へ投影した生bytes。入力{verbatim}は利用者の明示prefixである。
+raw stderrのSHA256は実workpathに依存する。別I/Oのraw backtraceはwork/raw.jsonだけへ保存し、公開の全文一致へ含めない。
+stdoutのparallel通知は現行#135の実bytesと厳密比較し、notice-or-emptyの旧基点緩和は使わない。
+早期version/force-defaultの追加8条件はmissing_config_early_phases.jsonへ別に保存する。
+
+fixture SHA256: 68f42961be5a98b59b8596a8c993d2ca6cbb4e1d249e95789af7ff56841a333c
+collector SHA256: 8f1f28c3c66a7925c0835903a0a0d2e6d03bbc6bda6bc5516fe39007c050048d

@@ -8,7 +8,6 @@ mod validation;
 mod yaml_booleans;
 
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 
@@ -21,11 +20,15 @@ use crate::ruby_version::{
     ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
 };
 
-use inheritance::{load_recorded, merge_config};
-use loader::{absolute_config_origin, find_config_with_origin, path_parameter_base_directory};
+use inheritance::{load_recorded, load_recorded_with_error_origin, merge_config};
+use loader::{
+    absolute_config_origin, canonicalize_config_path, find_config_with_origin,
+    path_parameter_base_directory,
+};
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
+pub(crate) use loader::MissingConfigError;
 pub use store::ConfigStore;
 use validation::ValidationBundle;
 pub(crate) use validation::{ConfigWarning, ConfigWarnings};
@@ -97,6 +100,17 @@ impl Config {
         Self::load_internal(explicit, cwd, force_default, None, false)
     }
 
+    /// ConfigStore.apply_options!のload_fileだけを観測し、merge-default後のTargetRuby解決を早めない。
+    pub(crate) fn observe_file_for_cli(path: &Path, warnings: &ConfigWarnings) -> Result<()> {
+        match load_recorded(path, &mut HashSet::new()) {
+            Ok(loaded) => warnings.emit(&loaded.validation.trace),
+            Err(failure) => {
+                warnings.emit(&failure.prefix)?;
+                Err(failure.error)
+            }
+        }
+    }
+
     pub(crate) fn load_for_cli(
         explicit: Option<&Path>,
         cwd: &Path,
@@ -132,7 +146,7 @@ impl Config {
         } else {
             match explicit {
                 Some(path) => Some((
-                    fs::canonicalize(path).with_context(|| {
+                    canonicalize_config_path(path, path).with_context(|| {
                         format!("configuration file not found: {}", path.display())
                     })?,
                     absolute_config_origin(path)?,
@@ -144,7 +158,11 @@ impl Config {
 
         let mut validation = Arc::new(ValidationBundle::default());
         let (raw, user, unrecognized_cops) = if let Some((_, origin)) = &location {
-            let loaded = match load_recorded(origin, &mut HashSet::new()) {
+            let loaded = match load_recorded_with_error_origin(
+                origin,
+                explicit.unwrap_or(origin),
+                &mut HashSet::new(),
+            ) {
                 Ok(loaded) => loaded,
                 Err(failure) => {
                     if let Some(warnings) = warnings {
