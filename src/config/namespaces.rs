@@ -12,6 +12,7 @@ use super::validation::OrderedKeys;
 
 struct Registry {
     names: HashSet<String>,
+    ordered_names: Vec<String>,
     unqualified: HashSet<String>,
     departments: Vec<String>,
     obsolete: HashSet<String>,
@@ -22,6 +23,7 @@ static REGISTRY: LazyLock<Registry> = LazyLock::new(|| {
     let entries: Vec<(String, bool)> =
         serde_json::from_str(include_str!("../../config/autocorrect_support.json")).unwrap();
     let mut names = HashSet::new();
+    let mut ordered_names = Vec::new();
     let mut unqualified = HashSet::new();
     let mut departments = Vec::new();
     for (name, _) in entries {
@@ -30,6 +32,7 @@ static REGISTRY: LazyLock<Registry> = LazyLock::new(|| {
             departments.push(department.to_owned());
         }
         unqualified.insert(short.to_owned());
+        ordered_names.push(name.clone());
         names.insert(name);
     }
     unqualified.insert("RedundantCopDisableDirective".to_owned());
@@ -40,11 +43,33 @@ static REGISTRY: LazyLock<Registry> = LazyLock::new(|| {
             .collect();
     Registry {
         names,
+        ordered_names,
         unqualified,
         departments,
         obsolete,
     }
 });
+
+pub(super) fn registered_or_obsolete(name: &str) -> bool {
+    REGISTRY.names.contains(name)
+        || REGISTRY
+            .departments
+            .iter()
+            .any(|department| department == name)
+        || is_obsolete(name)
+}
+
+pub(super) fn is_obsolete(name: &str) -> bool {
+    REGISTRY.obsolete.contains(name)
+}
+
+pub(super) fn suggestion_dictionary() -> impl Iterator<Item = &'static str> {
+    REGISTRY
+        .departments
+        .iter()
+        .chain(&REGISTRY.ordered_names)
+        .map(String::as_str)
+}
 
 pub(super) enum Origin<'a> {
     File(&'a Path),
@@ -56,9 +81,9 @@ pub(super) fn normalize(
     keys: &mut OrderedKeys,
     origin: Origin<'_>,
     warnings: &mut Vec<ConfigWarning>,
-) -> Result<()> {
+) -> Result<String> {
     let Some(mapping) = value.as_mapping_mut() else {
-        return Ok(());
+        return Ok(String::new());
     };
     let (full, display) = match origin {
         Origin::File(path) => {
@@ -88,7 +113,7 @@ pub(super) fn normalize(
         keys.rename(&name, &qualified);
         mapping.insert(Value::String(qualified), entry);
     }
-    Ok(())
+    Ok(display)
 }
 
 fn qualify(

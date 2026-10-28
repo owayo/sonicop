@@ -252,7 +252,7 @@ fn ambiguous_names_reject_after_the_measured_namespace_warning() {
 fn existing_unknown_and_obsolete_rejections_keep_their_envelope() {
     let fixture = fixture();
     let mut rejected = 0;
-    let mut excluded = 0;
+    let mut linked = 0;
     for case in fixture["cases"].as_array().unwrap() {
         if case["coverage"] == "rejection_envelope" {
             let (_directory, output) = run(case);
@@ -260,13 +260,18 @@ fn existing_unknown_and_obsolete_rejections_keep_their_envelope() {
             assert!(!output.stderr.is_empty());
             rejected += 1;
         } else if case["coverage"] == "known_residual" {
-            // unknown bareは基点が本家と不一致。通常の不一致を許可差や成功数へ変えない。
+            // 元のknown_residual/rawは維持し、#144で同じ本家記録の拒否全文へ接続する。
             assert_eq!(case["id"], "unknown_bare");
-            assert_eq!(case["exit"], 2);
-            excluded += 1;
+            let (_directory, output) = run(case);
+            assert!(output.stdout.is_empty());
+            assert_eq!(
+                output.stderr,
+                native_text(&bytes(case["stderr_hex"].as_str().unwrap()))
+            );
+            linked += 1;
         }
     }
-    assert_eq!((rejected, excluded), (3, 1));
+    assert_eq!((rejected, linked), (3, 1));
 }
 
 #[cfg(windows)]

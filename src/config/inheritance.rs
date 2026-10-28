@@ -167,22 +167,26 @@ fn load_local_with_inheritance(
     }
     let mut value = merge_inherited_config(merged, current);
     let mut namespace_warnings = Vec::new();
-    if let Err(error) = namespaces::normalize(
+    let display = match namespaces::normalize(
         &mut value,
         &mut keys,
         Origin::File(&origin),
         &mut namespace_warnings,
     ) {
-        // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
-        completed.push(ValidationTrace::namespaces(namespace_warnings));
-        return Err(error);
-    }
+        Ok(display) => display,
+        Err(error) => {
+            // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
+            completed.push(ValidationTrace::namespaces(namespace_warnings));
+            return Err(error);
+        }
+    };
     // 完了した子を一つの共有履歴へ畳む。失敗時は完了済み部分だけが completed に残る。
     let trace = ValidationTrace::document(
         completed.split_off(checkpoint),
         &keys,
         &value,
         namespace_warnings,
+        &display,
     );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {
@@ -231,21 +235,25 @@ fn load_remote_with_inheritance(
     }
     let mut value = merge_inherited_config(merged, current);
     let mut namespace_warnings = Vec::new();
-    if let Err(error) = namespaces::normalize(
+    let display = match namespaces::normalize(
         &mut value,
         &mut keys,
         Origin::Remote(url),
         &mut namespace_warnings,
     ) {
-        // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
-        completed.push(ValidationTrace::namespaces(namespace_warnings));
-        return Err(error);
-    }
+        Ok(display) => display,
+        Err(error) => {
+            // 曖昧名に達する前の警告も、完了した継承先の後ろへ残す。
+            completed.push(ValidationTrace::namespaces(namespace_warnings));
+            return Err(error);
+        }
+    };
     let trace = ValidationTrace::document(
         completed.split_off(checkpoint),
         &keys,
         &value,
         namespace_warnings,
+        &display,
     );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {

@@ -11,7 +11,9 @@ use std::time::Instant;
 use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
-use crate::config::{Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError};
+use crate::config::{
+    Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError, UnknownConfigError,
+};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
@@ -25,7 +27,7 @@ use crate::formatter::{
     BUILTIN_FORMATTER_NAMES, Format, FormatOptions, FormatterLookupFailure, Lifecycle, Output,
     OutputSet, absolute_path, offenses_by_cop, render, smart_path, yaml_single_quoted,
 };
-use crate::name_distance::{jaro_winkler, levenshtein};
+use crate::name_distance::similar_names;
 use crate::rules::rule_names;
 use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 
@@ -359,6 +361,13 @@ fn run_inner() -> i32 {
                     format!("\x1b[31m{missing}\x1b[0m\n")
                 } else {
                     format!("{missing}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(unknown) = error.downcast_ref::<UnknownConfigError>() {
+                let text = if unknown.color() {
+                    format!("\x1b[31mError: {unknown}\x1b[0m\n")
+                } else {
+                    format!("Error: {unknown}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<FormatterLookupFailure>() {
@@ -776,6 +785,17 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         cli.config.is_none() && !cli.force_default_config && !cli.ignore_parent_exclusion,
         move |message| {
             let text = match message {
+                ConfigWarning::Unrecognized(messages) => {
+                    // 本家は見出しだけ色付けするため、未知名の本文を同じ色へ巻き込まない。
+                    let heading =
+                        "The following cops or departments are not recognized and will be ignored:";
+                    let heading = if color.load(Ordering::Relaxed) {
+                        format!("\x1b[33m{heading}\x1b[0m")
+                    } else {
+                        heading.to_owned()
+                    };
+                    format!("{heading}\n{}\n", messages.join("\n"))
+                }
                 ConfigWarning::Parameter(message) if color.load(Ordering::Relaxed) => {
                     format!("\x1b[33m{message}\x1b[0m\n")
                 }
@@ -794,7 +814,10 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         warning_color,
         option_warning_color,
     )
-    .map_err(|error| MissingConfigError::with_color(error, phase.load(Ordering::Relaxed)))
+    .map_err(|error| {
+        let color = phase.load(Ordering::Relaxed);
+        UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color)
+    })
 }
 
 fn try_run_with_warning_phase(
@@ -2072,37 +2095,6 @@ fn selector_dictionary(config: &Config) -> Vec<&str> {
 
 fn similar_cop_names(input: &str, config: &Config) -> Vec<String> {
     similar_names(input, selector_dictionary(config))
-}
-
-fn similar_names<'a>(input: &str, dictionary: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    // NameSimilarityはDidYouMean::SpellCheckerを使う。最初の一候補だけに切り詰めない。
-    let normalized = input.to_lowercase().replace('@', "");
-    let length = normalized.chars().count();
-    let threshold = if length > 3 { 0.834 } else { 0.77 };
-    let normalize = |name: &str| name.to_lowercase().replace('@', "");
-    let mut words: Vec<_> = dictionary
-        .into_iter()
-        .filter(|word| *word != input && jaro_winkler(&normalize(word), &normalized) >= threshold)
-        .collect();
-    words.sort_by(|left, right| {
-        jaro_winkler(left, &normalized).total_cmp(&jaro_winkler(right, &normalized))
-    });
-    words.reverse();
-    let corrections: Vec<_> = words
-        .iter()
-        .filter(|word| levenshtein(&normalize(word), &normalized) <= length.div_ceil(4))
-        .map(|word| (*word).to_owned())
-        .collect();
-    if !corrections.is_empty() {
-        return corrections;
-    }
-    words
-        .into_iter()
-        .find(|word| {
-            levenshtein(&normalize(word), &normalized) < length.min(normalize(word).chars().count())
-        })
-        .map(|word| vec![word.to_owned()])
-        .unwrap_or_default()
 }
 
 /// Tell the user about cops that resolved to enabled but have no implementation here.

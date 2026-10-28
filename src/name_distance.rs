@@ -73,3 +73,37 @@ pub(crate) fn levenshtein(left: &str, right: &str) -> usize {
     }
     costs[right.len()]
 }
+
+pub(crate) fn similar_names<'a>(
+    input: &str,
+    dictionary: impl IntoIterator<Item = &'a str>,
+) -> Vec<String> {
+    // NameSimilarityはDidYouMean::SpellCheckerを使う。最初の一候補だけに切り詰めない。
+    let normalized = input.to_lowercase().replace('@', "");
+    let length = normalized.chars().count();
+    let threshold = if length > 3 { 0.834 } else { 0.77 };
+    let normalize = |name: &str| name.to_lowercase().replace('@', "");
+    let mut words: Vec<_> = dictionary
+        .into_iter()
+        .filter(|word| *word != input && jaro_winkler(&normalize(word), &normalized) >= threshold)
+        .collect();
+    words.sort_by(|left, right| {
+        jaro_winkler(left, &normalized).total_cmp(&jaro_winkler(right, &normalized))
+    });
+    words.reverse();
+    let corrections: Vec<_> = words
+        .iter()
+        .filter(|word| levenshtein(&normalize(word), &normalized) <= length.div_ceil(4))
+        .map(|word| (*word).to_owned())
+        .collect();
+    if !corrections.is_empty() {
+        return corrections;
+    }
+    words
+        .into_iter()
+        .find(|word| {
+            levenshtein(&normalize(word), &normalized) < length.min(normalize(word).chars().count())
+        })
+        .map(|word| vec![word.to_owned()])
+        .unwrap_or_default()
+}
