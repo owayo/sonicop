@@ -28,6 +28,8 @@ use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 #[path = "cache_string_printable_table.rs"]
 mod cache_string_printable_table;
 
+mod config_yaml;
+
 #[cfg(any(windows, test))]
 mod windows_argv;
 
@@ -781,7 +783,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         return Ok(0);
     }
     if let Some(filter) = &cli.show_cops {
-        show_cops(filter, &config);
+        show_cops(filter, &config)?;
         return Ok(0);
     }
     if let Some(filter) = &cli.show_docs_url {
@@ -2079,49 +2081,40 @@ fn selected_cop_names<'a>(filter: &str, config: &'a Config) -> Vec<&'a str> {
     names
 }
 
-fn show_cops(filter: &str, config: &Config) {
-    let implemented: HashSet<&str> = rule_names().collect();
-    for name in selected_cop_names(filter, config) {
-        println!("{name}:");
-        if let Some(description) = config.description(name) {
-            println!(
-                "  Description: {}",
-                quoted_yaml_description(description.lines().next().unwrap_or(""))
-            );
-        }
-        // NewCops による実行時の選択と、カタログの pending は別物。
-        // pending の解決だけを切り替え、部門や EnabledByDefault の上書きは保持する。
-        let enabled = match (
-            config.rule_enabled_with_pending(name, true, false),
-            config.rule_enabled_with_pending(name, false, true),
-        ) {
-            (true, false) => "pending",
-            (true, true) => "true",
-            _ => "false",
-        };
-        println!("  Enabled: {enabled}");
-        println!("  Implemented: {}", implemented.contains(name));
-    }
-}
-
-fn quoted_yaml_description(description: &str) -> String {
+fn show_cops(filter: &str, config: &Config) -> Result<()> {
     use std::fmt::Write as _;
-
-    // JSON の引用で no などの暗黙変換を防ぎ、YAML 1.1 が拒否・正規化する文字も逃がす。
-    let quoted = serde_json::to_string(description).expect("string descriptions must serialize");
-    let mut escaped = String::with_capacity(quoted.len());
-    for character in quoted.chars() {
-        if matches!(
-            character,
-            '\u{7f}'..='\u{9f}' | '\u{2028}' | '\u{2029}' | '\u{fffe}' | '\u{ffff}'
-        ) {
-            write!(&mut escaped, "\\u{:04X}", u32::from(character))
-                .expect("writing to a string cannot fail");
-        } else {
-            escaped.push(character);
-        }
+    let names = selected_cop_names(filter, config);
+    let settings = config.displayed_cop_settings();
+    let mut output = String::new();
+    if filter.is_empty() {
+        writeln!(
+            output,
+            "# Available cops ({}) + config for {}: ",
+            names.len(),
+            config.cwd().to_string_lossy().replace('\\', "/")
+        )?;
     }
-    escaped
+    let mut department = None;
+    for &name in &names {
+        let current = cop_name::department(name);
+        if filter.is_empty() && department != Some(current) {
+            let count = names
+                .iter()
+                .filter(|name| cop_name::department(name) == current)
+                .count();
+            writeln!(output, "# Department '{current}' ({count}):")?;
+            department = Some(current);
+        }
+        if crate::engine::cop_autocorrect_metadata(name).is_some_and(|(_, support)| support) {
+            writeln!(output, "# Supports --autocorrect")?;
+        }
+        writeln!(output, "{name}:")?;
+        for line in config_yaml::dump(&settings[name])?.lines() {
+            writeln!(output, "  {line}")?;
+        }
+        writeln!(output)?;
+    }
+    write_output(&output, None, false)
 }
 
 fn show_docs_urls(filter: &str, config: &Config) {

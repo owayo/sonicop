@@ -3368,7 +3368,7 @@ impl CorrectionLog {
     }
 }
 
-fn cop_autocorrect_metadata(cop: &str) -> Option<(usize, bool)> {
+pub(crate) fn cop_autocorrect_metadata(cop: &str) -> Option<(usize, bool)> {
     // offense ごとの correctable とは別の、本家クラスの補正機能と実際の登録順。
     static METADATA: std::sync::LazyLock<std::collections::BTreeMap<&'static str, (usize, bool)>> =
         std::sync::LazyLock::new(|| {

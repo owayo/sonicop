@@ -2413,14 +2413,7 @@ fn a_default_run_stays_silent_on_stderr() {
 
 /// 本家の全 cop が実装済みで、名前も 1 つ残らず一致している。
 ///
-/// もともとは「未実装 cop を名指しすると stderr で警告する」ことを見るテストで、実装が
-/// 進むたびに名指しする cop を差し替えていた。全部そろった今は名指しできる cop が無いので、
-/// **そろっていること自体**を固定する形へ変えた。`--show-cops` は実装の有無に関わらず全 cop
-/// を出し、各エントリに `Implemented:` を添える (この形式を取り違えて「名前の集合が一致 =
-/// 全実装」と読み、実際には 25 個未実装だったのを見落としかけたことがある)。
-///
-/// 警告そのものは [`super`] の `warn_unimplemented_enabled` に残してある。本家が新しい cop を
-/// 足し、`config/default.yml` を取り込んで名前だけ認識した状態になったときに効く。
+/// 情報表示の項目に依存せず、実際のレジストリと設定の名前集合を直接照合する。
 #[test]
 fn every_upstream_cop_is_implemented() {
     let directory = project(&[]);
@@ -2432,29 +2425,17 @@ fn every_upstream_cop_is_implemented() {
         .clone();
     let listing = String::from_utf8(output).expect("--show-cops の出力が UTF-8 でなかった");
 
-    let mut current = None;
-    let mut unimplemented = Vec::new();
-    let mut implemented = 0_usize;
-    for line in listing.lines() {
-        if let Some(name) = line.strip_suffix(':').filter(|name| name.contains('/')) {
-            current = Some(name.to_owned());
-        } else if let Some(state) = line.trim().strip_prefix("Implemented: ") {
-            match (state, current.take()) {
-                ("true", _) => implemented += 1,
-                (_, Some(name)) => unimplemented.push(name),
-                (_, None) => {}
-            }
-        }
-    }
-
-    assert!(
-        unimplemented.is_empty(),
-        "未実装の cop が残っている: {unimplemented:?}"
-    );
+    let catalog: serde_yaml::Value = serde_yaml::from_str(&listing).unwrap();
+    let known = catalog
+        .as_mapping()
+        .unwrap()
+        .keys()
+        .map(|name| name.as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    let implemented = sonicop::rules::rule_names().collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
-        implemented,
-        sonicop::rules::rule_names().count(),
-        "--show-cops が数える実装済み cop とレジストリの登録数が食い違う"
+        known, implemented,
+        "本家の cop 名集合と実装のレジストリが食い違う"
     );
 }
 
@@ -4328,6 +4309,115 @@ fn later_conditional_corrections_preserve_character_provenance() {
             }
         }
     }
+}
+
+#[test]
+fn show_cops_prints_the_effective_configuration_and_correction_support() {
+    let directory = project(&[(".rubocop.yml", "AllCops:\n  NewCops: disable\n")]);
+    // RuboCop 1.89.0 の非 TTY CLI から採取した通常の表示をバイト単位で照合する。
+    let expected = include_bytes!("fixtures/show_cops_operators.yml");
+    command(directory.path())
+        .args(["--show-cops", "Layout/SpaceAroundOperators"])
+        .assert()
+        .success()
+        .stdout(native_textmode_expected(expected))
+        .stderr("");
+
+    fs::write(directory.path().join(".rubocop.yml"),
+        "AllCops:\n  NewCops: disable\nLayout:\n  Enabled: false\nLayout/SpaceAroundOperators:\n  AllowForAlignment: false\n  SupportedStylesForExponentOperator: [no_space]\n").unwrap();
+    let expected = String::from_utf8(expected.to_vec())
+        .unwrap()
+        .replace("Enabled: true", "Enabled: false")
+        .replace("AllowForAlignment: true", "AllowForAlignment: false")
+        .replacen("  - space\n  - no_space", "  - no_space", 1);
+    command(directory.path())
+        .args(["--show-cops", "Layout/SpaceAroundOperators"])
+        .assert()
+        .success()
+        .stdout(native_textmode_expected(expected.as_bytes()))
+        .stderr("");
+}
+
+#[test]
+fn show_cops_keeps_the_upstream_scalar_types() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/show_cops_typed_values.json")).unwrap();
+    for case in cases {
+        let config = format!(
+            "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nStyle/For:\n  Description: {}\n",
+            case["input"].as_str().unwrap()
+        );
+        let directory = project(&[]);
+        // 設定ヘルパーの再直列化で !!binary の型を落とさず、本家と同じ原文を渡す。
+        fs::write(directory.path().join(".rubocop.yml"), config).unwrap();
+        let output = command(directory.path())
+            .arg("--show-cops=Style/For")
+            .assert()
+            .success()
+            .get_output()
+            .clone();
+        assert!(output.stderr.is_empty());
+        assert_eq!(
+            output.stdout,
+            native_textmode_expected(case["stdout"].as_str().unwrap().as_bytes()),
+            "{}",
+            case["input"]
+        );
+    }
+}
+
+#[test]
+fn show_cops_matches_the_complete_upstream_catalog() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    assert!(output.stderr.is_empty());
+    let cwd = if cfg!(windows) {
+        directory.path().to_path_buf()
+    } else {
+        fs::canonicalize(directory.path()).unwrap()
+    };
+    let header = format!(
+        "# Available cops (609) + config for {}: \n",
+        cwd.to_string_lossy().replace('\\', "/")
+    );
+    let mut expected = header.into_bytes();
+    let fixture = include_str!("fixtures/show_cops_default.yml");
+    // Psych は / で始まる POSIX パスを引用し、C:/ で始まるパスは plain にする。
+    let fixture = if cfg!(windows) {
+        fixture
+            .lines()
+            .map(|line| {
+                if line.contains("{{cwd}}") {
+                    format!("{}\n", line.replacen('"', "", 1).trim_end_matches('"'))
+                } else {
+                    format!("{line}\n")
+                }
+            })
+            .collect::<String>()
+    } else {
+        fixture.to_owned()
+    };
+    expected.extend_from_slice(
+        fixture
+            .replace("{{cwd}}", &cwd.to_string_lossy().replace('\\', "/"))
+            .as_bytes(),
+    );
+    let expected = native_textmode_expected(&expected);
+    // 全文を失敗ログへ展開せず、最初の差の位置を示す。
+    assert_eq!(
+        output
+            .stdout
+            .iter()
+            .zip(&expected)
+            .position(|(a, b)| a != b),
+        None
+    );
+    assert_eq!(output.stdout.len(), expected.len());
 }
 
 #[test]
