@@ -1,0 +1,467 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "psych": "5.3.1",
+    "gems": {
+      "error_highlight": "0.7.2",
+      "did_you_mean": "2.0.0",
+      "syntax_suggest": "2.0.3",
+      "stringio": "3.2.0",
+      "date": "3.5.1",
+      "psych": "5.3.1",
+      "ast": "2.4.3",
+      "racc": "1.8.1",
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rainbow": "3.1.1",
+      "json": "2.18.0",
+      "language_server-protocol": "3.17.0.6",
+      "lint_roller": "1.1.0",
+      "parallel": "2.3.0",
+      "regexp_parser": "2.13.1",
+      "rubocop-ast": "1.50.0",
+      "ruby-progressbar": "1.13.0",
+      "unicode-emoji": "4.3.0",
+      "unicode-display_width": "3.3.0",
+      "rubocop": "1.89.0",
+      "english": "0.8.1",
+      "fileutils": "1.8.0",
+      "zlib": "3.2.3",
+      "forwardable": "1.4.0",
+      "delegate": "0.6.1",
+      "digest": "3.2.1",
+      "uri": "1.1.1",
+      "yaml": "0.4.0",
+      "erb": "6.0.7",
+      "bundler": "4.0.20",
+      "find": "0.2.0",
+      "openssl": "4.0.2",
+      "ipaddr": "1.2.8",
+      "securerandom": "0.4.1",
+      "optparse": "0.8.1",
+      "net-http": "0.9.1",
+      "timeout": "0.6.0",
+      "net-protocol": "0.2.2",
+      "resolv": "0.7.2",
+      "fiddle": "1.1.8",
+      "win32-registry": "0.1.2",
+      "time": "0.4.2"
+    }
+  },
+  "ruby_binary_sha256": "85d43028c45e8ffb78d56563d666f9e23956a8454f50a62c3a115aa66406afa6",
+  "type_probe": {
+    "exit": 0,
+    "stdout_hex": "7b2272756e74696d65223a7b2272756279223a22342e302e37222c227073796368223a22352e332e31222c2267656d73223a7b226572726f725f686967686c69676874223a22302e372e32222c226469645f796f755f6d65616e223a22322e302e30222c2273796e7461785f73756767657374223a22322e302e33222c22737472696e67696f223a22332e322e30222c2264617465223a22332e352e31222c227073796368223a22352e332e31222c22617374223a22322e342e33222c2272616363223a22312e382e31222c22706172736572223a22332e332e31322e30222c22707269736d223a22312e382e31222c227261696e626f77223a22332e312e31222c226a736f6e223a22322e31382e30222c226c616e67756167655f7365727665722d70726f746f636f6c223a22332e31372e302e36222c226c696e745f726f6c6c6572223a22312e312e30222c22706172616c6c656c223a22322e332e30222c227265676578705f706172736572223a22322e31332e31222c227275626f636f702d617374223a22312e35302e30222c22727562792d70726f6772657373626172223a22312e31332e30222c22756e69636f64652d656d6f6a69223a22342e332e30222c22756e69636f64652d646973706c61795f7769647468223a22332e332e30222c227275626f636f70223a22312e38392e30222c22656e676c697368223a22302e382e31222c2266696c657574696c73223a22312e382e30222c227a6c6962223a22332e322e33222c22666f727761726461626c65223a22312e342e30222c2264656c6567617465223a22302e362e31222c22646967657374223a22332e322e31222c22757269223a22312e312e31222c2279616d6c223a22302e342e30222c22657262223a22362e302e37222c2262756e646c6572223a22342e302e3230222c2266696e64223a22302e322e30222c226f70656e73736c223a22342e302e32222c22697061646472223a22312e322e38222c2273656375726572616e646f6d223a22302e342e31222c226f70747061727365223a22302e382e31222c226e65742d68747470223a22302e392e31222c2274696d656f7574223a22302e362e30222c226e65742d70726f746f636f6c223a22302e322e32222c227265736f6c76223a22302e372e32222c22666964646c65223a22312e312e38222c2277696e33322d7265676973747279223a22302e312e32222c2274696d65223a22302e342e32227d7d2c226361736573223a5b7b226964223a22706c61696e2d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a22706f7369746976652d6361706974616c2d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a222b314533227d7d7d2c7b226964223a226e656761746976652d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a222d31652d33227d7d7d2c7b226964223a22706f7369746976652d6578706f6e656e742d7369676e222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a2231652b33227d7d7d2c7b226964223a22646563696d616c2d756e7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22312e306533227d7d7d2c7b226964223a22646563696d616c2d7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a313030302e307d7d7d2c7b226964223a226672616374696f6e2d756e7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a222e356533227d7d7d2c7b226964223a226672616374696f6e2d6361706974616c2d7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a3530302e307d7d7d2c7b226964223a22747261696c696e672d646f742d756e7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22312e6533227d7d7d2c7b226964223a22747261696c696e672d646f742d7369676e65642d6578706f6e656e74222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a313030302e307d7d7d2c7b226964223a2273696e676c652d71756f746564222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a22646f75626c652d71756f746564222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a226578706c696369742d737472696e67222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a226578706c696369742d666c6f6174222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a313030302e307d7d7d2c7b226964223a226578706c696369742d71756f7465642d666c6f6174222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a313030302e307d7d7d2c7b226964223a226578706c696369742d737472696e672d7369676e65642d646563696d616c222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22312e30652b33227d7d7d2c7b226964223a226f7264696e6172792d696e7465676572222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22496e7465676572222c2276616c7565223a313030307d7d7d2c7b226964223a226f7264696e6172792d646563696d616c222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a312e32357d7d7d2c7b226964223a226f7264696e6172792d6e656761746976652d646563696d616c222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a2d302e357d7d7d2c7b226964223a22756e69636f64652d627974652d6f6666736574222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d2c225374796c654775696465223a7b2274797065223a22537472696e67222c2276616c7565223a22e697a5e69cace8aa9e227d7d7d2c7b226964223a22616e63686f722d616c696173222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d2c225374796c654775696465223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a226469726563746976652d737472696e67222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22537472696e67222c2276616c7565223a22316533227d7d7d2c7b226964223a226469726563746976652d666c6f6174222c2276616c756573223a7b224465736372697074696f6e223a7b2274797065223a22466c6f6174222c2276616c7565223a313030302e307d7d7d5d7d0d0a",
+    "stderr_hex": ""
+  },
+  "types": [
+    {
+      "id": "plain-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "positive-capital-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: +1E3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "+1E3"
+        }
+      }
+    },
+    {
+      "id": "negative-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: -1e-3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "-1e-3"
+        }
+      }
+    },
+    {
+      "id": "positive-exponent-sign",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1e+3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e+3"
+        }
+      }
+    },
+    {
+      "id": "decimal-unsigned-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1.0e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1.0e3"
+        }
+      }
+    },
+    {
+      "id": "decimal-signed-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1.0e+3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1000.0
+        }
+      }
+    },
+    {
+      "id": "fraction-unsigned-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: .5e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": ".5e3"
+        }
+      }
+    },
+    {
+      "id": "fraction-capital-signed-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: .5E+3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 500.0
+        }
+      }
+    },
+    {
+      "id": "trailing-dot-unsigned-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1.e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1.e3"
+        }
+      }
+    },
+    {
+      "id": "trailing-dot-signed-exponent",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1.e+3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1000.0
+        }
+      }
+    },
+    {
+      "id": "single-quoted",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: '1e3'\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "double-quoted",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: \"1e3\"\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "explicit-string",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !!str 1e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "explicit-float",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !!float 1e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1000.0
+        }
+      }
+    },
+    {
+      "id": "explicit-quoted-float",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !!float \"1e3\"\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1000.0
+        }
+      }
+    },
+    {
+      "id": "explicit-string-signed-decimal",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !!str 1.0e+3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1.0e+3"
+        }
+      }
+    },
+    {
+      "id": "ordinary-integer",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1000\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Integer",
+          "value": 1000
+        }
+      }
+    },
+    {
+      "id": "ordinary-decimal",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: 1.25\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1.25
+        }
+      }
+    },
+    {
+      "id": "ordinary-negative-decimal",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: -0.5\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": -0.5
+        }
+      }
+    },
+    {
+      "id": "unicode-byte-offset",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n# 日本語の前置き\nLint/BigDecimalNew:\n  StyleGuide: 日本語\n  Description: 1e3\n",
+      "keys": [
+        "Description",
+        "StyleGuide"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        },
+        "StyleGuide": {
+          "type": "String",
+          "value": "日本語"
+        }
+      }
+    },
+    {
+      "id": "anchor-alias",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: &number 1e3\n  StyleGuide: *number\n",
+      "keys": [
+        "Description",
+        "StyleGuide"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        },
+        "StyleGuide": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "directive-string",
+      "config": "%TAG !kind! tag:yaml.org,2002:\n---\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !kind!str 1e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "String",
+          "value": "1e3"
+        }
+      }
+    },
+    {
+      "id": "directive-float",
+      "config": "%TAG !kind! tag:yaml.org,2002:\n---\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLint/BigDecimalNew:\n  Description: !kind!float 1e3\n",
+      "keys": [
+        "Description"
+      ],
+      "expected": {
+        "Description": {
+          "type": "Float",
+          "value": 1000.0
+        }
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "allowed-plain",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Max: 10\n  AllowedPatterns:\n    - 1e3\n",
+      "source": "value = '1e3 and padding'\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/LineLength",
+        "--format",
+        "json",
+        "case.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "allowed-quoted",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Max: 10\n  AllowedPatterns:\n    - '1e3'\n",
+      "source": "value = '1e3 and padding'\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/LineLength",
+        "--format",
+        "json",
+        "case.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    },
+    {
+      "id": "allowed-decimal-unsigned",
+      "config": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Max: 10\n  AllowedPatterns:\n    - 1.0e3\n",
+      "source": "value = '1.0e3 and padding'\n",
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/LineLength",
+        "--format",
+        "json",
+        "case.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "files": [
+          {
+            "path": "case.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      }
+    }
+  ]
+}
