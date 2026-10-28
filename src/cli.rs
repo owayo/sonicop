@@ -1858,13 +1858,14 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
     if cli.cache.as_deref() == Some("false") && cli.cache_root.is_some() {
         bail!("--cache-root cannot be used with --cache false");
     }
-    if cli.display_only_failed
-        && !cli
-            .formats
-            .iter()
-            .any(|format| matches!(format.as_str(), "junit" | "ju"))
-    {
-        bail!("--display-only-failed can only be used with --format junit");
+    // OptionsValidator は略名解決前の、最後に指定された format 値だけを検査する。
+    if cli.display_only_failed && cli.formats.last().map(String::as_str) != Some("junit") {
+        return Err(SelectionFailure {
+            message: "--display-only-failed can only be used together with --format junit."
+                .to_owned(),
+            error_prefix: false,
+        }
+        .into());
     }
     if cli.display_only_correctable && (cli.autocorrect || cli.autocorrect_all || cli.fix_layout) {
         bail!("--display-only-correctable cannot be combined with autocorrection");
