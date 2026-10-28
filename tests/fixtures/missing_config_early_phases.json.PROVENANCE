@@ -1,0 +1,23 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの早期明示設定load_file実CLI記録（2026-10-28）。schema: 1。
+生成元: scripts/conformance/record_missing_config_errors.py --early
+再生成:
+  python scripts/conformance/record_missing_config_errors.py --early --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-early-fixture.json>
+固定gem版とRuby注入ENV4の分離は通常17条件と共通。CLICOLOR_FORCE=0/TERM=dumbを明示する。
+collectorは入力と既存参照のガードを本fixtureから読み、候補を呼ばず本家の全8条件を再採取する。
+版・8IDの順・exit・stdout・実cwdを投影したstderr・原本bytes/mtimeを検査し、完了した出力だけをx modeで保存する。
+
+8条件のRust比較scope:
+- native_version4: version valid/TargetRubyVersion 0.0/parameter/verbose valid。
+  native版identityは既存仕様として除外し、native改行・終了0・stderr全bytesとverboseの実効Ruby2.7を検査する。
+  version-parameterの警告は一度だけ出る。versionとforce-defaultへmerge-default後のTargetRuby検証を前倒ししない。
+- Missing2: version-inherit/force-inheritのstdout空、prefix無しstderr全bytes、終了2。
+- json_pending_residual1: force-defaultはTargetRubyVersion 0.0を無視し、metadata以外の全JSON fields/identity/終了0を検査する。
+  本家のpending通知は通常未一致#157なのでstderr一致へ数えない。元の実stderr bytesは改変せず保存する。
+- malformed_envelope1: version-scalarは終了2・stdout空・Error:接頭辞とMalformed本文・Missingではないことを検査する。
+  一般errorのpath/終端の全文一致とは数えない。
+全入力のbytes/mtimeを検査する。Windows実参照のpipe改行だけをUnix hostのLFへ合わせる。
+入力の{cwd}投影とraw_stderr_sha256のworkpath依存は通常17条件のPROVENANCEと同じ。
+--initとconfigの組合せは未取得で、本8条件の成功主張へ含めない。
+
+fixture SHA256: 52e6013af95e74fe6350567741757cd0c238e673a4b46fd5a9007fbeaefb08d1
+collector SHA256: 8f1f28c3c66a7925c0835903a0a0d2e6d03bbc6bda6bc5516fe39007c050048d

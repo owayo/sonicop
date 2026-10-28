@@ -1,0 +1,717 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "external_encoding": "UTF-8",
+    "stderr_encoding": null,
+    "rainbow_initial": false,
+    "rainbow_environment": {
+      "TERM": "dumb",
+      "CLICOLOR_FORCE": null
+    }
+  },
+  "source_hashes": {
+    "config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+    "cli.rb": "7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933"
+  },
+  "cases": [
+    {
+      "id": "relative",
+      "config": "missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "e8ef3919f4df57186ce3bc8b4e8687335214c9f492e356b1a96be69863c884c0",
+      "coverage": "missing"
+    },
+    {
+      "id": "absolute",
+      "config": "{cwd}/missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "{cwd}/missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "8d0800d6b8ce635f1bde9a227fc77c486a1aa8e8b5185f39d09475826e83d1be",
+      "coverage": "missing"
+    },
+    {
+      "id": "parent",
+      "config": "absent/../missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "absent/../missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "a14886276c36e2d76cc471eb1588edf47848089904aebe21cf265993611bf860",
+      "coverage": "missing"
+    },
+    {
+      "id": "backslash",
+      "config": ".\\absent\\..\\missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        ".\\absent\\..\\missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "db1c9d22ebf82cbf4157403588d3b873a2f34daa2c4cb40168c191ab49792da2",
+      "coverage": "missing"
+    },
+    {
+      "id": "unicode",
+      "config": "\u672a\u8a2d\u5b9a \u540d.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "\u672a\u8a2d\u5b9a \u540d.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2fe69caae8a8ade5ae9a20e5908d2e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/\u672a\u8a2d\u5b9a \u540d.yml",
+      "stderr_sha256": "3bce8ea704c09080011b31effe1e3c0683cb2f65ed244347a3cf8d28a1b40789",
+      "coverage": "missing"
+    },
+    {
+      "id": "inherit",
+      "config": "good.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": "",
+        "good.yml": "inherit_from: absent/../missing.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": "",
+        "good.yml": "696e68657269745f66726f6d3a20616273656e742f2e2e2f6d697373696e672e796d6c0a416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a"
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "5b85b218383d67b6de26c56cb89bb6b6a8fa0a69f2cefef4250dd85d8cb7a570",
+      "coverage": "missing"
+    },
+    {
+      "id": "nested_inherit",
+      "config": "configs/good.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "configs/good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": "",
+        "configs/good.yml": "inherit_from: ../absent/../missing.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": "",
+        "configs/good.yml": "696e68657269745f66726f6d3a202e2e2f616273656e742f2e2e2f6d697373696e672e796d6c0a416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a"
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "f5220c8504a7ca5fb8e7704acaacc077e4764e07c77c8b70659e41610d9078e1",
+      "coverage": "missing"
+    },
+    {
+      "id": "directory",
+      "config": "configdir",
+      "kind": "io",
+      "args": [
+        "--config",
+        "configdir",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [
+        "configdir"
+      ],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": null,
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "Errno::EISDIR",
+      "error_message_template": "Is a directory @ rb_sysopen - {cwd}/configdir",
+      "stderr_sha256": "c920e7ebadabc7cdb451cce8a230f495f3f2160b57056de883ef4e1529280437",
+      "coverage": "directory_envelope"
+    },
+    {
+      "id": "empty",
+      "config": "",
+      "kind": "io",
+      "args": [
+        "--config",
+        "",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": null,
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "Errno::EISDIR",
+      "error_message_template": "Is a directory @ rb_sysopen - {cwd}",
+      "stderr_sha256": "5eeb463663727043866cd520a86ab698513a21807fc8268b941b9c190a164a79",
+      "coverage": "known_residual"
+    },
+    {
+      "id": "normal",
+      "config": "good.yml",
+      "kind": "success",
+      "args": [
+        "--config",
+        "good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x = 1\r\n",
+        "Gemfile": "",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 0,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "",
+      "after_hex": {
+        "case.rb": "78203d20310d0a",
+        "Gemfile": "",
+        "good.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a"
+      },
+      "out_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "error_class": null,
+      "error_message_template": null,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "coverage": "json"
+    },
+    {
+      "id": "version",
+      "config": "missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--out",
+        "out.json",
+        "--version"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": true,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "f604d73799d18e1391654ca400cfa9332079af36f095c3080dac27334bc45022",
+      "coverage": "missing"
+    },
+    {
+      "id": "color_option",
+      "config": "missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "9fbf867da30b821da54ba9c98514fd24ba5fcff6ba03f69e31f95bbe2e6e0e3a",
+      "coverage": "missing"
+    },
+    {
+      "id": "color_environment",
+      "config": "missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "1b5b33316d436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c1b5b306d0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "bfef99bd0c5e0e412a7221cfff08ec4077c9fc3d2458ba963bb778bb24d744eb",
+      "coverage": "missing"
+    },
+    {
+      "id": "existing_out",
+      "config": "missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": "",
+        "out.json": "KEEP\r\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": "",
+        "out.json": "4b4545500d0a"
+      },
+      "out_hex": "4b4545500d0a",
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/missing.yml",
+      "stderr_sha256": "0f679c0e9ec5fd563236a86963cee3a9d4aa62045ec9973391c80512a37870ce",
+      "coverage": "missing"
+    },
+    {
+      "id": "nested_missing",
+      "config": "sub/.rubocop.yml",
+      "kind": "missing",
+      "args": [
+        "--color",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "files",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "sub/case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "sub/.rubocop.yml": "inherit_from: missing.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "sub/case.rb": "x=1\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": true,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "1b5b33316d436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a207b6377647d2f7375622f6d697373696e672e796d6c1b5b306d0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a",
+        "sub/.rubocop.yml": "696e68657269745f66726f6d3a206d697373696e672e796d6c0a416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a",
+        "sub/case.rb": "783d310a"
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: {cwd}/sub/missing.yml",
+      "stderr_sha256": "8d69ce9eefbb654569b001cda5d406791f6c1cb06d846e51aa10ae7d7f8cf7fb",
+      "coverage": "missing"
+    },
+    {
+      "id": "verbatim",
+      "config": "{verbatim}\\missing.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "{verbatim}\\missing.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": ""
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a202f2f3f2f7b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": ""
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: //?/{cwd}/missing.yml",
+      "stderr_sha256": "8cd8c1fc4570b66d2568541e245dfe7ccf1a99adcb49a7383fafb029955de19f",
+      "coverage": "missing"
+    },
+    {
+      "id": "verbatim_inherit",
+      "config": "{verbatim}\\good.yml",
+      "kind": "missing",
+      "args": [
+        "--config",
+        "{verbatim}\\good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--no-display-cop-names",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "--no-parallel",
+        "--cache",
+        "false",
+        "case.rb"
+      ],
+      "files": {
+        "case.rb": "x=1\n",
+        "Gemfile": "",
+        "good.yml": "inherit_from: absent/../missing.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n"
+      },
+      "directories": [],
+      "environment": {},
+      "version": false,
+      "discovered": false,
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a202f2f3f2f7b6377647d2f6d697373696e672e796d6c0d0a",
+      "after_hex": {
+        "case.rb": "783d310a",
+        "Gemfile": "",
+        "good.yml": "696e68657269745f66726f6d3a20616273656e742f2e2e2f6d697373696e672e796d6c0a416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a"
+      },
+      "out_hex": null,
+      "error_class": "RuboCop::ConfigNotFoundError",
+      "error_message_template": "Configuration file not found: //?/{cwd}/missing.yml",
+      "stderr_sha256": "f30da9fbc2935f702f4f6bd3bee4e855ff693670b0fba9cc0b34957bd916a9d0",
+      "coverage": "missing"
+    }
+  ]
+}
