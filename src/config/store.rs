@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Result, bail};
 
-use super::Config;
 use super::loader::find_config;
+use super::{Config, ConfigWarnings};
 
 type ConfigCache = Mutex<HashMap<PathBuf, Arc<Config>>>;
 
@@ -17,6 +17,8 @@ pub struct ConfigStore {
     ignore_unrecognized: bool,
     directories: ConfigCache,
     cache: ConfigCache,
+    warnings: Option<ConfigWarnings>,
+    observed: Mutex<HashSet<Option<PathBuf>>>,
 }
 
 impl ConfigStore {
@@ -27,7 +29,44 @@ impl ConfigStore {
             ignore_unrecognized,
             directories: Mutex::new(HashMap::new()),
             cache: Mutex::new(HashMap::new()),
+            warnings: None,
+            observed: Mutex::new(HashSet::new()),
         }
+    }
+
+    pub(crate) fn with_warnings(mut self, warnings: ConfigWarnings) -> Self {
+        // 起動時の root は CLI が既に観測済み。parent 用の load_file とは別の cache である。
+        self.observed
+            .get_mut()
+            .expect("未使用の観測 lock は正常である")
+            .insert(self.root.config_path().map(Path::to_path_buf));
+        self.warnings = Some(warnings);
+        self
+    }
+
+    pub(crate) fn for_path_observed(&self, path: &Path) -> Result<Arc<Config>> {
+        let config = self.for_path(path)?;
+        if let Some(warnings) = &self.warnings {
+            let key = config.config_path().map(Path::to_path_buf);
+            let mut observed = self
+                .observed
+                .lock()
+                .map_err(|_| anyhow::anyhow!("configuration observation lock is poisoned"))?;
+            if !observed.contains(&key) {
+                config.emit_validation(warnings, &self.root)?;
+                observed.insert(key);
+            }
+        }
+        Ok(config)
+    }
+
+    pub(crate) fn observe_files(&self, paths: &[PathBuf]) -> Result<()> {
+        if self.warnings.is_some() {
+            for path in paths {
+                self.for_path_observed(path)?;
+            }
+        }
+        Ok(())
     }
 
     pub fn root(&self) -> &Config {
@@ -62,12 +101,25 @@ impl ConfigStore {
                 Some(config) => config,
                 None => {
                     // 探索の始点と診断のパス表示の基準を分ける。後者は常に実行時の cwd。
-                    let config = Arc::new(Config::load_with_options(
-                        discovered.as_deref(),
-                        self.root.cwd(),
-                        discovered.is_none(),
-                    )?);
+                    let config = Arc::new(if let Some(warnings) = &self.warnings {
+                        Config::load_deferred(
+                            discovered.as_deref(),
+                            self.root.cwd(),
+                            discovered.is_none(),
+                            warnings,
+                        )?
+                    } else {
+                        Config::load_with_options(
+                            discovered.as_deref(),
+                            self.root.cwd(),
+                            discovered.is_none(),
+                        )?
+                    });
                     if !self.ignore_unrecognized && !config.unrecognized_cop_names().is_empty() {
+                        // 失敗する snapshot より前の継承警告だけを残す。成功時の先読みは無出力。
+                        if let Some(warnings) = &self.warnings {
+                            config.emit_validation(warnings, &self.root)?;
+                        }
                         bail!(
                             "unrecognized cop(s): {}",
                             config.unrecognized_cop_names().join(", ")

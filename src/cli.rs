@@ -2,12 +2,16 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
-use crate::config::{Config, ConfigStore};
+use crate::config::{Config, ConfigStore, ConfigWarnings};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
@@ -774,13 +778,51 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if cli.init {
         return init_config(&cwd);
     }
-    let config = Config::load_with_options(cli.config.as_deref(), &cwd, cli.force_default_config)?;
+    let initial_warning_color = std::env::var("CLICOLOR_FORCE").is_ok_and(|value| value == "1")
+        || (io::stdout().is_terminal()
+            && io::stderr().is_terminal()
+            && std::env::var("TERM").as_deref() != Ok("dumb"));
+    let info_mode = cli.show_cops.is_some()
+        || cli.show_docs_url.is_some()
+        || cli.list_enabled_cops_for.is_some()
+        || cli.lsp
+        || cli.mcp;
+    // cache root の上書きがあると、通常実行の for_pwd は色指定の反映後まで遅れる。
+    let root_before_color = cli.config.is_some()
+        || info_mode
+        || (cli.cache_root.is_none() && std::env::var_os("RUBOCOP_CACHE_ROOT").is_none());
+    let option_warning_color = !cli.no_color && (cli.color || initial_warning_color);
+    let warning_color = Arc::new(AtomicBool::new(if root_before_color {
+        initial_warning_color
+    } else {
+        option_warning_color
+    }));
+    let color = Arc::clone(&warning_color);
+    let config_warnings = ConfigWarnings::new(
+        cli.ignore_unrecognized_cops,
+        cli.config.is_none() && !cli.force_default_config && !cli.ignore_parent_exclusion,
+        move |message| {
+            let text = if color.load(Ordering::Relaxed) {
+                format!("\x1b[33m{message}\x1b[0m\n")
+            } else {
+                message.to_owned()
+            };
+            write_output(&text, None, true)
+        },
+    );
+    let config = Config::load_for_cli(
+        cli.config.as_deref(),
+        &cwd,
+        cli.force_default_config,
+        &config_warnings,
+    )?;
     validate_config(&config, cli.ignore_unrecognized_cops)?;
     let configs = ConfigStore::new(
         config.clone(),
         cli.config.is_none() && !cli.force_default_config,
         cli.ignore_unrecognized_cops,
-    );
+    )
+    .with_warnings(config_warnings);
     report_noop_modes(&cli);
 
     if cli.lsp || cli.mcp {
@@ -799,6 +841,8 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         return Ok(0);
     }
 
+    // Rainbow の CLI 色指定は、情報表示の早期終了を通過してから反映される。
+    warning_color.store(option_warning_color, Ordering::Relaxed);
     let correct_mode = cli.correct_mode();
     let PreparedSelection {
         mut selection,
@@ -1167,7 +1211,7 @@ fn inspect_rejected_inputs(
             let Some(first) = targets.first() else {
                 return Ok(Inspection::StdinDirectory { targets, bytes });
             };
-            configs.for_path(first)?;
+            configs.for_path_observed(first)?;
             return Ok(Inspection::Rejected {
                 target_count: targets.len(),
                 first_path: first.clone(),
@@ -1181,7 +1225,7 @@ fn inspect_rejected_inputs(
         if anonymous {
             anonymous_stdin_config(configs, path)?;
         } else {
-            configs.for_path(path)?;
+            configs.for_path_observed(path)?;
         }
         return Ok(Inspection::Rejected {
             target_count: 1,
@@ -1211,7 +1255,7 @@ fn inspect_rejected_inputs(
             stdin_original: None,
         });
     };
-    configs.for_path(first)?;
+    configs.for_path_observed(first)?;
     // cached_run?はnative cacheの使用条件と違い、補正中でもstdin以外なら有効になる。
     let cached = cli.cache.as_deref() == Some("true")
         || (cli.cache.as_deref() != Some("false")
@@ -1317,6 +1361,10 @@ fn inspect_inputs(
         if cli.debug {
             debug_report(cwd, configs.root(), targets.len(), parallel)?;
         }
+        if !cli.list_target_files && !cli.fail_fast {
+            // native の並列検査と独立に、本家の通常実行と同じ入力順で設定を観測する。
+            configs.observe_files(&targets)?;
+        }
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
             for path in targets {
@@ -1384,7 +1432,7 @@ fn inspect_inputs(
     let target_config = if anonymous_stdin {
         anonymous_stdin_config(configs, &stdin_path)?
     } else {
-        configs.for_path(&stdin_path)?
+        configs.for_path_observed(&stdin_path)?
     };
     emit_selection_warnings(selection_warnings)?;
     let report = inspect_stdin(stdin_path, bytes.clone(), &target_config, selection)?;
@@ -1397,7 +1445,7 @@ fn inspect_inputs(
 
 fn anonymous_stdin_config(configs: &ConfigStore, path: &Path) -> Result<std::sync::Arc<Config>> {
     // 空名は cwd という仮想ファイル。ConfigStore#for_file は、その親から設定を探す。
-    configs.for_path(path.parent().unwrap_or(path))
+    configs.for_path_observed(path.parent().unwrap_or(path))
 }
 
 struct CorrectionRun {
@@ -1442,7 +1490,7 @@ fn inspect_stdin_directory(
         had_write_failures: false,
     };
     for path in targets {
-        let config = configs.for_path(path)?;
+        let config = configs.for_path_observed(path)?;
         let report = inspect_shared_stdin(path.clone(), &current, &shared, &config, selection)?;
         let before = shared.clone();
         let mut run = apply_corrections(
@@ -2181,7 +2229,7 @@ fn docs_url(name: &str, config: &Config) -> String {
 }
 
 fn list_enabled_cops(path: &Path, configs: &ConfigStore) -> Result<()> {
-    let config = configs.for_path(path)?;
+    let config = configs.for_path_observed(path)?;
     let mut names = config
         .known_cop_names()
         .filter(|name| config.rule_enabled(name))

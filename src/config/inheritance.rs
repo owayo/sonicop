@@ -3,101 +3,151 @@ use std::fmt::Display;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use serde_yaml_ng::{Mapping, Value};
 
+use super::validation::{OrderedKeys, ValidationBundle, ValidationTrace};
+
 const MAX_REMOTE_CONFIG_BYTES: u64 = 5 * 1024 * 1024;
 
-/// Configuration files whose inheritance has already been resolved, keyed by canonical path for
-/// local files and by URL for remote ones.
-///
-/// `visited` cannot double as this memo: it is a recursion *stack*, popped again on the way out so
-/// that a file legitimately reachable through two different branches still resolves. Without a
-/// separate memo every additional mention of a file re-reads, re-parses and re-merges its whole
-/// subtree, so a chain in which each level names the next one twice costs 2^depth file reads --
-/// or, through `load_remote_with_inheritance`, 2^depth HTTP requests.
+#[derive(Clone)]
+struct ResolvedDocument {
+    value: Value,
+    keys: Arc<OrderedKeys>,
+    trace: Arc<ValidationTrace>,
+}
+
+/// visited は再帰の途中だけを表す。値は文書ごとに一度だけ解決し、検証履歴は辺ごとに再生する。
 #[derive(Default)]
 struct ResolvedConfigs {
-    local: HashMap<PathBuf, Value>,
-    remote: HashMap<String, Value>,
+    local: HashMap<PathBuf, ResolvedDocument>,
+    remote: HashMap<String, ResolvedDocument>,
+}
+
+#[derive(Debug)]
+pub(super) struct RecordedConfig {
+    pub(super) value: Value,
+    pub(super) validation: ValidationBundle,
+}
+
+#[derive(Debug)]
+pub(super) struct ReadFailure {
+    pub(super) error: anyhow::Error,
+    pub(super) prefix: Arc<ValidationTrace>,
 }
 
 #[cfg(test)]
 thread_local! {
-    /// Counts the configuration documents actually read and parsed, so the memoisation tests can
-    /// assert on reads rather than on wall-clock time. Thread-local because the test harness gives
-    /// every test its own thread.
+    // 実際に読んだ文書数を数え、共有継承の memo が効いていることを時間によらず検査する。
     static PARSED_CONFIG_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
+#[cfg(test)]
 pub(super) fn load_with_inheritance(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<Value> {
-    load_local_with_inheritance(path, visited, &mut ResolvedConfigs::default())
+    load_recorded(path, visited)
+        .map(|loaded| loaded.value)
+        .map_err(|failure| failure.error)
+}
+
+pub(super) fn load_recorded(
+    path: &Path,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<RecordedConfig, ReadFailure> {
+    let mut resolved = ResolvedConfigs::default();
+    let mut completed = Vec::new();
+    match load_local_with_inheritance(path, visited, &mut resolved, &mut completed) {
+        Ok(document) => Ok(RecordedConfig {
+            value: document.value,
+            validation: ValidationBundle {
+                trace: document.trace,
+                documents: resolved
+                    .local
+                    .into_iter()
+                    .map(|(path, doc)| (path, doc.trace))
+                    .collect(),
+            },
+        }),
+        Err(error) => Err(ReadFailure {
+            error,
+            prefix: ValidationTrace::sequence(completed),
+        }),
+    }
 }
 
 fn load_local_with_inheritance(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
     resolved: &mut ResolvedConfigs,
-) -> Result<Value> {
+    completed: &mut Vec<Arc<ValidationTrace>>,
+) -> Result<ResolvedDocument> {
+    let checkpoint = completed.len();
     let canonical = fs::canonicalize(path)
         .with_context(|| format!("configuration file not found: {}", path.display()))?;
-    // Only fully resolved files land in the memo, so a hit can never be a file that is still on
-    // the recursion stack -- genuine cycles keep reaching the `visited` check below.
     if let Some(cached) = resolved.local.get(&canonical) {
+        completed.push(Arc::clone(&cached.trace));
         return Ok(cached.clone());
     }
     if !visited.insert(canonical.clone()) {
         bail!("circular inherit_from detected at {}", canonical.display());
     }
-
     let contents = fs::read_to_string(&canonical)
         .with_context(|| format!("failed to read configuration: {}", canonical.display()))?;
     #[cfg(test)]
     PARSED_CONFIG_COUNT.with(|count| count.set(count.get() + 1));
     let mut current = parse_yaml_configuration(&contents, canonical.display())?;
+    // meta key の削除や native の値 merge が Ruby Hash の順序を動かす前に記録する。
+    let mut keys = OrderedKeys::from_value(&current);
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let inherit_gem = take_mapping_key(&mut current, "inherit_gem");
     let parent = canonical.parent().unwrap_or(Path::new("."));
     let mut inherited_paths = resolve_inherit_gems(inherit_gem)?;
     inherited_paths.extend(parse_inherit_paths(inherit)?);
     let mut merged = Value::Mapping(Mapping::new());
-
+    let mut inherited_keys = Vec::new();
     for inherited in inherited_paths {
-        if inherited.starts_with("http://") || inherited.starts_with("https://") {
-            let mut remote_visited = HashSet::new();
-            merged = merge_inherited_config(
-                merged,
-                load_remote_with_inheritance(&inherited, &mut remote_visited, resolved)?,
-            );
-            continue;
-        }
-        let inherited = PathBuf::from(inherited);
-        let inherited = if inherited.is_absolute() {
-            inherited
+        let document = if inherited.starts_with("http://") || inherited.starts_with("https://") {
+            load_remote_with_inheritance(&inherited, &mut HashSet::new(), resolved, completed)?
         } else {
-            parent.join(inherited)
+            let inherited = PathBuf::from(inherited);
+            let inherited = if inherited.is_absolute() {
+                inherited
+            } else {
+                parent.join(inherited)
+            };
+            load_local_with_inheritance(&inherited, visited, resolved, completed)?
         };
-        merged = merge_inherited_config(
-            merged,
-            load_local_with_inheritance(&inherited, visited, resolved)?,
-        );
+        inherited_keys.push(Arc::clone(&document.keys));
+        merged = merge_inherited_config(merged, document.value);
     }
-
     visited.remove(&canonical);
-    let config = merge_inherited_config(merged, current);
-    resolved.local.insert(canonical, config.clone());
-    Ok(config)
+    for base in inherited_keys.iter().rev() {
+        keys.inherit(base);
+    }
+    let value = merge_inherited_config(merged, current);
+    // 完了した子を一つの共有履歴へ畳む。失敗時は完了済み部分だけが completed に残る。
+    let trace = ValidationTrace::document(completed.split_off(checkpoint), &keys, &value);
+    completed.push(Arc::clone(&trace));
+    let document = ResolvedDocument {
+        value,
+        keys: Arc::new(keys),
+        trace,
+    };
+    resolved.local.insert(canonical, document.clone());
+    Ok(document)
 }
 
 fn load_remote_with_inheritance(
     url: &str,
     visited: &mut HashSet<String>,
     resolved: &mut ResolvedConfigs,
-) -> Result<Value> {
-    // Same reasoning as the local memo, except that every avoided lookup is an avoided HTTP GET.
+    completed: &mut Vec<Arc<ValidationTrace>>,
+) -> Result<ResolvedDocument> {
+    let checkpoint = completed.len();
     if let Some(cached) = resolved.remote.get(url) {
+        completed.push(Arc::clone(&cached.trace));
         return Ok(cached.clone());
     }
     if !visited.insert(url.to_owned()) {
@@ -105,8 +155,10 @@ fn load_remote_with_inheritance(
     }
     let contents = fetch_remote_config(url)?;
     let mut current = parse_yaml_configuration(&contents, url)?;
+    let mut keys = OrderedKeys::from_value(&current);
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let mut merged = Value::Mapping(Mapping::new());
+    let mut inherited_keys = Vec::new();
     for inherited in parse_inherit_paths(inherit)? {
         let inherited_url = if inherited.starts_with("http://") || inherited.starts_with("https://")
         {
@@ -114,15 +166,24 @@ fn load_remote_with_inheritance(
         } else {
             join_remote_url(url, &inherited)?
         };
-        merged = merge_inherited_config(
-            merged,
-            load_remote_with_inheritance(&inherited_url, visited, resolved)?,
-        );
+        let document = load_remote_with_inheritance(&inherited_url, visited, resolved, completed)?;
+        inherited_keys.push(Arc::clone(&document.keys));
+        merged = merge_inherited_config(merged, document.value);
     }
     visited.remove(url);
-    let config = merge_inherited_config(merged, current);
-    resolved.remote.insert(url.to_owned(), config.clone());
-    Ok(config)
+    for base in inherited_keys.iter().rev() {
+        keys.inherit(base);
+    }
+    let value = merge_inherited_config(merged, current);
+    let trace = ValidationTrace::document(completed.split_off(checkpoint), &keys, &value);
+    completed.push(Arc::clone(&trace));
+    let document = ResolvedDocument {
+        value,
+        keys: Arc::new(keys),
+        trace,
+    };
+    resolved.remote.insert(url.to_owned(), document.clone());
+    Ok(document)
 }
 
 /// Parses one configuration document the way `ConfigLoader#load_yaml_configuration` does.

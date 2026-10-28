@@ -3,6 +3,7 @@ mod loader;
 mod paths;
 mod plugin;
 mod store;
+mod validation;
 mod yaml_booleans;
 
 use std::collections::{HashMap, HashSet};
@@ -19,12 +20,14 @@ use crate::ruby_version::{
     ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
 };
 
-use inheritance::{load_with_inheritance, merge_config};
+use inheritance::{load_recorded, merge_config};
 use loader::{find_config, path_parameter_base_directory};
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub use store::ConfigStore;
+pub(crate) use validation::ConfigWarnings;
+use validation::ValidationBundle;
 
 const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 
@@ -54,6 +57,8 @@ pub struct Config {
     /// reading the files did. The `Arc` is what lets a cloned `Config` share the answer instead of
     /// working it out again.
     cache_digest: Arc<OnceLock<Option<[u8; 32]>>>,
+    // 検証履歴は設定値ではなく、診断キャッシュの digest へ含めない。
+    validation: Arc<ValidationBundle>,
 }
 
 impl Config {
@@ -88,6 +93,36 @@ impl Config {
         cwd: &Path,
         force_default: bool,
     ) -> Result<Self> {
+        Self::load_internal(explicit, cwd, force_default, None, false)
+    }
+
+    pub(crate) fn load_for_cli(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        warnings: &ConfigWarnings,
+    ) -> Result<Self> {
+        let config = Self::load_internal(explicit, cwd, force_default, Some(warnings), true)?;
+        config.emit_parent_validation(warnings, None)?;
+        Ok(config)
+    }
+
+    pub(super) fn load_deferred(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        warnings: &ConfigWarnings,
+    ) -> Result<Self> {
+        Self::load_internal(explicit, cwd, force_default, Some(warnings), false)
+    }
+
+    fn load_internal(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        warnings: Option<&ConfigWarnings>,
+        immediate: bool,
+    ) -> Result<Self> {
         let default: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)
             .context("embedded RuboCop default configuration is invalid")?;
         let mut known_cops = cop_names(&default);
@@ -102,9 +137,22 @@ impl Config {
             }
         };
 
+        let mut validation = Arc::new(ValidationBundle::default());
         let (raw, user, unrecognized_cops) = if let Some(path) = &config_path {
-            let mut visited = HashSet::new();
-            let user = load_with_inheritance(path, &mut visited)?;
+            let loaded = match load_recorded(path, &mut HashSet::new()) {
+                Ok(loaded) => loaded,
+                Err(failure) => {
+                    if let Some(warnings) = warnings {
+                        warnings.emit(&failure.prefix)?;
+                    }
+                    return Err(failure.error);
+                }
+            };
+            if immediate && let Some(warnings) = warnings {
+                warnings.emit(&loaded.validation.trace)?;
+            }
+            validation = Arc::new(loaded.validation);
+            let user = loaded.value;
             let configured_cops = cop_names(&user);
             let plugin_departments = configured_plugin_departments(&user);
             let plugin_cops = configured_cops
@@ -124,44 +172,92 @@ impl Config {
             (default, Value::Mapping(Mapping::new()), Vec::new())
         };
 
-        if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
-            bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
-        }
+        let result = (|| -> Result<Self> {
+            if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
+                bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
+            }
 
-        let path_base = path_parameter_base_directory(config_path.as_deref(), cwd);
-        let configured_target = configured_target_ruby(&raw)?;
-        let target_ruby = resolve_target_ruby(configured_target, path_base)?;
-        validate_supported(target_ruby.version)?;
-        if all_cops_mapping(&raw)
-            .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
-            .and_then(Value::as_str)
-            == Some("parser_prism")
-            && target_ruby.version < RubyVersion::new(3, 3)
+            let path_base = path_parameter_base_directory(config_path.as_deref(), cwd);
+            let configured_target = configured_target_ruby(&raw)?;
+            let target_ruby = resolve_target_ruby(configured_target, path_base)?;
+            validate_supported(target_ruby.version)?;
+            if all_cops_mapping(&raw)
+                .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
+                .and_then(Value::as_str)
+                == Some("parser_prism")
+                && target_ruby.version < RubyVersion::new(3, 3)
+            {
+                bail!(
+                    "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: {}",
+                    target_ruby.version
+                );
+            }
+
+            let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
+            let excludes = compile_excludes(&raw);
+            let cop_includes = compile_includes(&raw);
+
+            Ok(Self {
+                raw,
+                user,
+                path_base: path_base.to_path_buf(),
+                cwd: cwd.to_path_buf(),
+                config_path,
+                target_ruby,
+                known_cops,
+                unrecognized_cops,
+                includes,
+                excludes,
+                cop_includes,
+                cache_digest: Arc::new(OnceLock::new()),
+                validation: Arc::clone(&validation),
+            })
+        })();
+        if result.is_err()
+            && !immediate
+            && let Some(warnings) = warnings
         {
-            bail!(
-                "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: {}",
-                target_ruby.version
-            );
+            // 値の先読みが後続の検証で失敗しても、先に確定した警告は一度だけ出す。
+            warnings.emit(&validation.trace)?;
         }
+        result
+    }
 
-        let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
-        let excludes = compile_excludes(&raw);
-        let cop_includes = compile_includes(&raw);
+    pub(super) fn emit_validation(&self, warnings: &ConfigWarnings, root: &Config) -> Result<()> {
+        warnings.emit(&self.validation.trace)?;
+        self.emit_parent_validation(warnings, Some(root.validation.as_ref()))
+    }
 
-        Ok(Self {
-            raw,
-            user,
-            path_base: path_base.to_path_buf(),
-            cwd: cwd.to_path_buf(),
-            config_path,
-            target_ruby,
-            known_cops,
-            unrecognized_cops,
-            includes,
-            excludes,
-            cop_includes,
-            cache_digest: Arc::new(OnceLock::new()),
-        })
+    fn emit_parent_validation(
+        &self,
+        warnings: &ConfigWarnings,
+        fallback: Option<&ValidationBundle>,
+    ) -> Result<()> {
+        if !warnings.parent_exclusion {
+            return Ok(());
+        }
+        let Some(path) = self.config_path() else {
+            return Ok(());
+        };
+        let Some(parent) = loader::parent_exclusion_config(path, self.cwd()) else {
+            return Ok(());
+        };
+        if let Some(trace) = self
+            .validation
+            .documents
+            .get(&parent)
+            .or_else(|| fallback.and_then(|bundle| bundle.documents.get(&parent)))
+        {
+            return warnings.emit(trace);
+        }
+        // parent Exclude は load_file だけを使う。既定値や対象 Ruby の解決をもう一度行わない。
+        match load_recorded(&parent, &mut HashSet::new()) {
+            Ok(loaded) => warnings.emit(&loaded.validation.trace),
+            Err(failure) => {
+                warnings.emit(&failure.prefix)?;
+                Err(failure.error)
+            }
+        }
     }
 
     pub fn cwd(&self) -> &Path {

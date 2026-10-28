@@ -1283,7 +1283,7 @@ pub(crate) fn inspect_files_with_store_cached(
     // to building its own, which costs no more than resolving the cops inline would have.
     let root_plan = RulePlan::build(configs.root(), selection);
     let inspect = |path: &PathBuf| -> Result<FileReport> {
-        let config = configs.for_path(path)?;
+        let config = configs.for_path_observed(path)?;
         // 有効なキャッシュは load が本文を照合済み。その他は読み込んだ本文で再検査する。
         let stale = match cache.and_then(|cache| cache.load(path, &config)) {
             Some(Cached::Fresh(report)) => return Ok(report),
@@ -1686,7 +1686,7 @@ fn discover_target_paths(
         // 本家の TargetFinder は探索を始めるディレクトリの設定を全候補に適用する。
         // 配下の別設定は、そこを探索起点に指定したときだけ対象選択へ反映する。
         let discovery_config = crate::profile::phase(crate::profile::Phase::ConfigLookup, || {
-            configs.for_path(&root)
+            configs.for_path_observed(&root)
         })?;
         let pruned = discovery_config.clone();
         let hidden_stdin_root = stdin
