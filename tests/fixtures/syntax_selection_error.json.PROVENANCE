@@ -1,0 +1,5 @@
+RuboCop 1.89.0, Ruby 4.0.8, macOS arm64、非 TTY の実 CLI 記録。
+config.yml: AllCops/NewCops: disable、AllCops/TargetRubyVersion: 2.7。
+case.rb: x=1 と LF。
+rubocop _1.89.0_ --config config.yml --except Lint/Syntax [flags] case.rb
+stdout・stderr・終了値をそのまま記録した。Windows の stderr は native text mode に従う。

@@ -1809,7 +1809,11 @@ fn validate_syntax_selection(cli: &Cli) -> Result<()> {
             .iter()
             .any(|name| is_mandatory_cop(name.as_str()))
     }) {
-        bail!("Syntax checking cannot be turned off.");
+        return Err(SelectionFailure {
+            message: "Syntax checking cannot be turned off.".to_owned(),
+            error_prefix: false,
+        }
+        .into());
     }
     Ok(())
 }

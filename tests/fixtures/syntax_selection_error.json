@@ -1,0 +1,41 @@
+[
+  {
+    "flags": [],
+    "stdout": "",
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "exit": 2
+  },
+  {
+    "flags": [
+      "--color"
+    ],
+    "stdout": "",
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "exit": 2
+  },
+  {
+    "flags": [
+      "--no-color"
+    ],
+    "stdout": "",
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "exit": 2
+  },
+  {
+    "flags": [
+      "--format",
+      "json"
+    ],
+    "stdout": "",
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "exit": 2
+  },
+  {
+    "flags": [
+      "--version"
+    ],
+    "stdout": "",
+    "stderr": "Syntax checking cannot be turned off.\n",
+    "exit": 2
+  }
+]
