@@ -711,14 +711,8 @@ fn split_external_arguments(source: &str) -> Result<Vec<String>> {
 
 fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     let started = Instant::now();
-    if !cli.version && !cli.verbose_version {
-        // Options.parse内の拒否ではCLI @optionsが未代入で、上流ensureのtimerも無効。
-        // 既存の判定だけを先に確認し、config/検査中の失敗とは段階を分ける。
-        validate_compatibility(&cli)?;
-    } else {
-        // これらはOptions.parseの判定なので、versionの早期returnより先に拒否される。
-        validate_syntax_selection(&cli)?;
-    }
+    // Options.parse の拒否は版表示と通知より先で、CLI ensure の timer も出さない。
+    validate_compatibility(&cli)?;
     FailLevel::parse(&cli.fail_level)?;
     if let Some(notice) = parallel_option_notice(&cli) {
         // Options の通知は formatter の出力先を選ぶ前に、一度だけ stdout へ出す。
@@ -769,7 +763,6 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         )?;
         return Ok(0);
     }
-    validate_compatibility(&cli)?;
     let fail_level = FailLevel::parse(&cli.fail_level)?;
     print_deprecation_warnings(&cli);
     warn_if_syntax_guard_disabled();
@@ -1853,7 +1846,11 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
     if let Some(cache) = &cli.cache
         && !matches!(cache.as_str(), "true" | "false")
     {
-        bail!("-C/--cache argument must be true or false");
+        return Err(SelectionFailure {
+            message: "-C/--cache argument must be true or false".to_owned(),
+            error_prefix: false,
+        }
+        .into());
     }
     if cli.cache.as_deref() == Some("false") && cli.cache_root.is_some() {
         bail!("--cache-root cannot be used with --cache false");
