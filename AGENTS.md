@@ -727,3 +727,16 @@ corpus by absolute path. Keep the guard enabled and record the gem version and c
 
 `Cargo.toml` and `lib/sonicop/version.rb` must agree; `make version-check` enforces it and CI fails
 otherwise. 公開版の番号は Release ワークフローが自動採番する。Cargo.toml と Ruby の版を手で変更しない。
+
+**未対応 parameter の警告は、値の merge と別に読込履歴を再生する。**
+既定値を合わせる前のキー順を保持し、継承先の検証順と、継承後の cop・parameter の順を分ける。
+値の memo が命中しても、その辺の検証イベントは再生する。履歴は Arc の DAG とし、警告の
+ない部分木は展開しない。後の継承先が読めなければ、先に完了した部分だけをエラー前に出す。
+library の入口は無出力のまま、CLI の値の先読みと設定の観測を分ける。parent Exclude は
+最後の祖先 dotfile の load_file だけを読み、設定値や対象 Ruby の解決を重ねない。
+警告色の反映時点は、情報表示と cache root の指定でも変わるため、実 CLI 記録で検査する。
+
+本家の fork worker ごとの警告重複は native の共有 ConfigStore では増やさない。警告だけの
+擬似 scheduler は作らず、同じ入力の本家の並列・逐次記録と理由を
+unsupported_parameter_parallel_warning_divergences で監視する。継承内の重複と parent 用の
+再ロードは、この共有キャッシュによる重複抑制へ混ぜない。

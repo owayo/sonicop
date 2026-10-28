@@ -3416,3 +3416,18 @@ word_array_byte_safety_divergence:
     理由stderrと終了2を返す。AutoCorrect:falseや-aのSafeAutoCorrect:falseは拒否しない。
     Ruby4.0.7の実値とTarget2.7/whitequarkを区別し、本家JSON失敗を成功へ変換しない。
     不正な本家messageのrawとnativeのUTF-8表示を同一とは主張しない。
+
+unsupported_parameter_parallel_warning_divergences:
+  fixture: config_parameter_warnings.json
+  case: parallel explicit files 2 worker
+  candidate_case: sequential cached explicit files
+  upstream_warning_blocks: 5
+  sonicop_warning_blocks: 3
+  reason: >-
+    Claude と相談し、警告だけの擬似 fork scheduler は作らないと判断した。
+    本家が複数の worker で検査する場合は worker ごとに ConfigStore があり、同じ設定の警告が
+    worker ごとに重複する。割り当てと処理時間によって回数と順序も変わる。
+    native は Rayon のスレッド間で設定キャッシュを共有し、同じ設定の観測は一度に保つ。
+    inherit_from 内の検証イベントと parent Exclude 用の読み込みは別に再生する。
+    2ファイル・2 worker の本家記録と、同じ入力の逐次記録を残し、警告の差を監視する。
+    この記録では終了値・診断・集計に差がないことも実測した。

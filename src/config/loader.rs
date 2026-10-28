@@ -123,6 +123,23 @@ pub(super) fn find_project_root(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
+/// add_excludes_from_files は最寄りではなく、起動時の境界までで最後の dotfile を読む。
+pub(super) fn parent_exclusion_config(config_path: &Path, cwd: &Path) -> Option<PathBuf> {
+    let cwd = fs::canonicalize(cwd).unwrap_or_else(|_| cwd.to_path_buf());
+    let boundary = find_project_root(&cwd);
+    let mut last = None;
+    for directory in config_path.parent()?.ancestors() {
+        let candidate = directory.join(".rubocop.yml");
+        if candidate.is_file() {
+            last = fs::canonicalize(candidate).ok();
+        }
+        if boundary.as_deref() == Some(directory) {
+            break;
+        }
+    }
+    last.filter(|path| path != config_path)
+}
+
 #[cfg(test)]
 mod tests {
     use std::ffi::OsString;

@@ -6895,3 +6895,151 @@ fn explicit_parallel_option_notices_match_the_upstream_cli() {
         }
     }
 }
+
+#[test]
+fn config_parameter_warnings_match_the_upstream_cli() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/config_parameter_warnings.json")).unwrap();
+    let manifest: serde_yaml::Value =
+        serde_yaml::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let divergence = &manifest["unsupported_parameter_parallel_warning_divergences"];
+    assert_eq!(
+        divergence["fixture"].as_str(),
+        Some("config_parameter_warnings.json")
+    );
+    assert!(!divergence["reason"].as_str().unwrap().trim().is_empty());
+    let reference = cases
+        .iter()
+        .find(|case| case["name"].as_str() == divergence["case"].as_str())
+        .unwrap();
+    let shared = cases
+        .iter()
+        .find(|case| case["name"].as_str() == divergence["candidate_case"].as_str())
+        .unwrap();
+    assert_eq!(reference["files"], shared["files"]);
+    assert_eq!(reference["report"], shared["report"]);
+    assert_eq!(reference["exit"], shared["exit"]);
+    assert_ne!(reference["stderr"], shared["stderr"]);
+    for (case, key) in [
+        (reference, "upstream_warning_blocks"),
+        (shared, "sonicop_warning_blocks"),
+    ] {
+        assert_eq!(
+            case["stderr"].as_str().unwrap().matches("Warning:").count() as u64,
+            divergence[key].as_u64().unwrap()
+        );
+    }
+    for case in &cases {
+        let name = case["name"].as_str().unwrap();
+        // 本家の fork fallback を、この POSIX 記録で Windows の成功とみなさない。
+        if cfg!(windows) && name.starts_with("parallel explicit files ") {
+            continue;
+        }
+        let expected = if name == divergence["case"].as_str().unwrap() {
+            shared
+        } else {
+            case
+        };
+        let directory = project(&[]);
+        for (path, body) in case["files"].as_object().unwrap() {
+            let path = directory.path().join(path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, body.as_str().unwrap()).unwrap();
+        }
+        for _ in 0..case["repeat"].as_u64().unwrap_or(1) {
+            let mut cmd = command(directory.path());
+            cmd.env_remove("CLICOLOR_FORCE");
+            cmd.env_remove("RUBOCOP_CACHE_ROOT");
+            if case["cache_root_override"].as_bool() == Some(true) {
+                cmd.env(
+                    "RUBOCOP_CACHE_ROOT",
+                    fs::canonicalize(directory.path()).unwrap().join("cache"),
+                );
+            }
+            for arg in case["args"].as_array().unwrap() {
+                cmd.arg(arg.as_str().unwrap());
+            }
+            if let Some(env) = case["env"].as_object() {
+                for (key, value) in env {
+                    cmd.env(key, value.as_str().unwrap());
+                }
+            }
+            if let Some(stdin) = case["stdin"].as_str() {
+                cmd.write_stdin(stdin);
+            }
+            let output = cmd.output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(expected["exit"].as_i64().unwrap() as i32),
+                "{name}"
+            );
+            if case["prefix_only"].as_bool() == Some(true) {
+                let prefix =
+                    native_textmode_expected(case["warning_prefix"].as_str().unwrap().as_bytes());
+                assert!(
+                    output.stderr.starts_with(&prefix),
+                    "{name}: {:?}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                assert!(
+                    !String::from_utf8_lossy(&output.stderr[prefix.len()..]).contains("Warning:"),
+                    "{name}"
+                );
+            } else {
+                assert_eq!(
+                    String::from_utf8_lossy(&output.stderr),
+                    String::from_utf8_lossy(&native_textmode_expected(
+                        expected["stderr"].as_str().unwrap().as_bytes()
+                    )),
+                    "{name}"
+                );
+            }
+            // 子設定エラー時の終了 JSON 差 #152 は別件。警告 prefix と終了値は検査する。
+            if case["warning_only"].as_bool() != Some(true) {
+                if let Some(wanted) = expected.get("report") {
+                    let mut stream = serde_json::Deserializer::from_slice(&output.stdout)
+                        .into_iter::<serde_json::Value>();
+                    let mut found = stream.next().unwrap().unwrap();
+                    found.as_object_mut().unwrap().remove("metadata");
+                    assert_eq!(&found, wanted, "{name}");
+                    let tail = expected["stdout_tail"].as_str().unwrap_or("");
+                    assert_eq!(
+                        &output.stdout[stream.byte_offset()..],
+                        native_textmode_expected(tail.as_bytes()),
+                        "{name}"
+                    );
+                } else if let Some(wanted) = expected["stdout"].as_str() {
+                    if cfg!(windows)
+                        && case["args"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .any(|arg| arg == "--list-target-files")
+                    {
+                        // 対象一覧の Windows 改行差 #155 は別件。ここでは警告と対象名を検査する。
+                        assert_eq!(
+                            String::from_utf8(output.stdout)
+                                .unwrap()
+                                .replace("\r\n", "\n"),
+                            wanted,
+                            "{name}"
+                        );
+                    } else {
+                        assert_eq!(
+                            output.stdout,
+                            native_textmode_expected(wanted.as_bytes()),
+                            "{name}"
+                        );
+                    }
+                }
+            }
+            for (path, body) in case["files"].as_object().unwrap() {
+                assert_eq!(
+                    fs::read(directory.path().join(path)).unwrap(),
+                    body.as_str().unwrap().as_bytes(),
+                    "{name} / {path}"
+                );
+            }
+        }
+    }
+}

@@ -1,0 +1,1293 @@
+[
+  {
+    "name": "single parameter",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  DocumentationBaseURL: https://example.invalid/cop\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support DocumentationBaseURL parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "cop and parameter order",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Zed: 1\n  Alpha: true\nLayout/LineLength:\n  Unknown: false\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support Zed parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Alpha parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/LineLength does not support Unknown parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0
+  },
+  {
+    "name": "common and department parameters",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Details: custom\n  Severity: warning\n  Safe: true\n  References: []\n  AutoCorrect: false\nLayout:\n  DocumentationBaseURL: https://example.invalid/docs\n  DocumentationExtension: .adoc\n  Unknown: true\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://example.invalid/docs/cops_layout.adoc#layoutspacearoundoperators\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "name": "disabled cop outside selection",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Enabled: false\n  Unknown: 1\n",
+      "case.rb": "x = 1\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "case.rb"
+    ],
+    "stderr": "Warning: Layout/LineLength does not support Unknown parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    }
+  },
+  {
+    "name": "internal parameters require default key",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  VersionRemoved: '0.1'\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support VersionRemoved parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "explicit inheritance",
+    "files": {
+      "root.yml": "inherit_from: base.yml\nLayout/SpaceAroundOperators:\n  TopParam: 1\n",
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  BaseParam: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support BaseParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/SpaceAroundOperators does not support TopParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/LineLength does not support BaseParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0
+  },
+  {
+    "name": "explicit inheritance color before options",
+    "files": {
+      "root.yml": "inherit_from: base.yml\nLayout/SpaceAroundOperators:\n  TopParam: 1\n",
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  BaseParam: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--color",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support BaseParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/SpaceAroundOperators does not support TopParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/LineLength does not support BaseParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0
+  },
+  {
+    "name": "multiple base parameter order",
+    "files": {
+      "root.yml": "inherit_from: [first.yml, second.yml]\nLayout/SpaceAroundOperators:\n  Own: 1\n  Shared: root\n",
+      "first.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  First: 1\n  Shared: first\n",
+      "second.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Second: 1\n  Shared: second\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "diamond replays validation",
+    "files": {
+      "root.yml": "inherit_from: [left.yml, right.yml]\nLayout/SpaceAroundOperators:\n  Root: 1\n",
+      "left.yml": "inherit_from: base.yml\nLayout/SpaceAroundOperators:\n  Left: 1\n",
+      "right.yml": "inherit_from: base.yml\nLayout/SpaceAroundOperators:\n  Right: 1\n",
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Base: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Left parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Right parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Left parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Right parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Root parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "repeated inheritance",
+    "files": {
+      "root.yml": "inherit_from: [base.yml, base.yml]\n",
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Base: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "nested false --no-color",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--no-color",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested false --color",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--color",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested false --color --ignore-parent-exclusion",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--color",
+      "--ignore-parent-exclusion",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested false explicit files",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested false explicit files reversed",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/b.rb",
+      "sub/a.rb"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested false explicit config",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--config",
+      "sub/.rubocop.yml",
+      "--color",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "nested true --no-color",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--no-color",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested true --color",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--color",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested true --color --ignore-parent-exclusion",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--color",
+      "--ignore-parent-exclusion",
+      "sub"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested true explicit files",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested true explicit files reversed",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/b.rb",
+      "sub/a.rb"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "nested true explicit config",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "inherit_from: ../.rubocop.yml\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--config",
+      "sub/.rubocop.yml",
+      "--color",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "parent exclusion selects last ancestor",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  MiddleParam: 1\n",
+      "sub/deep/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  DeepParam: 1\n",
+      "sub/deep/a.rb": "a = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/deep"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support DeepParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/deep/a.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    }
+  },
+  {
+    "name": "warning before later missing inherited file",
+    "files": {
+      "root.yml": "inherit_from: [base.yml, missing.yml]\n",
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  BaseParam: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix_only": true,
+    "stdout": "",
+    "exit": 2,
+    "warning_prefix": "Warning: Layout/SpaceAroundOperators does not support BaseParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n"
+  },
+  {
+    "name": "unknown cop failure precedes own parameter warning",
+    "files": {
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Unknown: 1\nLint/NoSuchCop:\n  Unknown: 1\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "prefix_only": true,
+    "stdout": "",
+    "exit": 2,
+    "warning_prefix": ""
+  },
+  {
+    "name": "parallel explicit files 1 worker",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "true",
+      "--parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "env": {
+      "PARALLEL_PROCESSOR_COUNT": "1"
+    },
+    "cache_root_override": true,
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "parallel explicit files 2 worker",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "true",
+      "--parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "env": {
+      "PARALLEL_PROCESSOR_COUNT": "2"
+    },
+    "cache_root_override": true,
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "sequential cached explicit files",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "true",
+      "--no-parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "cache_root_override": true,
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "forced color before no-color info",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--no-color",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "env": {
+      "CLICOLOR_FORCE": "1"
+    },
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0
+  },
+  {
+    "name": "forced initial color then no-color nested",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--no-color",
+      "sub"
+    ],
+    "env": {
+      "CLICOLOR_FORCE": "1"
+    },
+    "stderr": "\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "three bases parameter order",
+    "files": {
+      "root.yml": "inherit_from: [first.yml, second.yml, third.yml]\nLayout/SpaceAroundOperators:\n  Own: 1\n  Shared: root\n",
+      "first.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  First: 1\n  Shared: first\n",
+      "second.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Second: 1\n  Shared: second\n",
+      "third.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Third: 1\n  Shared: third\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Third parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Shared parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Third parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "three bases section order",
+    "files": {
+      "root.yml": "inherit_from: [first.yml, second.yml, third.yml]\nStyle/For:\n  Own: 1\n",
+      "first.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  First: 1\n",
+      "second.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Second: 1\n",
+      "third.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nStyle/For:\n  Third: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Style/For does not support Third parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\nWarning: Style/For does not support Third parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\nWarning: Style/For does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/LineLength does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0
+  },
+  {
+    "name": "fail fast stops before later file configuration",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "case.rb": "x=1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--fail-fast",
+      "case.rb",
+      "sub/a.rb"
+    ],
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 1,
+    "report": {
+      "files": [
+        {
+          "path": "case.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 2,
+        "inspected_file_count": 1
+      }
+    }
+  },
+  {
+    "name": "list directory observes its configuration",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "case.rb": "x=1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--list-target-files",
+      "sub"
+    ],
+    "stdout": "sub/a.rb\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "list explicit file does not observe later configuration",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "case.rb": "x=1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--list-target-files",
+      "sub/a.rb"
+    ],
+    "stdout": "sub/a.rb\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "list explicit force exclusion uses root configuration",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "case.rb": "x=1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--list-target-files",
+      "--force-exclusion",
+      "sub/a.rb"
+    ],
+    "stdout": "sub/a.rb\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0
+  },
+  {
+    "name": "named stdin observes configuration",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "case.rb": "x=1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--stdin",
+      "sub/a.rb"
+    ],
+    "stdin": "x=1\n",
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 1,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": [
+            {
+              "severity": "convention",
+              "message": "Surrounding space missing for operator `=`.",
+              "cop_name": "Layout/SpaceAroundOperators",
+              "corrected": false,
+              "correctable": true,
+              "location": {
+                "start_line": 1,
+                "start_column": 2,
+                "last_line": 1,
+                "last_column": 2,
+                "length": 1,
+                "line": 1,
+                "column": 2
+              }
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "offense_count": 1,
+        "target_file_count": 1,
+        "inspected_file_count": 1
+      }
+    }
+  },
+  {
+    "name": "environment cache root applies option color before root",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--color",
+      "sub"
+    ],
+    "cache_root_override": true,
+    "stderr": "\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "environment cache root applies no-color before root",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "--no-color",
+      "sub"
+    ],
+    "cache_root_override": true,
+    "env": {
+      "CLICOLOR_FORCE": "1"
+    },
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "cli cache root applies option color before root",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "true",
+      "--cache-root",
+      "cache",
+      "--no-parallel",
+      "--color",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub"
+    ],
+    "stderr": "\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n\u001b[33mWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n\u001b[0m\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "sequential cached explicit files warm cache",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  RootParam: 1\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  ChildParam: 1\n",
+      "sub/a.rb": "a = 1\n",
+      "sub/b.rb": "b = 1\n"
+    },
+    "args": [
+      "--cache",
+      "true",
+      "--no-parallel",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb",
+      "sub/b.rb"
+    ],
+    "repeat": 2,
+    "cache_root_override": true,
+    "stderr": "Warning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support ChildParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support RootParam parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n",
+    "exit": 0,
+    "report": {
+      "files": [
+        {
+          "path": "sub/a.rb",
+          "offenses": []
+        },
+        {
+          "path": "sub/b.rb",
+          "offenses": []
+        }
+      ],
+      "summary": {
+        "offense_count": 0,
+        "target_file_count": 2,
+        "inspected_file_count": 2
+      }
+    }
+  },
+  {
+    "name": "disabled department prepends inherited cop",
+    "files": {
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Enabled: true\n  Base: 1\n",
+      "root.yml": "inherit_from: base.yml\nLayout:\n  Enabled: false\nStyle/For:\n  Own: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Style/For does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n",
+    "exit": 0
+  },
+  {
+    "name": "disabled department moves existing cop to front",
+    "files": {
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Base: 1\n  Enabled: true\n",
+      "root.yml": "inherit_from: base.yml\nLayout:\n  Enabled: false\nStyle/For:\n  Sibling: 1\nLayout/LineLength:\n  Own: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Style/For does not support Sibling parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n",
+    "exit": 0
+  },
+  {
+    "name": "disabled department prepends each enabled cop",
+    "files": {
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/LineLength:\n  Enabled: true\n  First: 1\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Second: 1\n",
+      "root.yml": "inherit_from: base.yml\nLayout:\n  Enabled: false\nStyle/For:\n  Own: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/SpaceAroundOperators does not support Second parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\nWarning: Layout/LineLength does not support First parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Style/For does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\n",
+    "exit": 0
+  },
+  {
+    "name": "inherited department override is not boolean true",
+    "files": {
+      "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout:\n  Enabled: false\nLayout/LineLength:\n  Enabled: true\n  Base: 1\n",
+      "middle.yml": "inherit_from: base.yml\nLayout/LineLength:\n  Enabled: true\n  Middle: 1\n",
+      "root.yml": "inherit_from: middle.yml\nLayout:\n  Enabled: false\nStyle/For:\n  Own: 1\n"
+    },
+    "args": [
+      "--config",
+      "root.yml",
+      "--show-docs-url=Layout/SpaceAroundOperators"
+    ],
+    "stdout": "https://docs.rubocop.org/rubocop/cops_layout.html#layoutspacearoundoperators\n\n",
+    "stderr": "Warning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Middle parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Style/For does not support Own parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - EnforcedStyle\n  - SupportedStyles\nWarning: Layout/LineLength does not support Base parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\nWarning: Layout/LineLength does not support Middle parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - Max\n  - AllowHeredoc\n  - AllowURI\n  - AllowQualifiedName\n  - URISchemes\n  - AllowRBSInlineAnnotation\n  - AllowCopDirectives\n  - AllowedPatterns\n  - SplitStrings\n",
+    "exit": 0
+  },
+  {
+    "name": "deferred conflicting defaults preserve prior warning",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+      "sub/.rubocop.yml": "AllCops:\n  EnabledByDefault: true\n  DisabledByDefault: true\n  NewCops: disable\n  TargetRubyVersion: 2.7\nLayout/SpaceAroundOperators:\n  Unknown: 1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb"
+    ],
+    "prefix_only": true,
+    "warning_only": true,
+    "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"ruby_engine\":\"ruby\",\"ruby_version\":\"4.0.8\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"arm64-darwin25\"},\"files\":[],\"summary\":{\"offense_count\":0,\"target_file_count\":1,\"inspected_file_count\":0}}",
+    "exit": 2,
+    "warning_prefix": "Warning: Layout/SpaceAroundOperators does not support Unknown parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n"
+  },
+  {
+    "name": "deferred unknown target preserves prior warning",
+    "files": {
+      ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+      "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 999.0\nLayout/SpaceAroundOperators:\n  Unknown: 1\n",
+      "sub/a.rb": "x=1\n"
+    },
+    "args": [
+      "--cache",
+      "false",
+      "--only",
+      "Layout/SpaceAroundOperators",
+      "--format",
+      "json",
+      "sub/a.rb"
+    ],
+    "prefix_only": true,
+    "warning_only": true,
+    "stdout": "{\"metadata\":{\"rubocop_version\":\"1.89.0\",\"ruby_engine\":\"ruby\",\"ruby_version\":\"4.0.8\",\"ruby_patchlevel\":\"0\",\"ruby_platform\":\"arm64-darwin25\"},\"files\":[],\"summary\":{\"offense_count\":0,\"target_file_count\":1,\"inspected_file_count\":0}}",
+    "exit": 2,
+    "warning_prefix": "Warning: Layout/SpaceAroundOperators does not support Unknown parameter.\n\nSupported parameters are:\n\n  - Enabled\n  - AllowForAlignment\n  - EnforcedStyleForExponentOperator\n  - SupportedStylesForExponentOperator\n  - EnforcedStyleForRationalLiterals\n  - SupportedStylesForRationalLiterals\n"
+  }
+]
