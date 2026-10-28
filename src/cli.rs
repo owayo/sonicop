@@ -787,7 +787,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         return Ok(0);
     }
     if let Some(filter) = &cli.show_docs_url {
-        show_docs_urls(filter, &config);
+        show_docs_urls(filter, &config)?;
         return Ok(0);
     }
     if let Some(path) = &cli.list_enabled_cops_for {
@@ -2064,8 +2064,7 @@ fn emit_debug_scanning(output: &mut impl Output, path: &Path, cwd: &Path) -> Res
     output.puts(&format!("Scanning {}", absolute_path(path, cwd)))
 }
 
-/// The cop names a `--show-cops`/`--show-docs-url` filter selects, sorted. An empty filter names
-/// every known cop, which is how RuboCop prints the whole list.
+/// --show-cops の対象を名前順に返す。空の指定は全既知 cop を表す。
 fn selected_cop_names<'a>(filter: &str, config: &'a Config) -> Vec<&'a str> {
     let filters = csv((!filter.is_empty()).then_some(filter));
     let mut names = config
@@ -2117,25 +2116,40 @@ fn show_cops(filter: &str, config: &Config) -> Result<()> {
     write_output(&output, None, false)
 }
 
-fn show_docs_urls(filter: &str, config: &Config) {
-    for name in selected_cop_names(filter, config) {
-        println!("{name}: {}", docs_url(name));
+fn show_docs_urls(filter: &str, config: &Config) -> Result<()> {
+    let names = selector_csv((!filter.is_empty()).then_some(filter), false);
+    let known: HashSet<&str> = config.known_cop_names().collect();
+    let mut output = String::new();
+    if names.is_empty() {
+        output.push_str("https://docs.rubocop.org/rubocop\n");
     }
+    // ShowDocsUrl は完全一致だけを使い、入力の順序と重複を維持する。
+    for name in names {
+        if known.contains(name.as_str()) {
+            output.push_str(&docs_url(&name, config));
+            output.push('\n');
+        }
+    }
+    output.push('\n');
+    write_output(&output, None, false)
 }
 
-/// RuboCop's `Documentation.url_for`: the page covers the whole department with `/` flattened to
-/// `_`, and the fragment is the qualified name reduced to its lowercased letters, so
-/// `Layout/LineLength` documents at `cops_layout.html#layoutlinelength`.
-fn docs_url(name: &str) -> String {
-    let page = cop_name::department(name)
-        .replace('/', "_")
-        .to_ascii_lowercase();
+/// Documentation.url_for と同じ部門設定を使い、空文字も指定値として保つ。
+fn docs_url(name: &str, config: &Config) -> String {
+    let department = cop_name::department(name);
+    let base = config
+        .cop_value::<String>(department, "DocumentationBaseURL")
+        .unwrap_or_else(|| "https://docs.rubocop.org/rubocop".to_owned());
+    let extension = config
+        .cop_value::<String>(department, "DocumentationExtension")
+        .unwrap_or_else(|| ".html".to_owned());
+    let page = department.replace('/', "_").to_ascii_lowercase();
     let fragment: String = name
         .chars()
         .filter(char::is_ascii_alphabetic)
         .map(|character| character.to_ascii_lowercase())
         .collect();
-    format!("https://docs.rubocop.org/rubocop/{RUBOCOP_COMPAT_VERSION}/cops_{page}.html#{fragment}")
+    format!("{base}/cops_{page}{extension}#{fragment}")
 }
 
 fn list_enabled_cops(path: &Path, configs: &ConfigStore) -> Result<()> {

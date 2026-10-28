@@ -6734,3 +6734,40 @@ fn pure_crlf_preserves_original_bare_cr_through_correction_and_writeback() {
         }
     }
 }
+
+#[test]
+fn show_docs_urls_matches_the_upstream_cli() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/show_docs_urls.json")).unwrap();
+    for (index, case) in cases.iter().enumerate() {
+        let directory = project(&[]);
+        fs::write(
+            directory.path().join("config.yml"),
+            case["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        let mut cmd = command(directory.path());
+        cmd.args(["--config", "config.yml"]);
+        if let Some(selector) = case["selector"].as_str() {
+            cmd.arg(format!("--show-docs-url={selector}"));
+        } else {
+            cmd.arg("--show-docs-url");
+        }
+        let output = cmd.output().unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(case["exit"].as_i64().unwrap() as i32),
+            "{index}"
+        );
+        assert_eq!(
+            output.stdout,
+            native_textmode_expected(case["stdout"].as_str().unwrap().as_bytes()),
+            "{index}"
+        );
+        assert_eq!(
+            output.stderr,
+            native_textmode_expected(case["stderr"].as_str().unwrap().as_bytes()),
+            "{index}"
+        );
+    }
+}
