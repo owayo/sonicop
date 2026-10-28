@@ -241,3 +241,5 @@ scripts/conformance/record_config_namespace_origins.py text eol=lf
 scripts/conformance/test_record_config_namespace_origins.py text eol=lf
 tests/fixtures/config_cop_namespace_origins.json text eol=lf
 tests/fixtures/config_cop_namespace_origins.json.PROVENANCE text eol=lf
+
+tests/display_only_failed_validation.rs text eol=lf
