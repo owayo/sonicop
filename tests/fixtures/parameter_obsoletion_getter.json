@@ -1,0 +1,71 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "psych": "5.3.1",
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "sources": {
+    "lib/rubocop/target_ruby.rb": "d4f89edfb74cc3d30172da6a6e245170a5a174a6ffa5cd0ca06aa66a0b2ca7cb",
+    "lib/rubocop/config.rb": "f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729",
+    "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+    "lib/rubocop/config_obsoletion.rb": "5470f321ced3b0919bcfbceade7f6f662becfb50cbbefae57ac97a0ca0dc7894",
+    "lib/rubocop/config_obsoletion/parameter_rule.rb": "5fa722c7bb3164353ff2b6d0f5ce30b192d2f6bec150e82157753fc6e6be83d1"
+  },
+  "cases": [
+    {
+      "kind": "environment",
+      "value": "3.10",
+      "target": 3.1,
+      "error_class": null
+    },
+    {
+      "kind": "configuration",
+      "value": "3.10",
+      "target": 3.1,
+      "error_class": null
+    },
+    {
+      "kind": "environment",
+      "value": "3.2suffix",
+      "target": 3.2,
+      "error_class": null
+    },
+    {
+      "kind": "configuration",
+      "value": "3.2suffix",
+      "target": 3.2,
+      "error_class": null
+    },
+    {
+      "kind": "environment",
+      "value": " 3.2e0",
+      "target": 3.2,
+      "error_class": null
+    },
+    {
+      "kind": "configuration",
+      "value": " 3.2e0",
+      "target": 3.2,
+      "error_class": null
+    },
+    {
+      "kind": "environment",
+      "value": "",
+      "target": 0.0,
+      "error_class": null
+    },
+    {
+      "kind": "configuration",
+      "value": "",
+      "target": 0.0,
+      "error_class": null
+    }
+  ]
+}

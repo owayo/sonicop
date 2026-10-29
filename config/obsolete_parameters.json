@@ -1,0 +1,542 @@
+[
+  {
+    "kind": "parameter",
+    "cop": "Layout/SpaceAroundOperators",
+    "parameter": "MultiSpaceAllowedForOperators",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "If your intention was to allow extra spaces for alignment, please use `AllowForAlignment: true` instead."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/SpaceAroundOperators",
+    "parameter": "MultiSpaceAllowedForOperators",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "If your intention was to allow extra spaces for alignment, please use `AllowForAlignment: true` instead."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/Encoding",
+    "parameter": "EnforcedStyle",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Style/Encoding` no longer supports styles. The \"never\" behavior is always assumed."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/Encoding",
+    "parameter": "SupportedStyles",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Style/Encoding` no longer supports styles. The \"never\" behavior is always assumed."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/Encoding",
+    "parameter": "AutoCorrectEncodingComment",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Style/Encoding` no longer supports styles. The \"never\" behavior is always assumed."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/IfUnlessModifier",
+    "parameter": "MaxLineLength",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Style/IfUnlessModifier: MaxLineLength` has been removed. Use `Layout/LineLength: Max` instead"
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/WhileUntilModifier",
+    "parameter": "MaxLineLength",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Style/WhileUntilModifier: MaxLineLength` has been removed. Use `Layout/LineLength: Max` instead"
+  },
+  {
+    "kind": "parameter",
+    "cop": "AllCops",
+    "parameter": "RunRailsCops",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "Use the following configuration instead:\nRails:\n  Enabled: true"
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/CaseIndentation",
+    "parameter": "IndentWhenRelativeTo",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IndentWhenRelativeTo` has been renamed to `EnforcedStyle`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/LineLength",
+    "parameter": "IgnoreCopDirectives",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoreCopDirectives` has been renamed to `AllowCopDirectives`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/BlockAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/BlockAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/EndAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/EndAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/DefEndAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/DefEndAlignment",
+    "parameter": "AlignWith",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AlignWith` has been renamed to `EnforcedStyleAlignWith`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Rails/UniqBeforePluck",
+    "parameter": "EnforcedMode",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`EnforcedMode` has been renamed to `EnforcedStyle`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/MethodCallWithArgsParentheses",
+    "parameter": "IgnoredMethodPatterns",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethodPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Performance/Count",
+    "parameter": "SafeMode",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`SafeMode` has been removed. Use `SafeAutoCorrect` instead."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Performance/Detect",
+    "parameter": "SafeMode",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`SafeMode` has been removed. Use `SafeAutoCorrect` instead."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Bundler/GemComment",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedGems`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/SafeNavigationChain",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/SafeNavigationConsistency",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/NestedParenthesizedCalls",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/SafeNavigation",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/TrivialAccessors",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/IpAddresses",
+    "parameter": "Whitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Whitelist` has been renamed to `AllowedAddresses`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Naming/HeredocDelimiterNaming",
+    "parameter": "Blacklist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`Blacklist` has been renamed to `ForbiddenDelimiters`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Naming/PredicatePrefix",
+    "parameter": "NamePrefixBlacklist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`NamePrefixBlacklist` has been renamed to `ForbiddenPrefixes`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Naming/PredicatePrefix",
+    "parameter": "NameWhitelist",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`NameWhitelist` has been renamed to `AllowedMethods`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/BlockLength",
+    "parameter": "ExcludedMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`ExcludedMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/MethodLength",
+    "parameter": "ExcludedMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`ExcludedMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/Debugger",
+    "parameter": "DebuggerReceivers",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`DebuggerReceivers` is no longer necessary, method receivers should be specified in `DebuggerMethods` instead."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/IndentationWidth",
+    "parameter": "IgnoredPatterns",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Layout/LineLength",
+    "parameter": "IgnoredPatterns",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/UnreachableLoop",
+    "parameter": "IgnoredPatterns",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Naming/MethodName",
+    "parameter": "IgnoredPatterns",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/MethodCallWithArgsParentheses",
+    "parameter": "IgnoredPatterns",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredPatterns` has been renamed to `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/AmbiguousBlockAssociation",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/NumberConversion",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/AbcSize",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/BlockLength",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/CyclomaticComplexity",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/MethodLength",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/PerceivedComplexity",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/BlockDelimiters",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/ClassEqualityComparison",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/FormatStringToken",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/MethodCallWithArgsParentheses",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/MethodCallWithoutArgsParentheses",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/NumericPredicate",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/SymbolLiteral",
+    "parameter": "IgnoredMethods",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredMethods` has been renamed to `AllowedMethods` and/or `AllowedPatterns`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/ArgumentsForwarding",
+    "parameter": "AllowOnlyRestArgument",
+    "severity": "warning",
+    "minimum_ruby_version": "3.2",
+    "value": null,
+    "detail": "`AllowOnlyRestArgument` has no effect with TargetRubyVersion >= 3.2."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Bundler/GemComment",
+    "parameter": "IgnoredGems",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredGems` has been renamed to `AllowedGems`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/NumberConversion",
+    "parameter": "IgnoredClasses",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`IgnoredClasses` has been renamed to `AllowedClasses`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Lint/MissingCopEnableDirective",
+    "parameter": "MaximumRangeSize",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`MaximumRangeSize` has been renamed to `MaxRangeSize`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Metrics/CollectionLiteralLength",
+    "parameter": "LengthThreshold",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`LengthThreshold` has been renamed to `Max`."
+  },
+  {
+    "kind": "parameter",
+    "cop": "Style/FetchEnvVar",
+    "parameter": "AllowedVars",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": null,
+    "detail": "`AllowedVars` has been renamed to `AllowedVariables`."
+  },
+  {
+    "kind": "enforced_style",
+    "cop": "Layout/IndentationConsistency",
+    "parameter": "EnforcedStyle",
+    "severity": "error",
+    "minimum_ruby_version": null,
+    "value": "rails",
+    "detail": "`EnforcedStyle: rails` has been renamed to `EnforcedStyle: indented_internal_methods`."
+  },
+  {
+    "kind": "enforced_style",
+    "cop": "Style/EmptyClassDefinition",
+    "parameter": "EnforcedStyle",
+    "severity": "warning",
+    "minimum_ruby_version": null,
+    "value": "class_definition",
+    "detail": "`EnforcedStyle: class_definition` has been renamed to `EnforcedStyle: class_keyword`."
+  }
+]

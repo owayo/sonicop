@@ -1,0 +1,36 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtで2026-10-29に追加測定したCLI/load_file API13条件。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_parameter_obsoletion_priority.py
+再生成:
+  python scripts/conformance/record_parameter_obsoletion_priority.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-priority.json> --getter-output <new-getter.json> --color-output <new-color.json>
+公開済みの本家fixtureのargs/files/envだけを入力として再使用し、候補出力は読まない。
+runtime/source SHAは実gemから再取得し、実CLI/APIからprefix/out/値を生成する。期待rawから結果を合成しない。
+fresh4保存先とaliasを子起動前に拒否、全件終了後exclusive保存する。ENV4/版は既存共用helperに従う。
+元API/CLI内部backtraceには機械固有gem pathがあるためprivate rawに保存し、公開データは記録したprefixだけに投影する。
+source SHAはsources、実runtimeはruntime。ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+主parameter_obsoletion.jsonの41CLI/API60/420へこの13を混ぜない。
+- early_version_or_cop_fatal 4: 無効/空ENVのversion成功と、廃止cop併存でcop fatalが優先する対照。
+  stderr全byteとexit/out/原本を比較する。成功版表示は#143同様native版identityだけを投影し、本家1.89.0原rawは維持する。
+- error_priority_prefix_envelope 7: TargetRubyVersion:trueのNoMethodErrorがcop fatalより先に出る対照。
+  normal/version、親bool＋root有効版、namespace警告先行を含む。先頭行までのprefix・exit/stdout/out・原本を比較する。
+  内部Ruby stackは生成せず、全文互換と呼ばない。型付き失敗をquiet APIへ新しく伝播させない。
+- existing_target_parser_lifecycle_residual 2: 不正/空ENVはload_file APIでは0.0になり、通常parserで拒否される本家記録。
+  本家は既存outをerrorJSONへ変更する。out_before_hex/out_hex/out_preserved:falseに原値を保持する。
+  input_bytes_mtime_unchanged/preserved_input_pathsはreport.jsonを除く原本だけを表す。
+  nativeの既存strict最終resolver/lifecycle差は通常Issue #212で追跡する。
+  今回は変更せず、2件を互換成功へ数えない。https://github.com/owayo/sonicop/issues/212
+
+最低版getterはENV/設定にto_fを呼ぶ。文字列が不正でも0.0であり、早期にstrict parserで拒否しない。
+boolはkey不存在の規則でもminimum判定時に失敗する。先行cop fatalと同居しても全rules map中の例外が優先する。
+親文書の失敗はrootの有効版へ上書きされず、先行namespace警告も失われない。
+CLI後およびload_file API後の原本bytes/mtime、API前後のout bytes/mtimeを別々に検査する。
+JSON容器はLF、hexのCRLF/ANSIと入力/out bytesは原値。Unix native比較ではpipe CRLFだけをLFへ投影する。
+remoteの最低版推定fallbackは未測定で本fixtureの成功範囲に含めない。
+
+2026-10-29に公開collectorで主41とは逐次・別workのfresh再採取を初回終了0で完了した。
+元公開projection13の全fieldsが一致した。JSON objectのfield記載順だけが異なり、入力/exit/prefix/out/API/raw値は同一。
+内部backtraceはprivate work/raw.jsonに保持し、公開fixtureや互換成功件数へ含めない。
+
+fixture SHA256: d6cf433c89281ce1c25a3042cae94fc44418090ef502921b7f36541c12ae01fd
+collector SHA256: 1cca911604880e4f1c7e9129a67d7eb8271dd42a8371cb89dcde480dccc31c83

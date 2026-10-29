@@ -1,13 +1,17 @@
-//! ConfigObsoletionのfatal cop規則を、未知copの検証より先に再生する。
+//! ConfigObsoletionの規則を評価し、CLIで未知copの検証より先に再生する。
 
 use std::collections::HashSet;
 use std::fmt;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use serde::Deserialize;
 use serde_yaml_ng::{Mapping, Value};
 
 use super::plugin::configured_plugin_departments;
+
+mod parameters;
+pub(super) use parameters::TargetRuby;
+pub(crate) use parameters::TargetRubyGetterError;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -155,7 +159,7 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
         return Vec::new();
     };
     // keyの順やEnabledの値ではなくCopRule#violated?とrulesの順を使う。
-    // warning2の旧値移行とparameterは別scope。cop規則だけ本家のcategory順に集約する。
+    // warning2の旧値移行は別scope。cop規則だけ本家のcategory順に集約する。
     let mut messages = RENAMED
         .iter()
         .filter(|rule| matches!(rule.severity, Severity::Error))
@@ -177,6 +181,70 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
         })
     }));
     messages
+}
+
+/// quiet APIへ検証失敗を伝播せず、CLIの再生時まで評価結果を保持する。
+#[derive(Debug, Default)]
+pub(super) struct Outcome {
+    fatal: Vec<String>,
+    pub(super) warning: Option<String>,
+    failure: Option<SharedFailure>,
+}
+
+#[derive(Clone, Debug)]
+struct SharedFailure(Arc<anyhow::Error>);
+
+impl fmt::Display for SharedFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self.0.as_ref(), formatter)
+    }
+}
+
+impl std::error::Error for SharedFailure {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        // topのDisplayは既に上で出すため、同じ文面をchainへ二重に入れない。
+        self.0.source()
+    }
+}
+
+impl Outcome {
+    pub(super) fn prepare(config: &Value, origin: &str, target: &TargetRuby) -> Self {
+        let mut fatal = fatal_messages(config, origin);
+        match parameters::messages(config, origin, target) {
+            Ok(messages) => {
+                fatal.extend(messages.fatal);
+                Self {
+                    warning: (fatal.is_empty() && !messages.warning.is_empty())
+                        .then(|| format!("Warning: {}", messages.warning.join("\n"))),
+                    fatal,
+                    failure: None,
+                }
+            }
+            // 本家は全rulesのmap中に例外を出すため、先に集めたcop fatalより評価失敗が優先する。
+            Err(error) => Self {
+                failure: Some(SharedFailure(Arc::new(error))),
+                ..Self::default()
+            },
+        }
+    }
+
+    pub(super) fn is_fatal(&self) -> bool {
+        self.failure.is_some() || !self.fatal.is_empty()
+    }
+
+    pub(super) fn check(&self) -> anyhow::Result<()> {
+        if let Some(failure) = &self.failure {
+            // CLIのprefix判定に必要な型だけ保持し、それ以外は元のDisplay/source chainを再生する。
+            if let Some(error) = failure.0.downcast_ref::<TargetRubyGetterError>() {
+                return Err(error.clone().into());
+            }
+            return Err(failure.clone().into());
+        }
+        if !self.fatal.is_empty() {
+            return Err(ObsoleteConfigError::new(&self.fatal).into());
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

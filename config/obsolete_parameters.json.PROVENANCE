@@ -1,0 +1,16 @@
+RuboCop 1.89.0 ConfigObsoletionの実parameter API60を登録順で保存した埋込み表。
+生成元: scripts/conformance/record_parameter_obsoletion.py の --rules-output。
+再生成コマンド/runtime/source SHAはtests/fixtures/parameter_obsoletion.json.PROVENANCEとfixture.primaryを参照する。
+ChangedParameter58/ChangedEnforcedStyles2、全127内index67..126、fatal30/warning30。
+cop/parameter/severity/minimum/valueは実metadata、detailは実messageの固定header以降から保存する。
+APIの60種類と各7probe=420は実CLI41条件の成功件数と区別する。
+minimumだけは本家getterのf64/to_fで評価し、継承前の文書targetと実config位置を別に保持する。
+全規則を登録順に評価し、先行cop fatalがあっても最低版評価の失敗を省略しない。
+quiet APIへ失敗を伝播せずOutcome/Arc traceからCLI再生時だけ拒否/警告する。設定値の自動移行はしない。
+build.rsのrerun-if-changedとbuild_fingerprintの両入力へ登録し、表が違えば結果cacheを共有しない。
+ライセンス: 既存licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+2026-10-29にfresh再採取した全60表は元API表と全fields一致し、埋込みJSONのcontainer bytesも完全一致した。
+
+fixture SHA256: c02a8c24501db68f7ef87431c667b04f4a95c9fa4c261f1adc6150b1461baa3a
+collector SHA256: 8c7d80b57058a482f59386a0c50becba64223fbb952dbef3208a2defba942608

@@ -1,0 +1,50 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-28の実API/CLI原参照。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+ライセンス: MIT、Copyright (c) 2012-26 Bozhidar Batsov。全文: licenses/RUBOCOP.txt。
+生成元: scripts/conformance/record_parameter_obsoletion.py
+再生成:
+  python scripts/conformance/record_parameter_obsoletion.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json> --rules-output <new-rules.json>
+候補pathを受け取らず実gemだけを起動する。LOADER/VERSIONS/reference_environmentは既存namespace採取器と共用する。
+ENV4は子copyから除去し、意図的なcaseの版環境だけを後から戻す。GEM/PATH/OSと親環境を保持する。
+fresh work/output/rules-outputは元entry/danglingと正規化後のaliasを子起動前に拒否し、全件完了後exclusive保存する。
+JSON containerはLF固定。hexのWindows CRLF/ANSI、入力とoutの物理bytesは原値を保持する。
+
+primaryは全127内index67..126のparameter60、ChangedParameter58/ChangedEnforcedStyles2。
+fatal30/warning30を実warning?から保存した。各ruleの実violated?に対する7probe、計420を保存する。
+probeは不存在/false/null/一致値/別値/対象Ruby3.1/3.2。key存在とstyleのString等値を区別する。
+実登録順・60identity・420件順・bool/int/float・版/source・message/detailを採取器とRustで検査する。
+minimum_ruby_version判定はkey取得より先。getterのto_fと最終supported版の検証を分離する。
+表はconfig/obsolete_parameters.jsonへ同じ実APIから生成し、旧値の自動移行はしない。
+
+元41CLIの既存fields/rawは変更せず、schema:1と各caseのcoverageだけを追加した。
+- strict40: fatal10と正常30。exit/stdout/stderr全native bytes、out、全原本と既存outのbytes/mtimeを比較する。
+- prefix_157の正常1: force-default-warning。元argv/rawを保ち、obsoletion prefixと全JSON/out/原本を比較する。
+  後続NewCops通知の既存#157差をstrict成功へ数えない。#157完了後、同じrawから全文比較へ昇格できる。
+  別ID force-default-warning-pending-enabledはenable-pending追加で測定した独立strict対照であり、元入力の置換ではない。
+正常31のJSONはnative engine/spec identity確認後metadata以外の全fields/summary/offensesを照合する。
+60種類全部を実CLIで実行したという意味ではない。実CLI41とAPI60/420の有限集合を分けて数える。
+Unix Rust回帰は参照pipeのCRLFだけをLFへ投影し、原本/JSON値へ適用しない。
+今回のnative CLI回帰はPATHを空にしても成立する。
+
+単複fatal集約とwarning抑止、本家rule順、false/null、Ruby2.7/3.1/3.2/4.0、ENV、
+gemspec/.ruby-version優先、namespace先行、親の反復読込、親子別target、out/force-default/色を含む。
+最初のlocal gemspecに版が無い場合、祖先gemspecへ進まずversion-file sourceへ移る条件も記録する。
+各文書の継承前TargetRubyを保持し、merge/namespace正規化後の規則値に対して判定する。
+warning本文は末尾LF無し、複数をjoinして先頭Warning:は一度だけ。yellow本文→reset→外newlineとなる。
+既存一般Parameter警告の本文内LFやNamespace plainは変更しない。
+OutcomeをArc DAGへ保存し、CLI replay時だけ評価失敗→fatal→warning→unknown→一般parameterの順に処理する。
+namespaceはそれより先。共有subtreeは辺ごとに再生し、失敗を無警告部分木として省略しない。
+quiet Config APIへ新しい拒否/出力を足さず、元値/metadataを返す。
+
+追加のminimum getter8・priority13・色2は別の隣接fixture/PROVENANCEに分離し、上の41/420へ加算しない。
+remote文書の最低版推定に使うcwd fallbackは未計測。local推定の成功に含めず、既存remote warning origin差#201とも区別する。
+Renamed warning2の移行は#151、実loaded plugin metadataは#153へ残す。既知通知#157とlate lifecycle#152も変更しない。
+
+2026-10-28原参照container SHA256: 8a6d1294a0d7823d3ecce7d48e8fc66398db63f768761a8c9f41d3ab10a7cd9e
+元source SHA256とruntimeはprimary.sources/primary.gemsへ保存する。
+
+2026-10-29に公開collectorのfresh逐次再採取を初回終了0で完了した。
+元41の全既存fields/rawとAPI60/420が一致し、schema/coverage追加済みfixtureと埋込み表はcontainer bytesも完全一致した。
+
+fixture SHA256: f6d003b2e61a03d15864444cba97354470a2d70ccba81a7a87b7b5da72f5182b
+collector SHA256: 8c7d80b57058a482f59386a0c50becba64223fbb952dbef3208a2defba942608

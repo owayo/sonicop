@@ -1,0 +1,15 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-29のNoMethodError色phase実測2条件。
+生成元/再生成コマンド: scripts/conformance/record_parameter_obsoletion_priority.py と隣接priority.PROVENANCEを参照。
+runtime/source SHAは本fixtureに保存する。ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用する。
+初期CLICOLOR_FORCE=1と、nested設定探索後の--colorの両方で、getter errorの先頭行は常にplain/native CRLF。
+namespace/ValidationError/一般parameterの色規則へ寄せず、型付きgetter errorにError:やANSIを加えない。
+内部Ruby stackは公開から除外してprivate rawに保持し、先頭prefix/終了2/stdout空と原本bytes/mtimeだけを比較する。
+initialは既存out保持も比較する。lateの本家errorJSON/out lifecycleは#152の既知残差でstrict成功へ数えない。
+preserved_input_pathsはreport.jsonを除く原本を示し、out_before_hex/out_hex/out_preservedは出力状態を独立に記録する。
+主41/API420、priority13、getter8へこの2件を加算しない。containerはLF、hexのnative CRLFは原値を保持する。
+
+2026-10-29に公開collectorでfresh再採取を完了した。色2の全fieldsが一致し、JSON objectのfield記載順だけが異なる。
+内部backtraceとlate report lifecycleを先頭行の有限比較へ混ぜない。
+
+fixture SHA256: 407be1cee89864a9fe3c0766ab87c29bea03a9cbba6d29c6e82157988607592e
+collector SHA256: 1cca911604880e4f1c7e9129a67d7eb8271dd42a8371cb89dcde480dccc31c83

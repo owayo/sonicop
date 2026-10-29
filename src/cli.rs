@@ -13,7 +13,7 @@ use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error:
 
 use crate::config::{
     Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError, ObsoleteConfigError,
-    UnknownConfigError,
+    TargetRubyGetterError, UnknownConfigError,
 };
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
@@ -363,6 +363,10 @@ fn run_inner() -> i32 {
                 } else {
                     format!("{missing}\n")
                 };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(getter) = error.downcast_ref::<TargetRubyGetterError>() {
+                // 本家NoMethodErrorの先頭行だけを返す。Ruby内部のbacktraceは生成しない。
+                let text = format!("{getter}\n");
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(obsolete) = error.downcast_ref::<ObsoleteConfigError>() {
                 let text = if obsolete.color() {
@@ -806,6 +810,14 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
                 }
                 ConfigWarning::Parameter(message) if color.load(Ordering::Relaxed) => {
                     format!("\x1b[33m{message}\x1b[0m\n")
+                }
+                ConfigWarning::Obsoletion(message) => {
+                    // warnの外側のnewlineをreset後へ置き、既存parameter本文の末尾LFと分ける。
+                    if color.load(Ordering::Relaxed) {
+                        format!("\x1b[33m{message}\x1b[0m\n")
+                    } else {
+                        format!("{message}\n")
+                    }
                 }
                 ConfigWarning::Namespace(message) | ConfigWarning::Parameter(message) => {
                     message.to_owned()

@@ -290,3 +290,21 @@ scripts/conformance/test_record_obsolete_cop_categories.py text eol=lf
 tests/obsolete_cop_categories.rs text eol=lf
 tests/fixtures/obsolete_cop_categories.json text eol=lf
 tests/fixtures/obsolete_cop_categories.json.PROVENANCE text eol=lf
+
+# 廃止parameterの実API/CLIと最低版getter追補をLFのcontainerで保持する。
+src/config/obsoletion/parameters.rs text eol=lf
+config/obsolete_parameters.json text eol=lf
+config/obsolete_parameters.json.PROVENANCE text eol=lf
+scripts/conformance/record_parameter_obsoletion.py text eol=lf
+scripts/conformance/test_record_parameter_obsoletion.py text eol=lf
+scripts/conformance/record_parameter_obsoletion_priority.py text eol=lf
+scripts/conformance/test_record_parameter_obsoletion_priority.py text eol=lf
+tests/parameter_obsoletion.rs text eol=lf
+tests/fixtures/parameter_obsoletion.json text eol=lf
+tests/fixtures/parameter_obsoletion.json.PROVENANCE text eol=lf
+tests/fixtures/parameter_obsoletion_priority.json text eol=lf
+tests/fixtures/parameter_obsoletion_priority.json.PROVENANCE text eol=lf
+tests/fixtures/parameter_obsoletion_getter.json text eol=lf
+tests/fixtures/parameter_obsoletion_getter.json.PROVENANCE text eol=lf
+tests/fixtures/parameter_obsoletion_getter_color.json text eol=lf
+tests/fixtures/parameter_obsoletion_getter_color.json.PROVENANCE text eol=lf

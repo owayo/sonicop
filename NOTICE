@@ -26,6 +26,25 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/obsoletion/parameters.rs, src/config/obsoletion.rs
+  src/config/validation.rs, src/config/inheritance.rs, src/cli.rs
+  config/obsolete_parameters.json
+  tests/fixtures/parameter_obsoletion.json
+  tests/fixtures/parameter_obsoletion_priority.json
+  tests/fixtures/parameter_obsoletion_getter.json
+  tests/fixtures/parameter_obsoletion_getter_color.json
+      Sixty ordered ConfigObsoletion parameter and EnforcedStyle API rules,
+      with 420 presence, value and minimum-version API probes, ported from
+      RuboCop 1.89.0. Forty-one actual CLI records retain 40 strict comparisons
+      separately from one pending-cop notice prefix comparison. Separate
+      minimum-getter evidence retains 13 CLI/API conditions, eight getter
+      values and two color phases; Ruby backtraces and deferred parser/report
+      lifecycle differences are outside the finite prefix comparison.
+      Regenerate with scripts/conformance/record_parameter_obsoletion.py and
+      scripts/conformance/record_parameter_obsoletion_priority.py. The adjacent
+      .PROVENANCE files record source hashes, original raw scope and remaining
+      differences. Full licence text is retained at licenses/RUBOCOP.txt.
+
   src/config/obsoletion.rs (removed, split and extracted cop categories)
   config/obsolete_cop_categories.json
   tests/fixtures/obsolete_cop_categories.json

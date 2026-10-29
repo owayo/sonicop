@@ -125,6 +125,7 @@ fn load_local_with_inheritance(
     };
     // meta key の削除や native の値 merge が Ruby Hash の順序を動かす前に記録する。
     let mut keys = OrderedKeys::from_value(&current);
+    let target = super::obsoletion::TargetRuby::new(&current, Some(canonical.clone()));
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let inherit_gem = take_mapping_key(&mut current, "inherit_gem");
     let parent = origin.parent().unwrap_or(Path::new("."));
@@ -187,6 +188,7 @@ fn load_local_with_inheritance(
         &value,
         namespace_warnings,
         &display,
+        &target,
     );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {
@@ -215,6 +217,7 @@ fn load_remote_with_inheritance(
     let contents = fetch_remote_config(url)?;
     let mut current = parse_yaml_configuration(&contents, url)?;
     let mut keys = OrderedKeys::from_value(&current);
+    let target = super::obsoletion::TargetRuby::new(&current, None);
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
@@ -254,6 +257,7 @@ fn load_remote_with_inheritance(
         &value,
         namespace_warnings,
         &display,
+        &target,
     );
     completed.push(Arc::clone(&trace));
     let document = ResolvedDocument {
