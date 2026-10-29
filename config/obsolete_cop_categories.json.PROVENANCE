@@ -1,0 +1,27 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtのConfigObsoletion実記録（2026-10-28原参照）。対応するCLI fixtureのschema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_obsolete_cop_categories.py
+再生成:
+  python scripts/conformance/record_obsolete_cop_categories.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json> --rules-output <new-rules.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentだけを共用し、候補を呼ばない。
+注入ENV4だけを子copyから除去し、GEM/PATH/OS環境と親を保つ。明示envはcaseごとに同じ値を重ねる。
+work/output/rules-outputの既存entry/danglingを先に拒否し、親解決/dotdot/Windows case差の同一保存先も拒否する。
+全件完了後にexclusive xで新規保存する。空・未知・重複selection、欠落・重複・順序差、入力差を拒む。
+元source SHA256はfixture.primary.sources、実runtime/gem版・全127 rulesのclass件数も同primaryへ保存する。
+class件数とindexはint、warningはFalseそのものを要求し、bool/intの等値による偽成功を避ける。
+正常/late reportは実Ruby identity確認後にmetadataを除き、全offenses・path・int完了件数・明示phaseを検査する。
+原本と既存outのbytes/mtimeを保持する。新report作成や原本変更、任意の異常終了を成功記録にしない。
+ライセンス: 既存licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+config/obsolete_cop_categories.jsonは16 API規則だけの判定表。--rules-outputで再生成する。
+Removed/Splitはold_name/short_name/message、Extractedはold_name/department/gemを実APIから保存する。
+値を書き換えずfatal履歴へ記録し、既存typed error/phase/Arc DAGを通してCLI検証時だけ拒否する。
+登録順はRenamed51の後の16規則。全127の他parameter60を混ぜない。
+Extractedのplugin宣言policyは実loaded metadataと異なる#153残差であり、本表でロード互換を主張しない。
+build.rsのrerun-if-changedとbuild_fingerprintの両方へ登録し、表が変われば結果cacheを共有しない。
+
+2026-10-29に公開collectorでfresh逐次再採取を初回終了0で完了した。
+40CLI（39strict+late1の原参照）/primary全fieldsと16表が一致し、両JSONのcontainer bytesも完全一致した。
+
+fixture SHA256: 7df3c775ba1dda4874f24bd1c14f0c284da2152fdf7f43d937b70f011c2e6d35
+collector SHA256: eaa3ad1b77a14d933df7521b7618a8573a72a67e8c990f6de025caa72bf36ce6

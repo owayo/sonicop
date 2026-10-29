@@ -1,0 +1,98 @@
+[
+  {
+    "kind": "removed",
+    "old_name": "Gemspec/DateAssignment",
+    "short_name": "DateAssignment",
+    "message": "The `Gemspec/DateAssignment` cop has been removed. Please use `Gemspec/DeprecatedAttributeAssignment` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Layout/SpaceAfterControlKeyword",
+    "short_name": "SpaceAfterControlKeyword",
+    "message": "The `Layout/SpaceAfterControlKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Layout/SpaceBeforeModifierKeyword",
+    "short_name": "SpaceBeforeModifierKeyword",
+    "message": "The `Layout/SpaceBeforeModifierKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Lint/InvalidCharacterLiteral",
+    "short_name": "InvalidCharacterLiteral",
+    "message": "The `Lint/InvalidCharacterLiteral` cop has been removed since it was never being actually triggered."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Lint/RescueWithoutErrorClass",
+    "short_name": "RescueWithoutErrorClass",
+    "message": "The `Lint/RescueWithoutErrorClass` cop has been removed. Please use `Style/RescueStandardError` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Lint/SpaceBeforeFirstArg",
+    "short_name": "SpaceBeforeFirstArg",
+    "message": "The `Lint/SpaceBeforeFirstArg` cop has been removed since it was a duplicate of `Layout/SpaceBeforeFirstArg`. Please use `Layout/SpaceBeforeFirstArg` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Lint/UselessComparison",
+    "short_name": "UselessComparison",
+    "message": "The `Lint/UselessComparison` cop has been removed since it has been superseded by `Lint/BinaryOperatorWithIdenticalOperands`. Please use `Lint/BinaryOperatorWithIdenticalOperands` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/BracesAroundHashParameters",
+    "short_name": "BracesAroundHashParameters",
+    "message": "The `Style/BracesAroundHashParameters` cop has been removed. Please use  and/or  instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/MethodMissingSuper",
+    "short_name": "MethodMissingSuper",
+    "message": "The `Style/MethodMissingSuper` cop has been removed since it has been superseded by `Lint/MissingSuper`. Please use `Lint/MissingSuper` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/SpaceAfterControlKeyword",
+    "short_name": "SpaceAfterControlKeyword",
+    "message": "The `Style/SpaceAfterControlKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/SpaceBeforeModifierKeyword",
+    "short_name": "SpaceBeforeModifierKeyword",
+    "message": "The `Style/SpaceBeforeModifierKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/TrailingComma",
+    "short_name": "TrailingComma",
+    "message": "The `Style/TrailingComma` cop has been removed. Please use `Style/TrailingCommaInArguments`, `Style/TrailingCommaInArrayLiteral` and/or `Style/TrailingCommaInHashLiteral` instead."
+  },
+  {
+    "kind": "removed",
+    "old_name": "Style/TrailingCommaInLiteral",
+    "short_name": "TrailingCommaInLiteral",
+    "message": "The `Style/TrailingCommaInLiteral` cop has been removed. Please use `Style/TrailingCommaInArrayLiteral` and/or `Style/TrailingCommaInHashLiteral` instead."
+  },
+  {
+    "kind": "split",
+    "old_name": "Style/MethodMissing",
+    "short_name": "MethodMissing",
+    "message": "The `Style/MethodMissing` cop has been split into `Style/MethodMissingSuper` and `Style/MissingRespondToMissing`."
+  },
+  {
+    "kind": "extracted",
+    "old_name": "Performance/*",
+    "department": "Performance",
+    "gem": "rubocop-performance"
+  },
+  {
+    "kind": "extracted",
+    "old_name": "Rails/*",
+    "department": "Rails",
+    "gem": "rubocop-rails"
+  }
+]

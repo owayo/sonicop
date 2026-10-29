@@ -1,0 +1,1304 @@
+{
+  "schema": 1,
+  "primary": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "sources": {
+      "config/obsoletion.yml": "d3f52a93b379f33e301e853088a200b9913293b736a4477063b82c25d9f24900",
+      "lib/rubocop/config_obsoletion.rb": "5470f321ced3b0919bcfbceade7f6f662becfb50cbbefae57ac97a0ca0dc7894",
+      "lib/rubocop/config_obsoletion/cop_rule.rb": "661aa7080bdd083d277048af49474492c0d9125296dc5279114100efa7c68a92",
+      "lib/rubocop/config_obsoletion/rule.rb": "530e702dde8207496ab1717c4f444666414bf394199f5de2f02e409f6a434078",
+      "lib/rubocop/config_obsoletion/removed_cop.rb": "7ab711d5e86676df7e0ddde2b395610f9f11b7f96f709b01ae134e7b1d870c66",
+      "lib/rubocop/config_obsoletion/split_cop.rb": "1dbb19c5c41ad46e20e8adc132364ac5d126583650b051969e72abda1773b0d2",
+      "lib/rubocop/config_obsoletion/extracted_cop.rb": "630578e5ca56661230b80fc6c237a1ed9799973a41883a173e59a4ac612845ca",
+      "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+      "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+      "LICENSE.txt": "102cbdf7e36a90dea7e545c683cf457ea8b993bce627b417744609088fd8b377"
+    },
+    "counts": {
+      "RenamedCop": 51,
+      "RemovedCop": 13,
+      "SplitCop": 1,
+      "ExtractedCop": 2,
+      "ChangedParameter": 58,
+      "ChangedEnforcedStyles": 2
+    },
+    "rules": [
+      {
+        "index": 51,
+        "kind": "RemovedCop",
+        "old_name": "Gemspec/DateAssignment",
+        "short_name": "DateAssignment",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Gemspec/DeprecatedAttributeAssignment"
+        },
+        "message": "The `Gemspec/DateAssignment` cop has been removed. Please use `Gemspec/DeprecatedAttributeAssignment` instead."
+      },
+      {
+        "index": 52,
+        "kind": "RemovedCop",
+        "old_name": "Layout/SpaceAfterControlKeyword",
+        "short_name": "SpaceAfterControlKeyword",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Layout/SpaceAroundKeyword"
+        },
+        "message": "The `Layout/SpaceAfterControlKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+      },
+      {
+        "index": 53,
+        "kind": "RemovedCop",
+        "old_name": "Layout/SpaceBeforeModifierKeyword",
+        "short_name": "SpaceBeforeModifierKeyword",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Layout/SpaceAroundKeyword"
+        },
+        "message": "The `Layout/SpaceBeforeModifierKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+      },
+      {
+        "index": 54,
+        "kind": "RemovedCop",
+        "old_name": "Lint/InvalidCharacterLiteral",
+        "short_name": "InvalidCharacterLiteral",
+        "warning": false,
+        "metadata": {
+          "reason": "it was never being actually triggered"
+        },
+        "message": "The `Lint/InvalidCharacterLiteral` cop has been removed since it was never being actually triggered."
+      },
+      {
+        "index": 55,
+        "kind": "RemovedCop",
+        "old_name": "Lint/RescueWithoutErrorClass",
+        "short_name": "RescueWithoutErrorClass",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Style/RescueStandardError"
+        },
+        "message": "The `Lint/RescueWithoutErrorClass` cop has been removed. Please use `Style/RescueStandardError` instead."
+      },
+      {
+        "index": 56,
+        "kind": "RemovedCop",
+        "old_name": "Lint/SpaceBeforeFirstArg",
+        "short_name": "SpaceBeforeFirstArg",
+        "warning": false,
+        "metadata": {
+          "reason": "it was a duplicate of `Layout/SpaceBeforeFirstArg`. Please use `Layout/SpaceBeforeFirstArg` instead\n"
+        },
+        "message": "The `Lint/SpaceBeforeFirstArg` cop has been removed since it was a duplicate of `Layout/SpaceBeforeFirstArg`. Please use `Layout/SpaceBeforeFirstArg` instead."
+      },
+      {
+        "index": 57,
+        "kind": "RemovedCop",
+        "old_name": "Lint/UselessComparison",
+        "short_name": "UselessComparison",
+        "warning": false,
+        "metadata": {
+          "reason": "it has been superseded by `Lint/BinaryOperatorWithIdenticalOperands`. Please use `Lint/BinaryOperatorWithIdenticalOperands` instead\n"
+        },
+        "message": "The `Lint/UselessComparison` cop has been removed since it has been superseded by `Lint/BinaryOperatorWithIdenticalOperands`. Please use `Lint/BinaryOperatorWithIdenticalOperands` instead."
+      },
+      {
+        "index": 58,
+        "kind": "RemovedCop",
+        "old_name": "Style/BracesAroundHashParameters",
+        "short_name": "BracesAroundHashParameters",
+        "warning": false,
+        "metadata": {},
+        "message": "The `Style/BracesAroundHashParameters` cop has been removed. Please use  and/or  instead."
+      },
+      {
+        "index": 59,
+        "kind": "RemovedCop",
+        "old_name": "Style/MethodMissingSuper",
+        "short_name": "MethodMissingSuper",
+        "warning": false,
+        "metadata": {
+          "reason": "it has been superseded by `Lint/MissingSuper`. Please use `Lint/MissingSuper` instead\n"
+        },
+        "message": "The `Style/MethodMissingSuper` cop has been removed since it has been superseded by `Lint/MissingSuper`. Please use `Lint/MissingSuper` instead."
+      },
+      {
+        "index": 60,
+        "kind": "RemovedCop",
+        "old_name": "Style/SpaceAfterControlKeyword",
+        "short_name": "SpaceAfterControlKeyword",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Layout/SpaceAroundKeyword"
+        },
+        "message": "The `Style/SpaceAfterControlKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+      },
+      {
+        "index": 61,
+        "kind": "RemovedCop",
+        "old_name": "Style/SpaceBeforeModifierKeyword",
+        "short_name": "SpaceBeforeModifierKeyword",
+        "warning": false,
+        "metadata": {
+          "alternatives": "Layout/SpaceAroundKeyword"
+        },
+        "message": "The `Style/SpaceBeforeModifierKeyword` cop has been removed. Please use `Layout/SpaceAroundKeyword` instead."
+      },
+      {
+        "index": 62,
+        "kind": "RemovedCop",
+        "old_name": "Style/TrailingComma",
+        "short_name": "TrailingComma",
+        "warning": false,
+        "metadata": {
+          "alternatives": [
+            "Style/TrailingCommaInArguments",
+            "Style/TrailingCommaInArrayLiteral",
+            "Style/TrailingCommaInHashLiteral"
+          ]
+        },
+        "message": "The `Style/TrailingComma` cop has been removed. Please use `Style/TrailingCommaInArguments`, `Style/TrailingCommaInArrayLiteral` and/or `Style/TrailingCommaInHashLiteral` instead."
+      },
+      {
+        "index": 63,
+        "kind": "RemovedCop",
+        "old_name": "Style/TrailingCommaInLiteral",
+        "short_name": "TrailingCommaInLiteral",
+        "warning": false,
+        "metadata": {
+          "alternatives": [
+            "Style/TrailingCommaInArrayLiteral",
+            "Style/TrailingCommaInHashLiteral"
+          ]
+        },
+        "message": "The `Style/TrailingCommaInLiteral` cop has been removed. Please use `Style/TrailingCommaInArrayLiteral` and/or `Style/TrailingCommaInHashLiteral` instead."
+      },
+      {
+        "index": 64,
+        "kind": "SplitCop",
+        "old_name": "Style/MethodMissing",
+        "short_name": "MethodMissing",
+        "warning": false,
+        "metadata": {
+          "alternatives": [
+            "Style/MethodMissingSuper",
+            "Style/MissingRespondToMissing"
+          ]
+        },
+        "message": "The `Style/MethodMissing` cop has been split into `Style/MethodMissingSuper` and `Style/MissingRespondToMissing`."
+      },
+      {
+        "index": 65,
+        "kind": "ExtractedCop",
+        "old_name": "Performance/*",
+        "short_name": "*",
+        "warning": false,
+        "department": "Performance",
+        "gem": "rubocop-performance"
+      },
+      {
+        "index": 66,
+        "kind": "ExtractedCop",
+        "old_name": "Rails/*",
+        "short_name": "*",
+        "warning": false,
+        "department": "Rails",
+        "gem": "rubocop-rails"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "catalogue-00",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-01",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAfterControlKeyword:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f53706163654166746572436f6e74726f6c4b6579776f72646020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520604c61796f75742f537061636541726f756e644b6579776f72646020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-02",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceBeforeModifierKeyword:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f53706163654265666f72654d6f6469666965724b6579776f72646020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520604c61796f75742f537061636541726f756e644b6579776f72646020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-03",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/InvalidCharacterLiteral:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c696e742f496e76616c69644368617261637465724c69746572616c6020636f7020686173206265656e2072656d6f7665642073696e636520697420776173206e65766572206265696e672061637475616c6c79207472696767657265642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-04",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/RescueWithoutErrorClass:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c696e742f526573637565576974686f75744572726f72436c6173736020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520605374796c652f5265736375655374616e646172644572726f726020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-05",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/SpaceBeforeFirstArg:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c696e742f53706163654265666f726546697273744172676020636f7020686173206265656e2072656d6f7665642073696e6365206974207761732061206475706c6963617465206f6620604c61796f75742f53706163654265666f72654669727374417267602e20506c656173652075736520604c61796f75742f53706163654265666f726546697273744172676020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-06",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/UselessComparison:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c696e742f5573656c657373436f6d70617269736f6e6020636f7020686173206265656e2072656d6f7665642073696e636520697420686173206265656e207375706572736564656420627920604c696e742f42696e6172794f70657261746f72576974684964656e746963616c4f706572616e6473602e20506c656173652075736520604c696e742f42696e6172794f70657261746f72576974684964656e746963616c4f706572616e64736020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-07",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/BracesAroundHashParameters:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f42726163657341726f756e6448617368506172616d65746572736020636f7020686173206265656e2072656d6f7665642e20506c65617365207573652020616e642f6f722020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-08",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MethodMissingSuper:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f4d6574686f644d697373696e6753757065726020636f7020686173206265656e2072656d6f7665642073696e636520697420686173206265656e207375706572736564656420627920604c696e742f4d697373696e675375706572602e20506c656173652075736520604c696e742f4d697373696e6753757065726020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-09",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/SpaceAfterControlKeyword:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f53706163654166746572436f6e74726f6c4b6579776f72646020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520604c61796f75742f537061636541726f756e644b6579776f72646020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-10",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/SpaceBeforeModifierKeyword:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f53706163654265666f72654d6f6469666965724b6579776f72646020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520604c61796f75742f537061636541726f756e644b6579776f72646020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-11",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/TrailingComma:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f547261696c696e67436f6d6d616020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520605374796c652f547261696c696e67436f6d6d61496e417267756d656e7473602c20605374796c652f547261696c696e67436f6d6d61496e41727261794c69746572616c6020616e642f6f7220605374796c652f547261696c696e67436f6d6d61496e486173684c69746572616c6020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-12",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/TrailingCommaInLiteral:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f547261696c696e67436f6d6d61496e4c69746572616c6020636f7020686173206265656e2072656d6f7665642e20506c656173652075736520605374796c652f547261696c696e67436f6d6d61496e41727261794c69746572616c6020616e642f6f7220605374796c652f547261696c696e67436f6d6d61496e486173684c69746572616c6020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-13",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MethodMissing:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f4d6574686f644d697373696e676020636f7020686173206265656e2073706c697420696e746f20605374796c652f4d6574686f644d697373696e6753757065726020616e6420605374796c652f4d697373696e67526573706f6e64546f4d697373696e67602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-14",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nPerformance/*:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "catalogue-15",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nRails/*:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20605261696c732f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d7261696c73602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "removed-bare",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nDateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "split-bare",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMethodMissing: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f4d6574686f644d697373696e676020636f7020686173206265656e2073706c697420696e746f20605374796c652f4d6574686f644d697373696e6753757065726020616e6420605374796c652f4d697373696e67526573706f6e64546f4d697373696e67602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "removed-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "split-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MethodMissing: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f4d6574686f644d697373696e676020636f7020686173206265656e2073706c697420696e746f20605374796c652f4d6574686f644d697373696e6753757065726020616e6420605374796c652f4d697373696e67526573706f6e64546f4d697373696e67602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "extracted-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nPerformance: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "removed-ignore",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "split-ignore",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MethodMissing: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520605374796c652f4d6574686f644d697373696e676020636f7020686173206265656e2073706c697420696e746f20605374796c652f4d6574686f644d697373696e6753757065726020616e6420605374796c652f4d697373696e67526573706f6e64546f4d697373696e67602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "extracted-ignore",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nRails/FindEach: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20605261696c732f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d7261696c73602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "extracted-one",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nPerformance/Count: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "extracted-many",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nPerformance/Detect: {}\nPerformance/Count: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2060506572666f726d616e63656020636f70732068617665206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "extracted-department",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nPerformance:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "rules-order",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nRails/FindEach: {}\nStyle/MethodMissing: {}\nGemspec/DateAssignment: {}\nLayout/TrailingBlankLines: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a54686520605374796c652f4d6574686f644d697373696e676020636f7020686173206265656e2073706c697420696e746f20605374796c652f4d6574686f644d697373696e6753757065726020616e6420605374796c652f4d697373696e67526573706f6e64546f4d697373696e67602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a605261696c732f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d7261696c73602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "namespace-first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators: {}\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "parameter-suppressed",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Bogus: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "force-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "color-flag",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "force-no-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--no-color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "inherit-parent",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\n",
+        "parent.yml": "Gemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20706172656e742e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "inherit-overridden",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\nGemspec/DateAssignment: null\n",
+        "parent.yml": "Gemspec/DateAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20706172656e742e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "nested-discovery",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n",
+        "sub/case.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--color",
+        "sub/case.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "late_rejection",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "1b5b33316d4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e207375622f2e7275626f636f702e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false,
+      "rejection_report": {
+        "files": [],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 0
+        }
+      },
+      "coverage": "deferred_152"
+    },
+    {
+      "id": "inherited-namespace",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\nGemspec/DateAssignment:\n  Enabled: false\n",
+        "parent.yml": "SpaceAroundOperators: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "706172656e742e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "out-sentinel",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment:\n  Enabled: false\n",
+        "report.json": "UNCHANGED\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20546865206047656d737065632f4461746541737369676e6d656e746020636f7020686173206265656e2072656d6f7665642e20506c6561736520757365206047656d737065632f4465707265636174656441747472696275746541737369676e6d656e746020696e73746561642e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": true,
+      "coverage": "strict"
+    },
+    {
+      "id": "canonical-negative",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DeprecatedAttributeAssignment:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "unaffected-department",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "phase": "initial_or_completed",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "report": {
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "coverage": "strict"
+    }
+  ]
+}

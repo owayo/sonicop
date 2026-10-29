@@ -1,10 +1,13 @@
-//! ConfigObsoletionのfatal renameだけを、未知copの検証より先に処理する。
+//! ConfigObsoletionのfatal cop規則を、未知copの検証より先に再生する。
 
+use std::collections::HashSet;
 use std::fmt;
 use std::sync::LazyLock;
 
 use serde::Deserialize;
-use serde_yaml_ng::Value;
+use serde_yaml_ng::{Mapping, Value};
+
+use super::plugin::configured_plugin_departments;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -47,6 +50,72 @@ static RENAMED: LazyLock<Vec<RenamedCop>> = LazyLock::new(|| {
         .expect("recorded RuboCop renamed cops")
 });
 
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum RetiredCop {
+    Removed {
+        old_name: String,
+        short_name: String,
+        message: String,
+    },
+    Split {
+        old_name: String,
+        short_name: String,
+        message: String,
+    },
+    Extracted {
+        old_name: String,
+        department: String,
+        gem: String,
+    },
+}
+
+impl RetiredCop {
+    fn message(&self, config: &Mapping, plugin_departments: &HashSet<String>) -> Option<String> {
+        match self {
+            Self::Removed {
+                old_name,
+                short_name,
+                message,
+            }
+            | Self::Split {
+                old_name,
+                short_name,
+                message,
+            } => (config.contains_key(old_name.as_str())
+                || config.contains_key(short_name.as_str()))
+            .then(|| message.clone()),
+            Self::Extracted {
+                old_name,
+                department,
+                gem,
+            } => {
+                // native既存のplugin所有宣言を保つ。実Rubyのloaded_featuresと同値ではない。
+                if plugin_departments.contains(department) {
+                    return None;
+                }
+                let prefix = format!("{department}/");
+                let count = config
+                    .keys()
+                    .filter_map(Value::as_str)
+                    .filter(|name| *name == department || name.starts_with(&prefix))
+                    .count();
+                let subject = match count {
+                    0 => return None,
+                    1 => format!("`{old_name}` has"),
+                    _ => format!("`{department}` cops have"),
+                };
+                Some(format!("{subject} been extracted to the `{gem}` gem."))
+            }
+        }
+    }
+}
+
+static RETIRED: LazyLock<Vec<RetiredCop>> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../../config/obsolete_cop_categories.json"))
+        .expect("recorded RuboCop removed, split and extracted cops")
+});
+
 #[derive(Debug)]
 pub(crate) struct ObsoleteConfigError {
     message: String,
@@ -86,8 +155,8 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
         return Vec::new();
     };
     // keyの順やEnabledの値ではなくCopRule#violated?とrulesの順を使う。
-    // warning2の旧設定mergeやremoved/split/extracted/parameterはこの検査へ混ぜない。
-    RENAMED
+    // warning2の旧値移行とparameterは別scope。cop規則だけ本家のcategory順に集約する。
+    let mut messages = RENAMED
         .iter()
         .filter(|rule| matches!(rule.severity, Severity::Error))
         .filter(|rule| {
@@ -100,17 +169,146 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
                 rule.message()
             )
         })
-        .collect()
+        .collect::<Vec<_>>();
+    let plugins = configured_plugin_departments(config);
+    messages.extend(RETIRED.iter().filter_map(|rule| {
+        rule.message(mapping, &plugins).map(|message| {
+            format!("{message}\n(obsolete configuration found in {origin}, please update it)")
+        })
+    }));
+    messages
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ObsoleteConfigError, RENAMED, Severity, fatal_messages};
+    use super::{ObsoleteConfigError, RENAMED, RETIRED, RetiredCop, Severity, fatal_messages};
     use serde_json::Value as Json;
     use serde_yaml_ng::{Mapping, Value};
 
     fn fixture() -> Json {
         serde_json::from_str(include_str!("../../tests/fixtures/config_obsoletion.json")).unwrap()
+    }
+
+    #[test]
+    fn retired_table_matches_the_real_api_messages_and_category_order() {
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../tests/fixtures/obsolete_cop_categories.json"
+        ))
+        .unwrap();
+        let expected = fixture["primary"]["rules"].as_array().unwrap();
+        assert_eq!(RETIRED.len(), 16);
+        assert_eq!(expected.len(), 16);
+        for (index, (rule, expected)) in RETIRED.iter().zip(expected).enumerate() {
+            assert_eq!(expected["index"], index + 51);
+            assert_eq!(expected["warning"], false);
+            match rule {
+                RetiredCop::Removed {
+                    old_name,
+                    short_name,
+                    message,
+                }
+                | RetiredCop::Split {
+                    old_name,
+                    short_name,
+                    message,
+                } => {
+                    assert_eq!(old_name, expected["old_name"].as_str().unwrap());
+                    assert_eq!(short_name, expected["short_name"].as_str().unwrap());
+                    assert_eq!(message, expected["message"].as_str().unwrap());
+                    let kind = if matches!(rule, RetiredCop::Removed { .. }) {
+                        "RemovedCop"
+                    } else {
+                        "SplitCop"
+                    };
+                    assert_eq!(kind, expected["kind"]);
+                }
+                RetiredCop::Extracted {
+                    old_name,
+                    department,
+                    gem,
+                } => {
+                    assert_eq!(expected["kind"], "ExtractedCop");
+                    assert_eq!(old_name, expected["old_name"].as_str().unwrap());
+                    assert_eq!(department, expected["department"].as_str().unwrap());
+                    assert_eq!(gem, expected["gem"].as_str().unwrap());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn retired_presence_and_null_values_match_actual_cli_without_mutation() {
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../tests/fixtures/obsolete_cop_categories.json"
+        ))
+        .unwrap();
+        for case in fixture["cases"].as_array().unwrap().iter().take(16) {
+            let config: Value =
+                serde_yaml_ng::from_str(case["files"]["config.yml"].as_str().unwrap()).unwrap();
+            let before = config.clone();
+            let messages = fatal_messages(&config, "config.yml");
+            let hex = case["stderr_hex"].as_str().unwrap();
+            let bytes: Vec<_> = hex
+                .as_bytes()
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+                .collect();
+            let reference = String::from_utf8(bytes).unwrap().replace("\r\n", "\n");
+            assert_eq!(
+                messages.join("\n"),
+                reference
+                    .strip_prefix("Error: ")
+                    .unwrap()
+                    .trim_end_matches('\n')
+            );
+            assert_eq!(config, before);
+        }
+        for rule in RETIRED.iter() {
+            let (old_name, short_name) = match rule {
+                RetiredCop::Removed {
+                    old_name,
+                    short_name,
+                    ..
+                }
+                | RetiredCop::Split {
+                    old_name,
+                    short_name,
+                    ..
+                } => (old_name, short_name),
+                RetiredCop::Extracted { .. } => continue,
+            };
+            for name in [old_name, short_name] {
+                // 同じbare名にLayout/Styleの両removedが該当する。実APIの全rule順で集約する。
+                let expected = fixture["primary"]["rules"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|reference| {
+                        reference["old_name"] == *name || reference["short_name"] == *name
+                    })
+                    .map(|reference| {
+                        format!(
+                            "{}\n(obsolete configuration found in config.yml, please update it)",
+                            reference["message"].as_str().unwrap()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                for value in [
+                    Value::Null,
+                    Value::Bool(false),
+                    Value::Mapping(Mapping::new()),
+                ] {
+                    let config =
+                        Value::Mapping(Mapping::from_iter([(Value::String(name.clone()), value)]));
+                    let before = config.clone();
+                    assert_eq!(fatal_messages(&config, "config.yml").join("\n"), expected);
+                    assert_eq!(config, before);
+                }
+            }
+        }
     }
 
     #[test]
@@ -221,6 +419,36 @@ mod tests {
                 .as_mapping()
                 .unwrap()
                 .contains_key("Layout/TrailingBlankLines")
+        );
+    }
+
+    #[test]
+    fn quiet_retired_config_keeps_values_and_metadata() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("config.yml");
+        std::fs::write(&path, "AllCops:\n  TargetRubyVersion: 2.7\nGemspec/DateAssignment:\n  Enabled: false\nPerformance: null\n").unwrap();
+        let config = super::super::Config::load(Some(&path), directory.path()).unwrap();
+        assert_eq!(
+            config.cop_value::<bool>("Gemspec/DateAssignment", "Enabled"),
+            Some(false)
+        );
+        assert!(
+            config
+                .user
+                .as_mapping()
+                .unwrap()
+                .contains_key("Performance")
+        );
+        assert!(
+            config
+                .unrecognized_cop_names()
+                .iter()
+                .any(|name| name == "Gemspec/DateAssignment")
+        );
+        assert!(
+            !config
+                .known_cop_names()
+                .any(|name| name == "Gemspec/DateAssignment")
         );
     }
 }
