@@ -12,7 +12,8 @@ use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
 use crate::config::{
-    Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError, UnknownConfigError,
+    Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError, ObsoleteConfigError,
+    UnknownConfigError,
 };
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
@@ -361,6 +362,13 @@ fn run_inner() -> i32 {
                     format!("\x1b[31m{missing}\x1b[0m\n")
                 } else {
                     format!("{missing}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(obsolete) = error.downcast_ref::<ObsoleteConfigError>() {
+                let text = if obsolete.color() {
+                    format!("\x1b[31mError: {obsolete}\x1b[0m\n")
+                } else {
+                    format!("Error: {obsolete}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(unknown) = error.downcast_ref::<UnknownConfigError>() {
@@ -816,7 +824,10 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     )
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
-        UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color)
+        ObsoleteConfigError::with_color(
+            UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),
+            color,
+        )
     })
 }
 

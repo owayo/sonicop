@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "revision": "229531a6cfbf07e3caef30dbac24a2a3f3fed482",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "cases": [
+    {
+      "id": "fatal-before-unknown-force-0",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNoSuchCop: {}\nLayout/TrailingBlankLines: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "TERM": "dumb",
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4e6f53756368436f703a207b7d0a4c61796f75742f547261696c696e67426c616e6b4c696e65733a207b7d0a"
+      },
+      "original_mtimes_unchanged": true,
+      "raw_stderr_sha256": "8db05e7c8bc01b67232f00db8cfc19821e67f9c20769ff4309edcd147a9057f8"
+    },
+    {
+      "id": "fatal-before-unknown-force-1",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNoSuchCop: {}\nLayout/TrailingBlankLines: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "TERM": "dumb",
+        "CLICOLOR_FORCE": "1"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false,
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4e6f53756368436f703a207b7d0a4c61796f75742f547261696c696e67426c616e6b4c696e65733a207b7d0a"
+      },
+      "original_mtimes_unchanged": true,
+      "raw_stderr_sha256": "f38a807ecaeeefed7ff644ada72bb0a8af7770bf20568bf5a64d959e1fdd6a84"
+    },
+    {
+      "id": "completed-warning-before-fatal-and-missing-force-0",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: [unknown.yml, obsolete.yml, missing.yml]\n",
+        "unknown.yml": "NoSuchCop: {}\n",
+        "obsolete.yml": "Layout/TrailingBlankLines: {}\n",
+        "report.json": "UNCHANGED\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "TERM": "dumb",
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "54686520666f6c6c6f77696e6720636f7073206f72206465706172746d656e747320617265206e6f74207265636f676e697a656420616e642077696c6c2062652069676e6f7265643a0d0a756e7265636f676e697a656420636f70206f72206465706172746d656e74204e6f53756368436f7020666f756e6420696e20756e6b6e6f776e2e796d6c0d0a4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e206f62736f6c6574652e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": true,
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a205b756e6b6e6f776e2e796d6c2c206f62736f6c6574652e796d6c2c206d697373696e672e796d6c5d0a",
+        "unknown.yml": "4e6f53756368436f703a207b7d0a",
+        "obsolete.yml": "4c61796f75742f547261696c696e67426c616e6b4c696e65733a207b7d0a",
+        "report.json": "554e4348414e4745440a"
+      },
+      "original_mtimes_unchanged": true,
+      "raw_stderr_sha256": "91d6a4a32e36df75ef88adccd20dcbdcad64d9b062fa1f7a6296cf2df9700668"
+    },
+    {
+      "id": "completed-warning-before-fatal-and-missing-force-1",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: [unknown.yml, obsolete.yml, missing.yml]\n",
+        "unknown.yml": "NoSuchCop: {}\n",
+        "obsolete.yml": "Layout/TrailingBlankLines: {}\n",
+        "report.json": "UNCHANGED\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "TERM": "dumb",
+        "CLICOLOR_FORCE": "1"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33336d54686520666f6c6c6f77696e6720636f7073206f72206465706172746d656e747320617265206e6f74207265636f676e697a656420616e642077696c6c2062652069676e6f7265643a1b5b306d0d0a756e7265636f676e697a656420636f70206f72206465706172746d656e74204e6f53756368436f7020666f756e6420696e20756e6b6e6f776e2e796d6c0d0a1b5b33316d4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e206f62736f6c6574652e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": true,
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "783d310a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a205b756e6b6e6f776e2e796d6c2c206f62736f6c6574652e796d6c2c206d697373696e672e796d6c5d0a",
+        "unknown.yml": "4e6f53756368436f703a207b7d0a",
+        "obsolete.yml": "4c61796f75742f547261696c696e67426c616e6b4c696e65733a207b7d0a",
+        "report.json": "554e4348414e4745440a"
+      },
+      "original_mtimes_unchanged": true,
+      "raw_stderr_sha256": "96aae2582ca36ee2e8ae2c45e98e62907789c75fd6e26444da28f5272b139661"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 mod inheritance;
 mod loader;
 mod namespaces;
+mod obsoletion;
 mod paths;
 mod plugin;
 mod store;
@@ -30,6 +31,7 @@ use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub(crate) use loader::MissingConfigError;
+pub(crate) use obsoletion::ObsoleteConfigError;
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;

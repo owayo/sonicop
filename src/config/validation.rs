@@ -243,7 +243,7 @@ impl OrderedKeys {
 
     fn prepare(&self, value: &Value, display: &str) -> Prepared {
         let plugins = configured_plugin_departments(value);
-        // 廃止名の旧metadata/拒否は#145まで保ち、新しいunknown分類とは分ける。
+        // rename以外の廃止名の旧拒否を保ち、個別カテゴリの移行は混ぜない。
         let mut legacy_unknown: Vec<_> = super::cop_names(value)
             .into_iter()
             .filter(|name| {
@@ -288,6 +288,7 @@ impl OrderedKeys {
             }
         }
         Prepared {
+            obsolete: super::obsoletion::fatal_messages(value, display),
             warnings,
             unknown,
             legacy_unknown,
@@ -323,6 +324,7 @@ pub(crate) enum ConfigWarning {
 
 #[derive(Debug, Default)]
 struct Prepared {
+    obsolete: Vec<String>,
     namespaces: Vec<ConfigWarning>,
     warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
@@ -336,6 +338,7 @@ pub(super) struct ValidationTrace {
     own: Prepared,
     has_warnings: bool,
     has_unknown: bool,
+    has_obsolete: bool,
 }
 
 impl ValidationTrace {
@@ -367,6 +370,8 @@ impl ValidationTrace {
 
     fn new(inherited: Vec<Arc<Self>>, own: Prepared) -> Arc<Self> {
         Arc::new(Self {
+            has_obsolete: !own.obsolete.is_empty()
+                || inherited.iter().any(|trace| trace.has_obsolete),
             has_warnings: !own.unknown.is_empty()
                 || !own.namespaces.is_empty()
                 || !own.warnings.is_empty()
@@ -392,8 +397,11 @@ impl ValidationTrace {
         while let Some(visit) = stack.pop() {
             match visit {
                 Visit::Tree(trace) => {
-                    // 警告のない共有部分木は、辺が重複しても展開しない。
-                    if !trace.has_warnings && (ignore_unknown || !trace.has_unknown) {
+                    // 警告もfatalもない共有部分木だけを省略し、ignoreでrename拒否を失わない。
+                    if !trace.has_obsolete
+                        && !trace.has_warnings
+                        && (ignore_unknown || !trace.has_unknown)
+                    {
                         continue;
                     }
                     stack.push(Visit::Own(&trace.own));
@@ -402,6 +410,10 @@ impl ValidationTrace {
                 Visit::Own(prepared) => {
                     for warning in &prepared.namespaces {
                         emit(warning)?;
+                    }
+                    // fatal renameはignoreの対象ではなく、同じ文書のunknown/parameterより先に拒否する。
+                    if !prepared.obsolete.is_empty() {
+                        return Err(super::ObsoleteConfigError::new(&prepared.obsolete).into());
                     }
                     if !ignore_unknown && !prepared.legacy_unknown.is_empty() {
                         bail!(

@@ -71,7 +71,7 @@ def scenarios():
                 ],
                 "env": {"CLICOLOR_FORCE": "0", **(env or {})},
                 "comparison": comparison,
-                "coverage": "deferred_145" if name.startswith("legacy-") else "strict",
+                "coverage": "strict",
             }
         )
 

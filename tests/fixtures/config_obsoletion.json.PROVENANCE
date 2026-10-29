@@ -1,0 +1,29 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtのConfigObsoletion実記録（2026-10-28原参照）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_config_obsoletion.py
+既存record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentだけを共用し、候補を起動しない。
+ENV4は子copyからだけ除去し、GEM/PATH/OS環境は保持する。
+fresh work/output/rules-outputは子起動前に検査し、dangling symlinkや同一pathも拒否する。
+全件完了後にexclusive xで保存し、空・未知・重複選択や固定入力の欠落・順序差を拒否する。
+JSON完了件数とAPIカテゴリ件数はintだけを認め、boolが0/1と等しいことによる偽成功を拒否する。
+元config/source/Ruby/outのbytesとmtimeを保持し、拒否前にreportを新規作成しない。
+実APIのsource SHA256はfixture.primary.sourcesへ保存し、ライセンスはlicenses/RUBOCOP.txtを再利用する。
+再生成:
+  python scripts/conformance/record_config_obsoletion.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json> --rules-output <new-rules.json>
+
+22CLIは21fatal初期拒否とcanonical正常1を分ける。full/short、false/true/null/scalar/moved、
+逆key順・親・親override・version/verbose/force-default・対象欠落・out sentinel・ignore・色・
+namespace先行・parameter抑止を実CLIのstdout/stderr全native bytes、exit、原本bytes/mtime、out状態で照合する。
+正常対照だけnative engine/spec identityを検査後metadataを除き、その他の全JSON fieldsを比較する。
+Windowsのpipe CRLFだけをUnix hostのLFへ合わせ、入力や本文を一般に正規化しない。
+実API表の51件（49fatal+2warning）は順序/名前/移行先/message/severityを全行照合するが、49CLI成功とは数えない。
+値の真偽でなくfull/short keyの存在を調べる。旧key/値/quiet APIのunknown metadataは変更しない。
+warning2の移行は#151、removed/split/extracted16は#148、parameter60は#149として残し、fatalへ格上げしない。
+元22の全既存fieldsとrawは維持し、schemaだけを追加した。新collectorで同一rawを再採取する。
+priority追補4件は別のconfig_obsoletion_order.jsonへ分離する。
+
+2026-10-29に公開collectorでfresh逐次再採取し、元参照と全fields/rawが一致することを確認した。
+51件の埋め込み表も両採取から同一内容へ再生成された。
+
+fixture SHA256: b9c8312798aba1d5f6aa667ccfb0a9ad64895229b5cfcf5c8f6fb1ce00412102
+collector SHA256: 2f5b8c3cc674baa7b7b435300f83fbae9747592388dfd6fdc5d9cbe54237cda2

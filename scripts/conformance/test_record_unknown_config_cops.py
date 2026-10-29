@@ -31,12 +31,11 @@ class UnknownConfigCopsTest(unittest.TestCase):
     """空reportを受理せず、子にだけ明示条件を渡す。"""
 
     def test_finite_scenarios_have_unique_identity_and_scope(self):
-        """未対応145の2条件は元rawを残し、strict40へ混ぜない。"""
+        """元legacy2のrawも維持し、145で全42をstrictへ昇格する。"""
         cases = recorder.scenarios()
         self.assertEqual(len(cases), 42)
         self.assertEqual(len({case["id"] for case in cases}), 42)
-        self.assertEqual(sum(case["coverage"] == "strict" for case in cases), 40)
-        self.assertEqual(sum(case["coverage"] == "deferred_145" for case in cases), 2)
+        self.assertEqual(sum(case["coverage"] == "strict" for case in cases), 42)
         recorder._selected_inputs(None)
         for only in ([], ["unknown"], ["unknown-map", "unknown-map"]):
             with self.assertRaises(ValueError):

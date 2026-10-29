@@ -17,4 +17,4 @@ Windows実pipeのCRLFだけをUnix hostのLFへ合わせ、任意の警告本文
 実rawは各work/raw.jsonへ保持する。新collectorでも元rawへ投影したfieldsを独立に再採取・比較する。
 
 fixture SHA256: d2f077b095d2308d13b4739e1d57f5f242eddf89d12293baf680db5950444161
-collector SHA256: 4205fd784cc05a822db986f99e313225242b8262546aa675d9b92abdc7fdcdf4
+collector SHA256: deced47bcaa3dd32637113f02806c42cd91d0e4e14f1e05e42eab606d371c16f

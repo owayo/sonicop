@@ -1,0 +1,27 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtのConfigObsoletion実記録（2026-10-28原参照）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_config_obsoletion.py
+既存record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentだけを共用し、候補を起動しない。
+ENV4は子copyからだけ除去し、GEM/PATH/OS環境は保持する。
+fresh work/output/rules-outputは子起動前に検査し、dangling symlinkや同一pathも拒否する。
+全件完了後にexclusive xで保存し、空・未知・重複選択や固定入力の欠落・順序差を拒否する。
+JSON完了件数とAPIカテゴリ件数はintだけを認め、boolが0/1と等しいことによる偽成功を拒否する。
+元config/source/Ruby/outのbytesとmtimeを保持し、拒否前にreportを新規作成しない。
+実APIのsource SHA256はfixture.primary.sourcesへ保存し、ライセンスはlicenses/RUBOCOP.txtを再利用する。
+再生成:
+  python scripts/conformance/record_config_obsoletion.py --order --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-order.json> --rules-output <new-rules.json>
+
+元22とは別の4CLI条件。fatal-before-unknownのplain/force1は元YAMLのNoSuchCopが先でもrenameを優先する。
+completed-warning-before-fatal-and-missingのplain/force1はignore下でunknown.ymlの警告を出し、
+obsolete.ymlのrename fatalを返す。後続missing.ymlのENOENTへ進まず、out sentinelのbytes/mtimeも保つ。
+Arc DAGへfatal到達性を持たせ、警告の無いsubtreeをignore時に省略して拒否を落とす回帰を防ぐ。
+全stderr native bytes・stdout空・exit2・out状態・全入力bytes/mtimeを照合する。
+見出しの黄/body plain/fatal赤とreset後のCRLFもrawへ含む。Unix hostではpipe CRLFだけをLFへ合わせる。
+元実記録の全fields/raw SHA256を維持し、schemaだけ追加。実rawはworkの各raw.jsonに保存する。
+本家runtimeはRuby revision/platform/gem pinsを別記録し、新collectorでも同じ入力を再採取する。
+
+2026-10-29に公開collectorでfresh逐次再採取し、元参照と全fields/rawが一致することを確認した。
+51件の埋め込み表も両採取から同一内容へ再生成された。
+
+fixture SHA256: 27c81dc341b147bb6106c5558765785cc83c03db29c358958fb2b12ac8d95cc2
+collector SHA256: 2f5b8c3cc674baa7b7b435300f83fbae9747592388dfd6fdc5d9cbe54237cda2

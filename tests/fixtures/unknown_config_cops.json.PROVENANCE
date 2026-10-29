@@ -12,13 +12,11 @@ Ruby注入ENV4だけを子copyから落とし、GEM/PATH/OS環境は保持する
 成功JSONは全offense fieldsを保持する。拒否でstdoutやreport.jsonが現れた場合も採取を拒む。
 work/outputの既存entryとdangling symlinkは上書きせず、全件完了後にx modeで新規保存する。
 
-42行の現在の比較範囲はcoverageを正本とする:
-- strict40: exit、stderr全native bytes、拒否stdout空/成功JSON全fields（native metadata identityを除く）、
-  native engineとrubocop版のidentity、out状態、全入力bytes/mtimeを照合する。
-- deferred_145のlegacy-disabled/legacy-ignore 2行: Layout/TrailingBlankLinesの本家rename拒否rawをそのまま保持する。
-  #145は未実装であり、2行のcandidate出力を新期待へせず、成功40へ混ぜない。intentional divergenceでもない。
-  原packetのcomparison= strictという履歴metadataは残すが、#144の実行範囲を示す値ではない。
-  #145の対応時には同じ2行を元rawの全文比較へ昇格する。旧legacy metadataとgeneric拒否の経路も現時点では保持する。
+42行はすべてcoverage=strictとして実行する。
+exit、stderr全native bytes、拒否stdout空/成功JSON全fields（native metadata identityを除く）、
+native engine/spec identity、out状態、全入力bytes/mtimeを照合する。
+#145でlegacy-disabled/legacy-ignoreの2行もstrictへ昇格した。元のrename拒否rawとその他fieldsは変更していない。
+旧40+deferred2を分けた由来は保つが、現在はskipせず全42条件を同じ厳密比較へ通す。
 
 bare/full/小文字/Unicodeと値5形態、複数unknownのRuby key順、DidYouMean候補の実順、既知名/部門/meta、
 ignoreとparameter/namespace順、初期force色/CLI color/no-color、out/version/verbose/force-default、継承を含む。
@@ -33,5 +31,5 @@ require/pluginsの既存許可policyは#153まで維持し、製品にRuby実行
 namespaceのunknown_bare元rawは変更せず、#144の追補として既存testからstdout/stderr/exit/原本の厳密比較へ接続する。
 継承DAGのignore再生と後続Missing前の警告prefixは、別のunknown_config_trace.json 4条件へ保存する。
 
-fixture SHA256: 7de2b542fa7439e7c68b7e8d75d9409b55eb5d3f25fb5a0a15cbb7843a21da0b
-collector SHA256: 4205fd784cc05a822db986f99e313225242b8262546aa675d9b92abdc7fdcdf4
+fixture SHA256: e16990b401a9265442ff1a281c648fd98d72707903ae43bdede2b98362f681ed
+collector SHA256: deced47bcaa3dd32637113f02806c42cd91d0e4e14f1e05e42eab606d371c16f
