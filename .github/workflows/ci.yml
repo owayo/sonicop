@@ -26,6 +26,8 @@ env:
 jobs:
   quality:
     name: Quality
+    env:
+      SONICOP_RUNTIME_TESTS: '1'
     # macOS と Windows のテストは native が platform gem と同じランナーで回す
     runs-on: ubuntu-latest
     steps:
@@ -42,6 +44,10 @@ jobs:
 
       # target/ と ~/.cargo のキャッシュ (鍵に rustc の版が入るので、mise.toml の rust を上げると作り直す)
       - uses: Swatinem/rust-cache@v2
+
+      # optional Ruby拡張を実測する。付属のPrism/Psychは同じ版なら再ビルドしない。
+      - name: Install the pinned Ruby runtime test gems
+        run: gem install --conservative --no-document rubocop:1.89.0 parser:3.3.12.0 prism:1.8.1 rubocop-ast:1.50.0 rainbow:3.1.1 psych:5.3.1 lint_roller:1.1.0
 
       - run: make setup
       - name: Test conformance tools
@@ -71,6 +77,8 @@ jobs:
 
   native:
     name: Native (${{ matrix.os }})
+    env:
+      SONICOP_RUNTIME_TESTS: '1'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -99,6 +107,10 @@ jobs:
       # ジョブどうしが互いを打ち切らないという意味で、cargo 側は test binary どうしが互いを
       # 打ち切らないという意味。片方だけだと、Windows で lib の 1 件が落ちた時点で
       # tests/cops.rs が走らず、「失敗 1 件」が「少なくとも 1 件」の意味になる。
+      # optional Ruby拡張を実測する。付属のPrism/Psychは同じ版なら再ビルドしない。
+      - name: Install the pinned Ruby runtime test gems
+        run: gem install --conservative --no-document rubocop:1.89.0 parser:3.3.12.0 prism:1.8.1 rubocop-ast:1.50.0 rainbow:3.1.1 psych:5.3.1 lint_roller:1.1.0
+
       - name: Test
         run: cargo test --all-targets --locked --no-fail-fast
 

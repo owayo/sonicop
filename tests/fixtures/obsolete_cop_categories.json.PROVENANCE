@@ -26,9 +26,8 @@ Removed/Splitのreason/alternativesの特殊文面はAPI messageを保存し推�
 Extractedはdepartment自身かdepartment/ prefixのkey数で単複を決める。
 
 quiet Config APIは拒否や出力を追加せず、元のkey/値/unknown metadataとknown cop一覧を保つ。
-今回の40入力はplugins/require無し。実APIのloaded_plugins.about.name/loaded_featuresと、
-nativeのconfigured_plugin_departmentsによる宣言policyは同値ではない。後者の既存policyは維持する。
-この通常残差は#153へ残し、pluginロード互換やRegistry登録の成功へ数えず、製品へRuby実行も追加しない。
+今回の40入力はplugins/require無し。#153で宣言policyを実APIのloaded_plugins.about.name /
+loaded_features / Registryへ置き換えた。実ロード対照は別fixtureへ分離し、この40へ加算しない。
 warning rename2の移行は#151のrenamed_config.jsonで別に実測する。
 parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離する。
 一般unknownやplugin実行の比較範囲は変更しない。
@@ -38,3 +37,8 @@ parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離す�
 
 fixture SHA256: b121729be8b488097d7ebc249d35392f532f88f9fb59190af078b345ec3626da
 collector SHA256: a9ba6ee793555b7310087470bfce5ca33cf8dfdb3382c1c9eff487c7974c8a0b
+
+#153の更新: 宣言名からの推測を廃止し、明示拡張だけ実Rubyのloaded_features /
+loaded_plugins.about.name / Registryを共有runtimeから観測する。通常のRuby無し経路は維持する。
+本fileの元参照と比較範囲は変更せず、拡張の実4CLI/4APIと別25境界は
+runtime_requires.json / runtime_requires_boundaries.jsonへ分離した。

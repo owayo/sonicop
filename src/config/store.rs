@@ -35,6 +35,7 @@ impl ConfigStore {
     }
 
     pub(crate) fn with_warnings(mut self, warnings: ConfigWarnings) -> Self {
+        let warnings = warnings.with_runtime(Arc::clone(self.root.ruby_runtime()));
         // 起動時の root は CLI が既に観測済み。parent 用の load_file とは別の cache である。
         self.observed
             .get_mut()
@@ -135,7 +136,12 @@ impl ConfigStore {
                             warnings,
                         )?
                     } else {
-                        Config::load_with_options(origin, self.root.cwd(), discovered.is_none())?
+                        Config::load_in_runtime(
+                            origin,
+                            self.root.cwd(),
+                            discovered.is_none(),
+                            Arc::clone(self.root.ruby_runtime()),
+                        )?
                     });
                     if !self.ignore_unrecognized && !config.unknown_config_cop_names().is_empty() {
                         // 失敗する snapshot より前の継承警告だけを残す。成功時の先読みは無出力。

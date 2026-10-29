@@ -1,0 +1,40 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実require/Registry参照（2026-10-29）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+追加plugin対照にはlint_roller 1.1.0をcore requireより前にpinする。
+元4CLI/4APIの全fields/rawは独立採取した原参照から変更しない。追加したのはprimaryのみ。schema:1は元参照に既に存在する。
+primaryは実gem source8のkey/全SHA、Ruby/gem版、元参照SHAを保持する。公開collectorは固定PRIMARYを照会前に検査する。
+ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用する。NOTICEへloader/Registry接続と両fixtureを記載した。
+
+生成元: scripts/conformance/record_runtime_requires.py
+再生成（Windowsのfixed Ruby/gem環境、候補への引数は受け取らない）:
+  python scripts/conformance/record_runtime_requires.py --ruby <ruby-4.0.7> --work <fresh-private-work> --output <fresh-main.json> --boundaries-output <fresh-boundaries.json>
+共用record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentを使う。
+ENV4/RUBYOPT/RUBYLIB/RUBOCOP_OPTS/RUBOCOP_TARGET_RUBY_VERSIONとambient NO_COLORだけを子copyから除去し、
+GEM/PATH/OSと親の環境を保つ。固定case envを最後に重ねる。
+work/二つの出力の既存entry/dangling symlinkを拒否し、正規化した別表記/Windows case差の重複も子起動前に拒否する。
+入力form SHA/固定ID順/schema/型/primary source8を確認し、実CLI/APIと原本保持の全件完了後だけexclusive xで保存する。
+private case directoryにはCLI/APIそれぞれの実exit/stdout/stderr raw、各原本before/after bytes/mtime_ns/modeとout状態をexclusive保存する。
+公開rawのpath投影は測定したcwd自身/配下の境界だけ。似たprefix、Windowsのshort/long表記を一般置換しない。
+原本bytes/mtime/modeの変更、新しいreport生成、未完了、任意の異常終了、bool/int型違いを成功にしない。
+
+元4条件はrelative/exact feature名とempty/registered classを直交させ、同じPerformance/CounterProbe:Enabled:falseを使う。
+CLIは2/2/2/0。relative2はExtracted拒否、exact emptyはUnknown拒否、exact registeredは正常0。
+実loaded_featuresの元feature表記、loaded_plugins.about.name、Registryの実登録だけを利用し、basename/department推測を廃止した。
+Native CLIではexit/stderr rawと原本bytes/mtime/readonlyを比較し、正常JSONはengine=sonicop/spec=1.89.0確認後、metadata以外の全fieldsを比較する。
+Windows pipeのCRLFだけをUnix hostではLFへ投影する。原本bytesは変換しない。
+Native quiet Config APIは3metadata fieldsを4実API観測と照合し、元キー/Enabled値と原本を保持する。
+実RuboCop APIのValidationErrorも原記録に保持するが、既存quiet APIへCLIの廃止/未知fatalを新しく伝播しないため、
+Native APIのerror/成功判定が本家load_fileと全文一致するという主張には含めない。
+
+runtimeは明示拡張がある時だけ起動し、CLI/設定/継承/遅延対象で一つのRuby VMを共有する。
+wrapperのRuby/-I/load pathはprivate context fileで渡す。通常NativeにはRuby/gem依存を追加しない。
+source/platform gemの両方にlib/sonicop/runtime.rbを梱包し、build.rsのrerun/fingerprint両入力へ登録した。
+Ruby cop本体の診断/補正はNative未実装のまま。有効な未実装copにはstderr注記を出す。
+任意global monkeypatchや全plugin API/全版の互換性は主張しない。各operation/finalizationは60秒でtimeoutする。
+QualityとNative CIは固定test gemsを導入しSONICOP_RUNTIME_TESTS=1で欠落をfailにする。
+ローカルoptional gem無しの明示未実行を、互換成功件数に混ぜない。
+
+2026-10-29に公開collectorでfresh再採取を終了0で完了。main4CLI/4APIと別25境界の全fields及び両JSON container bytesが一致した。
+fixture SHA256: 36adbb95fb185b72d57ab18d90070ee61a4f57753fa26558d484628b6c9cd668
+collector SHA256: dcac3f860f1a0088bf27e5c35664bf7a8cdbcef64041b2ba98feb80b09adbb5b
+contract SHA256: 6114caef24ad758cd4ec683b1a78b36f2969dfb765fcac7e3d932bd2dc54ff79

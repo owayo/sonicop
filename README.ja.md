@@ -135,7 +135,15 @@ sonicop --show-cops
 
 ## 設定
 
-検査するファイルごとに `.rubocop.yml` を解決するため、サブディレクトリ設定も cop に適用します。対象ファイルの探索には、指定したディレクトリの設定を配下全体に使います。入れ子の `Include`／`Exclude` を探索に反映するには、そのディレクトリを別に指定してください。この挙動は RuboCop と一致します。ローカル／HTTPS の `inherit_from`、`inherit_gem`、`inherit_mode`、`AllCops/DisabledByDefault`、`Include`／`Exclude`、Cop ごとの `Enabled`、`Exclude`、`Severity`、`Safe`、`SafeAutoCorrect` と設定値に対応します。宣言されたプラグイン由来の Cop は「認識済み・未実装」として受理し、Ruby プラグインコード自体は実行しません。リモート設定のリクエストには 30 秒のネットワークタイムアウトを設け、応答は 1 件あたり 5 MiB に制限します。
+検査するファイルごとに `.rubocop.yml` を解決するため、サブディレクトリ設定も cop に適用します。対象ファイルの探索には、指定したディレクトリの設定を配下全体に使います。入れ子の `Include`／`Exclude` を探索に反映するには、そのディレクトリを別に指定してください。この挙動は RuboCop と一致します。ローカル／HTTPS の `inherit_from`、`inherit_gem`、`inherit_mode`、`AllCops/DisabledByDefault`、`Include`／`Exclude`、Cop ごとの `Enabled`、`Exclude`、`Severity`、`Safe`、`SafeAutoCorrect` と設定値に対応します。リモート設定のリクエストには 30 秒のネットワークタイムアウトを設け、応答は 1 件あたり 5 MiB に制限します。
+
+設定の `require` / `plugins` と CLI の `-r` / `--plugin` は、その実行で共有する Ruby プロセスで拡張の loader を実行します。実際の loaded features、plugin 名、cop registry、既定設定の変更を設定検証へ反映します。宣言だけで cop を登録済みとは扱いません。CLI の `-r` は設定の読込み前に実行し、設定内の相対 require は各設定ファイルを基準に解決します。
+
+この追加経路には Ruby 2.7 以上、RuboCop **1.89.0** と拡張の依存 gem が必要です（`gem install rubocop -v 1.89.0`）。gem wrapper は起動した Ruby と `-I` を含む load path を渡します。単体バイナリは `PATH` 上の `ruby`、又は明示した `SONICOP_RUNTIME_RUBY` を使います。拡張指定のない実行は引き続き Native の経路を使い、Ruby runtime は不要です。
+
+runtime の各操作と終了処理には、それぞれ 60 秒のタイムアウトがあります。
+
+拡張の読込みは、Ruby で定義した cop の検査・補正メソッドを実行する機能とは分かれています。Native 実装のない cop を有効にすると stderr に注記を出します。登録と Native cop の既定設定変更を反映しますが、任意の Ruby monkeypatch やすべての外部 plugin API の互換性を測定したものではありません。
 
 ```yaml
 inherit_from: .rubocop_todo.yml
@@ -151,7 +159,7 @@ Style/StringLiterals:
   EnforcedStyle: single_quotes
 ```
 
-既存コマンドとの互換性を保つため、server/LSP/MCP、plugin 系の引数も受理します。サーバートランスポート、Ruby プラグイン実行、カスタム Cop、実装済み以外の Cop は実行しません。これらはその旨を出力します。`--server` / `--no-server` / `--lsp` / `--mcp` / `--plugin` は stderr に 1 行の注記を出します。
+既存コマンドとの互換性を保つため、server/LSP/MCP 系の引数も受理します。これらのサーバートランスポートは提供せず、`--server` / `--no-server` / `--lsp` / `--mcp` は stderr に 1 行の注記を出します。
 
 `AllCops/UseProjectIndex: true` を指定すると、`Lint/DeprecatedReference`、`Lint/NameTypo`、`Lint/UnusedPrivateMethod` を含むプロジェクト全体の解析が有効になります。プロジェクト内の索引作成には Ruby は不要です。`AllCops/ProjectIndexIncludesGems: true` の場合は、Bundler がロードされた Ruby gem ラッパー経由の実行で、bundle 内の gem も索引に含めます。他ファイルの変更も診断に影響するため、索引を使う実行では結果キャッシュを無効にします。
 

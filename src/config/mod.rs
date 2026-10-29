@@ -3,7 +3,7 @@ mod loader;
 mod namespaces;
 mod obsoletion;
 mod paths;
-mod plugin;
+mod runtime;
 mod store;
 mod unrecognized;
 mod validation;
@@ -22,18 +22,18 @@ use crate::ruby_version::{
     ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
 };
 
-use inheritance::{load_recorded, load_recorded_with_error_origin, merge_config};
+use inheritance::{load_recorded_in_context, merge_config};
 use loader::{
     absolute_config_origin, canonicalize_config_path, find_config_with_origin,
     path_parameter_base_directory,
 };
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
-use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub(crate) use loader::MissingConfigError;
 pub(crate) use namespaces::AmbiguousConfigCopError;
 pub(crate) use obsoletion::ObsoleteConfigError;
 pub(crate) use obsoletion::TargetRubyGetterError;
+pub(crate) use runtime::{RuntimeError, RuntimeSession};
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;
@@ -44,6 +44,8 @@ const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 #[derive(Clone, Debug)]
 pub struct Config {
     raw: Value,
+    runtime: Arc<RuntimeSession>,
+    runtime_snapshot: Arc<runtime::Snapshot>,
     user: Value,
     renamed_overrides: HashMap<String, Mapping>,
     renamed_sources: Vec<(&'static str, &'static str)>,
@@ -112,7 +114,13 @@ impl Config {
 
     /// ConfigStore.apply_options!のload_fileだけを観測し、merge-default後のTargetRuby解決を早めない。
     pub(crate) fn observe_file_for_cli(path: &Path, warnings: &ConfigWarnings) -> Result<()> {
-        match load_recorded(path, &mut HashSet::new()) {
+        match load_recorded_in_context(
+            path,
+            path,
+            &mut HashSet::new(),
+            &warnings.runtime,
+            Some(warnings),
+        ) {
             Ok(loaded) => warnings.emit(&loaded.validation.trace),
             Err(failure) => {
                 warnings.emit(&failure.prefix)?;
@@ -148,7 +156,22 @@ impl Config {
         warnings: Option<&ConfigWarnings>,
         immediate: bool,
     ) -> Result<Self> {
-        let default: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)
+        let runtime = warnings.map_or_else(
+            || Arc::new(RuntimeSession::default()),
+            |warnings| Arc::clone(&warnings.runtime),
+        );
+        Self::load_internal_in_runtime(explicit, cwd, force_default, warnings, immediate, runtime)
+    }
+
+    fn load_internal_in_runtime(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        warnings: Option<&ConfigWarnings>,
+        immediate: bool,
+        runtime: Arc<RuntimeSession>,
+    ) -> Result<Self> {
+        let mut default: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)
             .context("embedded RuboCop default configuration is invalid")?;
         let mut known_cops = cop_names(&default);
         let location = if force_default {
@@ -168,10 +191,12 @@ impl Config {
 
         let mut validation = Arc::new(ValidationBundle::default());
         let (raw, user, unrecognized_cops) = if let Some((_, origin)) = &location {
-            let loaded = match load_recorded_with_error_origin(
+            let loaded = match load_recorded_in_context(
                 origin,
                 explicit.unwrap_or(origin),
                 &mut HashSet::new(),
+                &runtime,
+                warnings,
             ) {
                 Ok(loaded) => loaded,
                 Err(failure) => {
@@ -186,24 +211,25 @@ impl Config {
             }
             validation = Arc::new(loaded.validation);
             let user = loaded.value;
+            let registry = runtime.snapshot();
+            registry.apply_defaults(&mut default)?;
+            known_cops.extend(cop_names(&default));
+            known_cops.extend(registry.names.iter().cloned());
             let configured_cops = cop_names(&user);
-            let plugin_departments = configured_plugin_departments(&user);
-            let plugin_cops = configured_cops
-                .iter()
-                .filter(|name| belongs_to_plugin(name, &plugin_departments))
-                .cloned()
-                .collect::<HashSet<_>>();
             let mut unknown = configured_cops
                 .difference(&known_cops)
-                .filter(|name| !plugin_cops.contains(*name))
                 .cloned()
                 .collect::<Vec<_>>();
-            unknown.extend(unrecognized::names(&user));
+            unknown.extend(unrecognized::names_with_registry(&user, &registry));
             unknown.sort();
             unknown.dedup();
-            known_cops.extend(plugin_cops);
             (merge_config(default, user.clone()), user, unknown)
         } else {
+            // 設定fileが無いrootも本家のdefault getterを既に使った履歴になる。
+            runtime.observe_default_query()?;
+            runtime.snapshot().apply_defaults(&mut default)?;
+            known_cops.extend(cop_names(&default));
+            known_cops.extend(runtime.snapshot().names.iter().cloned());
             (default, Value::Mapping(Mapping::new()), Vec::new())
         };
 
@@ -258,6 +284,8 @@ impl Config {
                 .unwrap_or_default();
 
             Ok(Self {
+                runtime_snapshot: runtime.snapshot(),
+                runtime: Arc::clone(&runtime),
                 raw,
                 user,
                 renamed_overrides,
@@ -307,22 +335,55 @@ impl Config {
         let Some(parent) = loader::parent_exclusion_config(path, origin, self.cwd()) else {
             return Ok(());
         };
-        if let Some(trace) = self
-            .validation
-            .documents
-            .get(&parent)
-            .or_else(|| fallback.and_then(|bundle| bundle.documents.get(&parent)))
+        if !self.runtime.active()
+            && let Some(trace) = self
+                .validation
+                .documents
+                .get(&parent)
+                .or_else(|| fallback.and_then(|bundle| bundle.documents.get(&parent)))
         {
             return warnings.emit(trace);
         }
         // parent Exclude は load_file だけを使う。既定値や対象 Ruby の解決をもう一度行わない。
-        match load_recorded(&parent, &mut HashSet::new()) {
+        match load_recorded_in_context(
+            &parent,
+            &parent,
+            &mut HashSet::new(),
+            &self.runtime,
+            Some(warnings),
+        ) {
             Ok(loaded) => warnings.emit(&loaded.validation.trace),
             Err(failure) => {
                 warnings.emit(&failure.prefix)?;
                 Err(failure.error)
             }
         }
+    }
+
+    pub(super) fn load_in_runtime(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        runtime: Arc<RuntimeSession>,
+    ) -> Result<Self> {
+        Self::load_internal_in_runtime(explicit, cwd, force_default, None, false, runtime)
+    }
+
+    /// Ruby拡張を実行した設定のRegistry snapshot。未起動時にgetterだけでRubyを起動しない。
+    pub fn ruby_registered_cop_names(&self) -> &[String] {
+        &self.runtime_snapshot.names
+    }
+
+    pub fn loaded_features(&self) -> Vec<String> {
+        self.runtime.snapshot().loaded_features.clone()
+    }
+
+    pub fn loaded_plugin_names(&self) -> Vec<String> {
+        self.runtime.snapshot().loaded_plugins.clone()
+    }
+
+    pub(crate) fn ruby_runtime(&self) -> &Arc<RuntimeSession> {
+        &self.runtime
     }
 
     pub fn cwd(&self) -> &Path {

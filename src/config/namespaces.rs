@@ -110,6 +110,7 @@ pub(super) fn normalize(
     keys: &mut OrderedKeys,
     origin: Origin<'_>,
     warnings: &mut Vec<ConfigWarning>,
+    runtime: &super::RuntimeSession,
 ) -> Result<String> {
     let Some(mapping) = value.as_mapping_mut() else {
         return Ok(String::new());
@@ -128,6 +129,50 @@ pub(super) fn normalize(
         }
         Origin::Remote(url) => (url.to_owned(), url.to_owned()),
     };
+    if runtime.active() {
+        let names = keys
+            .names()
+            .into_iter()
+            .filter(|name| {
+                !REGISTRY.obsolete.contains(name)
+                    && !matches!(
+                        name.as_str(),
+                        "require" | "plugins" | "inherit_from" | "inherit_gem"
+                    )
+            })
+            .collect::<Vec<_>>();
+        let response = runtime.namespace(&names, &full)?;
+        warnings.extend(response.warnings.into_iter().map(ConfigWarning::Namespace));
+        for (name, qualified) in names.iter().zip(response.qualified) {
+            if *name != qualified {
+                let entry = mapping.shift_remove(Value::String(name.clone())).unwrap();
+                keys.rename(name, &qualified);
+                mapping.insert(Value::String(qualified), entry);
+            }
+        }
+        if let Some(error) = response.error {
+            return if error.kind() == "ambiguous" {
+                Err(AmbiguousConfigCopError {
+                    message: error.message().to_owned(),
+                    color: false,
+                }
+                .into())
+            } else {
+                Err(error.into())
+            };
+        }
+        return Ok(display);
+    }
+    if keys.names().iter().any(|name| {
+        !REGISTRY.obsolete.contains(name)
+            && !matches!(
+                name.as_str(),
+                "require" | "plugins" | "inherit_from" | "inherit_gem"
+            )
+            && !crate::cop_name::parse_badge(name).1
+    }) {
+        runtime.note_unqualified_query();
+    }
     // native の merge 後の Mapping 順ではなく、継承時に保存した Ruby Hash の順で走査する。
     for name in keys.names() {
         if REGISTRY.obsolete.contains(&name) {

@@ -1,0 +1,34 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実拡張境界25条件（2026-10-29）。schema: 1。
+生成元/再生成/環境/固定source/保持/fresh/exclusive契約はruntime_requires.json.PROVENANCEと同じ。
+元4CLI/4APIとは別scopeであり、25を元4の成功件数へ加算しない。
+runtimeは元4の実source8/版記録を共有する。rawは別の実RuboCopプロセスから採取し、候補は一度も採取に使わない。
+25固定ID/入力form SHA/全raw/exit/比較範囲を公開collectorで再検査する。
+
+- strict21: once/順序、config origin相対、継承fatalが後続requireの副作用を止めること、CLIとconfigのstdin順、
+  STDIN.getsの先読みbufferを含む残り本文、初期namespace色/動的曖昧さ、正常root後のlate bare cache、
+  first-target selector、default getter/未使用setter、実lint-roller pluginとNative LineLength既定値注入、exit/abort/Interruptを含む。
+- version_identity3: cli-version/at-exit-seven/at-exit-error。
+  RuboCopの1.89.0とNative製品版の表記だけを投影する。他のstdout/stderr/exit/原本は比較する。
+- native_cop_boundary1: nested-only。
+  本家の全JSON/exit/stderrを保持し、NativeではRuby cop本体が未実装である1行の注記も検査する。
+  この1行のstderr差をRuboCopとの完全一致には数えない。
+
+正常reportはNative engine/spec identity確認後、metadata以外の全JSON fieldsを比較する。
+Windowsではstderr/非JSON stdoutのCRLFもrawのまま比較する。Unixだけpipe CRLFをLFへ投影する。
+曖昧名/at_exit errorに出る測定cwd prefixは<root>へ限定投影し、内部backtraceを合成しない。
+元inputsのbytes/mtime/mode、out不生成を本家collectorで検査する。Native回帰もbytes/mtime/readonlyとreport不生成を検査する。
+後段設定を先読みせず、最初の対象設定を観測した後でselectorを更新する。
+namespace成功後、ConfigValidatorのkey partitionへ達した段階で実default getterをRPC実行しsnapshotを更新する。
+inactive中に既にdefault/namespaceへ達した履歴は初回Ruby起動時、最初の拡張より前にseedする。
+namespaceで拒否した文書ではdefault getterへ進まない。RPC失敗前のnamespace警告もprefixへ保持する。
+親Nativeの最終表示後にclose(status)を送り、ACK確認後だけat_exitの終了値を採用する。
+応答前exit0/kill codeで親の失敗を成功にせず、Native所有entryだけを非再帰回収する。
+未測定のofficial plugin全版、Ruby cop本体、任意Ruby global状態の再現を成功へ一般化しない。
+
+実測は最終の25固定条件だけ。初回探索でroot設定不足のpending通知やplugin require_path不備が出た旧workは参照へ採用せず、
+同じ意図を固定したfresh入力で採取した完成25行だけを公開した。
+
+2026-10-29に公開collectorでfresh再採取を終了0で完了。main4CLI/4APIと別25境界の全fields及び両JSON container bytesが一致した。
+fixture SHA256: 5b910e3608bf5ab07e2b2ddfc77d43a4fa70e9cdd127b6c3a30e0a6f4325d6bb
+collector SHA256: dcac3f860f1a0088bf27e5c35664bf7a8cdbcef64041b2ba98feb80b09adbb5b
+contract SHA256: 6114caef24ad758cd4ec683b1a78b36f2969dfb765fcac7e3d932bd2dc54ff79

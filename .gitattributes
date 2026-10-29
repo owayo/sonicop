@@ -337,3 +337,6 @@ scripts/conformance/record_late_config_display_filter.py text eol=lf
 scripts/conformance/test_record_late_config_display_filter.py text eol=lf
 tests/fixtures/late_config_display_filter.json text eol=lf
 tests/fixtures/late_config_display_filter.json.PROVENANCE text eol=lf
+
+tests/fixtures/runtime_requires*.json text eol=lf
+tests/fixtures/runtime_requires*.json.PROVENANCE text eol=lf

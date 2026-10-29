@@ -6,7 +6,7 @@ use std::sync::{Arc, LazyLock};
 use anyhow::{Result, bail};
 use serde_yaml_ng::Value;
 
-use super::plugin::{belongs_to_plugin, configured_plugin_departments};
+use super::runtime::Snapshot;
 
 const COMMON: &[&str] = &[
     "Exclude",
@@ -246,27 +246,29 @@ impl OrderedKeys {
         value: &Value,
         display: &str,
         target: &super::obsoletion::TargetRuby,
+        registry: &Snapshot,
     ) -> Prepared {
-        let plugins = configured_plugin_departments(value);
         // 今回移行するwarning旧名以外は、従来の廃止名拒否も維持する。
         let mut legacy_unknown: Vec<_> = super::cop_names(value)
             .into_iter()
             .filter(|name| {
                 !SCHEMA.contains_key(name)
-                    && !belongs_to_plugin(name, &plugins)
                     && super::namespaces::is_obsolete(name)
                     && !super::obsoletion::warning_name(name)
             })
             .collect();
         legacy_unknown.sort();
-        let unknown_names: HashSet<_> = super::unrecognized::names(value).into_iter().collect();
+        let unknown_names: HashSet<_> = super::unrecognized::names_with_registry(value, registry)
+            .into_iter()
+            .collect();
         let ordered_names: Vec<_> = self
             .sections
             .iter()
             .filter(|section| unknown_names.contains(&section.name))
             .map(|section| section.name.clone())
             .collect();
-        let unknown = super::unrecognized::messages(&ordered_names, display);
+        let unknown =
+            super::unrecognized::messages_with_registry(&ordered_names, display, registry);
         let mut warnings = Vec::new();
         let known: Vec<_> = self
             .sections
@@ -294,7 +296,7 @@ impl OrderedKeys {
             }
         }
         Prepared {
-            obsolete: super::obsoletion::Outcome::prepare(value, display, target),
+            obsolete: super::obsoletion::Outcome::prepare(value, display, target, registry),
             warnings,
             unknown,
             legacy_unknown,
@@ -342,7 +344,7 @@ struct Prepared {
 #[derive(Debug, Default)]
 pub(super) struct ValidationTrace {
     inherited: Vec<Arc<Self>>,
-    own: Prepared,
+    own: Arc<Prepared>,
     has_warnings: bool,
     has_unknown: bool,
     has_obsolete: bool,
@@ -356,8 +358,9 @@ impl ValidationTrace {
         namespaces: Vec<ConfigWarning>,
         display: &str,
         target: &super::obsoletion::TargetRuby,
+        registry: &Snapshot,
     ) -> Arc<Self> {
-        let mut own = keys.prepare(value, display, target);
+        let mut own = keys.prepare(value, display, target, registry);
         own.namespaces = namespaces;
         Self::new(inherited, own)
     }
@@ -376,7 +379,15 @@ impl ValidationTrace {
         Self::new(inherited, Prepared::default())
     }
 
+    pub(super) fn with_children(&self, inherited: Vec<Arc<Self>>) -> Arc<Self> {
+        Self::shared(inherited, Arc::clone(&self.own))
+    }
+
     fn new(inherited: Vec<Arc<Self>>, own: Prepared) -> Arc<Self> {
+        Self::shared(inherited, Arc::new(own))
+    }
+
+    fn shared(inherited: Vec<Arc<Self>>, own: Arc<Prepared>) -> Arc<Self> {
         Arc::new(Self {
             has_obsolete: own.obsolete.is_fatal()
                 || inherited.iter().any(|trace| trace.has_obsolete),
@@ -460,6 +471,7 @@ type WarningOutput = dyn Fn(&ConfigWarning) -> Result<()> + Send + Sync;
 /// library の値解決と CLI の警告出力を分ける。parameter の色は出力時の CLI phase が決める。
 #[derive(Clone)]
 pub(crate) struct ConfigWarnings {
+    pub(super) runtime: Arc<super::RuntimeSession>,
     pub(super) ignore_unknown: bool,
     pub(super) parent_exclusion: bool,
     output: Arc<WarningOutput>,
@@ -498,12 +510,18 @@ impl ConfigWarnings {
         output: impl Fn(&ConfigWarning) -> Result<()> + Send + Sync + 'static,
     ) -> Self {
         Self {
+            runtime: Arc::new(super::RuntimeSession::default()),
             ignore_unknown,
             parent_exclusion,
             output: Arc::new(move |warning| {
                 output(warning).map_err(|error| WarningOutputFailure(error).into())
             }),
         }
+    }
+
+    pub(crate) fn with_runtime(mut self, runtime: Arc<super::RuntimeSession>) -> Self {
+        self.runtime = runtime;
+        self
     }
 
     pub(super) fn emit(&self, trace: &ValidationTrace) -> Result<()> {

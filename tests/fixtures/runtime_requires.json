@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "ruby": "4.0.7",
+  "rubocop": "1.89.0",
+  "cases": [
+    {
+      "id": "relative-empty",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "rubocop-performance.rb": "",
+        "config.yml": "require: [\"./rubocop-performance.rb\"]\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nPerformance/CounterProbe:\n  Enabled: false\n"
+      },
+      "ruby_args": [],
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cli": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+        "inputs_unchanged": true
+      },
+      "api": {
+        "loaded_features": [
+          "./rubocop-performance.rb"
+        ],
+        "loaded_plugins": [],
+        "performance_names": [],
+        "error": {
+          "class": "RuboCop::ValidationError",
+          "message": "`Performance/*` has been extracted to the `rubocop-performance` gem.\n(obsolete configuration found in config.yml, please update it)"
+        }
+      }
+    },
+    {
+      "id": "exact-empty",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "rubocop-performance.rb": "",
+        "config.yml": "require: [\"rubocop-performance\"]\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nPerformance/CounterProbe:\n  Enabled: false\n"
+      },
+      "ruby_args": [
+        "-I."
+      ],
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cli": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e7420506572666f726d616e63652f436f756e74657250726f626520666f756e6420696e20636f6e6669672e796d6c0d0a",
+        "inputs_unchanged": true
+      },
+      "api": {
+        "loaded_features": [
+          "rubocop-performance"
+        ],
+        "loaded_plugins": [],
+        "performance_names": [],
+        "error": {
+          "class": "RuboCop::ValidationError",
+          "message": "unrecognized cop or department Performance/CounterProbe found in config.yml"
+        }
+      }
+    },
+    {
+      "id": "relative-registered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "rubocop-performance.rb": "module RuboCop\n  module Cop\n    module Performance\n      class CounterProbe < Base\n      end\n    end\n  end\nend\n",
+        "config.yml": "require: [\"./rubocop-performance.rb\"]\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nPerformance/CounterProbe:\n  Enabled: false\n"
+      },
+      "ruby_args": [],
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cli": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "4572726f723a2060506572666f726d616e63652f2a6020686173206265656e2065787472616374656420746f2074686520607275626f636f702d706572666f726d616e6365602067656d2e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+        "inputs_unchanged": true
+      },
+      "api": {
+        "loaded_features": [
+          "./rubocop-performance.rb"
+        ],
+        "loaded_plugins": [],
+        "performance_names": [
+          "Performance/CounterProbe"
+        ],
+        "error": {
+          "class": "RuboCop::ValidationError",
+          "message": "`Performance/*` has been extracted to the `rubocop-performance` gem.\n(obsolete configuration found in config.yml, please update it)"
+        }
+      }
+    },
+    {
+      "id": "exact-registered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "rubocop-performance.rb": "module RuboCop\n  module Cop\n    module Performance\n      class CounterProbe < Base\n      end\n    end\n  end\nend\n",
+        "config.yml": "require: [\"rubocop-performance\"]\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nPerformance/CounterProbe:\n  Enabled: false\n"
+      },
+      "ruby_args": [
+        "-I."
+      ],
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cli": {
+        "exit": 0,
+        "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "inputs_unchanged": true
+      },
+      "api": {
+        "loaded_features": [
+          "rubocop-performance"
+        ],
+        "loaded_plugins": [],
+        "performance_names": [
+          "Performance/CounterProbe"
+        ],
+        "error": null
+      }
+    }
+  ],
+  "reference_only": true,
+  "native_invocations": 0,
+  "primary": {
+    "ruby": "4.0.7",
+    "versions": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "sources": {
+      "lib/rubocop/feature_loader.rb": "a3fb5f43296d24050c70652769e2b4016fd51e09df232c861ccb24e68e07a5c4",
+      "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+      "lib/rubocop/config_loader_resolver.rb": "f8c40f5e08ad81ba25b76b8296e93ebd766af12730ab4d2bea770710d963c485",
+      "lib/rubocop/config_obsoletion/extracted_cop.rb": "630578e5ca56661230b80fc6c237a1ed9799973a41883a173e59a4ac612845ca",
+      "lib/rubocop/cop/registry.rb": "41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7",
+      "lib/rubocop/options.rb": "adfe551344fc98ea2d13f21852b56ff1cd445a6fdf36cd0bde8cd2a154a4d8c4",
+      "lib/rubocop/plugin.rb": "ae78449e009658bc0cde1974ecf2faecc9f59c8819d93043278571f3c368601b",
+      "lib/rubocop/plugin/loader.rb": "43140f97e80695d72bb1ed98106e6fda37c267eb38f4fac595cd837ebef24649"
+    },
+    "reference_sha256": "d58945a26d614706ebed4df7ce7f7b44738e716cc9f9a66ace389e5206f249bb"
+  }
+}

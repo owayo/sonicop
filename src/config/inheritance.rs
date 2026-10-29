@@ -22,6 +22,7 @@ struct ResolvedDocument {
     value: Value,
     keys: Arc<OrderedKeys>,
     trace: Arc<ValidationTrace>,
+    pending: Arc<ValidationTrace>,
 }
 
 /// visitedはcanonicalの再帰途中だけを表す。読取/parseは共有し、検証履歴はorigin別・辺ごとに再生する。
@@ -31,6 +32,8 @@ struct ResolvedConfigs {
     local: HashMap<PathBuf, ResolvedDocument>,
     parsed: HashMap<PathBuf, Value>,
     remote: HashMap<String, ResolvedDocument>,
+    runtime: Arc<super::RuntimeSession>,
+    warnings: Option<super::ConfigWarnings>,
 }
 
 #[derive(Debug)]
@@ -58,6 +61,7 @@ pub(super) fn load_with_inheritance(path: &Path, visited: &mut HashSet<PathBuf>)
         .map_err(|failure| failure.error)
 }
 
+#[cfg(test)]
 pub(super) fn load_recorded(
     path: &Path,
     visited: &mut HashSet<PathBuf>,
@@ -65,19 +69,40 @@ pub(super) fn load_recorded(
     load_recorded_with_error_origin(path, path, visited)
 }
 
+#[cfg(test)]
 pub(super) fn load_recorded_with_error_origin(
     path: &Path,
     error_origin: &Path,
     visited: &mut HashSet<PathBuf>,
 ) -> Result<RecordedConfig, ReadFailure> {
-    let mut resolved = ResolvedConfigs::default();
+    load_recorded_in_context(
+        path,
+        error_origin,
+        visited,
+        &Arc::new(super::RuntimeSession::default()),
+        None,
+    )
+}
+
+pub(super) fn load_recorded_in_context(
+    path: &Path,
+    error_origin: &Path,
+    visited: &mut HashSet<PathBuf>,
+    runtime: &Arc<super::RuntimeSession>,
+    warnings: Option<&super::ConfigWarnings>,
+) -> Result<RecordedConfig, ReadFailure> {
+    let mut resolved = ResolvedConfigs {
+        runtime: Arc::clone(runtime),
+        warnings: warnings.cloned(),
+        ..Default::default()
+    };
     let mut completed = Vec::new();
     match load_local_with_inheritance(path, error_origin, visited, &mut resolved, &mut completed) {
         Ok(document) => Ok(RecordedConfig {
             value: document.value,
             validation: ValidationBundle {
                 origin: absolute_config_origin(path).ok(),
-                trace: document.trace,
+                trace: document.pending,
                 documents: resolved
                     .local
                     .into_iter()
@@ -92,6 +117,25 @@ pub(super) fn load_recorded_with_error_origin(
     }
 }
 
+fn extensions_before_inheritance(
+    value: &Value,
+    origin: &str,
+    resolved: &ResolvedConfigs,
+    completed: &mut [Arc<ValidationTrace>],
+) -> Result<()> {
+    if !super::RuntimeSession::has_extensions(value) {
+        return Ok(());
+    }
+    if let Some(warnings) = &resolved.warnings {
+        // 最初のrequireが後段にあっても、先行fatalより先にそのRubyを実行しない。
+        let pending = completed.iter_mut().map(std::mem::take).collect::<Vec<_>>();
+        for trace in pending {
+            warnings.emit(&trace)?;
+        }
+    }
+    resolved.runtime.config_extensions(value, origin)
+}
+
 fn load_local_with_inheritance(
     path: &Path,
     error_origin: &Path,
@@ -104,8 +148,10 @@ fn load_local_with_inheritance(
     let error_origin = absolute_config_error_origin(error_origin)?;
     let canonical = canonicalize_config_path(path, &error_origin)
         .with_context(|| format!("configuration file not found: {}", path.display()))?;
-    if let Some(cached) = resolved.local.get(&origin) {
-        completed.push(Arc::clone(&cached.trace));
+    if !resolved.runtime.active()
+        && let Some(cached) = resolved.local.get(&origin)
+    {
+        completed.push(Arc::clone(&cached.pending));
         return Ok(cached.clone());
     }
     if !visited.insert(canonical.clone()) {
@@ -126,6 +172,12 @@ fn load_local_with_inheritance(
     // meta key の削除や native の値 merge が Ruby Hash の順序を動かす前に記録する。
     let mut keys = OrderedKeys::from_value(&current);
     let target = super::obsoletion::TargetRuby::new(&current, Some(canonical.clone()));
+    extensions_before_inheritance(
+        &current,
+        &origin.to_string_lossy().replace('\\', "/"),
+        resolved,
+        completed,
+    )?;
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let inherit_gem = take_mapping_key(&mut current, "inherit_gem");
     let parent = origin.parent().unwrap_or(Path::new("."));
@@ -133,6 +185,7 @@ fn load_local_with_inheritance(
     inherited_paths.extend(parse_inherit_paths(inherit)?);
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
+    let mut inherited_traces = Vec::new();
     for inherited in inherited_paths {
         let document = if inherited.starts_with("http://") || inherited.starts_with("https://") {
             load_remote_with_inheritance(&inherited, &mut HashSet::new(), resolved, completed)?
@@ -160,6 +213,7 @@ fn load_local_with_inheritance(
             )?
         };
         inherited_keys.push(Arc::clone(&document.keys));
+        inherited_traces.push(Arc::clone(&document.trace));
         merged = merge_inherited_config(merged, document.value);
     }
     visited.remove(&canonical);
@@ -173,6 +227,7 @@ fn load_local_with_inheritance(
         &mut keys,
         Origin::File(&origin),
         &mut namespace_warnings,
+        &resolved.runtime,
     ) {
         Ok(display) => display,
         Err(error) => {
@@ -181,20 +236,35 @@ fn load_local_with_inheritance(
             return Err(error);
         }
     };
+    if let Err(error) = resolved.runtime.observe_default_query() {
+        completed.push(ValidationTrace::namespaces(namespace_warnings));
+        return Err(error);
+    }
     // 完了した子を一つの共有履歴へ畳む。失敗時は完了済み部分だけが completed に残る。
+    let pending_children = completed.split_off(checkpoint);
     let trace = ValidationTrace::document(
-        completed.split_off(checkpoint),
+        inherited_traces,
         &keys,
         &value,
         namespace_warnings,
         &display,
         &target,
+        &resolved.runtime.snapshot(),
     );
-    completed.push(Arc::clone(&trace));
+    let mut pending = trace.with_children(pending_children);
+    if resolved.runtime.active()
+        && let Some(warnings) = &resolved.warnings
+    {
+        // Rubyの副作用が後続文書へ進む前にfatalを確定し、同じ警告を再生しない。
+        warnings.emit(&pending)?;
+        pending = Arc::default();
+    }
+    completed.push(Arc::clone(&pending));
     let document = ResolvedDocument {
         value,
         keys: Arc::new(keys),
         trace,
+        pending,
     };
     resolved.local.insert(origin, document.clone());
     Ok(document)
@@ -207,8 +277,10 @@ fn load_remote_with_inheritance(
     completed: &mut Vec<Arc<ValidationTrace>>,
 ) -> Result<ResolvedDocument> {
     let checkpoint = completed.len();
-    if let Some(cached) = resolved.remote.get(url) {
-        completed.push(Arc::clone(&cached.trace));
+    if !resolved.runtime.active()
+        && let Some(cached) = resolved.remote.get(url)
+    {
+        completed.push(Arc::clone(&cached.pending));
         return Ok(cached.clone());
     }
     if !visited.insert(url.to_owned()) {
@@ -218,9 +290,11 @@ fn load_remote_with_inheritance(
     let mut current = parse_yaml_configuration(&contents, url)?;
     let mut keys = OrderedKeys::from_value(&current);
     let target = super::obsoletion::TargetRuby::new(&current, None);
+    extensions_before_inheritance(&current, url, resolved, completed)?;
     let inherit = take_mapping_key(&mut current, "inherit_from");
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
+    let mut inherited_traces = Vec::new();
     for inherited in parse_inherit_paths(inherit)? {
         let inherited_url = if inherited.starts_with("http://") || inherited.starts_with("https://")
         {
@@ -230,6 +304,7 @@ fn load_remote_with_inheritance(
         };
         let document = load_remote_with_inheritance(&inherited_url, visited, resolved, completed)?;
         inherited_keys.push(Arc::clone(&document.keys));
+        inherited_traces.push(Arc::clone(&document.trace));
         merged = merge_inherited_config(merged, document.value);
     }
     visited.remove(url);
@@ -243,6 +318,7 @@ fn load_remote_with_inheritance(
         &mut keys,
         Origin::Remote(url),
         &mut namespace_warnings,
+        &resolved.runtime,
     ) {
         Ok(display) => display,
         Err(error) => {
@@ -251,19 +327,34 @@ fn load_remote_with_inheritance(
             return Err(error);
         }
     };
+    if let Err(error) = resolved.runtime.observe_default_query() {
+        completed.push(ValidationTrace::namespaces(namespace_warnings));
+        return Err(error);
+    }
+    let pending_children = completed.split_off(checkpoint);
     let trace = ValidationTrace::document(
-        completed.split_off(checkpoint),
+        inherited_traces,
         &keys,
         &value,
         namespace_warnings,
         &display,
         &target,
+        &resolved.runtime.snapshot(),
     );
-    completed.push(Arc::clone(&trace));
+    let mut pending = trace.with_children(pending_children);
+    if resolved.runtime.active()
+        && let Some(warnings) = &resolved.warnings
+    {
+        // Rubyの副作用が後続文書へ進む前にfatalを確定し、同じ警告を再生しない。
+        warnings.emit(&pending)?;
+        pending = Arc::default();
+    }
+    completed.push(Arc::clone(&pending));
     let document = ResolvedDocument {
         value,
         keys: Arc::new(keys),
         trace,
+        pending,
     };
     resolved.remote.insert(url.to_owned(), document.clone());
     Ok(document)

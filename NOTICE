@@ -26,6 +26,22 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/runtime.rs, lib/sonicop/runtime.rb
+  src/config/inheritance.rs, src/config/namespaces.rs
+  src/config/unrecognized.rs, src/config/obsoletion.rs, src/cli.rs
+  tests/fixtures/runtime_requires.json
+  tests/fixtures/runtime_requires_boundaries.json
+      Explicit Ruby extension loading follows RuboCop 1.89.0 FeatureLoader,
+      Options, ConfigLoaderResolver, Registry and plugin loaders. Actual
+      loaded features, plugin names, registered cops and default changes
+      replace declaration-based guesses. The original four CLI and four API
+      records are retained, with 25 independent lifecycle/default/selector/IO
+      boundary controls. Native API comparisons retain their documented quiet
+      metadata contract; Ruby-defined cop bodies remain unimplemented.
+      Regenerate both fixtures with scripts/conformance/record_runtime_requires.py.
+      Adjacent .PROVENANCE files describe exact bytes, finite projections,
+      source hashes and runtime requirements. Full licence: licenses/RUBOCOP.txt.
+
   src/config/mod.rs, src/config/obsoletion.rs, src/config/store.rs
   src/config/validation.rs, src/cli.rs (warning renamed-cop configuration)
   tests/fixtures/renamed_config.json

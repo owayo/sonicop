@@ -1,0 +1,783 @@
+{
+  "schema": 1,
+  "reference_only": true,
+  "native_invocations": 0,
+  "runtime": {
+    "ruby": "4.0.7",
+    "versions": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "sources": {
+      "lib/rubocop/feature_loader.rb": "a3fb5f43296d24050c70652769e2b4016fd51e09df232c861ccb24e68e07a5c4",
+      "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+      "lib/rubocop/config_loader_resolver.rb": "f8c40f5e08ad81ba25b76b8296e93ebd766af12730ab4d2bea770710d963c485",
+      "lib/rubocop/config_obsoletion/extracted_cop.rb": "630578e5ca56661230b80fc6c237a1ed9799973a41883a173e59a4ac612845ca",
+      "lib/rubocop/cop/registry.rb": "41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7",
+      "lib/rubocop/options.rb": "adfe551344fc98ea2d13f21852b56ff1cd445a6fdf36cd0bde8cd2a154a4d8c4",
+      "lib/rubocop/plugin.rb": "ae78449e009658bc0cde1974ecf2faecc9f59c8819d93043278571f3c368601b",
+      "lib/rubocop/plugin/loader.rb": "43140f97e80695d72bb1ed98106e6fda37c267eb38f4fac595cd837ebef24649"
+    },
+    "reference_sha256": "d58945a26d614706ebed4df7ce7f7b44738e716cc9f9a66ace389e5206f249bb"
+  },
+  "cases": [
+    {
+      "id": "once-inherit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: [\"./ext.rb\", \"./ext.rb\"]\ninherit_from: parent.yml\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "puts \"LOAD\"\n",
+        "parent.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "4c4f41440d0a7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "order-inherit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\ninherit_from: parent.yml\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "puts \"ROOT\"\n",
+        "parent.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./parent.rb\n",
+        "parent.rb": "puts \"PARENT\"\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "524f4f540d0a504152454e540d0a7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "cli-before-config",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "puts \"CONFIG\"\n",
+        "cli.rb": "puts \"CLI\"\n"
+      },
+      "args": [
+        "-r",
+        "./cli.rb",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "434c490d0a434f4e4649470d0a7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "cli-version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "puts \"CLI\"\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "434c490d0a312e38392e300d0a",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "version_identity"
+    },
+    {
+      "id": "config-stdin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "warn \"STDIN=#{STDIN.read.bytesize}\"\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": "x=1\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "535444494e3d300d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "cli-stdin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "warn \"STDIN=#{STDIN.read.bytesize}\"\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": "x=1\n",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "535444494e3d340d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "dynamic-bare",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nLate:\n  Enabled: false\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module Probe; class Late < Base; end; end; end; end\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204c6174652e0d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "late-bare",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module Probe; class Late < Base; end; end; end; end\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ../ext.rb\nLate:\n  Enabled: false\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a226e65737465642f612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "nested-only",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module Probe; class Late < Base; end; end; end; end\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ../ext.rb\nProbe/Late:\n  Enabled: false\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Probe/Late",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a226e65737465642f612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "native_cop_boundary"
+    },
+    {
+      "id": "nested-except",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module Probe; class Late < Base; end; end; end; end\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ../ext.rb\nProbe/Late:\n  Enabled: false\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--except",
+        "Probe/Late",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a226e65737465642f612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "root-first-only",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module Probe; class Late < Base; end; end; end; end\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ../ext.rb\nProbe/Late:\n  Enabled: false\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Probe/Late",
+        "a.rb",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "556e7265636f676e697a656420636f70206f72206465706172746d656e743a2050726f62652f4c6174652e0d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "exit-seven",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "exit 7\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 7,
+      "stdout_hex": "",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "abort-once",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "abort \"STOP\"\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "",
+      "stderr_hex": "53544f500d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "interrupt",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "raise Interrupt\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 130,
+      "stdout_hex": "",
+      "stderr_hex": "0d0a45786974696e672e2e2e0d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "at-exit-seven",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "at_exit { warn \"AT=#{$!.status}\"; exit 7 }\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 7,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_hex": "41543d300d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "version_identity"
+    },
+    {
+      "id": "at-exit-error",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "at_exit { warn \"AT=#{$!.status}\"; raise \"ATERROR\" }\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--version"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_hex": "41543d300d0a3c726f6f743e2f6578742e72623a313a696e2027626c6f636b20696e203c746f7020287265717569726564293e273a2041544552524f52202852756e74696d654572726f72290d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "version_identity"
+    },
+    {
+      "id": "at-exit-after-error",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nNoSuchCop:\n  Enabled: false\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "at_exit { warn \"AT=#{$!.status}\" }\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74204e6f53756368436f7020666f756e6420696e20636f6e6669672e796d6c0d0a41543d320d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "default-getter",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "abcdefghijklmnopqrstu\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nLayout/LineLength:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "RuboCop::ConfigLoader.default_configuration['Layout/LineLength']['Max'] = 10\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c696e6520697320746f6f206c6f6e672e205b32312f31305d222c22636f705f6e616d65223a224c61796f75742f4c696e654c656e677468222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a32312c226c656e677468223a31312c226c696e65223a312c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "default-setter",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "abcdefghijklmnopqrstu\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nLayout/LineLength:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "path = File.join(Gem.loaded_specs.fetch('rubocop').full_gem_path, 'config/default.yml')\nvalue = YAML.respond_to?(:unsafe_load_file) ? YAML.unsafe_load_file(path) : YAML.load_file(path)\nvalue['Layout/LineLength']['Max'] = 10\nRuboCop::ConfigLoader.default_configuration = RuboCop::Config.new(value, path)\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c696e6520697320746f6f206c6f6e672e205b32312f31305d222c22636f705f6e616d65223a224c61796f75742f4c696e654c656e677468222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a32312c226c656e677468223a31312c226c696e65223a312c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "config-plugin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "abcdefghijklmnopqrstu\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nplugins:\n  - probe-plugin:\n      require_path: ./ext.rb\n      plugin_class_name: ProbePlugin\nLayout/LineLength:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "require 'lint_roller'\nmodule RuboCop; module Cop; module Probe; class PluginCop < Base; end; end; end; end\nclass ProbePlugin < LintRoller::Plugin\n  def about\n    LintRoller::About.new(name: 'probe-plugin', version: '1.0')\n  end\n  def rules(context)\n    LintRoller::Rules.new(type: :object, config_format: :rubocop, value: {'Layout/LineLength'=>{'Max'=>10}, 'Probe/PluginCop'=>{'Enabled'=>false}})\n  end\nend\nspec = Gem::Specification.new { |s| s.name='probe-plugin'; s.version='1.0'; s.metadata['default_lint_roller_plugin']='ProbePlugin' }\nGem.loaded_specs['probe-plugin']=spec\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c696e6520697320746f6f206c6f6e672e205b32312f31305d222c22636f705f6e616d65223a224c61796f75742f4c696e654c656e677468222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a32312c226c656e677468223a31312c226c696e65223a312c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "cli-plugin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "abcdefghijklmnopqrstu\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nLayout/LineLength:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "require 'lint_roller'\nmodule RuboCop; module Cop; module Probe; class PluginCop < Base; end; end; end; end\nclass ProbePlugin < LintRoller::Plugin\n  def about\n    LintRoller::About.new(name: 'probe-plugin', version: '1.0')\n  end\n  def rules(context)\n    LintRoller::Rules.new(type: :object, config_format: :rubocop, value: {'Layout/LineLength'=>{'Max'=>10}, 'Probe/PluginCop'=>{'Enabled'=>false}})\n  end\nend\nspec = Gem::Specification.new { |s| s.name='probe-plugin'; s.version='1.0'; s.metadata['default_lint_roller_plugin']='ProbePlugin' }\nGem.loaded_specs['probe-plugin']=spec\n",
+        "probe-plugin.rb": ""
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--plugin",
+        "probe-plugin",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c696e6520697320746f6f206c6f6e672e205b32312f31305d222c22636f705f6e616d65223a224c61796f75742f4c696e654c656e677468222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a31312c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a32312c226c656e677468223a31312c226c696e65223a312c22636f6c756d6e223a31317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "cli-stdin-partial",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "warn \"PREFIX=#{STDIN.gets.bytesize}\"\n"
+      },
+      "args": [
+        "-r",
+        "./ext.rb",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": "# first\nx=1\n",
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "5052454649583d380d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "inherited-fatal-before-later-require",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\ninherit_from: [bad.yml, later.yml]\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "warn \"LATE\"\n",
+        "bad.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nNoSuchCop:\n  Enabled: false\n",
+        "later.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74204e6f53756368436f7020666f756e6420696e206261642e796d6c0d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "inherited-relative-origin",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\ninherit_from: nested/base.yml\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "warn \"WRONG\"\n",
+        "nested/base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\n",
+        "nested/ext.rb": "warn \"NESTED\"\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin": null,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "4e45535445440d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    },
+    {
+      "id": "dynamic-ambiguous",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nrequire: ./ext.rb\nSharedProbe:\n  Enabled: false\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\n",
+        "ext.rb": "module RuboCop; module Cop; module ProbeA; class SharedProbe < Base; end; end; module ProbeB; class SharedProbe < Base; end; end; end; end\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "stdin": null,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f722053686172656450726f62652e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d65206053686172656450726f626560207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e2050726f6265412f53686172656450726f6265206f722050726f6265422f53686172656450726f62653f1b5b306d0d0a",
+      "ruby_args": [
+        "-I."
+      ],
+      "comparison": "strict"
+    }
+  ]
+}

@@ -17,7 +17,7 @@ config/obsolete_cop_categories.jsonは16 API規則だけの判定表。--rules-o
 Removed/Splitはold_name/short_name/message、Extractedはold_name/department/gemを実APIから保存する。
 値を書き換えずfatal履歴へ記録し、既存typed error/phase/Arc DAGを通してCLI検証時だけ拒否する。
 登録順はRenamed51の後の16規則。全127の他parameter60を混ぜない。
-Extractedのplugin宣言policyは実loaded metadataと異なる#153残差であり、本表でロード互換を主張しない。
+本表16条件は拡張指定を含まない。実loaded metadataの#153対照は別fixtureへ分離する。
 build.rsのrerun-if-changedとbuild_fingerprintの両方へ登録し、表が変われば結果cacheを共有しない。
 
 2026-10-29に公開collectorでfresh逐次再採取を初回終了0で完了した。
@@ -25,3 +25,8 @@ build.rsのrerun-if-changedとbuild_fingerprintの両方へ登録し、表が変
 
 fixture SHA256: 7df3c775ba1dda4874f24bd1c14f0c284da2152fdf7f43d937b70f011c2e6d35
 collector SHA256: eaa3ad1b77a14d933df7521b7618a8573a72a67e8c990f6de025caa72bf36ce6
+
+#153の更新: 宣言名からの推測を廃止し、明示拡張だけ実Rubyのloaded_features /
+loaded_plugins.about.name / Registryを共有runtimeから観測する。通常のRuby無し経路は維持する。
+本fileの元参照と比較範囲は変更せず、拡張の実4CLI/4APIと別25境界は
+runtime_requires.json / runtime_requires_boundaries.jsonへ分離した。

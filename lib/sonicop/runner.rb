@@ -2,6 +2,9 @@
 
 require 'rbconfig'
 require 'rubygems'
+require 'json'
+require 'tmpdir'
+require 'securerandom'
 
 module Sonicop
   module Runner
@@ -14,7 +17,12 @@ module Sonicop
         Reinstall the gem with a Rust toolchain available, or install a platform-specific gem.
       MESSAGE
 
+      # execのENV上限へ大きいbundleのload pathを詰めず、Nativeへ所有権を渡す。
+      handoff = Dir.mktmpdir('sonicop-ruby-handoff-')
+      payload = File.join(handoff, 'load-path.json')
       begin
+        token = SecureRandom.hex(32)
+        File.open(payload, 'wx', 0o600) { |file| file.write(JSON.generate({ format: 'sonicop-ruby-context', version: 1, token: token, paths: $LOAD_PATH })) }
         # `[binary, binary]` = exec 形式の強制。`exec(binary, *arguments)` は arguments が空、
         # つまり「カレントディレクトリを見る素の `sonicop`」という最も普通の呼び出しのとき
         # `exec(String)` = commandline 形式に落ちる。この形式は空白で単語分割し、メタ文字が
@@ -24,6 +32,10 @@ module Sonicop
         # Bundler の照会は索引と gem の取り込みが両方有効なときだけネイティブ側から行う。
         # 一覧を環境へ詰めると、大きい bundle で exec 自体が引数長の上限を超えてしまう。
         bundle_environment = {
+          'SONICOP_RUNTIME_RUBY' => ENV['SONICOP_RUNTIME_RUBY'] || RbConfig.ruby,
+          'SONICOP_RUNTIME_LOAD_PATH' => nil,
+          'SONICOP_RUNTIME_HANDOFF' => payload,
+          'SONICOP_RUNTIME_HANDOFF_TOKEN' => token,
           'SONICOP_BUNDLER_RUBY' => defined?(Bundler) ? RbConfig.ruby : nil,
           'SONICOP_BUNDLER_VERSION' => defined?(Bundler) ? Gem.loaded_specs['bundler']&.version&.to_s : nil
         }
@@ -38,6 +50,13 @@ module Sonicop
           The installed platform gem probably does not match this system.
           Reinstall from source with: gem install sonicop --platform ruby
         MESSAGE
+      ensure
+        # 成功exec後はNativeが片付け、exec失敗時だけwrapperが生成物を回収する。
+        if !File.symlink?(handoff) && !File.symlink?(payload) && File.file?(payload)
+          value = JSON.parse(File.binread(payload)) rescue {}
+          File.unlink(payload) if value['token'] == token
+        end
+        Dir.rmdir(handoff) if File.directory?(handoff) && Dir.empty?(handoff)
       end
     end
 

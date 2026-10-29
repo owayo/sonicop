@@ -24,7 +24,7 @@ ignoreとparameter/namespace順、初期force色/CLI color/no-color、out/versio
 DidYouMeanは既存shared距離と候補処理を共用する。sortは候補原casingとnormalized inputを比較し、tieもreverseする。
 unknownのheadingだけ黄、bodyはplain、fatalはError:込みの赤またはplain。色は143と同じ実CLI phaseに従う。
 静かなConfig APIのmetadataへbare未知名を残すが、known_cop_namesへは入れない。
-require/pluginsの既存許可policyは#153まで維持し、製品にRuby実行を追加していない。
+この42入力の比較はrequire/pluginsを含まない。#153の実Rubyロード対照は別fixtureへ分離する。
 
 元42行のstdout/stderr/report/API rawは変更せず、schema/coverageとraw stdout/stderr SHA256だけを追加した。
 新work/raw.jsonへ生bytesを保持する。元42は相対originのみで、再採取でも全fields一致することを確認する。
@@ -33,3 +33,8 @@ namespaceのunknown_bare元rawは変更せず、#144の追補として既存test
 
 fixture SHA256: e16990b401a9265442ff1a281c648fd98d72707903ae43bdede2b98362f681ed
 collector SHA256: deced47bcaa3dd32637113f02806c42cd91d0e4e14f1e05e42eab606d371c16f
+
+#153の更新: 宣言名からの推測を廃止し、明示拡張だけ実Rubyのloaded_features /
+loaded_plugins.about.name / Registryを共有runtimeから観測する。通常のRuby無し経路は維持する。
+本fileの元参照と比較範囲は変更せず、拡張の実4CLI/4APIと別25境界は
+runtime_requires.json / runtime_requires_boundaries.jsonへ分離した。
