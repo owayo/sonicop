@@ -281,3 +281,12 @@ scripts/conformance/test_record_empty_config_arguments.py text eol=lf
 tests/empty_config_arguments.rs text eol=lf
 tests/fixtures/empty_config_arguments.json text eol=lf
 tests/fixtures/empty_config_arguments.json.PROVENANCE text eol=lf
+
+# 廃止copカテゴリの実API表とCLI rawをLFのcontainerで保持する。
+config/obsolete_cop_categories.json text eol=lf
+config/obsolete_cop_categories.json.PROVENANCE text eol=lf
+scripts/conformance/record_obsolete_cop_categories.py text eol=lf
+scripts/conformance/test_record_obsolete_cop_categories.py text eol=lf
+tests/obsolete_cop_categories.rs text eol=lf
+tests/fixtures/obsolete_cop_categories.json text eol=lf
+tests/fixtures/obsolete_cop_categories.json.PROVENANCE text eol=lf

@@ -1,0 +1,39 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtのConfigObsoletion実記録（2026-10-28原参照）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_obsolete_cop_categories.py
+再生成:
+  python scripts/conformance/record_obsolete_cop_categories.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json> --rules-output <new-rules.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentだけを共用し、候補を呼ばない。
+注入ENV4だけを子copyから除去し、GEM/PATH/OS環境と親を保つ。明示envはcaseごとに同じ値を重ねる。
+work/output/rules-outputの既存entry/danglingを先に拒否し、親解決/dotdot/Windows case差の同一保存先も拒否する。
+全件完了後にexclusive xで新規保存する。空・未知・重複selection、欠落・重複・順序差、入力差を拒む。
+元source SHA256はfixture.primary.sources、実runtime/gem版・全127 rulesのclass件数も同primaryへ保存する。
+class件数とindexはint、warningはFalseそのものを要求し、bool/intの等値による偽成功を避ける。
+正常/late reportは実Ruby identity確認後にmetadataを除き、全offenses・path・int完了件数・明示phaseを検査する。
+原本と既存outのbytes/mtimeを保持する。新report作成や原本変更、任意の異常終了を成功記録にしない。
+ライセンス: 既存licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+元40CLIの全既存fields/rawは変更せず、schemaとcoverageだけを追加した。
+- strict39: 初期fatal37+正常2。exit/stdout/stderr全native bytes・out状態・全原本bytes/mtimeを比較する。
+  正常2はnative engine/spec identity確認後、metadata以外の全JSON fieldsを照合する。
+- deferred_152のlate1: nested-discoveryの元JSON（files空/target1/inspected0）をそのまま保持する。
+  現在の空stdoutを期待へ書き換えず、candidateをstrict成功へ数えない。#152後に同rawから昇格できる。
+Windowsのpipe CRLFだけをUnix hostのLFへ合わせ、原本bytesには適用しない。
+最初16は全API16種類のfull/Enabled:falseを実CLIで記録した。他24はbare/null/ignore/wildcard/department、
+単複・category順・namespace先・parameter抑止・色・継承・out sentinel・正常/late対照を含む。
+API16（Removed13/Split1/Extracted2）は全127内index51..66の順序/名前/message/metadataを照合する。
+full/bare keyの存在を見て、値の真偽やnullで免除しない。Renamedの後に本家category/rule順で集約する。
+Removed/Splitのreason/alternativesの特殊文面はAPI messageを保存し推測しない。
+Extractedはdepartment自身かdepartment/ prefixのkey数で単複を決める。
+
+quiet Config APIは拒否や出力を追加せず、元のkey/値/unknown metadataとknown cop一覧を保つ。
+今回の40入力はplugins/require無し。実APIのloaded_plugins.about.name/loaded_featuresと、
+nativeのconfigured_plugin_departmentsによる宣言policyは同値ではない。後者の既存policyは維持する。
+この通常残差は#153へ残し、pluginロード互換やRegistry登録の成功へ数えず、製品へRuby実行も追加しない。
+warning rename2の移行は#151、parameter60は#149へ残す。一般unknownやlate lifecycleを本Issueで変更しない。
+
+2026-10-29に公開collectorでfresh逐次再採取を初回終了0で完了した。
+40CLI（39strict+late1の原参照）/primary全fieldsと16表が一致し、両JSONのcontainer bytesも完全一致した。
+
+fixture SHA256: 5e5ec2b9359d28b07ec0b4c3c250c32ab32bbc0cd36cedb7e4a39779c8b9a726
+collector SHA256: eaa3ad1b77a14d933df7521b7618a8573a72a67e8c990f6de025caa72bf36ce6

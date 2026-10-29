@@ -397,7 +397,7 @@ impl ValidationTrace {
         while let Some(visit) = stack.pop() {
             match visit {
                 Visit::Tree(trace) => {
-                    // 警告もfatalもない共有部分木だけを省略し、ignoreでrename拒否を失わない。
+                    // 警告もfatalもない共有部分木だけを省略し、ignoreで廃止copの拒否を失わない。
                     if !trace.has_obsolete
                         && !trace.has_warnings
                         && (ignore_unknown || !trace.has_unknown)
@@ -411,7 +411,7 @@ impl ValidationTrace {
                     for warning in &prepared.namespaces {
                         emit(warning)?;
                     }
-                    // fatal renameはignoreの対象ではなく、同じ文書のunknown/parameterより先に拒否する。
+                    // 廃止copのfatalはignoreの対象ではなく、同じ文書のunknown/parameterより先に拒否する。
                     if !prepared.obsolete.is_empty() {
                         return Err(super::ObsoleteConfigError::new(&prepared.obsolete).into());
                     }

@@ -26,6 +26,17 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/obsoletion.rs (removed, split and extracted cop categories)
+  config/obsolete_cop_categories.json
+  tests/fixtures/obsolete_cop_categories.json
+      Sixteen ordered API rules ported from RuboCop 1.89.0 ConfigObsoletion:
+      13 removed, one split and two extracted rules. Forty actual CLI records
+      retain 39 strict comparisons separately from one deferred late error JSON.
+      Loaded plugin compatibility remains outside this finite comparison.
+      Regenerate with scripts/conformance/record_obsolete_cop_categories.py;
+      source hashes and scope are recorded in the adjacent .PROVENANCE files.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/empty_config_arguments.json
       Twenty actual RuboCop 1.89.0 CLI and Options.parse records for empty,
       omitted and missing config arguments, including three last-value controls.
