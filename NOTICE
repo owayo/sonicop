@@ -26,6 +26,18 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/unrecognized.rs, src/config/validation.rs
+  tests/fixtures/unknown_config_cops.json
+  tests/fixtures/unknown_config_trace.json
+      Unknown cop and department classification and validation messages ported
+      from RuboCop 1.89.0 ConfigValidator, with actual CLI records for 40 strict
+      conditions, two separately deferred obsolete-name conditions, and four
+      inheritance warning-trace conditions. The adjacent .PROVENANCE files
+      preserve raw records, comparison scope and remaining differences.
+      Regenerate with scripts/conformance/record_unknown_config_cops.py;
+      use --trace for the separate four-condition fixture.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   tests/fixtures/whitequark_eof_ranges.json
       Eighteen exact per-file RuboCop 1.89.0 records for EOF reporting,
       ASCII/UTF8 prefixes, LF/CRLF and valid-hex controls. Three existing

@@ -241,13 +241,26 @@ impl OrderedKeys {
         }
     }
 
-    fn prepare(&self, value: &Value) -> Prepared {
+    fn prepare(&self, value: &Value, display: &str) -> Prepared {
         let plugins = configured_plugin_departments(value);
-        let mut unknown: Vec<_> = super::cop_names(value)
+        // 廃止名の旧metadata/拒否は#145まで保ち、新しいunknown分類とは分ける。
+        let mut legacy_unknown: Vec<_> = super::cop_names(value)
             .into_iter()
-            .filter(|name| !SCHEMA.contains_key(name) && !belongs_to_plugin(name, &plugins))
+            .filter(|name| {
+                !SCHEMA.contains_key(name)
+                    && !belongs_to_plugin(name, &plugins)
+                    && super::namespaces::is_obsolete(name)
+            })
             .collect();
-        unknown.sort();
+        legacy_unknown.sort();
+        let unknown_names: HashSet<_> = super::unrecognized::names(value).into_iter().collect();
+        let ordered_names: Vec<_> = self
+            .sections
+            .iter()
+            .filter(|section| unknown_names.contains(&section.name))
+            .map(|section| section.name.clone())
+            .collect();
+        let unknown = super::unrecognized::messages(&ordered_names, display);
         let mut warnings = Vec::new();
         let known: Vec<_> = self
             .sections
@@ -277,6 +290,7 @@ impl OrderedKeys {
         Prepared {
             warnings,
             unknown,
+            legacy_unknown,
             namespaces: Vec::new(),
         }
     }
@@ -304,6 +318,7 @@ fn parameter_name(value: &Value) -> String {
 pub(crate) enum ConfigWarning {
     Namespace(String),
     Parameter(String),
+    Unrecognized(Vec<String>),
 }
 
 #[derive(Debug, Default)]
@@ -311,6 +326,7 @@ struct Prepared {
     namespaces: Vec<ConfigWarning>,
     warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
+    legacy_unknown: Vec<String>,
 }
 
 /// memo の辺をたどるたび再生する。平坦な履歴を複製すると diamond で保存量が膨らむ。
@@ -328,8 +344,9 @@ impl ValidationTrace {
         keys: &OrderedKeys,
         value: &Value,
         namespaces: Vec<ConfigWarning>,
+        display: &str,
     ) -> Arc<Self> {
-        let mut own = keys.prepare(value);
+        let mut own = keys.prepare(value, display);
         own.namespaces = namespaces;
         Self::new(inherited, own)
     }
@@ -350,10 +367,13 @@ impl ValidationTrace {
 
     fn new(inherited: Vec<Arc<Self>>, own: Prepared) -> Arc<Self> {
         Arc::new(Self {
-            has_warnings: !own.namespaces.is_empty()
+            has_warnings: !own.unknown.is_empty()
+                || !own.namespaces.is_empty()
                 || !own.warnings.is_empty()
                 || inherited.iter().any(|trace| trace.has_warnings),
-            has_unknown: !own.unknown.is_empty() || inherited.iter().any(|trace| trace.has_unknown),
+            has_unknown: !own.unknown.is_empty()
+                || !own.legacy_unknown.is_empty()
+                || inherited.iter().any(|trace| trace.has_unknown),
             inherited,
             own,
         })
@@ -383,8 +403,18 @@ impl ValidationTrace {
                     for warning in &prepared.namespaces {
                         emit(warning)?;
                     }
-                    if !ignore_unknown && !prepared.unknown.is_empty() {
-                        bail!("unrecognized cop(s): {}", prepared.unknown.join(", "));
+                    if !ignore_unknown && !prepared.legacy_unknown.is_empty() {
+                        bail!(
+                            "unrecognized cop(s): {}",
+                            prepared.legacy_unknown.join(", ")
+                        );
+                    }
+                    if !prepared.unknown.is_empty() {
+                        if ignore_unknown {
+                            emit(&ConfigWarning::Unrecognized(prepared.unknown.clone()))?;
+                        } else {
+                            return Err(super::UnknownConfigError::new(&prepared.unknown).into());
+                        }
                     }
                     for warning in &prepared.warnings {
                         emit(warning)?;

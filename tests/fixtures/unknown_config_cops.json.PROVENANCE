@@ -1,0 +1,37 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの未知cop/department実CLI記録。
+原参照: 2026-10-28。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_unknown_config_cops.py
+再生成:
+  python scripts/conformance/record_unknown_config_cops.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json>
+
+既存のrecord_config_cop_namespacesからLOADER/VERSIONS/reference_environmentだけを共用する。
+Ruby注入ENV4だけを子copyから落とし、GEM/PATH/OS環境は保持する。候補は起動しない。
+元42入力・順序/ID・APIのRuby/gem版・609 registry/9 department/67 legacy/610 default keysを検査する。
+空・未知・重複した選択、欠落したmatrix、偽metadata、未完了/誤path/誤件数、原本bytes/mtime変更を拒否する。
+成功JSONは全offense fieldsを保持する。拒否でstdoutやreport.jsonが現れた場合も採取を拒む。
+work/outputの既存entryとdangling symlinkは上書きせず、全件完了後にx modeで新規保存する。
+
+42行の現在の比較範囲はcoverageを正本とする:
+- strict40: exit、stderr全native bytes、拒否stdout空/成功JSON全fields（native metadata identityを除く）、
+  native engineとrubocop版のidentity、out状態、全入力bytes/mtimeを照合する。
+- deferred_145のlegacy-disabled/legacy-ignore 2行: Layout/TrailingBlankLinesの本家rename拒否rawをそのまま保持する。
+  #145は未実装であり、2行のcandidate出力を新期待へせず、成功40へ混ぜない。intentional divergenceでもない。
+  原packetのcomparison= strictという履歴metadataは残すが、#144の実行範囲を示す値ではない。
+  #145の対応時には同じ2行を元rawの全文比較へ昇格する。旧legacy metadataとgeneric拒否の経路も現時点では保持する。
+
+bare/full/小文字/Unicodeと値5形態、複数unknownのRuby key順、DidYouMean候補の実順、既知名/部門/meta、
+ignoreとparameter/namespace順、初期force色/CLI color/no-color、out/version/verbose/force-default、継承を含む。
+分類はAllCops/default cop/department/legacy/metaを別に扱い、一般cop_namesへ全top keyを混ぜない。
+DidYouMeanは既存shared距離と候補処理を共用する。sortは候補原casingとnormalized inputを比較し、tieもreverseする。
+unknownのheadingだけ黄、bodyはplain、fatalはError:込みの赤またはplain。色は143と同じ実CLI phaseに従う。
+静かなConfig APIのmetadataへbare未知名を残すが、known_cop_namesへは入れない。
+require/pluginsの既存許可policyは#153まで維持し、製品にRuby実行を追加していない。
+
+元42行のstdout/stderr/report/API rawは変更せず、schema/coverageとraw stdout/stderr SHA256だけを追加した。
+新work/raw.jsonへ生bytesを保持する。元42は相対originのみで、再採取でも全fields一致することを確認する。
+namespaceのunknown_bare元rawは変更せず、#144の追補として既存testからstdout/stderr/exit/原本の厳密比較へ接続する。
+継承DAGのignore再生と後続Missing前の警告prefixは、別のunknown_config_trace.json 4条件へ保存する。
+
+fixture SHA256: 7de2b542fa7439e7c68b7e8d75d9409b55eb5d3f25fb5a0a15cbb7843a21da0b
+collector SHA256: 4205fd784cc05a822db986f99e313225242b8262546aa675d9b92abdc7fdcdf4

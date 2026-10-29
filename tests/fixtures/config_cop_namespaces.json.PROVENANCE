@@ -35,3 +35,6 @@ remote originの全byte一致をこの42条件の成功数へ加えない。inte
 
 fixture SHA256: 86657412acf2995544c34ea682fbc1118ea356d8ba23ab41db45bf8ec2d0f044
 collector SHA256: 4676b3f119d8300735e54b700f704903ad5b7e035e2229aed322c22bf3e1ceeb
+
+#144追補: 元unknown_bare行のcoverage/raw/exitは変更せず、既存CLI回帰から同じ本家stderr/stdout/exit/原本の
+厳密比較へ接続した。基点で残差だったという記録を残し、今回のunknown strict40とは別の回帰接続として扱う。

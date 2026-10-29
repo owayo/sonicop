@@ -252,3 +252,13 @@ tests/fixtures/missing_config_errors.json text eol=lf
 tests/fixtures/missing_config_errors.json.PROVENANCE text eol=lf
 tests/fixtures/missing_config_early_phases.json text eol=lf
 tests/fixtures/missing_config_early_phases.json.PROVENANCE text eol=lf
+
+# 未知設定名の元rawとTrace追補をLFのcontainerで保持する。
+src/config/unrecognized.rs text eol=lf
+scripts/conformance/record_unknown_config_cops.py text eol=lf
+scripts/conformance/test_record_unknown_config_cops.py text eol=lf
+tests/unknown_config_cops.rs text eol=lf
+tests/fixtures/unknown_config_cops.json text eol=lf
+tests/fixtures/unknown_config_cops.json.PROVENANCE text eol=lf
+tests/fixtures/unknown_config_trace.json text eol=lf
+tests/fixtures/unknown_config_trace.json.PROVENANCE text eol=lf

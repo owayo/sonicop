@@ -4,6 +4,7 @@ mod namespaces;
 mod paths;
 mod plugin;
 mod store;
+mod unrecognized;
 mod validation;
 mod yaml_booleans;
 
@@ -30,6 +31,7 @@ use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub(crate) use loader::MissingConfigError;
 pub use store::ConfigStore;
+pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;
 pub(crate) use validation::{ConfigWarning, ConfigWarnings};
 
@@ -188,7 +190,9 @@ impl Config {
                 .filter(|name| !plugin_cops.contains(*name))
                 .cloned()
                 .collect::<Vec<_>>();
+            unknown.extend(unrecognized::names(&user));
             unknown.sort();
+            unknown.dedup();
             known_cops.extend(plugin_cops);
             (merge_config(default, user.clone()), user, unknown)
         } else {

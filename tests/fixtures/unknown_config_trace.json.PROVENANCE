@@ -1,0 +1,20 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtのunknown警告Trace追補（2026-10-28原参照）。schema: 1。
+生成元: scripts/conformance/record_unknown_config_cops.py --trace
+再生成:
+  python scripts/conformance/record_unknown_config_cops.py --trace --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-trace.json>
+元42条件から分離した4条件で、入力・原参照の由来を保持する。候補を起動しない。
+通常42と同じ固定LOADER/ENV4・fresh work/output・exclusive保存・完了/metadata/path/count・原本bytes/mtime検査を使う。
+
+- diamond-ignoreのplain/force1: common,left,common,right,configの順に5回警告を出す。
+  元42にはないArc DAGの共有辺ごとの再生を検査し、quiet subtreeの省略をunknown警告へ誤適用しない。
+- warning-before-missingのplain/force1: 完了したcommonのunknown警告を、後続のprefix無しMissingErrorより先に出す。
+  見出しの黄/body plain/Missing赤/reset後のnative改行も全stderr bytesで比較する。
+全4件をexit、stdout空またはmetadata以外の全JSON fields、native identity、out未作成、原本bytes/mtimeで照合する。
+
+stderr_template_hexはMissing本文の入力root位置だけを<ROOT>へ投影する。raw stderr SHA256はその実workpathに依存する。
+Windowsのshort cwdをcanonicalへ戻さず、Unixの子cwdだけをphysical pathへ合わせる。
+Windows実pipeのCRLFだけをUnix hostのLFへ合わせ、任意の警告本文や診断fieldsを消さない。
+実rawは各work/raw.jsonへ保持する。新collectorでも元rawへ投影したfieldsを独立に再採取・比較する。
+
+fixture SHA256: d2f077b095d2308d13b4739e1d57f5f242eddf89d12293baf680db5950444161
+collector SHA256: 4205fd784cc05a822db986f99e313225242b8262546aa675d9b92abdc7fdcdf4
