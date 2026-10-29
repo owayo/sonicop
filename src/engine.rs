@@ -1274,6 +1274,19 @@ pub(crate) fn inspect_files_with_store_cached(
     parallel: bool,
     cache: Option<&ResultCache>,
 ) -> Result<Vec<FileReport>> {
+    inspect_file_results_with_store_cached(paths, configs, selection, parallel, cache)?
+        .into_iter()
+        .collect()
+}
+
+// 並列の完了順ではなく入力順の成功/失敗を保持し、CLIが成功prefixを終了reportへ渡す。
+pub(crate) fn inspect_file_results_with_store_cached(
+    paths: &[PathBuf],
+    configs: &ConfigStore,
+    selection: &Selection,
+    parallel: bool,
+    cache: Option<&ResultCache>,
+) -> Result<Vec<Result<FileReport>>> {
     let indexed = selection.with_project_index(paths, configs)?;
     let selection = &indexed;
     // 他ファイルの追加・削除も診断を変える。索引の永続化を導入するまでは古い結果を使わない。
@@ -1344,7 +1357,7 @@ pub(crate) fn inspect_files_with_store_cached(
     } else {
         paths.iter().map(inspect).collect()
     };
-    inspected.into_iter().collect()
+    Ok(inspected)
 }
 
 /// What reading a file produced.
@@ -1666,7 +1679,13 @@ fn discover_target_paths(
             bail!("No such file or directory: {}", root.display());
         }
         if root.is_file() {
-            let config = configs.for_path(&root)?;
+            // TargetFinderは通常fileをfor_pwdで選び、ignore_parent時だけ個別設定を訪問する。
+            let per_file = if force_exclusion && configs.ignores_parent_exclusion() {
+                Some(configs.for_path_observed(&root)?)
+            } else {
+                None
+            };
+            let config = per_file.as_deref().unwrap_or(configs.root());
             let recognized = config.path_included(&root) || has_ruby_shebang(&root);
             if (!force_exclusion || !config.path_excluded(&root))
                 && (!only_recognized_file_types || recognized)

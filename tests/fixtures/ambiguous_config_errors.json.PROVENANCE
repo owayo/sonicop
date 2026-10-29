@@ -11,12 +11,10 @@ runtimeとprimary source SHA3は実gemから再取得して照合し、fixture.r
 原参照container SHA256: 9716017fffa2cb507b6ae056cf9813f4abd14c2b0a7b05b2f61af2bfaf68d6b4
 
 内訳はambiguity21、正常canonical1、cache引数優先1。空/欠落/重複/順序差/変更入力を受理しない。
-- strict20: 初期エラー18＋正常1＋cache対照1。exit/stdout/stderr全bytes、正常のmetadata以外の全JSON fields、原本/outを比較する。
-  正常JSONはnative engine/spec identityと対象a.rb、offenses空、target1/inspected1/offense0を検査する。
-- deferred_152の3: nested-color/nested-no-color/nested-inherit-colorだけを行ごとに指定する。
-  本家の完全なstdout JSON（files空/target1/inspected0/offense0）を元rawのまま保存する。
-  今回はstderr全byteとexit2、原本を比較し、formatter finishのstdout差#152はstrict成功へ混ぜない。
-  nativeの空stdoutを期待へ書き換えない。#152完了後、同じ3原参照を全JSON strictへ昇格できる。
+- strict23: 初期エラー18＋後段3＋正常1＋cache対照1。exit/stdout/stderr全bytesと原本/outを比較する。
+  正常と後段のJSONはnative engine/spec identity確認後、metadata以外の全fieldsを照合する。
+  #152でnested-color/nested-no-color/nested-inherit-colorのcoverageだけstrictへ昇格した。
+  元のfiles空/target1/inspected0/offense0の完全なstdout JSONとstderr rawは変更しない。
 int/boolを区別し、summary・全offense・正の完了集合と未完了0件を別に検証する。
 全入力/config/Gemfile/既存outのbytesとmtimeを比較し、想定外のreport生成も拒む。
 
@@ -41,7 +39,7 @@ Windows origin24の2拒否も最終CRLFまで照合し、long/short/hybridを区
 ライセンス: MIT、Copyright (c) 2012-26 Bozhidar Batsov。全文: licenses/RUBOCOP.txt。NOTICEへ実装/data/生成元を記載する。
 
 2026-10-29に公開collectorのfresh再採取を初回終了0で完了し、元23全既存fields/rawと追加済みfixtureの全fieldsが一致した。
-fixtureのcontainer bytesもfresh出力と完全一致した。20strictとdeferred_152の3件は上の比較範囲で区別する。
+fixtureのcontainer bytesもfresh出力と完全一致した。この採取時は20strictと後段3の比較範囲を区別していた。#152のcoverage昇格でも元rawは不変。
 
-fixture SHA256: d49f76a0b96fa5a23933ea3d5c4a7b9ec5c1d412e57d0948877e45d830f64a78
-collector SHA256: 290ad343e6d0bf735f49b0a0f05ba9160ea3b4e82a0825bc2e3a3ee5e16cba56
+fixture SHA256: c48fda664d468b8056b136c777e83869e46327ea3125c8335312b64d3c77ab40
+collector SHA256: d16e9b640a33b5e15b44f27f87330a5364f445b979ffd96ff92181144d3fb269

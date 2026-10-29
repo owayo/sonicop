@@ -386,7 +386,7 @@
         "nested/a.rb": "783d310a"
       },
       "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
-      "coverage": "deferred_152"
+      "coverage": "strict"
     },
     {
       "id": "nested-no-color",
@@ -421,7 +421,7 @@
         "nested/a.rb": "783d310a"
       },
       "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
-      "coverage": "deferred_152"
+      "coverage": "strict"
     },
     {
       "id": "nested-inherit-color",
@@ -458,7 +458,7 @@
         "nested/a.rb": "783d310a"
       },
       "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/parent.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
-      "coverage": "deferred_152"
+      "coverage": "strict"
     },
     {
       "id": "nested-cwd",

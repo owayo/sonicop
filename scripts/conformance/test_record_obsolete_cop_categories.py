@@ -204,14 +204,14 @@ class ObsoleteCopCategoriesTest(unittest.TestCase):
                     recorder.record("ruby", case)
 
     def test_fixed_selection_coverage_and_original_inputs_are_preserved(self):
-        """元40のrawを保持し、39 strictとlate1を空集合や重複で置き換えない。"""
+        """元40のrawを保持し、40 strictを空集合や重複で置き換えない。"""
         data = fixture()
         primary = data["primary"]
         self.assertEqual(data["schema"], 1)
         self.assertEqual(recorder._fixture(primary, data["cases"]), data)
-        self.assertEqual(sum(row["coverage"] == "strict" for row in data["cases"]), 39)
+        self.assertEqual(sum(row["coverage"] == "strict" for row in data["cases"]), 40)
         self.assertEqual(
-            [row["id"] for row in data["cases"] if row["coverage"] == "deferred_152"],
+            [row["id"] for row in data["cases"] if row["phase"] == "late_rejection"],
             ["nested-discovery"],
         )
         for form, row in zip(recorder._selected_inputs(primary), data["cases"], strict=True):

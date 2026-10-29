@@ -14,10 +14,9 @@ class件数とindexはint、warningはFalseそのものを要求し、bool/int�
 ライセンス: 既存licenses/RUBOCOP.txtのMIT licenceを再利用する。
 
 元40CLIの全既存fields/rawは変更せず、schemaとcoverageだけを追加した。
-- strict39: 初期fatal37+正常2。exit/stdout/stderr全native bytes・out状態・全原本bytes/mtimeを比較する。
-  正常2はnative engine/spec identity確認後、metadata以外の全JSON fieldsを照合する。
-- deferred_152のlate1: nested-discoveryの元JSON（files空/target1/inspected0）をそのまま保持する。
-  現在の空stdoutを期待へ書き換えず、candidateをstrict成功へ数えない。#152後に同rawから昇格できる。
+- strict40: 初期fatal37+正常2+late1。exit/stdout/stderr全native bytes・out状態・全原本bytes/mtimeを比較する。
+  正常2とlate1はnative engine/spec identity確認後、metadata以外の全JSON fieldsを照合する。
+  #152でnested-discoveryの元JSON（files空/target1/inspected0）を変えず、coverageだけstrictへ昇格した。
 Windowsのpipe CRLFだけをUnix hostのLFへ合わせ、原本bytesには適用しない。
 最初16は全API16種類のfull/Enabled:falseを実CLIで記録した。他24はbare/null/ignore/wildcard/department、
 単複・category順・namespace先・parameter抑止・色・継承・out sentinel・正常/late対照を含む。
@@ -32,10 +31,10 @@ nativeのconfigured_plugin_departmentsによる宣言policyは同値ではない
 この通常残差は#153へ残し、pluginロード互換やRegistry登録の成功へ数えず、製品へRuby実行も追加しない。
 warning rename2の移行は#151のrenamed_config.jsonで別に実測する。
 parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離する。
-本fixtureの一般unknownやlate lifecycleの比較範囲は変更しない。
+一般unknownやplugin実行の比較範囲は変更しない。
 
 2026-10-29に公開collectorでfresh逐次再採取を初回終了0で完了した。
 40CLI（39strict+late1の原参照）/primary全fieldsと16表が一致し、両JSONのcontainer bytesも完全一致した。
 
-fixture SHA256: 5e5ec2b9359d28b07ec0b4c3c250c32ab32bbc0cd36cedb7e4a39779c8b9a726
-collector SHA256: eaa3ad1b77a14d933df7521b7618a8573a72a67e8c990f6de025caa72bf36ce6
+fixture SHA256: b121729be8b488097d7ebc249d35392f532f88f9fb59190af078b345ec3626da
+collector SHA256: a9ba6ee793555b7310087470bfce5ca33cf8dfdb3382c1c9eff487c7974c8a0b

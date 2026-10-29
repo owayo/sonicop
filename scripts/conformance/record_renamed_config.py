@@ -53,7 +53,7 @@ CASE_IDS = (
     "stderr-progress",
 )
 API_IDS = ("old-naming-enabled", "old-empty-hash", "pending-inspect", "enabled-null")
-INPUT_SHA256 = "df501b892241b66c5f78483c446d5890c64ce5e03de3506ee5d1253dc7338e0f"
+INPUT_SHA256 = "2329b064228d965f5e065462282eb8b320a5c16db17040b227a4e8dbd9eb9ba4"
 ORDER_INPUT_SHA256 = "41f9dd2e3ecfa4ef6449133b4a0b345e2a1188288412f9d4d583873f3869f30e"
 RUNTIME_API = (
     LOADER

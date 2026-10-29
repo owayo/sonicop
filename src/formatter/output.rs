@@ -155,6 +155,13 @@ impl OutputSet {
         }
     }
 
+    // 外部の設定警告をevent間に出せるよう、File固有bufferには触れずstreamだけ進める。
+    pub(crate) fn flush_streams(&mut self) -> Result<()> {
+        self.stdout.flush()?;
+        self.stderr.flush()?;
+        Ok(())
+    }
+
     pub(crate) fn finish(&mut self) -> Result<()> {
         for target in &mut self.targets {
             if let Target::File(file) = target {

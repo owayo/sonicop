@@ -37,7 +37,7 @@ pub(crate) use obsoletion::TargetRubyGetterError;
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;
-pub(crate) use validation::{ConfigWarning, ConfigWarnings};
+pub(crate) use validation::{ConfigWarning, ConfigWarnings, WarningOutputFailure};
 
 const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 

@@ -4,23 +4,17 @@ use super::*;
 /// reports の prefix を毎回renderせず、file本文と最後の一覧をそれぞれ一度だけ走査する。
 pub(crate) struct Lifecycle<'a> {
     format: Format,
-    reports: &'a [FileReport],
-    options: &'a FormatOptions<'a>,
+    options: FormatOptions<'a>,
     bar: String,
     bar_length: usize,
     severest: Option<Severity>,
 }
 
 impl<'a> Lifecycle<'a> {
-    pub(crate) fn new(
-        format: Format,
-        reports: &'a [FileReport],
-        options: &'a FormatOptions<'a>,
-    ) -> Self {
+    pub(crate) fn new(format: Format, options: &FormatOptions<'a>) -> Self {
         Self {
             format,
-            reports,
-            options,
+            options: options.clone(),
             bar: String::new(),
             bar_length: 0,
             severest: None,
@@ -61,13 +55,17 @@ impl<'a> Lifecycle<'a> {
         Ok(())
     }
 
-    pub(crate) fn file_finished(&mut self, index: usize, output: &mut impl Output) -> Result<()> {
-        let report = &self.reports[index];
+    pub(crate) fn file_finished(
+        &mut self,
+        index: usize,
+        report: &FileReport,
+        output: &mut impl Output,
+    ) -> Result<()> {
         match self.format {
-            Format::Simple | Format::Quiet => emit_simple_file(output, report, self.options),
-            Format::Clang => emit_clang_file(output, report, self.options, false),
-            Format::Tap => emit_tap_file(output, report, index, self.options),
-            Format::Emacs => emit_emacs_file(output, report, self.options),
+            Format::Simple | Format::Quiet => emit_simple_file(output, report, &self.options),
+            Format::Clang => emit_clang_file(output, report, &self.options, false),
+            Format::Tap => emit_tap_file(output, report, index, &self.options),
+            Format::Emacs => emit_emacs_file(output, report, &self.options),
             Format::Files if !report.offenses.is_empty() => output.write(&format!(
                 "{}\n",
                 absolute_path(&report.path, self.options.cwd)
@@ -99,7 +97,7 @@ impl<'a> Lifecycle<'a> {
                 if !report.offenses.is_empty() {
                     output.write("\n")?;
                     self.bar_length = 0;
-                    emit_fuubar_file(output, report, self.options)?;
+                    emit_fuubar_file(output, report, &self.options)?;
                 }
                 if self.options.color {
                     output.write(&format!(
@@ -117,25 +115,31 @@ impl<'a> Lifecycle<'a> {
         }
     }
 
-    pub(crate) fn finished(&mut self, output: &mut impl Output) -> Result<()> {
+    pub(crate) fn finished(
+        &mut self,
+        reports: &[FileReport],
+        corrected_count: usize,
+        output: &mut impl Output,
+    ) -> Result<()> {
+        self.options.corrected_count = corrected_count;
         match self.format {
             Format::Progress | Format::Pacman => {
                 output.puts("")?;
-                if offense_count(self.reports) > 0 {
+                if offense_count(reports) > 0 {
                     output.puts("")?;
                     output.puts("Offenses:")?;
                     output.puts("")?;
-                    for report in self.reports {
-                        emit_clang_file(output, report, self.options, false)?;
+                    for report in reports {
+                        emit_clang_file(output, report, &self.options, false)?;
                     }
                 }
                 output.puts("")?;
-                output.puts(&summary(self.reports, self.options))
+                output.puts(&summary(reports, &self.options))
             }
             Format::Simple | Format::Clang | Format::Tap | Format::Quiet => {
-                if self.format != Format::Quiet || offense_count(self.reports) > 0 {
+                if self.format != Format::Quiet || offense_count(reports) > 0 {
                     output.puts("")?;
-                    output.puts(&summary(self.reports, self.options))?;
+                    output.puts(&summary(reports, &self.options))?;
                 }
                 Ok(())
             }
@@ -144,15 +148,15 @@ impl<'a> Lifecycle<'a> {
                 if self.format == Format::Autogenconf {
                     output.puts("")?;
                 }
-                output.puts(&fuubar_summary(self.reports, self.options))
+                output.puts(&fuubar_summary(reports, &self.options))
             }
-            Format::Json => output.owned(render_json(self.reports, self.options)?),
-            Format::Html => output.owned(render_html(self.reports, self.options)),
-            Format::Junit => emit_junit(output, self.reports, self.options),
-            Format::Github => emit_github(output, self.reports, self.options),
-            Format::Markdown => emit_markdown(output, self.reports, self.options),
-            Format::Offenses => emit_offense_counts(output, self.reports, self.options),
-            Format::Worst => emit_worst(output, self.reports, self.options.cwd),
+            Format::Json => output.owned(render_json(reports, &self.options)?),
+            Format::Html => output.owned(render_html(reports, &self.options)),
+            Format::Junit => emit_junit(output, reports, &self.options),
+            Format::Github => emit_github(output, reports, &self.options),
+            Format::Markdown => emit_markdown(output, reports, &self.options),
+            Format::Offenses => emit_offense_counts(output, reports, &self.options),
+            Format::Worst => emit_worst(output, reports, self.options.cwd),
             Format::Emacs | Format::Files => Ok(()),
         }
     }

@@ -29,7 +29,7 @@ def fixture():
 
 
 class ReferenceContract(unittest.TestCase):
-    """20strictと3後段JSON残差を分離し、各失敗ガードを単独で検査する。"""
+    """23strictで、各失敗ガードを単独で検査する。"""
 
     def test_environment_copy_removes_only_controlled_variables(self):
         """共用ENV4とambient色だけを除き、親/GEM/PATH/OSを保つ。"""

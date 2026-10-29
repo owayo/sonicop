@@ -69,6 +69,16 @@ impl ConfigStore {
         Ok(())
     }
 
+    pub(crate) fn ignores_parent_exclusion(&self) -> bool {
+        self.warnings
+            .as_ref()
+            .is_some_and(|warnings| !warnings.parent_exclusion)
+    }
+
+    pub(crate) fn fixed_config(&self) -> bool {
+        !self.discover_per_path
+    }
+
     pub fn root(&self) -> &Config {
         &self.root
     }

@@ -20,9 +20,10 @@ use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
     CorrectMode, CorrectionEncodingError, DirectoryOrder, NO_SYNTAX_GUARD, ResultCache, Selection,
     SharedStdinState, correct_file_with_original, correct_shared_stdin, correction_bytes,
-    discover_cli_targets_with_store, discover_stdin_targets_with_store, inspect_files,
-    inspect_files_with_store_cached, inspect_shared_stdin, inspect_stdin, is_mandatory_cop,
-    native_textmode_bytes, offense_count, stdin_output_bytes, write_correction,
+    discover_cli_targets_with_store, discover_stdin_targets_with_store,
+    inspect_file_results_with_store_cached, inspect_files, inspect_files_with_store_cached,
+    inspect_shared_stdin, inspect_stdin, is_mandatory_cop, native_textmode_bytes, offense_count,
+    stdin_output_bytes, write_correction,
 };
 use crate::formatter::{
     BUILTIN_FORMATTER_NAMES, Format, FormatOptions, FormatterLookupFailure, Lifecycle, Output,
@@ -947,6 +948,21 @@ fn try_run_with_warning_phase(
     }
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
+    if !cli.auto_gen_config && !cli.regenerate_todo {
+        return run_live_inspection(
+            &cli,
+            &cwd,
+            &config,
+            &configs,
+            &mut selection,
+            parallel,
+            result_cache.as_ref(),
+            &selection_warnings,
+            selection_failure,
+            outputs,
+            fail_level,
+        );
+    }
     let inspection = if let Some(failure) = selection_failure {
         inspect_rejected_inputs(&cli, &cwd, &configs, parallel, failure, selection_warnings)?
     } else {
@@ -1012,23 +1028,10 @@ fn try_run_with_warning_phase(
         }
     };
 
-    // pure getterは無出力。完了したreportsの設定利用だけを入力順に一度再生する。
-    // progress/late失敗との逐次接続は#152の元参照に残す。
     for report in &reports {
         let target_config = configs.for_path(&report.path)?;
-        configs.warn_renamed_cops(&target_config, &|name| {
-            (selection.only.is_empty()
-                || selection
-                    .only
-                    .iter()
-                    .any(|only| selector_matches(only, name)))
-                && !selection
-                    .except
-                    .iter()
-                    .any(|except| selector_matches(except, name))
-        })?;
+        warn_using(&configs, &target_config, &selection)?;
     }
-
     if cli.auto_gen_config || cli.regenerate_todo {
         if let Some(targets) = &stdin_directory {
             reports = inspect_stdin_directory(
@@ -1443,6 +1446,422 @@ fn rejected_selection_targets(
     Ok(expanded)
 }
 
+/// Runnerのstarted以後だけを所有し、失敗したfileにfinishedを捏造しない。
+struct LiveSession<'a> {
+    formatters: Vec<Lifecycle<'a>>,
+    destinations: OutputSet,
+    debug: bool,
+    cwd: &'a Path,
+}
+
+impl<'a> LiveSession<'a> {
+    fn open(request: &RenderRequest<'a>) -> Result<Self> {
+        let cli = request.cli;
+        let formats = if cli.formats.is_empty() {
+            vec![
+                request
+                    .config
+                    .all_cops_value::<String>("DefaultFormatter")
+                    .unwrap_or_else(|| "progress".to_owned()),
+            ]
+        } else {
+            cli.formats.clone()
+        };
+        let options = FormatOptions {
+            cwd: request.cwd,
+            config: request.config,
+            display_cop_names: message_display_cop_names(cli, request.config),
+            display_style_guide: cli.display_style_guide,
+            extra_details: cli.extra_details,
+            color: !cli.no_color
+                && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal())),
+            corrected_count: 0,
+            target_file_count: request.target_count,
+            fail_level: request.fail_level.severity(),
+            safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
+            display_only_failed: cli.display_only_failed,
+        };
+        let mut paths = (0..formats.len())
+            .map(|index| request.outputs.get(index).cloned().flatten())
+            .collect::<Vec<_>>();
+        if cli.debug {
+            paths.push(None);
+        }
+        let mut parsed = Vec::new();
+        let destinations = OutputSet::open(&paths, cli.stderr, |index| {
+            if index < formats.len() {
+                parsed.push(Format::parse(&formats[index])?);
+            }
+            Ok(())
+        })?;
+        let mut session = Self {
+            formatters: parsed
+                .into_iter()
+                .map(|format| Lifecycle::new(format, &options))
+                .collect(),
+            destinations,
+            debug: cli.debug,
+            cwd: request.cwd,
+        };
+        for (index, formatter) in session.formatters.iter_mut().enumerate() {
+            formatter.started(&mut session.destinations.writer(index))?;
+        }
+        session.destinations.flush_streams()?;
+        Ok(session)
+    }
+
+    fn file_started(&mut self, index: usize, path: &Path) -> Result<()> {
+        if self.debug {
+            emit_debug_scanning(
+                &mut self.destinations.writer(self.formatters.len()),
+                path,
+                self.cwd,
+            )?;
+        }
+        for (output, formatter) in self.formatters.iter_mut().enumerate() {
+            formatter.file_started(index, &mut self.destinations.writer(output))?;
+        }
+        self.destinations.flush_streams()
+    }
+
+    fn file_finished(&mut self, index: usize, report: &FileReport) -> Result<()> {
+        for (output, formatter) in self.formatters.iter_mut().enumerate() {
+            formatter.file_finished(index, report, &mut self.destinations.writer(output))?;
+        }
+        self.destinations.flush_streams()
+    }
+
+    fn finished(&mut self, reports: &[FileReport], corrected: usize) -> Result<()> {
+        for (output, formatter) in self.formatters.iter_mut().enumerate() {
+            formatter.finished(reports, corrected, &mut self.destinations.writer(output))?;
+        }
+        self.destinations.finish()
+    }
+}
+
+fn warn_using(configs: &ConfigStore, config: &Config, selection: &Selection) -> Result<()> {
+    configs.warn_renamed_cops(config, &|name| {
+        (selection.only.is_empty()
+            || selection
+                .only
+                .iter()
+                .any(|only| selector_matches(only, name)))
+            && !selection
+                .except
+                .iter()
+                .any(|except| selector_matches(except, name))
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_live_inspection(
+    cli: &Cli,
+    cwd: &Path,
+    config: &Config,
+    configs: &ConfigStore,
+    selection: &mut Selection,
+    parallel: bool,
+    cache: Option<&ResultCache>,
+    selection_warnings: &[String],
+    mut selection_failure: Option<SelectionFailure>,
+    outputs: &[Option<PathBuf>],
+    fail_level: FailLevel,
+) -> Result<i32> {
+    let mut stdin_bytes = None;
+    let anonymous = cli
+        .stdin
+        .as_ref()
+        .is_some_and(|path| path.as_os_str().is_empty());
+    let stdin_path = cli.stdin.as_ref().map(|path| {
+        if anonymous {
+            cwd.to_path_buf()
+        } else {
+            path.clone()
+        }
+    });
+    let stdin_directory = stdin_path
+        .as_ref()
+        .is_some_and(|path| !anonymous && path.is_dir());
+    let targets = if let Some(path) = &stdin_path {
+        if !cli.paths.is_empty() {
+            bail!(
+                "--stdin requires exactly one path supplied as its argument and no file arguments"
+            );
+        }
+        let mut bytes = Vec::new();
+        io::stdin()
+            .read_to_end(&mut bytes)
+            .context("failed to read source from stdin")?;
+        stdin_bytes = Some(bytes);
+        if stdin_directory {
+            discover_stdin_targets_with_store(path, cwd, configs, cli.directory_order())?
+        } else {
+            vec![path.clone()]
+        }
+    } else if selection_failure.is_some() {
+        rejected_selection_targets(cli, cwd, configs)?
+    } else {
+        discover_cli_targets_with_store(
+            &cli.paths,
+            cwd,
+            configs,
+            cli.force_exclusion,
+            cli.only_recognized_file_types,
+            cli.directory_order(),
+        )?
+    };
+    if cli.debug {
+        debug_report(cwd, config, targets.len(), parallel)?;
+    }
+    // ProjectIndexLoaderはformatterを開く前。通常fileの設定観測をこの段階へ先送りしない。
+    *selection = selection.with_project_index(&targets, configs)?;
+    if cli.list_target_files {
+        for path in &targets {
+            let line = format!("{}\n", smart_path(path, cwd));
+            if stdin_bytes.is_some() || selection_failure.is_some() {
+                io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
+            } else {
+                print!("{line}");
+            }
+        }
+        if let Some(bytes) = stdin_bytes {
+            let run = inspect_stdin_directory(
+                &[],
+                &bytes,
+                configs,
+                cli.correct_mode(),
+                selection,
+                cli,
+                fail_level,
+            )?;
+            if let Some(corrected) = run.stdin_corrected {
+                print_corrected_stdin(cli, &corrected)?;
+            }
+            return Ok(if run.had_write_failures { 2 } else { 0 });
+        }
+        return Ok(0);
+    }
+    if let Some(cache) = cache {
+        cache.prepare(targets.len());
+    }
+    if cli.disable_uncorrectable {
+        eprintln!(
+            "Sonicop: --disable-uncorrectable is accepted; todo insertion is not implemented yet."
+        );
+    }
+    let mut session = LiveSession::open(&RenderRequest {
+        cli,
+        config,
+        cwd,
+        fail_level,
+        outputs,
+        corrected_count: 0,
+        target_count: targets.len(),
+        rejection: None,
+        rejected_path: None,
+    })?;
+    let mut reports = Vec::new();
+    let mut corrected_count = 0;
+    let mut had_errors = false;
+    let mut had_offenses = false;
+    let mut had_write_failures = false;
+    let mut stdin_corrected = None;
+    let mut late_error = None;
+    if stdin_directory && selection_failure.is_none() {
+        let run = inspect_stdin_directory_live(
+            &targets,
+            stdin_bytes.as_deref().unwrap(),
+            configs,
+            cli.correct_mode(),
+            selection,
+            cli,
+            fail_level,
+            Some(&mut session),
+            selection_warnings,
+        )?;
+        reports = run.reports;
+        corrected_count = run.corrected_count;
+        had_offenses = run.failing;
+        had_errors = run.had_errors;
+        had_write_failures = run.had_write_failures;
+        stdin_corrected = run.stdin_corrected;
+        late_error = run.failure;
+    } else {
+        // 設定固定なら後続に設定失敗/別Usingは無く、従来の並列検査を維持できる。
+        // 最初のfileだけ先に訪問し、警告をstartedより前へ移さない。
+        let bulk = parallel
+            && configs.fixed_config()
+            && stdin_bytes.is_none()
+            && cli.correct_mode() == CorrectMode::None
+            && !cli.fail_fast
+            && selection_failure.is_none();
+        let mut index = 0;
+        while index < targets.len() {
+            let start_index = index;
+            let path = &targets[index];
+            session.file_started(index, path)?;
+            let target_config = match if anonymous {
+                anonymous_stdin_config(configs, path)
+            } else {
+                configs.for_path_observed(path)
+            } {
+                Ok(config) => config,
+                Err(error) if error.is::<crate::config::WarningOutputFailure>() => {
+                    return Err(error);
+                }
+                Err(error) => {
+                    late_error = Some(error);
+                    break;
+                }
+            };
+            if index == 0 && selection_failure.is_some() && stdin_bytes.is_none() {
+                let cached = cli.cache.as_deref() == Some("true")
+                    || (cli.cache.as_deref() != Some("false")
+                        && config.all_cops_value::<bool>("UseCache").unwrap_or(true));
+                if !cached && let Err(error) = fs::read(path) {
+                    let path = path.to_string_lossy().replace('\\', "/");
+                    let message = if error.kind() == io::ErrorKind::NotFound {
+                        format!("No such file or directory: {path}")
+                    } else {
+                        format!("failed to read {path}: {error}")
+                    };
+                    late_error = Some(
+                        SelectionFailure {
+                            message,
+                            error_prefix: true,
+                        }
+                        .into(),
+                    );
+                    break;
+                }
+            }
+            if index == 0 {
+                emit_selection_warnings(selection_warnings)?;
+            }
+            if let Some(failure) = selection_failure.take() {
+                late_error = Some(failure.into());
+                break;
+            }
+            warn_using(configs, &target_config, selection)?;
+            let inspected = if let Some(bytes) = &stdin_bytes {
+                inspect_stdin(path.clone(), bytes.clone(), &target_config, selection)
+                    .map(|report| vec![Ok(report)])
+            } else {
+                let pending = if bulk && index > 0 {
+                    &targets[index..]
+                } else {
+                    std::slice::from_ref(path)
+                };
+                inspect_file_results_with_store_cached(
+                    pending,
+                    configs,
+                    selection,
+                    bulk && index > 0,
+                    cache,
+                )
+            };
+            let inspected = match inspected {
+                Ok(reports) => reports,
+                Err(error) if error.is::<crate::config::WarningOutputFailure>() => {
+                    return Err(error);
+                }
+                Err(error) => {
+                    late_error = Some(error);
+                    break;
+                }
+            };
+            let mut prefix = Vec::new();
+            for attempt in inspected {
+                match attempt {
+                    Ok(report) => prefix.push(report),
+                    Err(error) => {
+                        late_error = Some(error);
+                        break;
+                    }
+                }
+            }
+            if prefix.is_empty() {
+                break;
+            }
+            let mut run = match apply_corrections(
+                prefix,
+                stdin_bytes.as_deref().map(|original| StdinCorrection {
+                    original,
+                    anonymous,
+                    echo: prints_corrected_stdin(cli),
+                    shared: None,
+                }),
+                configs,
+                cli.correct_mode(),
+                selection,
+            ) {
+                Ok(run) => run,
+                Err(error) if error.is::<crate::config::WarningOutputFailure>() => {
+                    return Err(error);
+                }
+                Err(error) => {
+                    late_error = Some(error);
+                    break;
+                }
+            };
+            corrected_count += run.corrected_count;
+            had_errors |= run.had_errors;
+            had_write_failures |= run.had_write_failures;
+            stdin_corrected = run.stdin_corrected;
+            // Runnerのstatusはoffense_displayed?を通った診断だけで決める。
+            filter_displayed_offenses(&mut run.reports, cli, fail_level);
+            let failed = fail_level.failing(&run.reports) || run.had_errors;
+            had_offenses |= failed;
+            for (offset, report) in run.reports.into_iter().enumerate() {
+                if offset > 0 {
+                    session.file_started(index + offset, &report.path)?;
+                }
+                session.file_finished(index + offset, &report)?;
+                reports.push(report);
+            }
+            index = reports.len();
+            if late_error.is_some() && index > start_index && index < targets.len() {
+                // 固定設定の並列tailも、失敗fileのstartedと成功prefixのfinishedを取り違えない。
+                session.file_started(index, &targets[index])?;
+            }
+            if late_error.is_some() || (cli.fail_fast && failed) {
+                break;
+            }
+        }
+    }
+    if targets.is_empty()
+        && let Some(bytes) = &stdin_bytes
+    {
+        let run = inspect_stdin_directory(
+            &[],
+            bytes,
+            configs,
+            cli.correct_mode(),
+            selection,
+            cli,
+            fail_level,
+        )?;
+        stdin_corrected = run.stdin_corrected;
+        had_write_failures |= run.had_write_failures;
+    }
+    if let Some(cache) = cache {
+        cache.prune();
+    }
+    // callback/出力失敗はここへ包まない。設定/検査の失敗だけfinished後に元の型で伝播する。
+    session.finished(&reports, corrected_count)?;
+    if let Some(error) = late_error {
+        return Err(error);
+    }
+    if let Some(corrected) = stdin_corrected {
+        print_corrected_stdin(cli, &corrected)?;
+    }
+    Ok(if had_write_failures {
+        2
+    } else {
+        i32::from(had_offenses || fail_level.failing(&reports) || had_errors)
+    })
+}
+
 fn inspect_inputs(
     cli: &Cli,
     cwd: &Path,
@@ -1553,6 +1972,8 @@ fn anonymous_stdin_config(configs: &ConfigStore, path: &Path) -> Result<std::syn
 }
 
 struct CorrectionRun {
+    failure: Option<anyhow::Error>,
+    failing: bool,
     reports: Vec<FileReport>,
     corrected_count: usize,
     /// Team#autocorrect は書き換え時だけ stdin バッファを更新するため、
@@ -1582,9 +2003,37 @@ fn inspect_stdin_directory(
     cli: &Cli,
     fail_level: FailLevel,
 ) -> Result<CorrectionRun> {
+    let run = inspect_stdin_directory_live(
+        targets,
+        original,
+        configs,
+        correct_mode,
+        selection,
+        cli,
+        fail_level,
+        None,
+        &[],
+    )?;
+    Ok(run)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_stdin_directory_live(
+    targets: &[PathBuf],
+    original: &[u8],
+    configs: &ConfigStore,
+    correct_mode: CorrectMode,
+    selection: &Selection,
+    cli: &Cli,
+    fail_level: FailLevel,
+    mut session: Option<&mut LiveSession<'_>>,
+    selection_warnings: &[String],
+) -> Result<CorrectionRun> {
     let mut current = original.to_vec();
     let mut shared = SharedStdinState::default();
     let mut result = CorrectionRun {
+        failure: None,
+        failing: false,
         reports: Vec::with_capacity(targets.len()),
         corrected_count: 0,
         stdin_corrected: None,
@@ -1593,11 +2042,35 @@ fn inspect_stdin_directory(
         had_errors: false,
         had_write_failures: false,
     };
-    for path in targets {
-        let config = configs.for_path_observed(path)?;
-        let report = inspect_shared_stdin(path.clone(), &current, &shared, &config, selection)?;
+    for (index, path) in targets.iter().enumerate() {
+        if let Some(session) = session.as_deref_mut() {
+            session.file_started(index, path)?;
+        }
+        let config = match configs.for_path_observed(path) {
+            Ok(config) => config,
+            Err(error) if error.is::<crate::config::WarningOutputFailure>() => return Err(error),
+            Err(error) if session.is_some() => {
+                result.failure = Some(error);
+                break;
+            }
+            Err(error) => return Err(error),
+        };
+        if index == 0 {
+            emit_selection_warnings(selection_warnings)?;
+        }
+        warn_using(configs, &config, selection)?;
+        let report = match inspect_shared_stdin(path.clone(), &current, &shared, &config, selection)
+        {
+            Ok(report) => report,
+            Err(error) if error.is::<crate::config::WarningOutputFailure>() => return Err(error),
+            Err(error) if session.is_some() => {
+                result.failure = Some(error);
+                break;
+            }
+            Err(error) => return Err(error),
+        };
         let before = shared.clone();
-        let mut run = apply_corrections(
+        let mut run = match apply_corrections(
             vec![report],
             Some(StdinCorrection {
                 original: &current,
@@ -1608,27 +2081,44 @@ fn inspect_stdin_directory(
             configs,
             correct_mode,
             selection,
-        )?;
+        ) {
+            Ok(run) => run,
+            Err(error) if error.is::<crate::config::WarningOutputFailure>() => return Err(error),
+            Err(error) if session.is_some() => {
+                result.failure = Some(error);
+                break;
+            }
+            Err(error) => return Err(error),
+        };
         if run.had_write_failures {
             shared = before;
         }
         if let Some(corrected) = run.stdin_corrected {
             current = corrected;
         }
-        let failed = cli.fail_fast && {
-            let mut displayed = run.reports.clone();
-            filter_displayed_offenses(&mut displayed, cli, fail_level);
-            fail_level.failing(&displayed) || run.had_errors
-        };
+        let mut displayed = run.reports.clone();
+        filter_displayed_offenses(&mut displayed, cli, fail_level);
+        let displayed_failure = fail_level.failing(&displayed) || run.had_errors;
+        result.failing |= displayed_failure;
+        let failed = cli.fail_fast && displayed_failure;
         result.corrected_count += run.corrected_count;
         result.stdin_rewritten |= run.stdin_rewritten;
         result.stdin_rollback |= run.stdin_rollback;
         result.had_errors |= run.had_errors;
         result.had_write_failures |= run.had_write_failures;
+        if let Some(session) = session.as_deref_mut() {
+            filter_displayed_offenses(&mut run.reports, cli, fail_level);
+            for report in &run.reports {
+                session.file_finished(index, report)?;
+            }
+        }
         result.reports.append(&mut run.reports);
         if failed {
             break;
         }
+    }
+    if result.failure.is_some() {
+        return Ok(result);
     }
     if result.stdin_rollback || result.had_write_failures {
         return rollback_stdin_directory(result, original, configs, selection);
@@ -1859,6 +2349,8 @@ fn apply_corrections(
     }
 
     Ok(CorrectionRun {
+        failure: None,
+        failing: false,
         reports: corrected_reports,
         corrected_count,
         stdin_corrected,
@@ -2475,7 +2967,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
     }
     let mut formatters = formats
         .iter()
-        .map(|format| Lifecycle::new(*format, reports, &options))
+        .map(|format| Lifecycle::new(*format, &options))
         .collect::<Vec<_>>();
     for (index, formatter) in formatters.iter_mut().enumerate() {
         formatter.started(&mut destinations.writer(index))?;
@@ -2513,11 +3005,11 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
             formatter.file_started(file, &mut destinations.writer(index))?;
         }
         for (index, formatter) in formatters.iter_mut().enumerate() {
-            formatter.file_finished(file, &mut destinations.writer(index))?;
+            formatter.file_finished(file, report, &mut destinations.writer(index))?;
         }
     }
     for (index, formatter) in formatters.iter_mut().enumerate() {
-        formatter.finished(&mut destinations.writer(index))?;
+        formatter.finished(reports, corrected_count, &mut destinations.writer(index))?;
     }
     destinations.finish()?;
     Ok(())
@@ -2677,6 +3169,107 @@ fn write_output(output: &str, path: Option<&Path>, stderr: bool) -> Result<()> {
 mod tests {
     use super::{Cli, native_textmode_bytes, selector_csv};
     use clap::CommandFactory;
+
+    #[test]
+    fn warning_output_failure_does_not_retry_or_finish_the_live_session() {
+        use clap::Parser;
+        use std::sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let base =
+            "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  DisabledByDefault: true\n";
+        std::fs::write(root.join(".rubocop.yml"), base).unwrap();
+        std::fs::write(root.join("Gemfile"), "").unwrap();
+        std::fs::create_dir(root.join("nested")).unwrap();
+        std::fs::write(
+            root.join("nested/.rubocop.yml"),
+            format!("{base}SpaceAroundOperators:\n  Enabled: true\n"),
+        )
+        .unwrap();
+        std::fs::write(root.join("nested/a.rb"), "x=1\n").unwrap();
+        let mut cli =
+            Cli::try_parse_from(["sonicop", "--format", "json", "--out", "report.json"]).unwrap();
+        cli.paths = vec![root.join("nested/a.rb")];
+        let config = crate::config::Config::load(None, root).unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let count = Arc::clone(&calls);
+        let warnings = crate::config::ConfigWarnings::new(false, true, move |_| {
+            count.fetch_add(1, Ordering::Relaxed);
+            anyhow::bail!("actual warning sink failed")
+        });
+        let configs =
+            crate::config::ConfigStore::new(config.clone(), true, false).with_warnings(warnings);
+        let output = root.join("report.json");
+        // 出力callbackの失敗は設定拒否ではない。空JSONのfinishedも再試行も行わない。
+        let error = super::run_live_inspection(
+            &cli,
+            root,
+            &config,
+            &configs,
+            &mut crate::engine::Selection::default(),
+            false,
+            None,
+            &[],
+            None,
+            &[Some(output.clone())],
+            super::FailLevel::Severity(crate::diagnostic::Severity::Refactor),
+        )
+        .unwrap_err();
+        assert!(error.is::<crate::config::WarningOutputFailure>());
+        assert_eq!(
+            format!("{error:#}")
+                .matches("actual warning sink failed")
+                .count(),
+            1
+        );
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
+        assert_eq!(std::fs::read(output).unwrap(), b"");
+        assert_eq!(std::fs::read(root.join("nested/a.rb")).unwrap(), b"x=1\n");
+    }
+
+    #[test]
+    fn fixed_config_parallel_results_preserve_the_success_before_an_io_error() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        std::fs::write(
+            root.join("config.yml"),
+            "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\n",
+        )
+        .unwrap();
+        std::fs::write(root.join("Gemfile"), "").unwrap();
+        let config = crate::config::Config::load(Some(&root.join("config.yml")), root).unwrap();
+        let configs = crate::config::ConfigStore::new(config, false, false);
+        assert!(configs.fixed_config());
+        let paths = [
+            root.join("first.rb"),
+            root.join("absent.rb"),
+            root.join("last.rb"),
+        ];
+        std::fs::write(&paths[0], "x=1\n").unwrap();
+        std::fs::write(&paths[2], "z=3\n").unwrap();
+        let selection = crate::engine::Selection {
+            only: vec!["Layout/SpaceAroundOperators".to_owned()],
+            ..Default::default()
+        };
+        let results = crate::engine::inspect_file_results_with_store_cached(
+            &paths, &configs, &selection, true, None,
+        )
+        .unwrap();
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].as_ref().unwrap().path, paths[0]);
+        assert_eq!(results[0].as_ref().unwrap().offenses.len(), 1);
+        assert!(results[1].is_err());
+        assert_eq!(results[2].as_ref().unwrap().path, paths[2]);
+        assert!(
+            crate::engine::inspect_files_with_store_cached(
+                &paths, &configs, &selection, true, None
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn cli_definition_is_valid() {

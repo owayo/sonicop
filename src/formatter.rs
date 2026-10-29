@@ -104,6 +104,7 @@ impl Format {
     }
 }
 
+#[derive(Clone)]
 pub struct FormatOptions<'a> {
     pub cwd: &'a Path,
     pub config: &'a Config,
@@ -129,13 +130,13 @@ pub fn render(
     options: &FormatOptions<'_>,
 ) -> Result<String> {
     let mut output = String::new();
-    let mut lifecycle = Lifecycle::new(format, reports, options);
+    let mut lifecycle = Lifecycle::new(format, options);
     lifecycle.started(&mut output)?;
-    for index in 0..reports.len() {
+    for (index, report) in reports.iter().enumerate() {
         lifecycle.file_started(index, &mut output)?;
-        lifecycle.file_finished(index, &mut output)?;
+        lifecycle.file_finished(index, report, &mut output)?;
     }
-    lifecycle.finished(&mut output)?;
+    lifecycle.finished(reports, options.corrected_count, &mut output)?;
     Ok(output)
 }
 
