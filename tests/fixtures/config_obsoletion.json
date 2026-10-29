@@ -1,0 +1,996 @@
+{
+  "schema": 1,
+  "primary": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "sources": {
+      "config/obsoletion.yml": "d3f52a93b379f33e301e853088a200b9913293b736a4477063b82c25d9f24900",
+      "lib/rubocop/config_obsoletion.rb": "5470f321ced3b0919bcfbceade7f6f662becfb50cbbefae57ac97a0ca0dc7894",
+      "lib/rubocop/config_obsoletion/renamed_cop.rb": "d63ac8e3f5b1b5217597fdf9805ca77a788e3932afb858abff113c65b3f5e8dd",
+      "lib/rubocop/config_obsoletion/cop_rule.rb": "661aa7080bdd083d277048af49474492c0d9125296dc5279114100efa7c68a92",
+      "lib/rubocop/config_obsoletion/rule.rb": "530e702dde8207496ab1717c4f444666414bf394199f5de2f02e409f6a434078",
+      "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+      "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+      "LICENSE.txt": "102cbdf7e36a90dea7e545c683cf457ea8b993bce627b417744609088fd8b377"
+    },
+    "rules": [
+      {
+        "kind": "renamed",
+        "old_name": "Layout/AlignArguments",
+        "short_name": "AlignArguments",
+        "new_name": "Layout/ArgumentAlignment",
+        "warning": false,
+        "message": "The `Layout/AlignArguments` cop has been renamed to `Layout/ArgumentAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/AlignArray",
+        "short_name": "AlignArray",
+        "new_name": "Layout/ArrayAlignment",
+        "warning": false,
+        "message": "The `Layout/AlignArray` cop has been renamed to `Layout/ArrayAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/AlignHash",
+        "short_name": "AlignHash",
+        "new_name": "Layout/HashAlignment",
+        "warning": false,
+        "message": "The `Layout/AlignHash` cop has been renamed to `Layout/HashAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/AlignParameters",
+        "short_name": "AlignParameters",
+        "new_name": "Layout/ParameterAlignment",
+        "warning": false,
+        "message": "The `Layout/AlignParameters` cop has been renamed to `Layout/ParameterAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentArray",
+        "short_name": "IndentArray",
+        "new_name": "Layout/FirstArrayElementIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentArray` cop has been renamed to `Layout/FirstArrayElementIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentAssignment",
+        "short_name": "IndentAssignment",
+        "new_name": "Layout/AssignmentIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentAssignment` cop has been renamed to `Layout/AssignmentIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentFirstArgument",
+        "short_name": "IndentFirstArgument",
+        "new_name": "Layout/FirstArgumentIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentFirstArgument` cop has been renamed to `Layout/FirstArgumentIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentFirstArrayElement",
+        "short_name": "IndentFirstArrayElement",
+        "new_name": "Layout/FirstArrayElementIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentFirstArrayElement` cop has been renamed to `Layout/FirstArrayElementIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentFirstHashElement",
+        "short_name": "IndentFirstHashElement",
+        "new_name": "Layout/FirstHashElementIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentFirstHashElement` cop has been renamed to `Layout/FirstHashElementIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentFirstParameter",
+        "short_name": "IndentFirstParameter",
+        "new_name": "Layout/FirstParameterIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentFirstParameter` cop has been renamed to `Layout/FirstParameterIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentHash",
+        "short_name": "IndentHash",
+        "new_name": "Layout/FirstHashElementIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentHash` cop has been renamed to `Layout/FirstHashElementIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/IndentHeredoc",
+        "short_name": "IndentHeredoc",
+        "new_name": "Layout/HeredocIndentation",
+        "warning": false,
+        "message": "The `Layout/IndentHeredoc` cop has been renamed to `Layout/HeredocIndentation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/LeadingBlankLines",
+        "short_name": "LeadingBlankLines",
+        "new_name": "Layout/LeadingEmptyLines",
+        "warning": false,
+        "message": "The `Layout/LeadingBlankLines` cop has been renamed to `Layout/LeadingEmptyLines`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/Tab",
+        "short_name": "Tab",
+        "new_name": "Layout/IndentationStyle",
+        "warning": false,
+        "message": "The `Layout/Tab` cop has been renamed to `Layout/IndentationStyle`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Layout/TrailingBlankLines",
+        "short_name": "TrailingBlankLines",
+        "new_name": "Layout/TrailingEmptyLines",
+        "warning": false,
+        "message": "The `Layout/TrailingBlankLines` cop has been renamed to `Layout/TrailingEmptyLines`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/BlockAlignment",
+        "short_name": "BlockAlignment",
+        "new_name": "Layout/BlockAlignment",
+        "warning": false,
+        "message": "The `Lint/BlockAlignment` cop has been moved to `Layout/BlockAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/DefEndAlignment",
+        "short_name": "DefEndAlignment",
+        "new_name": "Layout/DefEndAlignment",
+        "warning": false,
+        "message": "The `Lint/DefEndAlignment` cop has been moved to `Layout/DefEndAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/DuplicatedKey",
+        "short_name": "DuplicatedKey",
+        "new_name": "Lint/DuplicateHashKey",
+        "warning": false,
+        "message": "The `Lint/DuplicatedKey` cop has been renamed to `Lint/DuplicateHashKey`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/EndAlignment",
+        "short_name": "EndAlignment",
+        "new_name": "Layout/EndAlignment",
+        "warning": false,
+        "message": "The `Lint/EndAlignment` cop has been moved to `Layout/EndAlignment`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/EndInMethod",
+        "short_name": "EndInMethod",
+        "new_name": "Style/EndBlock",
+        "warning": false,
+        "message": "The `Lint/EndInMethod` cop has been renamed to `Style/EndBlock`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/Eval",
+        "short_name": "Eval",
+        "new_name": "Security/Eval",
+        "warning": false,
+        "message": "The `Lint/Eval` cop has been moved to `Security/Eval`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/HandleExceptions",
+        "short_name": "HandleExceptions",
+        "new_name": "Lint/SuppressedException",
+        "warning": false,
+        "message": "The `Lint/HandleExceptions` cop has been renamed to `Lint/SuppressedException`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/MultipleCompare",
+        "short_name": "MultipleCompare",
+        "new_name": "Lint/MultipleComparison",
+        "warning": false,
+        "message": "The `Lint/MultipleCompare` cop has been renamed to `Lint/MultipleComparison`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/StringConversionInInterpolation",
+        "short_name": "StringConversionInInterpolation",
+        "new_name": "Lint/RedundantStringCoercion",
+        "warning": false,
+        "message": "The `Lint/StringConversionInInterpolation` cop has been renamed to `Lint/RedundantStringCoercion`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/UnneededCopDisableDirective",
+        "short_name": "UnneededCopDisableDirective",
+        "new_name": "Lint/RedundantCopDisableDirective",
+        "warning": false,
+        "message": "The `Lint/UnneededCopDisableDirective` cop has been renamed to `Lint/RedundantCopDisableDirective`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/UnneededCopEnableDirective",
+        "short_name": "UnneededCopEnableDirective",
+        "new_name": "Lint/RedundantCopEnableDirective",
+        "warning": false,
+        "message": "The `Lint/UnneededCopEnableDirective` cop has been renamed to `Lint/RedundantCopEnableDirective`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/UnneededRequireStatement",
+        "short_name": "UnneededRequireStatement",
+        "new_name": "Lint/RedundantRequireStatement",
+        "warning": false,
+        "message": "The `Lint/UnneededRequireStatement` cop has been renamed to `Lint/RedundantRequireStatement`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Lint/UnneededSplatExpansion",
+        "short_name": "UnneededSplatExpansion",
+        "new_name": "Lint/RedundantSplatExpansion",
+        "warning": false,
+        "message": "The `Lint/UnneededSplatExpansion` cop has been renamed to `Lint/RedundantSplatExpansion`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Metrics/LineLength",
+        "short_name": "LineLength",
+        "new_name": "Layout/LineLength",
+        "warning": false,
+        "message": "The `Metrics/LineLength` cop has been moved to `Layout/LineLength`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Naming/PredicateName",
+        "short_name": "PredicateName",
+        "new_name": "Naming/PredicatePrefix",
+        "warning": true,
+        "message": "The `Naming/PredicateName` cop has been renamed to `Naming/PredicatePrefix`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Naming/UncommunicativeBlockParamName",
+        "short_name": "UncommunicativeBlockParamName",
+        "new_name": "Naming/BlockParameterName",
+        "warning": false,
+        "message": "The `Naming/UncommunicativeBlockParamName` cop has been renamed to `Naming/BlockParameterName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Naming/UncommunicativeMethodParamName",
+        "short_name": "UncommunicativeMethodParamName",
+        "new_name": "Naming/MethodParameterName",
+        "warning": false,
+        "message": "The `Naming/UncommunicativeMethodParamName` cop has been renamed to `Naming/MethodParameterName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/AccessorMethodName",
+        "short_name": "AccessorMethodName",
+        "new_name": "Naming/AccessorMethodName",
+        "warning": false,
+        "message": "The `Style/AccessorMethodName` cop has been moved to `Naming/AccessorMethodName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/AsciiIdentifiers",
+        "short_name": "AsciiIdentifiers",
+        "new_name": "Naming/AsciiIdentifiers",
+        "warning": false,
+        "message": "The `Style/AsciiIdentifiers` cop has been moved to `Naming/AsciiIdentifiers`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/ClassAndModuleCamelCase",
+        "short_name": "ClassAndModuleCamelCase",
+        "new_name": "Naming/ClassAndModuleCamelCase",
+        "warning": false,
+        "message": "The `Style/ClassAndModuleCamelCase` cop has been moved to `Naming/ClassAndModuleCamelCase`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/ConstantName",
+        "short_name": "ConstantName",
+        "new_name": "Naming/ConstantName",
+        "warning": false,
+        "message": "The `Style/ConstantName` cop has been moved to `Naming/ConstantName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/DeprecatedHashMethods",
+        "short_name": "DeprecatedHashMethods",
+        "new_name": "Style/PreferredHashMethods",
+        "warning": false,
+        "message": "The `Style/DeprecatedHashMethods` cop has been renamed to `Style/PreferredHashMethods`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/FileName",
+        "short_name": "FileName",
+        "new_name": "Naming/FileName",
+        "warning": false,
+        "message": "The `Style/FileName` cop has been moved to `Naming/FileName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/FlipFlop",
+        "short_name": "FlipFlop",
+        "new_name": "Lint/FlipFlop",
+        "warning": false,
+        "message": "The `Style/FlipFlop` cop has been moved to `Lint/FlipFlop`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/MethodCallParentheses",
+        "short_name": "MethodCallParentheses",
+        "new_name": "Style/MethodCallWithoutArgsParentheses",
+        "warning": false,
+        "message": "The `Style/MethodCallParentheses` cop has been renamed to `Style/MethodCallWithoutArgsParentheses`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/MethodName",
+        "short_name": "MethodName",
+        "new_name": "Naming/MethodName",
+        "warning": false,
+        "message": "The `Style/MethodName` cop has been moved to `Naming/MethodName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/OpMethod",
+        "short_name": "OpMethod",
+        "new_name": "Naming/BinaryOperatorParameterName",
+        "warning": false,
+        "message": "The `Style/OpMethod` cop has been renamed to `Naming/BinaryOperatorParameterName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/PredicateName",
+        "short_name": "PredicateName",
+        "new_name": "Naming/PredicatePrefix",
+        "warning": true,
+        "message": "The `Style/PredicateName` cop has been renamed to `Naming/PredicatePrefix`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/SingleSpaceBeforeFirstArg",
+        "short_name": "SingleSpaceBeforeFirstArg",
+        "new_name": "Layout/SpaceBeforeFirstArg",
+        "warning": false,
+        "message": "The `Style/SingleSpaceBeforeFirstArg` cop has been renamed to `Layout/SpaceBeforeFirstArg`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/UnneededCapitalW",
+        "short_name": "UnneededCapitalW",
+        "new_name": "Style/RedundantCapitalW",
+        "warning": false,
+        "message": "The `Style/UnneededCapitalW` cop has been renamed to `Style/RedundantCapitalW`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/UnneededCondition",
+        "short_name": "UnneededCondition",
+        "new_name": "Style/RedundantCondition",
+        "warning": false,
+        "message": "The `Style/UnneededCondition` cop has been renamed to `Style/RedundantCondition`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/UnneededInterpolation",
+        "short_name": "UnneededInterpolation",
+        "new_name": "Style/RedundantInterpolation",
+        "warning": false,
+        "message": "The `Style/UnneededInterpolation` cop has been renamed to `Style/RedundantInterpolation`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/UnneededPercentQ",
+        "short_name": "UnneededPercentQ",
+        "new_name": "Style/RedundantPercentQ",
+        "warning": false,
+        "message": "The `Style/UnneededPercentQ` cop has been renamed to `Style/RedundantPercentQ`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/UnneededSort",
+        "short_name": "UnneededSort",
+        "new_name": "Style/RedundantSort",
+        "warning": false,
+        "message": "The `Style/UnneededSort` cop has been renamed to `Style/RedundantSort`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/VariableName",
+        "short_name": "VariableName",
+        "new_name": "Naming/VariableName",
+        "warning": false,
+        "message": "The `Style/VariableName` cop has been moved to `Naming/VariableName`."
+      },
+      {
+        "kind": "renamed",
+        "old_name": "Style/VariableNumber",
+        "short_name": "VariableNumber",
+        "new_name": "Naming/VariableNumber",
+        "warning": false,
+        "message": "The `Style/VariableNumber` cop has been moved to `Naming/VariableNumber`."
+      }
+    ],
+    "all_rules_by_class": {
+      "RuboCop::ConfigObsoletion::RenamedCop": 51,
+      "RuboCop::ConfigObsoletion::RemovedCop": 13,
+      "RuboCop::ConfigObsoletion::SplitCop": 1,
+      "RuboCop::ConfigObsoletion::ExtractedCop": 2,
+      "RuboCop::ConfigObsoletion::ChangedParameter": 58,
+      "RuboCop::ConfigObsoletion::ChangedEnforcedStyles": 2
+    }
+  },
+  "cases": [
+    {
+      "id": "full-disabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "full-ignore",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "bare-disabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nTrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "moved",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMetrics/LineLength: {}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604d6574726963732f4c696e654c656e6774686020636f7020686173206265656e206d6f76656420746f20604c61796f75742f4c696e654c656e677468602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "two-reversed",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/DeprecatedHashMethods: {}\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a54686520605374796c652f44657072656361746564486173684d6574686f64736020636f7020686173206265656e2072656e616d656420746f20605374796c652f507265666572726564486173684d6574686f6473602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "parent",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\n",
+        "parent.yml": "Layout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20706172656e742e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "parent-overridden",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\nLayout/TrailingBlankLines: null\n",
+        "parent.yml": "Layout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20706172656e742e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "full-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "bare-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nTrailingBlankLines: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "early-missing-target",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "missing.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--version",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "verbose-version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--verbose-version",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "force-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--force-default-config",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "out-sentinel",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n",
+        "report.json": "UNCHANGED\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": true
+    },
+    {
+      "id": "color-flag",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "force-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false
+    },
+    {
+      "id": "force-no-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--no-color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974291b5b306d0d0a",
+      "out_exists": false
+    },
+    {
+      "id": "namespace-first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators: {}\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f7220537061636541726f756e644f70657261746f72732e0d0a4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "parameter-suppressed",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Bogus: true\nLayout/TrailingBlankLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "canonical-negative",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingEmptyLines:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false
+    },
+    {
+      "id": "full-enabled",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    },
+    {
+      "id": "old-scalar",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/TrailingBlankLines: value\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false
+    }
+  ],
+  "coverage": {
+    "actual_cli_cases": 22,
+    "actual_cli_rejections": 21,
+    "actual_cli_canonical_negative": 1,
+    "renamed_api_rules": 51,
+    "fatal_api_rules": 49,
+    "warning_api_only_rules": 2,
+    "warning_merge_implemented": false,
+    "other_cop_categories_api_only": 16,
+    "parameter_rules_api_only": 60
+  }
+}

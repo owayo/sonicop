@@ -1,0 +1,359 @@
+[
+  {
+    "old_name": "Layout/AlignArguments",
+    "short_name": "AlignArguments",
+    "new_name": "Layout/ArgumentAlignment",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/AlignArray",
+    "short_name": "AlignArray",
+    "new_name": "Layout/ArrayAlignment",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/AlignHash",
+    "short_name": "AlignHash",
+    "new_name": "Layout/HashAlignment",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/AlignParameters",
+    "short_name": "AlignParameters",
+    "new_name": "Layout/ParameterAlignment",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentArray",
+    "short_name": "IndentArray",
+    "new_name": "Layout/FirstArrayElementIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentAssignment",
+    "short_name": "IndentAssignment",
+    "new_name": "Layout/AssignmentIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentFirstArgument",
+    "short_name": "IndentFirstArgument",
+    "new_name": "Layout/FirstArgumentIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentFirstArrayElement",
+    "short_name": "IndentFirstArrayElement",
+    "new_name": "Layout/FirstArrayElementIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentFirstHashElement",
+    "short_name": "IndentFirstHashElement",
+    "new_name": "Layout/FirstHashElementIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentFirstParameter",
+    "short_name": "IndentFirstParameter",
+    "new_name": "Layout/FirstParameterIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentHash",
+    "short_name": "IndentHash",
+    "new_name": "Layout/FirstHashElementIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/IndentHeredoc",
+    "short_name": "IndentHeredoc",
+    "new_name": "Layout/HeredocIndentation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/LeadingBlankLines",
+    "short_name": "LeadingBlankLines",
+    "new_name": "Layout/LeadingEmptyLines",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/Tab",
+    "short_name": "Tab",
+    "new_name": "Layout/IndentationStyle",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Layout/TrailingBlankLines",
+    "short_name": "TrailingBlankLines",
+    "new_name": "Layout/TrailingEmptyLines",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/BlockAlignment",
+    "short_name": "BlockAlignment",
+    "new_name": "Layout/BlockAlignment",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Lint/DefEndAlignment",
+    "short_name": "DefEndAlignment",
+    "new_name": "Layout/DefEndAlignment",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Lint/DuplicatedKey",
+    "short_name": "DuplicatedKey",
+    "new_name": "Lint/DuplicateHashKey",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/EndAlignment",
+    "short_name": "EndAlignment",
+    "new_name": "Layout/EndAlignment",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Lint/EndInMethod",
+    "short_name": "EndInMethod",
+    "new_name": "Style/EndBlock",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/Eval",
+    "short_name": "Eval",
+    "new_name": "Security/Eval",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Lint/HandleExceptions",
+    "short_name": "HandleExceptions",
+    "new_name": "Lint/SuppressedException",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/MultipleCompare",
+    "short_name": "MultipleCompare",
+    "new_name": "Lint/MultipleComparison",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/StringConversionInInterpolation",
+    "short_name": "StringConversionInInterpolation",
+    "new_name": "Lint/RedundantStringCoercion",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/UnneededCopDisableDirective",
+    "short_name": "UnneededCopDisableDirective",
+    "new_name": "Lint/RedundantCopDisableDirective",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/UnneededCopEnableDirective",
+    "short_name": "UnneededCopEnableDirective",
+    "new_name": "Lint/RedundantCopEnableDirective",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/UnneededRequireStatement",
+    "short_name": "UnneededRequireStatement",
+    "new_name": "Lint/RedundantRequireStatement",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Lint/UnneededSplatExpansion",
+    "short_name": "UnneededSplatExpansion",
+    "new_name": "Lint/RedundantSplatExpansion",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Metrics/LineLength",
+    "short_name": "LineLength",
+    "new_name": "Layout/LineLength",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Naming/PredicateName",
+    "short_name": "PredicateName",
+    "new_name": "Naming/PredicatePrefix",
+    "severity": "warning",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Naming/UncommunicativeBlockParamName",
+    "short_name": "UncommunicativeBlockParamName",
+    "new_name": "Naming/BlockParameterName",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Naming/UncommunicativeMethodParamName",
+    "short_name": "UncommunicativeMethodParamName",
+    "new_name": "Naming/MethodParameterName",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/AccessorMethodName",
+    "short_name": "AccessorMethodName",
+    "new_name": "Naming/AccessorMethodName",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/AsciiIdentifiers",
+    "short_name": "AsciiIdentifiers",
+    "new_name": "Naming/AsciiIdentifiers",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/ClassAndModuleCamelCase",
+    "short_name": "ClassAndModuleCamelCase",
+    "new_name": "Naming/ClassAndModuleCamelCase",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/ConstantName",
+    "short_name": "ConstantName",
+    "new_name": "Naming/ConstantName",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/DeprecatedHashMethods",
+    "short_name": "DeprecatedHashMethods",
+    "new_name": "Style/PreferredHashMethods",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/FileName",
+    "short_name": "FileName",
+    "new_name": "Naming/FileName",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/FlipFlop",
+    "short_name": "FlipFlop",
+    "new_name": "Lint/FlipFlop",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/MethodCallParentheses",
+    "short_name": "MethodCallParentheses",
+    "new_name": "Style/MethodCallWithoutArgsParentheses",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/MethodName",
+    "short_name": "MethodName",
+    "new_name": "Naming/MethodName",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/OpMethod",
+    "short_name": "OpMethod",
+    "new_name": "Naming/BinaryOperatorParameterName",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/PredicateName",
+    "short_name": "PredicateName",
+    "new_name": "Naming/PredicatePrefix",
+    "severity": "warning",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/SingleSpaceBeforeFirstArg",
+    "short_name": "SingleSpaceBeforeFirstArg",
+    "new_name": "Layout/SpaceBeforeFirstArg",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/UnneededCapitalW",
+    "short_name": "UnneededCapitalW",
+    "new_name": "Style/RedundantCapitalW",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/UnneededCondition",
+    "short_name": "UnneededCondition",
+    "new_name": "Style/RedundantCondition",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/UnneededInterpolation",
+    "short_name": "UnneededInterpolation",
+    "new_name": "Style/RedundantInterpolation",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/UnneededPercentQ",
+    "short_name": "UnneededPercentQ",
+    "new_name": "Style/RedundantPercentQ",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/UnneededSort",
+    "short_name": "UnneededSort",
+    "new_name": "Style/RedundantSort",
+    "severity": "error",
+    "action": "renamed"
+  },
+  {
+    "old_name": "Style/VariableName",
+    "short_name": "VariableName",
+    "new_name": "Naming/VariableName",
+    "severity": "error",
+    "action": "moved"
+  },
+  {
+    "old_name": "Style/VariableNumber",
+    "short_name": "VariableNumber",
+    "new_name": "Naming/VariableNumber",
+    "severity": "error",
+    "action": "moved"
+  }
+]

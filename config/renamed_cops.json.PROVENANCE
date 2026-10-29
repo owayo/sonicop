@@ -1,0 +1,15 @@
+RuboCop 1.89.0 ConfigObsoletionのRenamedCop実API51件を登録順に保存した埋め込み表。
+生成元: scripts/conformance/record_config_obsoletion.py の --rules-output。
+再生成はtests/fixtures/config_obsoletion.json.PROVENANCEのコマンドを使う。
+元API・source SHA256・実runtimeは同fixture.primaryへ保持する。
+old_name/short_name/new_nameは実API、severityはwarning?、actionは実rule_messageの全文から照合する。
+49fatalと2warningを分離する。API51をCLI51件と呼ばず、warning2の旧値移行は別#151へ残す。
+製品はfatalのkey存在だけを検査し、quiet Configの旧key/値/unknown metadataを維持する。
+build.rsのrerun-if-changedとbuild_fingerprintの両方へ登録し、表が変われば結果cacheを共有しない。
+licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+2026-10-29に公開collectorでfresh逐次再採取し、元参照と全fields/rawが一致することを確認した。
+51件の埋め込み表も両採取から同一内容へ再生成された。
+
+fixture SHA256: 801d1fb189c5f745d650af69a98ed2201c18f86e049724004a754c3398ea2903
+collector SHA256: 2f5b8c3cc674baa7b7b435300f83fbae9747592388dfd6fdc5d9cbe54237cda2

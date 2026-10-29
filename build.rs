@@ -33,6 +33,7 @@ fn main() {
         "build.rs",
         "config/default.yml",
         "config/autocorrect_support.json",
+        "config/renamed_cops.json",
         "crates",
         "src",
     ] {
@@ -66,6 +67,7 @@ fn build_fingerprint() -> io::Result<blake3::Hash> {
         "build.rs",
         "config/default.yml",
         "config/autocorrect_support.json",
+        "config/renamed_cops.json",
         "crates",
         "src",
     ] {

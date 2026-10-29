@@ -262,3 +262,15 @@ tests/fixtures/unknown_config_cops.json text eol=lf
 tests/fixtures/unknown_config_cops.json.PROVENANCE text eol=lf
 tests/fixtures/unknown_config_trace.json text eol=lf
 tests/fixtures/unknown_config_trace.json.PROVENANCE text eol=lf
+
+# 廃止名の実API表とCLI rawのcontainerをLFで固定する。
+config/renamed_cops.json text eol=lf
+config/renamed_cops.json.PROVENANCE text eol=lf
+src/config/obsoletion.rs text eol=lf
+scripts/conformance/record_config_obsoletion.py text eol=lf
+scripts/conformance/test_record_config_obsoletion.py text eol=lf
+tests/config_obsoletion.rs text eol=lf
+tests/fixtures/config_obsoletion.json text eol=lf
+tests/fixtures/config_obsoletion.json.PROVENANCE text eol=lf
+tests/fixtures/config_obsoletion_order.json text eol=lf
+tests/fixtures/config_obsoletion_order.json.PROVENANCE text eol=lf
