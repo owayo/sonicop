@@ -71,12 +71,12 @@ class ParameterObsoletionTest(unittest.TestCase):
             recorder.parameter_data(changed)
 
     def test_fixed_41_inputs_schema_coverage_and_selection(self):
-        """元rawを保つ40strict/157prefix1を空・重複・並べ替えで置換しない。"""
+        """元rawを保つ41strictを空・重複・並べ替えで置換しない。"""
         data = fixture()
         self.assertEqual(recorder._fixture(data["primary"], data["cases"]), data)
         forms = recorder.case_inputs()
         self.assertEqual(len(forms), 41)
-        self.assertEqual(sum(form["coverage"] == "strict" for form in forms), 40)
+        self.assertEqual(sum(form["coverage"] == "strict" for form in forms), 41)
         for only in ([], ["unknown"], ["warning-style", "warning-style"]):
             with self.assertRaises(ValueError):
                 recorder._selected_inputs(only)

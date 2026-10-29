@@ -18,6 +18,41 @@ use support::project::{
     project_without_pinned_ruby, report,
 };
 
+/// NewCops/部門の抑制が無い5つの既定設定テストで、実本家の通知を旧stderr期待の前へ置く。
+/// 実出力は削らず全byte比較し、既存の安全拒否理由とその改行もそのまま保持する。
+fn stderr_with_default_pending_notice(tail: &[u8]) -> Vec<u8> {
+    static NOTICE: std::sync::LazyLock<Vec<u8>> = std::sync::LazyLock::new(|| {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("fixtures/pending_cops.json")).unwrap();
+        let row = fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "force-minimum")
+            .unwrap();
+        let raw = row["stderr_hex"]
+            .as_str()
+            .unwrap()
+            .as_bytes()
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect::<Vec<_>>();
+        if cfg!(windows) {
+            raw
+        } else {
+            String::from_utf8(raw)
+                .unwrap()
+                .replace("\r\n", "\n")
+                .into_bytes()
+        }
+    });
+    let mut expected = NOTICE.clone();
+    expected.extend_from_slice(tail);
+    expected
+}
+
 /// Windows の Ruby File.write と同じ、補正済み通常コードの native 改行。
 /// 未補正・拒否・CRLF 原本・混在改行・DATA/NUL を持つ期待値には使わない。
 fn native_lf_disk_correction(expected: &[u8]) -> Vec<u8> {
@@ -1640,7 +1675,11 @@ fn crlf_continuations_are_corrected_at_the_original_byte_boundaries() {
                     },
                     "{cop} {original:?} {mode:?}"
                 );
-                assert!(output.stderr.is_empty(), "{cop} {original:?} {mode:?}");
+                assert_eq!(
+                    output.stderr,
+                    stderr_with_default_pending_notice(b""),
+                    "{cop} {original:?} {mode:?}"
+                );
             }
         }
     }
@@ -1704,7 +1743,9 @@ fn upstream_continuation_syntax_bugs_keep_safe_candidate_behavior() {
                 );
                 assert_eq!(
                     output.stderr,
-                    expected["stderr"].as_str().unwrap_or("").as_bytes()
+                    stderr_with_default_pending_notice(
+                        expected["stderr"].as_str().unwrap_or("").as_bytes()
+                    )
                 );
             }
         }
@@ -2398,12 +2439,9 @@ end
     assert_offenses(&output, &[]);
 }
 
-/// 既定の実行では stderr へ何も出さない。
-///
-/// 全 609 cop が実装済みなので、未実装を告げる警告が混ざる余地は無い。ここが崩れると
-/// stderr を読んでいる検証スクリプトや計測が巻き添えになる。
+/// 本家の既定設定は、実装済みcop数によらずpending159件の設定案内をstderrへ出す。
 #[test]
-fn a_default_run_stays_silent_on_stderr() {
+fn a_default_run_reports_upstream_pending_notice_on_stderr() {
     let directory = project(&[("example.rb", "value = 1\n")]);
     let output = command(directory.path())
         .args(["--force-default-config", "--format", "quiet"])
@@ -2411,11 +2449,7 @@ fn a_default_run_stays_silent_on_stderr() {
         .get_output()
         .clone();
 
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr),
-        "",
-        "既定実行の stderr に出力があった"
-    );
+    assert_eq!(output.stderr, stderr_with_default_pending_notice(b""));
 }
 
 /// 本家の全 cop が実装済みで、名前も 1 つ残らず一致している。
@@ -4899,7 +4933,10 @@ fn numeric_predicate_keeps_the_original_when_upstream_writes_invalid_ruby() {
                 } else {
                     ""
                 };
-                assert_eq!(output.stderr, expected_stderr.as_bytes());
+                assert_eq!(
+                    output.stderr,
+                    stderr_with_default_pending_notice(expected_stderr.as_bytes())
+                );
             }
         }
     }
@@ -5216,7 +5253,7 @@ fn numeric_predicate_preserves_blocks_on_disk() {
                         original.into_bytes()
                     }
                 );
-                assert!(output.stderr.is_empty());
+                assert_eq!(output.stderr, stderr_with_default_pending_notice(b""));
             }
         }
     }

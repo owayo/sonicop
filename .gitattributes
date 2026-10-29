@@ -357,3 +357,11 @@ scripts/conformance/test_record_progress_marker_colors.py text eol=lf
 tests/progress_marker_colors.rs text eol=lf
 tests/fixtures/progress_marker_colors.json text eol=lf
 tests/fixtures/progress_marker_colors.json.PROVENANCE text eol=lf
+
+# pending通知のANSI・改行・順序を元のrawで固定する。
+scripts/conformance/record_pending_cops.py text eol=lf
+scripts/conformance/test_record_pending_cops.py text eol=lf
+src/config/pending_cops.rs text eol=lf
+tests/pending_cops.rs text eol=lf
+tests/fixtures/pending_cops.json text eol=lf
+tests/fixtures/pending_cops.json.PROVENANCE text eol=lf

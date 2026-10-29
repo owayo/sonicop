@@ -1042,6 +1042,7 @@ fn try_run_with_warning_phase(
         .root()
         .ruby_runtime()
         .phase(cli.stderr, option_warning_color);
+    report_pending_cops(&cli, &config, option_warning_color)?;
     let correct_mode = cli.correct_mode();
     let PreparedSelection {
         mut selection,
@@ -2895,6 +2896,45 @@ fn docs_url(name: &str, config: &Config) -> String {
         .map(|character| character.to_ascii_lowercase())
         .collect();
     format!("{base}/cops_{page}{extension}#{fragment}")
+}
+
+fn report_pending_cops(cli: &Cli, config: &Config, color: bool) -> Result<()> {
+    if cli.enable_pending_cops || cli.disable_pending_cops {
+        return Ok(());
+    }
+    let mode = if cli.disable_all_cops {
+        Some(false)
+    } else {
+        cli.enable_all_cops.then_some(true)
+    };
+    let pending = config.pending_cops(mode)?;
+    if pending.is_empty() {
+        return Ok(());
+    }
+    let mut output = String::new();
+    let mut warn = |message: &str| {
+        // Rainbowのreset後にKernel.warnがLFを補う。banner内部の末尾LFは消さない。
+        if color {
+            output.push_str(&format!("\x1b[33m{message}\x1b[0m\n"));
+        } else {
+            output.push_str(message);
+            if !message.ends_with('\n') {
+                output.push('\n');
+            }
+        }
+    };
+    warn(
+        "The following cops were added to RuboCop, but are not configured. Please set Enabled to either `true` or `false` in your `.rubocop.yml` file.\n\nPlease also note that you can opt-in to new cops by default by adding this to your config:\n  AllCops:\n    NewCops: enable\n",
+    );
+    for (name, added) in pending {
+        warn(&format!(
+            "{name}: # new in {}",
+            crate::config::pending_cop_version(added)
+        ));
+        warn("  Enabled: true");
+    }
+    warn("For more information: https://docs.rubocop.org/rubocop/versioning.html");
+    write_output(&output, None, true)
 }
 
 fn list_enabled_cops(path: &Path, configs: &ConfigStore, mode: Option<bool>) -> Result<()> {

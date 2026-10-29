@@ -1,0 +1,63 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実CLI/API記録。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 /
+Rainbow 3.1.1 / RubyGems 4.0.20。2026-10-28の独立参照を2026-10-30に再検証した。
+候補の診断を期待値へ転記していない。採取OSはWindowsで、POSIXのRuby実測ではない。
+
+生成元: scripts/conformance/record_pending_cops.py
+再生成（固定版Ruby/gem導入後、work/outは存在しない別の保存先へ）:
+  python scripts/conformance/record_pending_cops.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new-fixture.json>
+namespace採取器のLOADER/VERSIONS/reference_environmentを共用し、候補exeは受け取らない。
+固定schema・全入力・全raw・API型と件数をcanonical SHAで検査してから本家を起動する。
+元参照の全fields/rawは維持し、schema:1と追加source3を加えた。
+旧list-target/list-enabledの比較制限は両方raw_modeへ昇格した。raw自体は変えない。
+独立参照SHA256: 61e9ddc7575619d00e5bdef5677fb90b87bc286887c36494ba631d2dba948826
+さらに古いverbose-versionのRuby2.6表示は、親gemspecの影響を受けた記録である。
+本fileは外部fresh workで実測したRuby2.7の独立参照を使い、版表示は製品identityを分ける。
+
+有限範囲:
+- 実CLI36条件。全件でexit/stderr全文/原本保持を検査する。
+- JSON29条件はmetadataの製品identity以外の全fieldsを比較する。
+  135のcache/parallel通知1条件は、既知の全prefixを一回だけ分離する。
+- stderr進捗1・show/docs2・list2の計5条件は全raw streamを比較する。
+- 版表示2条件はSonicop自身の正しいidentityと早期終了時の無通知を検査する。
+- default610節のEnabled型/VersionAddedとpending159の順序、qualified614名を保存する。
+- Version API18値とConfig policy5条件は別のAPI記録であり、CLI件数へ加算しない。
+  18値にはnil/false/true、数値、先行0、prerelease、大きな整数segmentを含む。
+  任意のRuby型や全Float表示、TTY、外部plugin全般の互換を主張しない。
+
+fresh採取は36CLIと8API processを全件正常終了し、fixtureの全fields/container bytesが一致した。
+原本のbytes/mtime_ns/modeはCLI108・policy API10の計118観測で全て不変。
+44個のprivate-run0.jsonへ実exit/stdout/stderr、原本before/after、report.jsonのlstat状態を保存した。
+report.jsonは全processで不生成。cache等の全ファイルシステム書込みが無いという意味ではない。
+全件完了後にoutをexclusive openする。既存entry、dangling symlink/junction、保存先alias、
+両方向親子、親欠落を本家起動前に拒否する。callerのリンク先を読まない。
+ENV4とambient NO_COLORだけを子copyから除き、GEM/PATH/OSと親環境を保持する。
+TERM=dumb、case固有のCLICOLOR_FORCE、専用XDG_CACHE_HOMEは測定条件として指定する。
+途中失敗はprivate観測だけを残し、完成fixtureとして公開しない。
+
+通知はversion/show/docs/list-enabledの早期退出後、Runner/discoveryより前。
+only Syntaxや対象0でも出し、enable/disable-pendingは抑止する。
+force-default後は切替後のschemaを使い、元のNewCops:disableを抑止に使わない。
+既定YAMLのslot順を使い、元raw/user/cache digestへ変更を加えない。
+旧名の実行時overlayとLint/Syntaxの実行特例は通知schemaから分ける。
+部門無効化、NewCopsの部門優先、default mode、VersionAdded nil/falseのN/Aを実録へ照合する。
+色reset後のKernel.warnの改行とbanner内部の末尾LFを保ち、IO text modeを一度だけ適用する。
+Windowsのnative回帰は元raw全体、他OSは既知のpipe CRLF→LFだけを投影する。
+原本の物理byteはIO投影へ含めない。
+
+既存CLIの5テストは元の入力・診断・補正byte・拒否理由を保ち、全通知だけを先頭に加えた。
+同じRust serializerの設定を使ったquiet、CRLF、continuation安全網、NumericPredicate安全網、
+NumericPredicate blockの実本家5代表も再実行し、全て同じ9680byte通知と原本10観測の保持を確認した。
+この5代表を36条件へ加算せず、補正の全組合せを新たにRuby実測したとも主張しない。
+#149の元force-default-warningは、元の全rawを保ってstderr全文比較へ昇格した。
+
+source SHA256はprimary.sourcesの7file、qualified_apiのRegistry、version_apiのRubyGemsに保持する。
+9fileは実際の導入済みsourceとも独立に照合した。
+RuboCop由来の通知/schema移植はMIT、全文licenses/RUBOCOP.txt。
+RubyGems由来のversion比較は同projectのMIT/Ruby License選択に従い、
+完全な利用条件を既存licenses/RUBY_LEGAL.txtのRubyGems節に保持する。NOTICEへ両方を登録した。
+JSON containerとcollectorはLF固定。hex内のANSI/CRLFと入力byteは元値を保つ。
+
+fixture SHA256: 3c533dae256e006175969f5eba33f5e9f706d78b2b7f47168ee9beffceae9035
+collector SHA256: 4375b2f344d3f171f2b4fe201dea3ee36dddcb40b4a9f1d4c1d97e7e9f43c334
+contract SHA256: 48a6a50037814d6fe8143926b9af189096fb9664a5e6423665b5208fe473252b
