@@ -70,7 +70,7 @@ fn fixture() -> Value {
     );
     let expected = [
         ("json", 34),
-        ("ambiguity_body", 4),
+        ("ambiguity_bytes", 4),
         ("rejection_envelope", 3),
         ("known_residual", 1),
     ];
@@ -182,14 +182,12 @@ fn run(case: &Value) -> (tempfile::TempDir, Output) {
     (directory, output)
 }
 
-fn ambiguity_body(raw: &[u8], directory: &Path) -> String {
-    let text = String::from_utf8(raw.to_vec())
-        .unwrap()
-        .replace("\r\n", "\n");
+fn ambiguity_bytes(raw: &[u8], directory: &Path) -> Vec<u8> {
+    let text = String::from_utf8(raw.to_vec()).unwrap();
     // 相対configの出典は子のcwd表記なので、Windowsの8.3名を長名へ戻さない。
-    #[cfg(windows)]
+    #[cfg(not(target_os = "macos"))]
     let path = directory.join("config.yml");
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
     let path = fs::canonicalize(directory.join("config.yml")).unwrap();
     let origin = path.to_string_lossy().replace('\\', "/");
     let origin = origin.strip_prefix("//?/").unwrap_or(&origin);
@@ -199,6 +197,7 @@ fn ambiguity_body(raw: &[u8], directory: &Path) -> String {
         &needle,
         " used in <cwd>/config.yml needs department qualifier.",
     )
+    .into_bytes()
 }
 
 #[test]
@@ -232,14 +231,14 @@ fn ambiguous_names_reject_after_the_measured_namespace_warning() {
         .as_array()
         .unwrap()
         .iter()
-        .filter(|case| case["coverage"] == "ambiguity_body")
+        .filter(|case| case["coverage"] == "ambiguity_bytes")
     {
         let (directory, output) = run(case);
         assert!(output.stdout.is_empty(), "{}", case["id"]);
-        // 一般Errorの末尾text modeは未統合の別境界。ここでは警告順・本文・終了・原本を比較する。
+        // #150で末尾もnative化したため、元のstderr全bytesへ比較を昇格する。
         assert_eq!(
-            ambiguity_body(&output.stderr, directory.path()),
-            case["stderr_lf"],
+            ambiguity_bytes(&output.stderr, directory.path()),
+            native_text(&bytes(case["stderr_hex"].as_str().unwrap())),
             "{}",
             case["id"]
         );
@@ -381,23 +380,12 @@ mod windows_origins {
                     &short,
                     &short_file,
                 );
-                if case["report"].is_null() {
-                    // 一般Error末尾だけは別件#150。2拒否は動的rootを戻した本文で比べる。
-                    assert_eq!(
-                        String::from_utf8(output.stderr)
-                            .unwrap()
-                            .replace("\r\n", "\n"),
-                        expected_stderr,
-                        "{id}"
-                    );
-                } else {
-                    // 正常22件は本家pipeのCRLFも含め、警告の全bytesを照合する。
-                    assert_eq!(
-                        output.stderr,
-                        expected_stderr.replace('\n', "\r\n").as_bytes(),
-                        "{id}"
-                    );
-                }
+                // 元の2拒否も含め24件すべて、警告と最終errorのCRLFを比較する。
+                assert_eq!(
+                    output.stderr,
+                    expected_stderr.replace('\n', "\r\n").as_bytes(),
+                    "{id}"
+                );
                 if case["report"].is_null() {
                     assert!(output.stdout.is_empty(), "{id}");
                 } else {

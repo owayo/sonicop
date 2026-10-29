@@ -11,7 +11,7 @@ ENV4除去とgem pinningはrecord_config_cop_namespaces.pyを共用し、GEM/PAT
 
 24条件 = 明示設定14 + 自動探索/parent reload10。
 - 正常22件はidentity以外の全JSON fields、exit、警告の全CRLF bytes、全入力file bytesを照合する。
-- 曖昧名2件はstdout空・exit2・警告順/本文・未変更原本。一般Errorの末尾text modeは既存の別件#150として本文で照合する。
+- 曖昧名2件は#150で末尾を含む全stderr CRLF比較へ昇格。stdout空・exit2・未変更原本も照合する。
 - relative、同表記absolute、異表記absolute、relative inherit、同じfileのalias2辺の両順序、
   大文字のfilename、8.3 filename、nested/root targetのdiscovery、parent Exclude再読込を含む。
 - <long>はGetLongPathNameWによる全長名、<short>はGetShortPathNameWの実alias、

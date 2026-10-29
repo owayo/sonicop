@@ -1,0 +1,816 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "cases": [
+    {
+      "id": "multiple",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "wrong",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nWrong/MultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "4572726f723a20416d626967756f757320636f70206e616d65206057726f6e672f4d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a57726f6e672f4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `Wrong/MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "self",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSelfAssignment:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f722053656c6641737369676e6d656e742e0d0a4572726f723a20416d626967756f757320636f70206e616d65206053656c6641737369676e6d656e7460207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f53656c6641737369676e6d656e74206f72205374796c652f53656c6641737369676e6d656e743f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a53656c6641737369676e6d656e743a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `SelfAssignment` used in <root>/config.yml needs department qualifier. Did you mean Lint/SelfAssignment or Style/SelfAssignment?",
+      "coverage": "strict"
+    },
+    {
+      "id": "snake",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nmultiple_comparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a6d756c7469706c655f636f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "color-option",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--color",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "force-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "force-no-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--no-color",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "inherit-force",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\n",
+        "parent.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "706172656e742e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f706172656e742e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20706172656e742e796d6c0a",
+        "parent.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/parent.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "root-color-option",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "root-forced",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "nested-color",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stdout_json": true,
+      "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a",
+        "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "nested/a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "deferred_152"
+    },
+    {
+      "id": "nested-no-color",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--no-color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stdout_json": true,
+      "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a",
+        "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "nested/a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/.rubocop.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "deferred_152"
+    },
+    {
+      "id": "nested-inherit-color",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: parent.yml\n",
+        "nested/parent.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stdout_json": true,
+      "stderr_hex": "6e65737465642f706172656e742e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f6e65737465642f706172656e742e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a",
+        "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a696e68657269745f66726f6d3a20706172656e742e796d6c0a",
+        "nested/parent.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "nested/a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/nested/parent.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "deferred_152"
+    },
+    {
+      "id": "nested-cwd",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "../config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": "nested",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "3c726f6f743e2f636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "nested/a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "out-absent",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "out-sentinel",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n",
+        "report.json": "sentinel\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a",
+        "report.json": "73656e74696e656c0a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "stdin",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": "783d310d0a",
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "version",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--version",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "notice",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--no-parallel",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "2d502f2d2d706172616c6c656c206973206265696e672069676e6f7265642062656361757365206974206973206e6f7420636f6d70617469626c652077697468202d2d63616368652066616c73652e0d0a",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "priority-obsolete",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\nLayout/TrailingBlankLines:\n  Enabled: false\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a4c61796f75742f547261696c696e67426c616e6b4c696e65733a0a2020456e61626c65643a2066616c73650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "priority-parameter",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\nLayout/SpaceAroundOperators:\n  WrongKey: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "ambiguity",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "636f6e6669672e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c726f6f743e2f636f6e6669672e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a202057726f6e674b65793a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "message": "Ambiguous cop name `MultipleComparison` used in <root>/config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?",
+      "coverage": "strict"
+    },
+    {
+      "id": "canonical",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLint/MultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "normal",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stdout_json": true,
+      "stderr_hex": "",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c696e742f4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "priority-cache",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nMultipleComparison:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "invalid",
+        "--config",
+        "config.yml",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "cwd": ".",
+      "stdin_hex": null,
+      "kind": "option",
+      "exit": 2,
+      "stdout_hex": "",
+      "stdout_json": false,
+      "stderr_hex": "2d432f2d2d636163686520617267756d656e74206d7573742062652074727565206f722066616c73650d0a",
+      "after_hex": {
+        "Gemfile": "",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+        "a.rb": "783d310a"
+      },
+      "coverage": "strict"
+    }
+  ],
+  "sources": {
+    "lib/rubocop/cli.rb": "7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933",
+    "lib/rubocop/cop/registry.rb": "41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7",
+    "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e"
+  }
+}
