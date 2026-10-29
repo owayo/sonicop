@@ -52,7 +52,7 @@ CASE_IDS = (
     "selection-config",
     "unvisited-config",
 )
-INPUT_SHA256 = "cf39647d4c8021be0617b6317c3141030c31a330ac595e407009372370a0e70a"
+INPUT_SHA256 = "5e8c7c8414c29f5b1b6d1bd61122520eddf519689db20de1ce61320c2b10a8db"
 PARALLEL = {"correct-parallel", "cache-parallel", "stderr-parallel", "unvisited-config"}
 EARLY = {
     "discovery-directory",

@@ -343,3 +343,10 @@ tests/fixtures/runtime_requires*.json.PROVENANCE text eol=lf
 
 tests/fixtures/default_cop_*.json text eol=lf
 tests/fixtures/default_cop_*.json.PROVENANCE text eol=lf
+
+# 一覧のstream/File bytesと原本属性を、実CLIの19条件から再生成する。
+scripts/conformance/record_disk_listing.py text eol=lf
+scripts/conformance/test_record_disk_listing.py text eol=lf
+tests/disk_listing.rs text eol=lf
+tests/fixtures/disk_listing.json text eol=lf
+tests/fixtures/disk_listing.json.PROVENANCE text eol=lf

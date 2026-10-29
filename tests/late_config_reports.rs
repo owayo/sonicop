@@ -130,7 +130,6 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
             "correct-parallel" | "cache-parallel" | "stderr-parallel" | "unvisited-config" => {
                 "deferred_158"
             }
-            "list-files" => "deferred_155",
             "out-is-directory" => "open_envelope",
             _ => "strict",
         };
@@ -199,17 +198,7 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
         }
         let actual = template(&output.stdout, root);
         let expected_stdout = native(&expected["stdout_hex"]);
-        if case["coverage"] == "deferred_155" {
-            if String::from_utf8(actual.clone())
-                .unwrap()
-                .replace("\r\n", "\n")
-                != String::from_utf8(expected_stdout.clone())
-                    .unwrap()
-                    .replace("\r\n", "\n")
-            {
-                differences.push(format!("{id}: listed paths differ"));
-            }
-        } else if actual != expected_stdout {
+        if actual != expected_stdout {
             differences.push(format!("{id}: stdout {actual:?} != {expected_stdout:?}"));
         }
         let stderr = template(&output.stderr, root);
@@ -287,7 +276,7 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
         }
     }
     assert_eq!(executed, if cfg!(windows) { 38 } else { 34 });
-    assert_eq!(strict, 32);
+    assert_eq!(strict, 33);
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
 

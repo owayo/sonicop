@@ -26,6 +26,18 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/cli.rs (target and enabled-cop listing output)
+  tests/fixtures/disk_listing.json
+      Target listing follows RuboCop 1.89.0 Runner#list_files and CLI stream
+      routing, including Windows text mode. Nineteen actual CLI records keep
+      full stream/File bytes, JSON and stdin suffixes, output preservation and
+      original attributes. Four existing listing assertions were independently
+      remeasured for stdout order and CRLF, exit and original preservation;
+      their pending-cop notices are outside that comparison.
+      Regenerate with scripts/conformance/record_disk_listing.py. Adjacent
+      .PROVENANCE records fixed sources, runtime, guards and comparison scope.
+      Full licence: licenses/RUBOCOP.txt.
+
   src/config/mod.rs, src/engine.rs, src/rules/mod.rs, src/directives.rs, src/cli.rs
   tests/fixtures/default_cop_modes.json
   tests/fixtures/default_cop_queries.json
@@ -37,7 +49,8 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       API observations, and three list records retain all original raw fields.
       Non-Windows mode tests explicitly select EndOfLine's crlf style to match
       Windows native style; all 45 projected inputs were checked with RuboCop.
-      The list tests document the existing Windows newline projection (#155).
+      The three enabled-cop list tests compare full Windows raw bytes; other
+      hosts project only the known pipe text mode.
       Regenerate with scripts/conformance/record_default_cop_modes.py.
       Adjacent .PROVENANCE files describe runtime/source hashes, input guards,
       complete reports and original-byte preservation. Full licence:

@@ -346,7 +346,7 @@ def validate_fixture(data, group):
         raise ValueError("固定入力が変わりました")
     for row in rows:
         if type(row.get("exit")) is not int or row.get("coverage") != (
-            "list_newline_155" if group == "lists" else "full_report"
+            "full_bytes" if group == "lists" else "full_report"
         ):
             raise ValueError("終了値/比較範囲が変わりました")
         if bytes.fromhex(row["stderr_hex"]):

@@ -29,8 +29,9 @@ CLI36の元raw/全fieldsは変更しない。show-new/pending-showのcatalog Exc
 比較範囲:
 - JSON27: native engine/spec identity確認後、metadata以外の全files/summary/offense、exit/stderr全bytesを照合する。
 - fatal1: stdout空/stderr全bytes/exit2と原本を照合する。
-- 早期/catalog/list7: 実版identity、catalogのsection/Enabled、listのtext transportだけの有限投影。
-  全stdout互換とは呼ばず、list-targetsのWindows改行差#155は元rawのまま保持する。
+- 早期/catalog6: 実版identityとcatalogのsection/Enabledだけを有限比較し、全stdout互換とは呼ばない。
+- list-targets1: #155でWindowsの元stdout/stderr全bytesとexitへ昇格した。他OSは既知のIO改行だけを投影する。
+  元rawは保持し、一覧の行順・終端改行・空行を削除しない。
 - stderr-progress1: #152でcomparisonだけlifecycle_bytesへ昇格した。
   元のInspecting→Using→file_finished→finishedというstdout/stderr全byteを照合し、元rawは変えない。
 元記録のprivate whole-section nil/bool3とdisable-all control1は36成功へ含めず、現在候補を期待へ固定しない。

@@ -195,12 +195,18 @@ fn run_cases(fixture: Value, ids: &[&str], windows_native_style: bool) {
         };
         assert_eq!(output.stderr, stderr, "{} stderr", case["id"]);
         if case["kind"] == "list" {
-            assert_eq!(case["coverage"], "list_newline_155");
-            // #155の既存println輸送だけを投影し、行順・件数・最後のLFや空行は削らない。
-            let expected = String::from_utf8(bytes(&case["stdout_hex"]))
-                .unwrap()
-                .replace("\r\n", "\n");
-            assert_eq!(output.stdout, expected.as_bytes(), "{}", case["id"]);
+            assert_eq!(case["coverage"], "full_bytes");
+            let expected = bytes(&case["stdout_hex"]);
+            // Windowsは原raw全体、他OSはpipeのtext mode差だけを投影する。
+            let expected = if cfg!(windows) {
+                expected
+            } else {
+                String::from_utf8(expected)
+                    .unwrap()
+                    .replace("\r\n", "\n")
+                    .into_bytes()
+            };
+            assert_eq!(output.stdout, expected, "{}", case["id"]);
         } else {
             assert_eq!(case["coverage"], "full_report");
             let mut actual: Value = serde_json::from_slice(&output.stdout).unwrap();

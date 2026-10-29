@@ -1417,10 +1417,7 @@ fn inspect_rejected_inputs(
                 debug_report(cwd, configs.root(), targets.len(), parallel)?;
             }
             if cli.list_target_files {
-                for target in targets {
-                    let line = format!("{}\n", smart_path(&target, cwd));
-                    io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
-                }
+                write_target_listing(&targets, cwd, cli.stderr)?;
                 return Ok(Inspection::ListedStdin { bytes });
             }
             let Some(first) = targets.first() else {
@@ -1455,11 +1452,7 @@ fn inspect_rejected_inputs(
         debug_report(cwd, configs.root(), targets.len(), parallel)?;
     }
     if cli.list_target_files {
-        let mut output = io::stdout().lock();
-        for path in targets {
-            let line = format!("{}\n", smart_path(&path, cwd));
-            output.write_all(&native_textmode_bytes(line.as_bytes()))?;
-        }
+        write_target_listing(&targets, cwd, cli.stderr)?;
         return Ok(Inspection::ListedTargets);
     }
     let Some(first) = targets.first() else {
@@ -1721,14 +1714,7 @@ fn run_live_inspection(
     // ProjectIndexLoaderはformatterを開く前。通常fileの設定観測をこの段階へ先送りしない。
     *selection = selection.with_project_index(&targets, configs)?;
     if cli.list_target_files {
-        for path in &targets {
-            let line = format!("{}\n", smart_path(path, cwd));
-            if stdin_bytes.is_some() || selection_failure.is_some() {
-                io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
-            } else {
-                print!("{line}");
-            }
-        }
+        write_target_listing(&targets, cwd, cli.stderr)?;
         if let Some(bytes) = stdin_bytes {
             let run = inspect_stdin_directory(
                 &[],
@@ -2013,9 +1999,7 @@ fn inspect_inputs(
         }
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
-            for path in targets {
-                println!("{}", smart_path(&path, cwd));
-            }
+            write_target_listing(&targets, cwd, cli.stderr)?;
             return Ok(Inspection::ListedTargets);
         }
         if !targets.is_empty() {
@@ -2057,10 +2041,7 @@ fn inspect_inputs(
         }
         *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
-            for path in targets {
-                let line = format!("{}\n", smart_path(&path, cwd));
-                io::stdout().write_all(&native_textmode_bytes(line.as_bytes()))?;
-            }
+            write_target_listing(&targets, cwd, cli.stderr)?;
             return Ok(Inspection::ListedStdin { bytes });
         }
         if !targets.is_empty() {
@@ -2925,7 +2906,8 @@ fn list_enabled_cops(path: &Path, configs: &ConfigStore, mode: Option<bool>) -> 
         .collect::<Vec<_>>();
     names.sort();
     for name in names {
-        println!("{name}");
+        // この情報表示はRunnerのstderr切替より前なので、常にstdoutへ出す。
+        write_output(&format!("{name}\n"), None, false)?;
     }
     Ok(())
 }
@@ -3269,6 +3251,14 @@ fn csv(value: Option<&str>) -> Vec<String> {
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
         .collect()
+}
+
+fn write_target_listing(paths: &[PathBuf], cwd: &Path, stderr: bool) -> Result<()> {
+    // Runner#list_filesのputsと同じく、一覧も宛先のtext modeを一度だけ通す。
+    for path in paths {
+        write_output(&format!("{}\n", smart_path(path, cwd)), None, stderr)?;
+    }
+    Ok(())
 }
 
 fn write_output(output: &str, path: Option<&Path>, stderr: bool) -> Result<()> {

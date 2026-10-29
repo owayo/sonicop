@@ -604,7 +604,7 @@
         "Style/YodaCondition",
         "Style/ZeroLengthPredicate"
       ],
-      "coverage": "list_newline_155"
+      "coverage": "full_bytes"
     },
     {
       "id": "list-enable-only-except",
@@ -1251,7 +1251,7 @@
         "Style/YodaExpression",
         "Style/ZeroLengthPredicate"
       ],
-      "coverage": "list_newline_155"
+      "coverage": "full_bytes"
     },
     {
       "id": "list-disable-only",
@@ -1288,7 +1288,7 @@
       "cop_names": [
         "Lint/Syntax"
       ],
-      "coverage": "list_newline_155"
+      "coverage": "full_bytes"
     }
   ]
 }

@@ -1351,7 +1351,10 @@ fn directory_discovery_uses_the_starting_directories_config() {
         .get_output()
         .stdout
         .clone();
-    assert_eq!(root, b"nested/keep.rb\nnested/skip.rb\n");
+    assert_eq!(
+        root,
+        native_textmode_expected(b"nested/keep.rb\nnested/skip.rb\n")
+    );
 
     let nested = command(directory.path())
         .args(["-L", "nested"])
@@ -1360,7 +1363,7 @@ fn directory_discovery_uses_the_starting_directories_config() {
         .get_output()
         .stdout
         .clone();
-    assert_eq!(nested, b"nested/keep.rb\n");
+    assert_eq!(nested, native_textmode_expected(b"nested/keep.rb\n"));
 }
 
 #[test]
@@ -2228,13 +2231,12 @@ fn list_target_files_preserves_relative_paths_and_rubocop_order() {
         ("lib.rb", "puts 1\n"),
     ]);
 
-    // RuboCop walks the arguments in the order they were given and only puts each directory's own
-    // expansion in order, so the file named second stays second. Measured against 1.89.0.
+    // 本家1.89.0は引数順を保ち、各directoryの展開内だけを並べる。実CLIで同じ入力を再測定した。
     command(directory.path())
         .args(["--list-target-files", "lib", "lib.rb"])
         .assert()
         .success()
-        .stdout("lib/a.rb\nlib.rb\n");
+        .stdout(native_textmode_expected(b"lib/a.rb\nlib.rb\n"));
 }
 
 #[test]
@@ -2254,7 +2256,7 @@ fn list_target_files_applies_relative_excludes_and_skips_hidden_files() {
         .args(["--list-target-files", "."])
         .assert()
         .success()
-        .stdout("good.rb\n");
+        .stdout(native_textmode_expected(b"good.rb\n"));
 }
 
 /// trailing whitespace を a.rb に 3 件 / b.rb に 1 件持つ、offense 4 件 ・
@@ -7009,28 +7011,11 @@ fn config_parameter_warnings_match_the_upstream_cli() {
                         "{name}"
                     );
                 } else if let Some(wanted) = expected["stdout"].as_str() {
-                    if cfg!(windows)
-                        && case["args"]
-                            .as_array()
-                            .unwrap()
-                            .iter()
-                            .any(|arg| arg == "--list-target-files")
-                    {
-                        // 対象一覧の Windows 改行差 #155 は別件。ここでは警告と対象名を検査する。
-                        assert_eq!(
-                            String::from_utf8(output.stdout)
-                                .unwrap()
-                                .replace("\r\n", "\n"),
-                            wanted,
-                            "{name}"
-                        );
-                    } else {
-                        assert_eq!(
-                            output.stdout,
-                            native_textmode_expected(wanted.as_bytes()),
-                            "{name}"
-                        );
-                    }
+                    assert_eq!(
+                        output.stdout,
+                        native_textmode_expected(wanted.as_bytes()),
+                        "{name}"
+                    );
                 }
             }
             for (path, body) in case["files"].as_object().unwrap() {
