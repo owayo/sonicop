@@ -100,6 +100,26 @@ pub(super) fn suggestion_dictionary() -> impl Iterator<Item = &'static str> {
         .map(String::as_str)
 }
 
+pub(super) fn qualified_for_pending(
+    name: &str,
+    runtime: Option<&super::runtime::Snapshot>,
+) -> bool {
+    // qualified_cop?は、同じshort名を持つ最初の部門候補とのBadge一致を使う。
+    let badge = crate::cop_name::parse_badge(name).0;
+    let short = badge.rsplit('/').next().unwrap_or("");
+    let departments = runtime.map_or(&REGISTRY.departments, |snapshot| &snapshot.departments);
+    departments
+        .iter()
+        .map(|department| format!("{department}/{short}"))
+        .find(|candidate| {
+            runtime.map_or_else(
+                || REGISTRY.names.contains(candidate),
+                |snapshot| snapshot.names.contains(candidate),
+            )
+        })
+        .is_some_and(|candidate| candidate == badge)
+}
+
 pub(super) enum Origin<'a> {
     File(&'a Path),
     Remote(&'a str),

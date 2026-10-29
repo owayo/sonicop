@@ -26,6 +26,18 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/pending_cops.rs, src/config/namespaces.rs, src/config/mod.rs
+  src/cli.rs, tests/fixtures/pending_cops.json
+      PendingCopsReporter and the raw Config pending-cop view adapted from
+      RuboCop 1.89.0. Thirty-six actual CLI conditions preserve full stderr;
+      29 compare complete JSON reports, five compare full raw streams, and
+      two retain Sonicop's own version identity. Separate records retain the
+      610-row default schema, 159 ordered pending cops, 614 Registry queries
+      and five Config policy observations. Regenerate with
+      scripts/conformance/record_pending_cops.py. The adjacent .PROVENANCE
+      records source hashes, input preservation and finite comparison scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/formatter/lifecycle.rs (Progress severity markers)
   tests/fixtures/progress_marker_colors.json
       Per-file Progress marker colors follow RuboCop 1.89.0 ProgressFormatter
@@ -120,8 +132,8 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
   tests/fixtures/parameter_obsoletion_getter_color.json
       Sixty ordered ConfigObsoletion parameter and EnforcedStyle API rules,
       with 420 presence, value and minimum-version API probes, ported from
-      RuboCop 1.89.0. Forty-one actual CLI records retain 40 strict comparisons
-      separately from one pending-cop notice prefix comparison. Separate
+      RuboCop 1.89.0. All forty-one actual CLI records now compare complete
+      stderr, including the original pending-cop notice after obsoletion. Separate
       minimum-getter evidence retains 13 CLI/API conditions, eight getter
       values and two color phases; Ruby backtraces and deferred parser/report
       lifecycle differences are outside the finite prefix comparison.
@@ -417,6 +429,16 @@ Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
       repository is MIT; the two are not obviously compatible, so it is left
       out rather than reasoned about. Only permissively licensed corpora are
       used, and dropping mastodon cost 218 of 10,966 patterns.
+
+RubyGems -- https://github.com/rubygems/rubygems -- MIT or Ruby License
+  Copyright Chad Fowler, Rich Kilmer, Jim Weirich and others
+
+  src/config/pending_cops.rs (version coverage)
+  tests/fixtures/pending_cops.json (18 version API values)
+      RubyGems 4.0.20 Gem::Version parsing and canonical segment comparison
+      adapted for Config#new_cops_covered?. Numeric segments retain arbitrary
+      decimal length. The complete RubyGems licence terms are already kept
+      in the RubyGems section of licenses/RUBY_LEGAL.txt.
 
 Ruby Windows argv tokenizer -- Artistic-1.0-Perl
   Copyright (c) 1993 Intergraph Corporation

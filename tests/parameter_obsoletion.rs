@@ -103,17 +103,16 @@ fn parameter_errors_and_warnings_match_real_cli_bytes_and_lifecycle() {
             .iter()
             .filter(|row| row["coverage"] == "strict")
             .count(),
-        40
+        41
     );
     assert_eq!(
         cases
             .iter()
             .filter(|row| row["coverage"] == "prefix_157")
             .count(),
-        1
+        0
     );
     let mut fatal = 0;
-    let mut report_only = 0;
     for case in cases {
         let id = case["id"].as_str().unwrap();
         let directory = tempfile::tempdir().unwrap();
@@ -154,22 +153,16 @@ fn parameter_errors_and_warnings_match_real_cli_bytes_and_lifecycle() {
             case["exit"].as_i64().map(|code| code as i32),
             "{id}"
         );
-        if case["coverage"] == "prefix_157" {
-            assert_eq!(id, "force-default-warning");
-            assert_eq!(
-                case["comparison"],
-                "obsoletion_prefix_only_pending_new_cops_notice"
-            );
-            // 本家の後続NewCops通知差は全rawに残し、parameter互換へ加算しない。
-            report_only += 1;
+        assert_eq!(case["coverage"], "strict");
+        assert_eq!(
+            actual.stderr,
+            reference_pipe(bytes(case["stderr_hex"].as_str().unwrap())),
+            "{id}"
+        );
+        if id == "force-default-warning" {
+            assert_eq!(case["comparison"], "all_streams");
             let prefix = reference_pipe(bytes(case["obsoletion_prefix_hex"].as_str().unwrap()));
             assert!(actual.stderr.starts_with(&prefix), "{id}");
-        } else {
-            assert_eq!(
-                actual.stderr,
-                reference_pipe(bytes(case["stderr_hex"].as_str().unwrap())),
-                "{id}"
-            );
         }
         let report_path = directory.path().join("report.json");
         assert_eq!(
@@ -225,7 +218,6 @@ fn parameter_errors_and_warnings_match_real_cli_bytes_and_lifecycle() {
         }
     }
     assert_eq!(fatal, 10);
-    assert_eq!(report_only, 1);
 }
 
 #[test]

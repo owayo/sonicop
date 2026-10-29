@@ -16,11 +16,11 @@ probeは不存在/false/null/一致値/別値/対象Ruby3.1/3.2。key存在とst
 minimum_ruby_version判定はkey取得より先。getterのto_fと最終supported版の検証を分離する。
 表はconfig/obsolete_parameters.jsonへ同じ実APIから生成し、旧値の自動移行はしない。
 
-元41CLIの既存fields/rawは変更せず、schema:1と各caseのcoverageだけを追加した。
-- strict40: fatal10と正常30。exit/stdout/stderr全native bytes、out、全原本と既存outのbytes/mtimeを比較する。
-- prefix_157の正常1: force-default-warning。元argv/rawを保ち、obsoletion prefixと全JSON/out/原本を比較する。
-  後続NewCops通知の既存#157差をstrict成功へ数えない。#157完了後、同じrawから全文比較へ昇格できる。
-  別ID force-default-warning-pending-enabledはenable-pending追加で測定した独立strict対照であり、元入力の置換ではない。
+元41CLIの入力と全rawは変更せず、schema:1と比較scopeを記録した。
+#149当時はstrict40とprefix_157正常1に分けていたが、#157の通知実装後はstrict41となった。
+元force-default-warningもexit/stdout/stderr全文、out、全原本と既存outの保持を比較する。
+comparisonだけをall_streamsへ変更し、元obsoletion_prefix_hexは追加の境界検査に保持した。
+別ID force-default-warning-pending-enabledは、元入力へflagを足した別の実測対照のまま維持する。
 正常31のJSONはnative engine/spec identity確認後metadata以外の全fields/summary/offensesを照合する。
 60種類全部を実CLIで実行したという意味ではない。実CLI41とAPI60/420の有限集合を分けて数える。
 Unix Rust回帰は参照pipeのCRLFだけをLFへ投影し、原本/JSON値へ適用しない。
@@ -39,7 +39,7 @@ quiet Config APIへ新しい拒否/出力を足さず、元値/metadataを返す
 追加のminimum getter8・priority13・色2は別の隣接fixture/PROVENANCEに分離し、上の41/420へ加算しない。
 remote文書の最低版推定に使うcwd fallbackは未計測。local推定の成功に含めず、既存remote warning origin差#201とも区別する。
 Renamed warning2の移行は#151のrenamed_config.jsonで別に実測し、併存時は同じwarning本文へ集約する。
-実loaded plugin metadataの#153対照は別fixtureへ分離する。既知通知#157とlate lifecycle#152も変更しない。
+実loaded plugin metadataの#153対照は別fixtureへ分離する。late lifecycle#152の範囲は維持する。
 
 2026-10-28原参照container SHA256: 8a6d1294a0d7823d3ecce7d48e8fc66398db63f768761a8c9f41d3ab10a7cd9e
 元source SHA256とruntimeはprimary.sources/primary.gemsへ保存する。
@@ -47,10 +47,14 @@ Renamed warning2の移行は#151のrenamed_config.jsonで別に実測し、併�
 2026-10-29に公開collectorのfresh逐次再採取を初回終了0で完了した。
 元41の全既存fields/rawとAPI60/420が一致し、schema/coverage追加済みfixtureと埋込み表はcontainer bytesも完全一致した。
 
-fixture SHA256: f6d003b2e61a03d15864444cba97354470a2d70ccba81a7a87b7b5da72f5182b
-collector SHA256: 8c7d80b57058a482f59386a0c50becba64223fbb952dbef3208a2defba942608
+fixture SHA256: 36df716c4b363309e9a504a0df8faa633cbf93491a8b839532180cd4a036dcac
+collector SHA256: 12b64fada58e2eec9270b13354f1fe1c11d3ad99e7b66e57afab2903878575ab
 
 #153の更新: 宣言名からの推測を廃止し、明示拡張だけ実Rubyのloaded_features /
 loaded_plugins.about.name / Registryを共有runtimeから観測する。通常のRuby無し経路は維持する。
 本fileの元参照と比較範囲は変更せず、拡張の実4CLI/4APIと別25境界は
 runtime_requires.json / runtime_requires_boundaries.jsonへ分離した。
+
+#157の更新: force-default-warningを元のargv/全rawのままstrictへ昇格し、41件全てのstderrを全文比較する。
+比較用scopeだけを変更し、obsoletion_prefix_hexも保持した。collectorの固定入力/範囲と契約テストも同期した。
+元force-default-warning一件は変更後の公開collectorでも再実行し、実API60/420と選択caseの全fields/rawが一致した。

@@ -4,6 +4,7 @@ mod loader;
 mod namespaces;
 mod obsoletion;
 mod paths;
+mod pending_cops;
 mod runtime;
 mod store;
 mod unrecognized;
@@ -34,6 +35,7 @@ pub(crate) use loader::MissingConfigError;
 pub(crate) use namespaces::AmbiguousConfigCopError;
 pub(crate) use obsoletion::ObsoleteConfigError;
 pub(crate) use obsoletion::TargetRubyGetterError;
+pub(crate) use pending_cops::display_version as pending_cop_version;
 pub(crate) use runtime::{RuntimeError, RuntimeSession};
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
@@ -468,6 +470,11 @@ impl Config {
         if name == "Lint/Syntax" {
             return Cow::Owned(Value::Bool(true));
         }
+        self.cop_schema_enabled_value(name, mode)
+    }
+
+    // pending_copsはHashの値を見るため、旧名の実行時overlayとSyntax特例を含めない。
+    fn cop_schema_enabled_value(&self, name: &str, mode: Option<bool>) -> Cow<'_, Value> {
         let configured = self.user_cop_mapping(name);
         let enabled = configured.and_then(|cop| cop.get("Enabled"));
         let department = self
@@ -497,10 +504,12 @@ impl Config {
             };
         }
         let original = || {
-            self.cop_raw_value(name, "Enabled").map_or(
-                Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault"))),
-                Cow::Borrowed,
-            )
+            self.cop_mapping(name)
+                .and_then(|cop| cop.get("Enabled"))
+                .map_or(
+                    Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault"))),
+                    Cow::Borrowed,
+                )
         };
         if disabled {
             // departmentを有効にすると、そのcop群は一律trueでなく元の既定値へ戻る。
@@ -516,6 +525,10 @@ impl Config {
             return Cow::Owned(Value::Bool(true));
         }
         original()
+    }
+
+    pub(crate) fn pending_cops(&self, mode: Option<bool>) -> Result<Vec<(String, Option<&Value>)>> {
+        pending_cops::pending(self, mode)
     }
 
     pub fn rule_safe(&self, name: &str) -> bool {

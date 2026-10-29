@@ -298,8 +298,8 @@ def case_inputs():
         STYLE,
         flags=["--force-default-config", "--only", "Lint/Syntax"],
     )
-    # 旧入力のNewCops通知差も全rawへ残し、このcaseはobsoletion prefixだけを判定する。
-    cases[-1]["comparison"] = "obsoletion_prefix_only_pending_new_cops_notice"
+    # #157の通知実装後は、旧prefixと後続通知の全rawを比較する。
+    cases[-1]["comparison"] = "all_streams"
     add("warning-force-color", STYLE, env={"CLICOLOR_FORCE": "1"})
     add("warning-multiple-force-color", MULTI, "3.2", env={"CLICOLOR_FORCE": "1"})
     add(
@@ -351,7 +351,7 @@ def case_inputs():
         flags=["--force-default-config", "--enable-pending-cops", "--only", "Lint/Syntax"],
     )
     for case in cases:
-        case["coverage"] = "prefix_157" if case["id"] == "force-default-warning" else "strict"
+        case["coverage"] = "strict"
     if tuple(case["id"] for case in cases) != CASE_IDS:
         raise ValueError("incomplete fixed scenario identity")
     return cases
@@ -612,7 +612,7 @@ def record(ruby, form, work=None):
             "out_hex": out.read_bytes().hex() if out.exists() else None,
             "inputs_bytes_mtime_unchanged": True,
         }
-        if form["coverage"] == "prefix_157":
+        if form["id"] == "force-default-warning":
             prefix, marker, _ = done.stderr.partition(b"The following cops were added to RuboCop,")
             if not (marker and prefix.startswith(b"Warning: obsolete ")):
                 raise ValueError("既知通知境界が不一致")
