@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "psych": "5.3.1",
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "sources": {
+    "lib/rubocop/target_ruby.rb": "d4f89edfb74cc3d30172da6a6e245170a5a174a6ffa5cd0ca06aa66a0b2ca7cb",
+    "lib/rubocop/config.rb": "f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729",
+    "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+    "lib/rubocop/config_obsoletion.rb": "5470f321ced3b0919bcfbceade7f6f662becfb50cbbefae57ac97a0ca0dc7894",
+    "lib/rubocop/config_obsoletion/parameter_rule.rb": "5fa722c7bb3164353ff2b6d0f5ce30b192d2f6bec150e82157753fc6e6be83d1"
+  },
+  "cases": [
+    {
+      "id": "initial-force-color",
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_prefix_hex": "756e646566696e6564206d6574686f642027746f5f662720666f7220747275650d0a",
+      "out_hex": "4b4545500a",
+      "files": {
+        "Gemfile": "",
+        "report.json": "KEEP\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: true\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment: {}\n",
+        "a.rb": "x=1\n"
+      },
+      "preserved_input_paths": [
+        "Gemfile",
+        "config.yml",
+        "a.rb"
+      ],
+      "input_bytes_mtime_unchanged": true,
+      "out_before_hex": "4b4545500a",
+      "out_preserved": true,
+      "scope": "plain_getter_error_prefix_only; Ruby backtrace omitted; late lifecycle separate"
+    },
+    {
+      "id": "late-cli-color",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "--color",
+        "sub/a.rb"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_prefix_hex": "756e646566696e6564206d6574686f642027746f5f662720666f7220747275650d0a",
+      "out_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "files": {
+        "Gemfile": "",
+        "report.json": "KEEP\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "sub/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: true\n  SuggestExtensions: false\n  DisabledByDefault: true\nGemspec/DateAssignment: {}\n",
+        "sub/a.rb": "x=1\n"
+      },
+      "preserved_input_paths": [
+        "Gemfile",
+        ".rubocop.yml",
+        "sub/.rubocop.yml",
+        "sub/a.rb"
+      ],
+      "input_bytes_mtime_unchanged": true,
+      "out_before_hex": "4b4545500a",
+      "out_preserved": false,
+      "scope": "plain_getter_error_prefix_only; Ruby backtrace omitted; late lifecycle separate"
+    }
+  ]
+}

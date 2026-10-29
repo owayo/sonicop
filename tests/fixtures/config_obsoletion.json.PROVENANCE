@@ -18,7 +18,8 @@ namespace先行・parameter抑止を実CLIのstdout/stderr全native bytes、exit
 Windowsのpipe CRLFだけをUnix hostのLFへ合わせ、入力や本文を一般に正規化しない。
 実API表の51件（49fatal+2warning）は順序/名前/移行先/message/severityを全行照合するが、49CLI成功とは数えない。
 値の真偽でなくfull/short keyの存在を調べる。旧key/値/quiet APIのunknown metadataは変更しない。
-この22条件はrenameだけの比較範囲。warning2の移行は#151、parameter60は#149へ残す。
+この22条件はrenameだけの比較範囲。warning2の移行は#151へ残す。
+parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離し、本fixtureの元rawは変更しない。
 removed/split/extracted16の実装・有限40参照は別#148のobsolete_cop_categories.json.PROVENANCEを参照する。
 元22の全既存fieldsとrawは維持し、schemaだけを追加した。新collectorで同一rawを再採取する。
 priority追補4件は別のconfig_obsoletion_order.jsonへ分離する。

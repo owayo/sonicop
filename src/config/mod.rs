@@ -32,6 +32,7 @@ use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub(crate) use loader::MissingConfigError;
 pub(crate) use obsoletion::ObsoleteConfigError;
+pub(crate) use obsoletion::TargetRubyGetterError;
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;

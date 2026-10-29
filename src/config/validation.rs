@@ -241,7 +241,12 @@ impl OrderedKeys {
         }
     }
 
-    fn prepare(&self, value: &Value, display: &str) -> Prepared {
+    fn prepare(
+        &self,
+        value: &Value,
+        display: &str,
+        target: &super::obsoletion::TargetRuby,
+    ) -> Prepared {
         let plugins = configured_plugin_departments(value);
         // rename以外の廃止名の旧拒否を保ち、個別カテゴリの移行は混ぜない。
         let mut legacy_unknown: Vec<_> = super::cop_names(value)
@@ -288,7 +293,7 @@ impl OrderedKeys {
             }
         }
         Prepared {
-            obsolete: super::obsoletion::fatal_messages(value, display),
+            obsolete: super::obsoletion::Outcome::prepare(value, display, target),
             warnings,
             unknown,
             legacy_unknown,
@@ -319,12 +324,13 @@ fn parameter_name(value: &Value) -> String {
 pub(crate) enum ConfigWarning {
     Namespace(String),
     Parameter(String),
+    Obsoletion(String),
     Unrecognized(Vec<String>),
 }
 
 #[derive(Debug, Default)]
 struct Prepared {
-    obsolete: Vec<String>,
+    obsolete: super::obsoletion::Outcome,
     namespaces: Vec<ConfigWarning>,
     warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
@@ -348,8 +354,9 @@ impl ValidationTrace {
         value: &Value,
         namespaces: Vec<ConfigWarning>,
         display: &str,
+        target: &super::obsoletion::TargetRuby,
     ) -> Arc<Self> {
-        let mut own = keys.prepare(value, display);
+        let mut own = keys.prepare(value, display, target);
         own.namespaces = namespaces;
         Self::new(inherited, own)
     }
@@ -370,9 +377,10 @@ impl ValidationTrace {
 
     fn new(inherited: Vec<Arc<Self>>, own: Prepared) -> Arc<Self> {
         Arc::new(Self {
-            has_obsolete: !own.obsolete.is_empty()
+            has_obsolete: own.obsolete.is_fatal()
                 || inherited.iter().any(|trace| trace.has_obsolete),
             has_warnings: !own.unknown.is_empty()
+                || own.obsolete.warning.is_some()
                 || !own.namespaces.is_empty()
                 || !own.warnings.is_empty()
                 || inherited.iter().any(|trace| trace.has_warnings),
@@ -411,9 +419,10 @@ impl ValidationTrace {
                     for warning in &prepared.namespaces {
                         emit(warning)?;
                     }
-                    // 廃止copのfatalはignoreの対象ではなく、同じ文書のunknown/parameterより先に拒否する。
-                    if !prepared.obsolete.is_empty() {
-                        return Err(super::ObsoleteConfigError::new(&prepared.obsolete).into());
+                    // 評価失敗/廃止項目のfatalはignoreの対象ではなく、unknownより先に拒否する。
+                    prepared.obsolete.check()?;
+                    if let Some(warning) = &prepared.obsolete.warning {
+                        emit(&ConfigWarning::Obsoletion(warning.clone()))?;
                     }
                     if !ignore_unknown && !prepared.legacy_unknown.is_empty() {
                         bail!(
