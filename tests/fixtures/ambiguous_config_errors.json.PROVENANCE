@@ -1,0 +1,47 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-28実CLI23条件の原参照。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_ambiguous_config_errors.py
+再生成:
+  python scripts/conformance/record_ambiguous_config_errors.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json>
+候補pathを受け取らず実RuboCopだけを起動する。namespace採取器のLOADER/VERSIONS/reference_environmentを共用する。
+ENV4は子copyから除去し、GEM/PATH/OSと親を保持する。ambient NO_COLORを外し、caseのCLICOLOR_FORCEを最後に重ねる。
+work/outputの既存entry/dangling/正規化後dotdot・Windows case aliasを子起動前に拒否し、全件後exclusive保存する。
+runtimeとprimary source SHA3は実gemから再取得して照合し、fixture.runtime/fixture.sourcesへ保持する。
+元23の全既存fields/rawを変更せず、schema:1/sourcesと各caseのcoverageだけを追加した。
+原参照container SHA256: 9716017fffa2cb507b6ae056cf9813f4abd14c2b0a7b05b2f61af2bfaf68d6b4
+
+内訳はambiguity21、正常canonical1、cache引数優先1。空/欠落/重複/順序差/変更入力を受理しない。
+- strict20: 初期エラー18＋正常1＋cache対照1。exit/stdout/stderr全bytes、正常のmetadata以外の全JSON fields、原本/outを比較する。
+  正常JSONはnative engine/spec identityと対象a.rb、offenses空、target1/inspected1/offense0を検査する。
+- deferred_152の3: nested-color/nested-no-color/nested-inherit-colorだけを行ごとに指定する。
+  本家の完全なstdout JSON（files空/target1/inspected0/offense0）を元rawのまま保存する。
+  今回はstderr全byteとexit2、原本を比較し、formatter finishのstdout差#152はstrict成功へ混ぜない。
+  nativeの空stdoutを期待へ書き換えない。#152完了後、同じ3原参照を全JSON strictへ昇格できる。
+int/boolを区別し、summary・全offense・正の完了集合と未完了0件を別に検証する。
+全入力/config/Gemfile/既存outのbytesとmtimeを比較し、想定外のreport生成も拒む。
+
+初期--colorはplain、初期ENV forceは--no-colorでもred。Store後段は--colorでred、--no-colorでplain。
+missing-department warningは常にplain、最終Errorだけをphaseの色にし、reset後にnative改行を一度だけ書く。
+MultipleComparison/SelfAssignmentの先行CRLFと末尾LFが混じっていたstderrを、同じtyped error writerへ接続する。
+本文/候補順/origin/警告順は既140の値を保持する。汎用I/O stderrやRuby内部backtraceは変更しない。
+型のDisplayとanyhow contextを保ち、quiet Config libraryは既存の無出力/曖昧名拒否を継続する。
+
+inherit/初期root/Store nested/cwd変更/stdin CRLF/out absent・sentinel/version/notice/obsolete・parameter優先を別に測定した。
+公開originの投影はerrorの「used in ... needs department qualifier.」一箇所に限定する。
+nested-cwdだけは先頭namespace warningの絶対originも別に検査・投影し、任意の本文にあるroot文字列を消さない。
+子cwdのWindows短縮名は保持し、macOSだけphysical cwdを考慮する。静的message/prefix guardは元実参照から保存した。
+message/rawの同時改変、候補順/origin/先行warning削除、CRLF/ANSI phase差、bytes単独/mtime単独/out単独を負対照で拒む。
+公開fixtureに私有path/内部backtraceは含めない。private workのreference.stdout/reference.stderrには全rawを保存する。
+containerはLF、hexのWindows CRLF/ANSIと原本/out bytesは原値。Unix回帰はpipe CRLFだけをLFへ投影する。
+
+既140の4曖昧名はcoverageだけambiguity_bytesへ昇格し、元のstderr_hex/入力/raw hashを変更しない。
+Windows origin24の2拒否も最終CRLFまで照合し、long/short/hybridを区別できないvolumeは未計測として扱う。
+ローカルの実short TEMP検証は23とorigin24を省略せず全件実行した。
+
+ライセンス: MIT、Copyright (c) 2012-26 Bozhidar Batsov。全文: licenses/RUBOCOP.txt。NOTICEへ実装/data/生成元を記載する。
+
+2026-10-29に公開collectorのfresh再採取を初回終了0で完了し、元23全既存fields/rawと追加済みfixtureの全fieldsが一致した。
+fixtureのcontainer bytesもfresh出力と完全一致した。20strictとdeferred_152の3件は上の比較範囲で区別する。
+
+fixture SHA256: d49f76a0b96fa5a23933ea3d5c4a7b9ec5c1d412e57d0948877e45d830f64a78
+collector SHA256: 290ad343e6d0bf735f49b0a0f05ba9160ea3b4e82a0825bc2e3a3ee5e16cba56

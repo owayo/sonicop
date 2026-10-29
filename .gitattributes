@@ -308,3 +308,10 @@ tests/fixtures/parameter_obsoletion_getter.json text eol=lf
 tests/fixtures/parameter_obsoletion_getter.json.PROVENANCE text eol=lf
 tests/fixtures/parameter_obsoletion_getter_color.json text eol=lf
 tests/fixtures/parameter_obsoletion_getter_color.json.PROVENANCE text eol=lf
+
+# 曖昧名のstderr末尾と色phaseを元rawのままLF containerへ保存する。
+scripts/conformance/record_ambiguous_config_errors.py text eol=lf
+scripts/conformance/test_record_ambiguous_config_errors.py text eol=lf
+tests/ambiguous_config_errors.rs text eol=lf
+tests/fixtures/ambiguous_config_errors.json text eol=lf
+tests/fixtures/ambiguous_config_errors.json.PROVENANCE text eol=lf

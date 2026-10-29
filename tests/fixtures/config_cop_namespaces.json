@@ -1166,7 +1166,7 @@
       "env": {
         "CLICOLOR_FORCE": "0"
       },
-      "coverage": "ambiguity_body",
+      "coverage": "ambiguity_bytes",
       "targets": [
         "a.rb"
       ],
@@ -1202,7 +1202,7 @@
       "env": {
         "CLICOLOR_FORCE": "0"
       },
-      "coverage": "ambiguity_body",
+      "coverage": "ambiguity_bytes",
       "targets": [
         "a.rb"
       ],
@@ -1238,7 +1238,7 @@
       "env": {
         "CLICOLOR_FORCE": "0"
       },
-      "coverage": "ambiguity_body",
+      "coverage": "ambiguity_bytes",
       "targets": [
         "a.rb"
       ],
@@ -3076,7 +3076,7 @@
       "env": {
         "CLICOLOR_FORCE": "0"
       },
-      "coverage": "ambiguity_body",
+      "coverage": "ambiguity_bytes",
       "targets": [
         "a.rb"
       ],

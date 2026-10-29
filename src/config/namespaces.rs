@@ -1,14 +1,43 @@
 //! ConfigLoader#add_missing_namespacesの値置換とRegistry警告。表示側の名前補完とは別の段階。
 
 use std::collections::HashSet;
+use std::fmt;
 use std::path::Path;
 use std::sync::LazyLock;
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use serde_yaml_ng::Value;
 
 use super::ConfigWarning;
 use super::validation::OrderedKeys;
+
+/// Registryの曖昧名だけを識別し、汎用I/Oの出力経路へ色/改行を波及させない。
+#[derive(Debug)]
+pub(crate) struct AmbiguousConfigCopError {
+    message: String,
+    color: bool,
+}
+
+impl fmt::Display for AmbiguousConfigCopError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for AmbiguousConfigCopError {}
+
+impl AmbiguousConfigCopError {
+    pub(crate) fn with_color(mut error: anyhow::Error, color: bool) -> anyhow::Error {
+        if let Some(ambiguous) = error.downcast_mut::<Self>() {
+            ambiguous.color = color;
+        }
+        error
+    }
+
+    pub(crate) fn color(&self) -> bool {
+        self.color
+    }
+}
 
 struct Registry {
     names: HashSet<String>,
@@ -154,10 +183,13 @@ fn qualify(
             }
             Ok(real.clone())
         }
-        _ => bail!(
-            "Ambiguous cop name `{badge}` used in {origin} needs department qualifier. Did you mean {}?",
-            candidates.join(" or ")
-        ),
+        _ => Err(AmbiguousConfigCopError {
+            message: format!(
+                "Ambiguous cop name `{badge}` used in {origin} needs department qualifier. Did you mean {}?",
+                candidates.join(" or ")
+            ),
+            color: false,
+        }.into()),
     }
 }
 
@@ -165,6 +197,73 @@ fn qualify(
 mod tests {
     use super::REGISTRY;
     use serde_json::Value;
+
+    #[test]
+    fn ambiguous_error_keeps_message_and_context_through_phase_coloring() {
+        let mut warnings = Vec::new();
+        let error = super::qualify(
+            "Wrong/MultipleComparison",
+            "config.yml",
+            "config.yml",
+            &mut warnings,
+        )
+        .unwrap_err();
+        assert!(warnings.is_empty());
+        let message = "Ambiguous cop name `Wrong/MultipleComparison` used in config.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?";
+        assert_eq!(error.to_string(), message);
+        assert!(
+            !error
+                .downcast_ref::<super::AmbiguousConfigCopError>()
+                .unwrap()
+                .color()
+        );
+        let colored =
+            super::AmbiguousConfigCopError::with_color(error.context("outer context"), true);
+        assert_eq!(colored.to_string(), "outer context");
+        assert_eq!(
+            colored
+                .downcast_ref::<super::AmbiguousConfigCopError>()
+                .unwrap()
+                .to_string(),
+            message
+        );
+        assert!(
+            colored
+                .downcast_ref::<super::AmbiguousConfigCopError>()
+                .unwrap()
+                .color()
+        );
+        let other =
+            super::AmbiguousConfigCopError::with_color(anyhow::anyhow!("ordinary I/O"), true);
+        assert_eq!(other.to_string(), "ordinary I/O");
+        assert!(
+            other
+                .downcast_ref::<super::AmbiguousConfigCopError>()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn quiet_config_load_keeps_the_existing_ambiguity_refusal() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("config.yml");
+        std::fs::write(&path, "Wrong/MultipleComparison: {}\n").unwrap();
+        // obsoletionと違いnamespace解決自体が失敗するため、quiet APIでも従来どおり拒否する。
+        let error = super::super::Config::load(Some(&path), directory.path()).unwrap_err();
+        let typed = error
+            .downcast_ref::<super::AmbiguousConfigCopError>()
+            .unwrap();
+        assert!(!typed.color());
+        assert!(
+            typed
+                .to_string()
+                .starts_with("Ambiguous cop name `Wrong/MultipleComparison` used in ")
+        );
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"Wrong/MultipleComparison: {}\n"
+        );
+    }
 
     fn reference() -> Value {
         serde_json::from_str(include_str!(

@@ -152,11 +152,13 @@ class NamespaceRecorderContract(unittest.TestCase):
         """警告文の任意部分をcwd文字列と同一視して消さない。"""
         directory = Path("/project")
         raw = b"config.yml: Warning: keep /project literal\r\nError: Ambiguous used in /project/config.yml needs department qualifier.\r\n"
-        projected = recorder._public_stderr(raw, directory, "ambiguity_body")
+        projected = recorder._public_stderr(raw, directory, "ambiguity_bytes")
         self.assertIn("keep /project literal", projected)
         self.assertIn(" used in <cwd>/config.yml needs department qualifier.", projected)
         with self.assertRaises(ValueError):
-            recorder._public_stderr(b"wrong error", directory, "ambiguity_body")
+            recorder._public_stderr(raw[:-2] + b"\n", directory, "ambiguity_bytes")
+        with self.assertRaises(ValueError):
+            recorder._public_stderr(b"wrong error", directory, "ambiguity_bytes")
 
 
 if __name__ == "__main__":

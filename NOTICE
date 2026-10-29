@@ -26,6 +26,18 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/namespaces.rs, src/cli.rs (ambiguous configuration errors)
+  tests/fixtures/ambiguous_config_errors.json
+      AmbiguousCopName refusal and CLI error transport ported from RuboCop
+      1.89.0 Registry and CLI. Twenty-three actual CLI conditions preserve
+      20 strict comparisons separately from three nested error-report
+      lifecycle conditions, whose stderr and exit are compared in full.
+      Regenerate with scripts/conformance/record_ambiguous_config_errors.py.
+      The adjacent .PROVENANCE records source hashes, raw preservation,
+      color phases and the separate late formatter limitation. Existing
+      namespace fixtures retain their original raw records and now compare
+      all six ambiguity endings. Full licence: licenses/RUBOCOP.txt.
+
   src/config/obsoletion/parameters.rs, src/config/obsoletion.rs
   src/config/validation.rs, src/config/inheritance.rs, src/cli.rs
   config/obsolete_parameters.json

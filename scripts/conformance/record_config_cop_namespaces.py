@@ -267,7 +267,7 @@ def case_inputs():
         form["coverage"] = (
             "known_residual"
             if name == "unknown_bare"
-            else "ambiguity_body"
+            else "ambiguity_bytes"
             if name
             in {
                 "ambiguous_multiple",
@@ -351,7 +351,8 @@ def _report(raw, targets):
 
 def _public_stderr(raw, directory, coverage):
     text = raw.decode()
-    if coverage == "ambiguity_body":
+    if coverage == "ambiguity_bytes":
+        _require(raw.endswith(b"\r\n"), "曖昧名の最終native改行が不一致")
         origin = (directory / "config.yml").as_posix()
         needle = f" used in {origin} needs department qualifier."
         _require(text.count(needle) == 1, "動的originの位置が不一致")
@@ -417,10 +418,10 @@ def _validate_cases(cases):
     )
     counts = {
         name: sum(case["coverage"] == name for case in cases)
-        for name in ("json", "ambiguity_body", "rejection_envelope", "known_residual")
+        for name in ("json", "ambiguity_bytes", "rejection_envelope", "known_residual")
     }
     _require(
-        counts == {"json": 34, "ambiguity_body": 4, "rejection_envelope": 3, "known_residual": 1},
+        counts == {"json": 34, "ambiguity_bytes": 4, "rejection_envelope": 3, "known_residual": 1},
         "比較範囲が不一致",
     )
 

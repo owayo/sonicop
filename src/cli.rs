@@ -12,8 +12,8 @@ use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
 use crate::config::{
-    Config, ConfigStore, ConfigWarning, ConfigWarnings, MissingConfigError, ObsoleteConfigError,
-    TargetRubyGetterError, UnknownConfigError,
+    AmbiguousConfigCopError, Config, ConfigStore, ConfigWarning, ConfigWarnings,
+    MissingConfigError, ObsoleteConfigError, TargetRubyGetterError, UnknownConfigError,
 };
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
@@ -362,6 +362,13 @@ fn run_inner() -> i32 {
                     format!("\x1b[31m{missing}\x1b[0m\n")
                 } else {
                     format!("{missing}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(ambiguous) = error.downcast_ref::<AmbiguousConfigCopError>() {
+                let text = if ambiguous.color() {
+                    format!("\x1b[31mError: {ambiguous}\x1b[0m\n")
+                } else {
+                    format!("Error: {ambiguous}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(getter) = error.downcast_ref::<TargetRubyGetterError>() {
@@ -836,8 +843,11 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     )
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
-        ObsoleteConfigError::with_color(
-            UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),
+        AmbiguousConfigCopError::with_color(
+            ObsoleteConfigError::with_color(
+                UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),
+                color,
+            ),
             color,
         )
     })

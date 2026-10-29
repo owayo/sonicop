@@ -15,7 +15,7 @@ ConfigObsoletion#legacy_cop_namesの67名はnamespace補完の除外metadataで�
 
 42条件の比較範囲:
 - 34正常JSON: identity以外の全fields/exit/未補正と補正後の全入力file bytes/警告bytes。
-- 4曖昧名: 警告順・本文・終了2・stdout空・原本不変。一般Error末尾CRLFは別件 #150。
+- 4曖昧名: #150でambiguity_bytesへ昇格し、先行警告から最終CRLFまでの全stderr bytes・終了2・stdout空・原本を比較する。
 - 3既存unknown/obsolete拒否: 終了2・stdout空・stderr非空・原本不変だけ。本文の一致とは数えない。
 - unknown_bareの1件: 既存の通常不一致 #144。成功やintentional divergenceへ含めない。
 
@@ -25,7 +25,8 @@ parent Exclude再読込、forcecolorのplain namespace→parameter、曖昧名�
 full/shortが衝突する場合、full slotを保ったまま短縮節で値とparameter順を置換する。deep mergeしない。
 
 stdout_hexは本家の生bytes。stderr_hexは4曖昧名の「used in」のorigin位置だけ<cwd>へ投影し、他は生bytes。
-stderr_lfは本文比較用にCRLFだけをLFへ変える。raw stdout/stderrはwork内raw.jsonとSHA256へ残す。
+stderr_lfはCRLFだけをLFへ変えた可読投影。曖昧名の全文比較はstderr_hexを使い、採取器も最終native CRLFを要求する。
+raw stdout/stderrはwork内raw.jsonとSHA256へ残す。
 raw_stderr_sha256は曖昧名の絶対workpathに依存するため、再生成時はその4値だけが変わり得る。
 診断message/locationと原本を一律に正規化しない。Windowsのphysical補正bytesも比較する。
 
@@ -33,8 +34,8 @@ raw_stderr_sha256は曖昧名の絶対workpathに依存するため、再生成�
 本家のcache file originと候補のURL originの通常不一致は #201。remote unitは値と警告本文だけを照合し、
 remote originの全byte一致をこの42条件の成功数へ加えない。intentional divergenceにも登録しない。
 
-fixture SHA256: 86657412acf2995544c34ea682fbc1118ea356d8ba23ab41db45bf8ec2d0f044
-collector SHA256: 4676b3f119d8300735e54b700f704903ad5b7e035e2229aed322c22bf3e1ceeb
+fixture SHA256: cc704c656e42d78419d5c1126fca5201cc0ff5f45129643a043a88ab8c21f622
+collector SHA256: 611adeadfe0ba790cf0f1fe9975dbad49d3af54fe099238f844c193768b9cb2a
 
 #144追補: 元unknown_bare行のcoverage/raw/exitは変更せず、既存CLI回帰から同じ本家stderr/stdout/exit/原本の
 厳密比較へ接続した。基点で残差だったという記録を残し、今回のunknown strict40とは別の回帰接続として扱う。

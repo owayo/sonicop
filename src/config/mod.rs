@@ -31,6 +31,7 @@ use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub(crate) use loader::MissingConfigError;
+pub(crate) use namespaces::AmbiguousConfigCopError;
 pub(crate) use obsoletion::ObsoleteConfigError;
 pub(crate) use obsoletion::TargetRubyGetterError;
 pub use store::ConfigStore;
