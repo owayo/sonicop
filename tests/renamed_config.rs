@@ -210,6 +210,16 @@ fn catalog_and_list_modes_keep_the_measured_lazy_warning_boundaries() {
             "{}",
             case["id"]
         );
+        if case["comparison"] == "text_transport" {
+            assert_eq!(
+                output.stdout,
+                expected(case, "stdout_hex", directory.path()),
+                "{}",
+                case["id"]
+            );
+            count += 1;
+            continue;
+        }
         let actual = String::from_utf8(output.stdout)
             .unwrap()
             .replace("\r\n", "\n");
@@ -242,7 +252,6 @@ fn catalog_and_list_modes_keep_the_measured_lazy_warning_boundaries() {
                 };
                 assert_eq!(section(&actual), section(&reference), "{}", case["id"]);
             }
-            "text_transport" => assert_eq!(actual, reference, "{}", case["id"]),
             _ => unreachable!(),
         }
         count += 1;

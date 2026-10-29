@@ -5,5 +5,5 @@ repeat: 2 は同じプロジェクトとキャッシュで2プロセス実行し
 JSON の metadata だけを除き、全診断と集計を保持する。通常の stdout/stderr は原文のまま。
 prefix_only は設定の検証・読み込みの失敗前に確定した警告だけを記録し、既存のエラー本文差は検査しない。
 fork を使う2ケースは POSIX の参照値。Windows の fork fallback は別の検証対象とする。
-Windows の警告改行は native text mode に従う。対象一覧の改行差は既存の #155 で扱う。
+Windows の警告と対象一覧の改行は native text mode に従い、#155で一覧も全stdout bytesへ昇格した。
 warning_only は既存の #152 の終了 JSON 差を比較せず、警告 prefix・終了値・原本を検査する。

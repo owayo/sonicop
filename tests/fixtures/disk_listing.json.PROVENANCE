@@ -1,0 +1,53 @@
+RuboCop 1.89.0の一覧と周辺modeを、Windows実CLIから採取した有限19条件。
+原参照は2026-10-28、公開collectorのfresh再採取は2026-10-30。
+Ruby4.0.7 x64-mingw-ucrt / Psych5.3.1 / parser3.3.12.0 / Prism1.8.1 /
+rubocop-ast1.50.0 / RuboCop1.89.0 / Rainbow3.1.1。
+元19のprimary/全case fields/入力/全raw/report/suffix/outputsは不変。
+追加metadataはtop schema:1・source_sha256とcase coverage:full_bytesだけである。
+元独立参照SHA256: 12fe526ba4e7adc61a2a443444d4c75c9d0b3b3f9637cc2d32625ea8aede0bc9
+
+生成元: scripts/conformance/record_disk_listing.py
+再生成（固定版gem導入済みのWindows）:
+  python scripts/conformance/record_disk_listing.py --ruby <ruby-4.0.7> --work <fresh-private-work> --output <fresh-listing.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentを共用し、候補を受け取らない。
+子copyからENV4とambient NO_COLORだけを除き、CLICOLOR_FORCE=0とTERM=dumbを測定入力に固定する。
+GEM/PATH/OSと親環境を保ち、TargetRubyVersionのshimや宣言変更を追加しない。
+19の順序/ID/型/全入力/元rawを固定hashでも検査し、全件完了後だけexclusive作成する。
+work/outputの既存entry・dangling・別表記/case alias・両方向の親子重複を子起動前に拒否する。
+
+Primary sourceはRunner#list_filesのputs、ExecuteRunnerのstderr切替、早期ListEnabledCopsFor。
+runtime照会ではruby/platform/5gem版とrunner.rb・cli.rb・cli/command/execute_runner.rb・
+cli/command/list_enabled_cops_for.rbの固定4SHAを実gemから観測する。各値はfixtureに保持する。
+target一覧の5入口を既存write_outputへ接続し、text modeを一度だけ通す。
+enabled-cop一覧はRunnerより早い情報表示なので、--stderrにかかわらずstdoutへ出す。
+探索・選択・project index・empty-listの終了位置、format-outを開く時点は変更しない。
+
+19条件は通常disk・明示逆順・Unicode・directory順・短flag・format/out・複数format/out・
+stderr・実File redirect・readonly+-A・空directory・cache引数拒否・JSON陽性対照・
+stdin-directory一覧・補正stdin JSON/payload・既存out・stdin-directory stderr・
+未知selector付きdisk/stdin-directory stderrを含む。未知selectorの一覧は検査へ昇格しない。
+全exit/stdout/stderr/outputs bytesを比較し、JSON2はnative engine=sonicop/spec1.89.0を別に確認する。
+その後metadata以外の全JSON fieldsと生suffixを照合する。元JSONは正の一対象・検査完了・違反1件。
+Windowsのpipe/Fileは元raw全bytes、他OSは既知のCRLF→LF輸送だけを投影する。
+stdin対照はLF入力の有限条件であり、一般のCRLF/DATA/NUL本文を変換する根拠へ広げない。
+
+全入力のbytes/mtime_ns/modeを前後で比較し、existing-outのreport.jsonも除外しない。
+同じ内容のout再書込みもmtime差で拒否する。outはlexists/lstatで観測し、dangling targetを読まない。
+readonlyは観測後に同じ実fileの元属性だけへ戻す。File redirectは実File handleへ渡して採取する。
+private-cliには実exit/raw channels・全inputs before/after・out before/afterをexclusive保存する。
+契約11件は正しい応答のままbytes/mtime/mode/outを独立に破り、実dangling symlink又はWindows junctionも拒否する。
+
+既存tests/cli.rsの4一覧期待は、同じ入力/引数を固定版CLIで別途4回再測定した。
+設定bytesは実tests/support/mod.rsのwith_target_ruby_enablingと同じserializerで生成した。
+この4例は一覧stdoutのCRLF/順序・exit0・原本bytes/mtime/mode保持・out不生成の根拠である。
+本家stderrに未対応cop通知があるため、Nativeとの全stderr一致には数えない（通知#157は別範囲）。
+旧151 list-targets1・152 list-files1・154 enabled-cop lists3・parameter warningsの一覧1も、
+元rawを保持してWindows全bytes比較へ昇格した。154 main45のPOSIX入力style投影はそのまま維持する。
+各既存fixtureの残る有限projection・#158等の未解消範囲は成功へ混ぜない。
+
+ライセンス: licenses/RUBOCOP.txtのMIT licence。NOTICEへ一覧輸送とfixture/再生成入口を記載した。
+
+公開collectorのfresh19+runtime1は終了0で、公開fixtureの全fields/container bytesと完全一致した。
+fixture SHA256: a7e25bd57c288313d1a9109ec8fce3b67be2e86b33d69f873a677d4160dd51c7
+collector SHA256: 864adbab0e12ac038093050bc886131d8b234c0b16b444ac78e3d7cd8c7f5ae1
+contract SHA256: 915dc3bdee632642cf6bd48fe8bd755dcfc2fa61c7c1c05b037ac647e36ac4fc
