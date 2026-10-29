@@ -916,7 +916,7 @@ fn try_run_with_warning_phase(
         return Ok(0);
     }
     if let Some(filter) = &cli.show_cops {
-        show_cops(filter, &config)?;
+        show_cops(filter, &config.catalog_view())?;
         return Ok(0);
     }
     if let Some(filter) = &cli.show_docs_url {
@@ -1011,6 +1011,23 @@ fn try_run_with_warning_phase(
             return Err(failure.into());
         }
     };
+
+    // pure getterは無出力。完了したreportsの設定利用だけを入力順に一度再生する。
+    // progress/late失敗との逐次接続は#152の元参照に残す。
+    for report in &reports {
+        let target_config = configs.for_path(&report.path)?;
+        configs.warn_renamed_cops(&target_config, &|name| {
+            (selection.only.is_empty()
+                || selection
+                    .only
+                    .iter()
+                    .any(|only| selector_matches(only, name)))
+                && !selection
+                    .except
+                    .iter()
+                    .any(|except| selector_matches(except, name))
+        })?;
+    }
 
     if cli.auto_gen_config || cli.regenerate_todo {
         if let Some(targets) = &stdin_directory {
@@ -2079,10 +2096,10 @@ fn inspect_fail_fast(
 }
 
 fn validate_config(config: &Config, ignore_unrecognized: bool) -> Result<()> {
-    if !ignore_unrecognized && !config.unrecognized_cop_names().is_empty() {
+    if !ignore_unrecognized && !config.unknown_config_cop_names().is_empty() {
         bail!(
             "unrecognized cop(s): {}",
-            config.unrecognized_cop_names().join(", ")
+            config.unknown_config_cop_names().join(", ")
         );
     }
     Ok(())
@@ -2291,6 +2308,7 @@ fn docs_url(name: &str, config: &Config) -> String {
 
 fn list_enabled_cops(path: &Path, configs: &ConfigStore) -> Result<()> {
     let config = configs.for_path_observed(path)?;
+    configs.warn_renamed_cops(&config, &|_| true)?;
     let mut names = config
         .known_cop_names()
         .filter(|name| config.rule_enabled(name))

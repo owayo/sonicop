@@ -30,7 +30,8 @@ quiet Config APIは拒否や出力を追加せず、元のkey/値/unknown metada
 今回の40入力はplugins/require無し。実APIのloaded_plugins.about.name/loaded_featuresと、
 nativeのconfigured_plugin_departmentsによる宣言policyは同値ではない。後者の既存policyは維持する。
 この通常残差は#153へ残し、pluginロード互換やRegistry登録の成功へ数えず、製品へRuby実行も追加しない。
-warning rename2の移行は#151へ残す。parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離する。
+warning rename2の移行は#151のrenamed_config.jsonで別に実測する。
+parameter60の別記録・評価は#149のparameter_obsoletion.jsonに分離する。
 本fixtureの一般unknownやlate lifecycleの比較範囲は変更しない。
 
 2026-10-29に公開collectorでfresh逐次再採取を初回終了0で完了した。

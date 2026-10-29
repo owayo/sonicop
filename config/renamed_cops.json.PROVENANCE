@@ -3,8 +3,9 @@ RuboCop 1.89.0 ConfigObsoletionのRenamedCop実API51件を登録順に保存し�
 再生成はtests/fixtures/config_obsoletion.json.PROVENANCEのコマンドを使う。
 元API・source SHA256・実runtimeは同fixture.primaryへ保持する。
 old_name/short_name/new_nameは実API、severityはwarning?、actionは実rule_messageの全文から照合する。
-49fatalと2warningを分離する。API51をCLI51件と呼ばず、warning2の旧値移行は別#151へ残す。
-製品はfatalのkey存在だけを検査し、quiet Configの旧key/値/unknown metadataを維持する。
+49fatalと2warningを分離する。API51をCLI51件と呼ばない。
+warning2の旧値overlay/警告は#151のrenamed_config.jsonで別に実測し、この全51表を共用する。
+fatal判定はkey存在で行い、quiet Configの旧key/値/unknown metadataを維持する。
 build.rsのrerun-if-changedとbuild_fingerprintの両方へ登録し、表が変われば結果cacheを共有しない。
 licenses/RUBOCOP.txtのMIT licenceを再利用する。
 

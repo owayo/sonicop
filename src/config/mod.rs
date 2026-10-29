@@ -11,7 +11,7 @@ mod yaml_booleans;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use anyhow::{Context, Result, bail};
 use serde::de::DeserializeOwned;
@@ -45,6 +45,10 @@ const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 pub struct Config {
     raw: Value,
     user: Value,
+    renamed_overrides: HashMap<String, Mapping>,
+    renamed_sources: Vec<(&'static str, &'static str)>,
+    runtime_origin: String,
+    using_warned: Arc<Mutex<HashSet<&'static str>>>,
     /// Where the paths a configuration file mentions are taken from: the directory holding a
     /// `.rubocop*` file, or the one the run was launched from for any other name. RuboCop calls this
     /// `base_dir_for_path_parameters`, and every `Include` and `Exclude` is resolved against it.
@@ -225,12 +229,41 @@ impl Config {
             }
 
             let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
-            let excludes = compile_excludes(&raw);
-            let cop_includes = compile_includes(&raw);
+            let mut renamed_overrides = HashMap::<String, Mapping>::new();
+            let mut renamed_sources = Vec::new();
+            for (old, new, settings) in obsoletion::legacy_settings(&raw) {
+                // for_cop(String)はdeprecated_names_for順に浅く重ね、raw/userは変えない。
+                renamed_overrides
+                    .entry(new.to_owned())
+                    .or_default()
+                    .extend(settings);
+                renamed_sources.push((old, new));
+            }
+            let overlay = Value::Mapping(Mapping::from_iter(renamed_overrides.iter().map(
+                |(name, settings)| {
+                    (
+                        Value::String(name.clone()),
+                        Value::Mapping(settings.clone()),
+                    )
+                },
+            )));
+            let mut excludes = compile_excludes(&raw);
+            excludes.extend(compile_excludes(&overlay));
+            let mut cop_includes = compile_includes(&raw);
+            cop_includes.extend(compile_includes(&overlay));
+            let runtime_origin = validation
+                .origin
+                .as_deref()
+                .map(|path| crate::formatter::smart_path(path, cwd))
+                .unwrap_or_default();
 
             Ok(Self {
                 raw,
                 user,
+                renamed_overrides,
+                renamed_sources,
+                runtime_origin,
+                using_warned: Arc::new(Mutex::new(HashSet::new())),
                 path_base: path_base.to_path_buf(),
                 cwd: cwd.to_path_buf(),
                 config_path,
@@ -333,6 +366,15 @@ impl Config {
     ) -> bool {
         if name == "Lint/Syntax" {
             return true;
+        }
+        if let Some(enabled) = self
+            .renamed_overrides
+            .get(name)
+            .and_then(|cop| cop.get("Enabled"))
+        {
+            // enable_cop?の計算後に旧値を重ねるため、nullも有効値を無効にする。
+            return !enabled.is_null()
+                && self.resolve_enabled_value(enabled, name, enable_pending, disable_pending);
         }
 
         let configured = self.user_cop_mapping(name);
@@ -545,6 +587,50 @@ impl Config {
         &self.unrecognized_cops
     }
 
+    pub(crate) fn unknown_config_cop_names(&self) -> Vec<&str> {
+        // libraryのmetadataは残し、CLIで今回扱う旧Hashだけを未知名拒否から外す。
+        self.unrecognized_cops
+            .iter()
+            .filter(|name| !obsoletion::warning_name(name) || self.cop_mapping(name).is_none())
+            .map(String::as_str)
+            .collect()
+    }
+
+    pub(crate) fn catalog_view(&self) -> Self {
+        // Class lookupとString runtimeの値を分け、Rubyのobject-key cache状態は持ち込まない。
+        let mut config = self.clone();
+        config.renamed_overrides.clear();
+        config.renamed_sources.clear();
+        config.excludes = compile_excludes(&config.raw);
+        config.cop_includes = compile_includes(&config.raw);
+        config
+    }
+
+    pub(crate) fn warn_renamed_cops(
+        &self,
+        selected: &dyn Fn(&str) -> bool,
+        output: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<()> {
+        for &(old, new) in &self.renamed_sources {
+            if !selected(new) {
+                continue;
+            }
+            let claimed = self
+                .using_warned
+                .lock()
+                .map_err(|_| anyhow::anyhow!("configuration warning lock is poisoned"))?
+                .insert(old);
+            // clone間のclaimだけをlockで守り、I/Oや再入callbackの間はlockを保持しない。
+            if claimed {
+                output(&format!(
+                    "Warning: Using `{old}` configuration in {} for `{new}`.\n",
+                    self.runtime_origin
+                ))?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn description(&self, name: &str) -> Option<String> {
         self.cop_value(name, "Description")
     }
@@ -600,7 +686,10 @@ impl Config {
     }
 
     fn cop_raw_value(&self, name: &str, key: &str) -> Option<&Value> {
-        self.cop_mapping(name)?.get(key)
+        self.renamed_overrides
+            .get(name)
+            .and_then(|cop| cop.get(key))
+            .or_else(|| self.cop_mapping(name)?.get(key))
     }
 
     fn user_cop_mapping(&self, name: &str) -> Option<&Mapping> {
@@ -848,5 +937,92 @@ mod tests {
 
         assert!(config.rule_excluded("Metrics/BlockLength", &local_gemspec));
         assert!(!config.rule_excluded("Metrics/BlockLength", &external_gemspec));
+    }
+    #[test]
+    fn renamed_runtime_and_catalog_match_four_real_api_conditions_without_mutating_raw() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/renamed_config.json")).unwrap();
+        let apis = fixture["runtime_api"].as_array().unwrap();
+        assert_eq!(apis.len(), 4);
+        for api in apis {
+            let case = fixture["cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["id"] == api["id"])
+                .unwrap();
+            let directory = tempfile::tempdir().unwrap();
+            for name in ["config.yml", "Gemfile"] {
+                std::fs::write(
+                    directory.path().join(name),
+                    case["files"][name].as_str().unwrap(),
+                )
+                .unwrap();
+            }
+            let config =
+                Config::load(Some(&directory.path().join("config.yml")), directory.path()).unwrap();
+            let before = (
+                config.raw.clone(),
+                config.user.clone(),
+                *config.cache_digest().unwrap(),
+            );
+            let name = "Naming/PredicatePrefix";
+            for key in ["Enabled", "AllowedMethods"] {
+                assert_eq!(
+                    config.cop_value::<serde_json::Value>(name, key),
+                    Some(api["values"]["first"][key].clone()),
+                    "{} {key}",
+                    api["id"]
+                );
+            }
+            let catalog = config.catalog_view();
+            assert_eq!(
+                catalog.rule_enabled(name),
+                api["values"]["catalog"]["Enabled"].as_bool().unwrap()
+            );
+            assert_eq!(
+                catalog.cop_value::<serde_json::Value>(name, "AllowedMethods"),
+                Some(api["values"]["catalog"]["AllowedMethods"].clone())
+            );
+            let messages = std::sync::Mutex::new(Vec::new());
+            catalog
+                .warn_renamed_cops(&|_| true, &|message| {
+                    messages.lock().unwrap().push(message.to_owned());
+                    Ok(())
+                })
+                .unwrap();
+            config
+                .warn_renamed_cops(&|_| false, &|_| panic!("未選択copはlookupしない"))
+                .unwrap();
+            assert!(messages.lock().unwrap().is_empty());
+            for copy in [config.clone(), config.clone()] {
+                copy.warn_renamed_cops(&|_| true, &|message| {
+                    messages.lock().unwrap().push(message.to_owned());
+                    // I/O callbackから同じcloneへ再入してもclaim lockを保持していない。
+                    config
+                        .warn_renamed_cops(&|_| true, &|_| panic!("claimはclone間で一度だけ"))
+                        .unwrap();
+                    Ok(())
+                })
+                .unwrap();
+            }
+            assert_eq!(messages.lock().unwrap().len(), 1);
+            assert!(messages.lock().unwrap()[0].ends_with('\n'));
+            assert_eq!(
+                before,
+                (
+                    config.raw.clone(),
+                    config.user.clone(),
+                    *config.cache_digest().unwrap()
+                )
+            );
+            assert!(
+                config
+                    .unrecognized_cop_names()
+                    .iter()
+                    .any(|name| name == "Naming/PredicateName")
+            );
+            assert!(config.unknown_config_cop_names().is_empty());
+        }
     }
 }

@@ -1,0 +1,60 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-28の実36CLI/4API原参照。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_renamed_config.py
+再生成:
+  python scripts/conformance/record_renamed_config.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json>
+namespaceのLOADER/VERSIONS/reference_environmentと既145の実_primaryを共用し、候補を起動しない。
+公開済み実参照から入力だけを再使用し、36ID・4API順・入力全fieldsのSHAを固定する。
+実childから全出力を再生成し、型付き_same/全raw/全JSON fieldsを実参照へ照合する。
+ENV4とambient NO_COLORを子copyから除き、意図的な色だけを戻す。GEM/PATH/OSと親を保つ。
+fresh work/outputの元entry/dangling/dotdot・Windows case aliasを子起動前に拒否し、全件後exclusive保存する。
+
+primaryは実ConfigObsoletionの全51表/全127class件数とsource SHA。既config/renamed_cops.jsonを共用し、推測表を増やさない。
+49fatal/2warningを分け、Naming/PredicateName→Naming/PredicatePrefix、Style/PredicateName→同名を本家登録順で扱う。
+旧Hashはenable計算後の浅いoverlay。Naming→Style順であり入力key順ではない。
+空配列/null Enabledも上書きし、DisabledByDefault時の旧空Hashにはresolver相当のEnabled:trueを補う。
+runtime値とInclude/Exclude/Enabledはoverlayを使い、raw/user/cache digestは変更しない。
+生pending値を返すgetterとRegistryのpending選択を区別し、既EngineのNewCops/option解釈を保つ。
+Class catalog viewを別cloneにし、RubyのClass/String object-key cache状態をnative public APIへ導入しない。
+
+実API4はString-first/Class-firstのfirst/repeat/catalog/after_class/class_first/string_after_class_first、
+deprecated_namesの実順、raw_before/raw_after、Config/resolver source SHAを保存する。
+native unitはruntime first値/catalog値、raw/user/digest不変、clone claimとcallback再入を照合する。
+Ruby object-key cacheの全状態をnative API互換成功と呼ぶものではない。
+API4のvalues.raw_before/raw_after.Naming/PredicatePrefix.Exclude[0]だけ、実work/spec/**/*を
+{api_work}/spec/**/*へ投影する（4×2=8 field）。prefix/suffix/位置を検査し、他field/全配列を正規化しない。
+元の実rawはprivate work/api-*/raw.jsonに保持する。公開schema追加と上記8 field以外は元参照と同一。
+CLI36の元raw/全fieldsは変更しない。show-new/pending-showのcatalog Exclude一箇所だけ、元の{cwd}投影を維持する。
+
+比較範囲:
+- JSON27: native engine/spec identity確認後、metadata以外の全files/summary/offense、exit/stderr全bytesを照合する。
+- fatal1: stdout空/stderr全bytes/exit2と原本を照合する。
+- 早期/catalog/list7: 実版identity、catalogのsection/Enabled、listのtext transportだけの有限投影。
+  全stdout互換とは呼ばず、list-targetsのWindows改行差#155は元rawのまま保持する。
+- stderr-progress1: Inspecting後のUsingという元raw順を保存し、formatter lifecycle#152へ分離する。
+  今回のstrict成功へ数えず、#152後に同じ原参照から昇格できるcomparisonを残す。
+元記録のprivate whole-section nil/bool3とdisable-all control1は36成功へ含めず、現在候補を期待へ固定しない。
+
+検証warningはOutcome→Arc Traceでrename2→parameter30の登録順にjoinし、Warning:は一度だけ。
+fatal/最低版評価失敗があれば警告を抑止し、namespace/一般parameterとの既存順を保つ。
+Usingは純getterや先読みに出さず、完了reportsを入力順で利用する時とlist-enabled利用点に出す。
+only/exceptを通る候補はEnabled:false/null/safe:falseでもlookupに応じて警告する。
+Arc claimはclone間で一度、lock解放後にI/Oを呼ぶ。catalogはclaimを消費せずquiet libraryへ出力を追加しない。
+Usingのheredocは本文末尾LFを含み、色は本文内CRLF→reset→外CRLF。Obsoletionの末尾LF無しと区別する。
+originは現lexical/display表記を使い、表示のためにWindows短縮名をcanonicalへ寄せない。
+libraryの旧名metadataは保持し、CLI unknown拒否から今回の旧Hash2名だけを除く。
+
+併存警告3条件はrenamed_config_warning_order.jsonに分け、主36/4APIへ加算しない。
+全原本/config/Gemfile/outのbytesとmtimeを検査する。bytes/mtime/out各単独負対照は他channelを正しく保つ。
+containerはLF、hexのCRLF/ANSIと物理原本は原値。Unix native比較はpipe transportだけをLFへ投影する。
+実short TEMPでも主36/追補3と既origin24を省略なしで検査した。
+
+原参照container SHA256: 40285a27eddf86abbd2755c7bccd44299bd950a7582e71da1ed9ba623b455a60
+ライセンス: MIT、Copyright (c) 2012-26 Bozhidar Batsov。全文: licenses/RUBOCOP.txt。
+
+2026-10-29に公開collectorでcargo完了後のfresh逐次採取を初回終了0で完了した。
+主36の全fields/raw、primary全51/API全127class件数、API4の限定8 field以外が元参照と一致した。
+公開fixtureとfresh出力のcontainer bytesも完全一致した。
+
+fixture SHA256: db799a24cf8b8df9b353858bb55fc5d6e5990bea4462a67874151bdd52fff5a5
+collector SHA256: f2f1cffa05785675b7c6defcfac5d9fabad541e020341f207e84731a5b482b1e

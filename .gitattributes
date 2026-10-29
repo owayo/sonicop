@@ -315,3 +315,12 @@ scripts/conformance/test_record_ambiguous_config_errors.py text eol=lf
 tests/ambiguous_config_errors.rs text eol=lf
 tests/fixtures/ambiguous_config_errors.json text eol=lf
 tests/fixtures/ambiguous_config_errors.json.PROVENANCE text eol=lf
+
+# warning改名の実API/CLIと併存警告3条件をLF containerで保存する。
+scripts/conformance/record_renamed_config.py text eol=lf
+scripts/conformance/test_record_renamed_config.py text eol=lf
+tests/renamed_config.rs text eol=lf
+tests/fixtures/renamed_config.json text eol=lf
+tests/fixtures/renamed_config.json.PROVENANCE text eol=lf
+tests/fixtures/renamed_config_warning_order.json text eol=lf
+tests/fixtures/renamed_config_warning_order.json.PROVENANCE text eol=lf

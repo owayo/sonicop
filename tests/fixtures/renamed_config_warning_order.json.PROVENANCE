@@ -1,0 +1,23 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-29の実併存警告3条件。
+生成元: scripts/conformance/record_renamed_config.py の --warning-order。
+再生成:
+  python scripts/conformance/record_renamed_config.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json> --warning-order
+元の全fields/raw/container bytesを保持する。主36CLI/4APIへ加算しない独立scope。
+Naming/PredicateNameとLayout/LineLength.IgnoredPatternsの併存をplain/ENVforce色/fatal同居で測定した。
+正常2はexit1/stdout空/outの完全1offense JSON、fatal1はexit2/赤fatalのみ/out KEEPのbytesmtime保持。
+renameと廃止parameterはWarning:先頭一度の同じ本文、次に一般unsupported警告、最後にUsingとなる。
+Obsoletionはreset後に外改行、一般parameter/Usingは本文内LFも持つ差を全rawで照合する。
+preserved_input_pathsはreport.jsonを除く原本を表し、out_before_hex/out_hex/out_preservedを別に検査する。
+metadata除去前にnative engine/spec identityを確認し、その後全JSON fieldsを比較する。
+採取器は原本bytesmtimeとfatal out bytesmtime、型付き全出力、版/source/input SHAを照合する。
+実rawの私有cwd/mtimeはprivate workだけに保持し、公開containerはLF、hexのCRLF/ANSIは原値。
+runtime/source SHAは本fixtureに保存する。ENV/fresh/exclusive方針は主renamed_config.PROVENANCEと共通。
+原参照container SHA256: 258de62fad765ea1e74bd1a9c3ad8753a14503757c4555ca4b6c6ce9cf71add8
+ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用する。NOTICEへ実装/data/採取器を記載した。
+
+2026-10-29に公開collectorでcargo完了後のfresh逐次採取を初回終了0で完了した。
+独立追補3の全fields/rawが元実参照と一致した。
+公開fixtureとfresh出力のcontainer bytesも完全一致した。
+
+fixture SHA256: 258de62fad765ea1e74bd1a9c3ad8753a14503757c4555ca4b6c6ce9cf71add8
+collector SHA256: f2f1cffa05785675b7c6defcfac5d9fabad541e020341f207e84731a5b482b1e
