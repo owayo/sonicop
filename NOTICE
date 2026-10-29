@@ -26,6 +26,16 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  tests/fixtures/empty_config_arguments.json
+      Twenty actual RuboCop 1.89.0 CLI and Options.parse records for empty,
+      omitted and missing config arguments, including three last-value controls.
+      Native tests compare 17 conditions with exact stdout and report bytes or
+      full JSON fields; general directory I/O and missing-argument errors retain
+      only the documented rejection envelopes. Help and other argument errors
+      remain separate. The adjacent .PROVENANCE records the finite scope.
+      Regenerate with scripts/conformance/record_empty_config_arguments.py.
+      Full licence text is retained at licenses/RUBOCOP.txt.
+
   src/config/obsoletion.rs, src/config/validation.rs
   config/renamed_cops.json
   tests/fixtures/config_obsoletion.json

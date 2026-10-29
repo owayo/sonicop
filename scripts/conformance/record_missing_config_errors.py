@@ -141,9 +141,7 @@ def inputs():
     )
     for case in cases:
         case["coverage"] = (
-            "known_residual"
-            if case["id"] == "empty"
-            else "missing"
+            "missing"
             if case["kind"] == "missing"
             else "json"
             if case["kind"] == "success"

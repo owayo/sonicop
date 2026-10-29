@@ -274,3 +274,10 @@ tests/fixtures/config_obsoletion.json text eol=lf
 tests/fixtures/config_obsoletion.json.PROVENANCE text eol=lf
 tests/fixtures/config_obsoletion_order.json text eol=lf
 tests/fixtures/config_obsoletion_order.json.PROVENANCE text eol=lf
+
+# 空configの元rawをLFのcontainerで保持し、CRLF入力/pipe bytesはhexへ残す。
+scripts/conformance/record_empty_config_arguments.py text eol=lf
+scripts/conformance/test_record_empty_config_arguments.py text eol=lf
+tests/empty_config_arguments.rs text eol=lf
+tests/fixtures/empty_config_arguments.json text eol=lf
+tests/fixtures/empty_config_arguments.json.PROVENANCE text eol=lf
