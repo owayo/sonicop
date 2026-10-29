@@ -69,12 +69,7 @@ fn missing_config_errors_match_the_real_body_without_hiding_other_io_errors() {
             "verbatim_inherit"
         ]
     );
-    for (scope, count) in [
-        ("missing", 14),
-        ("json", 1),
-        ("directory_envelope", 1),
-        ("known_residual", 1),
-    ] {
+    for (scope, count) in [("missing", 14), ("json", 1), ("directory_envelope", 2)] {
         assert_eq!(
             cases
                 .iter()
@@ -92,12 +87,6 @@ fn missing_config_errors_match_the_real_body_without_hiding_other_io_errors() {
     );
     let mut measured = 0;
     for case in cases {
-        if case["coverage"] == "known_residual" {
-            // 空の--configはClap拒否が残る#147。本家のdirectory I/Oと一致した成功には数えない。
-            assert_eq!(case["id"], "empty");
-            assert_eq!(case["error_class"], "Errno::EISDIR");
-            continue;
-        }
         if !cfg!(windows)
             && matches!(
                 case["id"].as_str().unwrap(),
@@ -173,12 +162,25 @@ fn missing_config_errors_match_the_real_body_without_hiding_other_io_errors() {
         );
         if case["kind"] == "io" {
             assert_eq!(case["error_class"], "Errno::EISDIR");
-            assert!(!output.stderr.is_empty());
+            // 一般I/Oの全文互換とは呼ばず、同じOSへの実readを分類根拠にする。
+            let path = if case["id"] == "directory" {
+                folder.path().join("configdir")
+            } else {
+                folder.path().to_owned()
+            };
+            let io_error = fs::read_to_string(path).unwrap_err();
+            let stderr = String::from_utf8_lossy(&output.stderr);
             assert!(
-                !String::from_utf8_lossy(&output.stderr).contains("Configuration file not found:"),
+                stderr.contains(&io_error.to_string()),
+                "{}: {stderr}",
+                case["id"]
+            );
+            assert!(
+                !stderr.contains("Configuration file not found:"),
                 "{}",
                 case["id"]
             );
+            assert!(!stderr.contains("a value is required"), "{}", case["id"]);
         } else {
             let expected = String::from_utf8(bytes(case["stderr_hex"].as_str().unwrap())).unwrap();
             assert_eq!(
@@ -225,7 +227,7 @@ fn missing_config_errors_match_the_real_body_without_hiding_other_io_errors() {
             assert!(!out.exists(), "{} created --out", case["id"]);
         }
     }
-    assert_eq!(measured, if cfg!(windows) { 16 } else { 13 });
+    assert_eq!(measured, if cfg!(windows) { 17 } else { 14 });
 }
 
 #[test]

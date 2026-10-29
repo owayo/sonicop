@@ -26,8 +26,8 @@ class ReferenceContract(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / "tests/fixtures/missing_config_errors.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
-    def test_input_matrix_and_known_residual_are_fixed(self):
-        """17行のうち空configを一致成功へ数えず、入力欠落も拒む。"""
+    def test_input_matrix_and_io_envelopes_are_fixed(self):
+        """17行の空configもI/O envelopeへ昇格し、入力欠落を拒む。"""
         fixture = self.fixture()
         self.assertEqual(fixture["schema"], 1)
         forms = recorder._selected_inputs(None)
@@ -36,7 +36,8 @@ class ReferenceContract(unittest.TestCase):
         for form, case in zip(forms, fixture["cases"], strict=True):
             self.assertEqual(form, {key: case[key] for key in form})
         self.assertEqual(
-            [case["id"] for case in forms if case["coverage"] == "known_residual"], ["empty"]
+            [case["id"] for case in forms if case["coverage"] == "directory_envelope"],
+            ["directory", "empty"],
         )
         for only in ([], ["unknown"], ["relative", "relative"]):
             with self.assertRaises(ValueError):

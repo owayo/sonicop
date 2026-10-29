@@ -1,0 +1,42 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの20CLIとOptions#parse実API（2026-10-28原参照）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+options.rb/config_loader.rbの実source SHA256とruntime/gem/Rainbow環境をJSONへ保持する。
+元参照へschemaだけを追加し、全args/files/kind/environment/options/exit/stdout/out/after/先頭行/hashは変更しない。
+候補から期待を生成せず、一般I/Oのprivate backtraceはwork/raw.jsonだけへ保存する。
+
+生成元: scripts/conformance/record_empty_config_arguments.py
+再生成:
+  python scripts/conformance/record_empty_config_arguments.py --ruby <ruby-4.0.7> --work-dir <fresh-work> --output <new-fixture.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentだけを共用する。
+子copyから注入ENV4だけを除き、GEM/PATH/OS環境は保持する。RainbowはTERM=dumb/CLICOLOR_FORCEなしの実profileを明示する。
+environment_then_emptyだけ入力のRUBOCOP_OPTSを子へ戻し、親の環境は変更しない。
+既存work/outputとdangling symlinkを先に拒否し、親解決・dotdot・Windows case差で同じ保存先も子起動前に拒否する。
+原本bytes/mtimeとoutを検査し、全件完了後だけx modeで保存する。空/重複/未知ID・入力差・API差を拒否する。
+Optionsのconfig_presentはbool、report件数はintを要求する。正常reportのidentity/path/完了件数/全offensesを検査する。
+
+#131 / PR192の36646d299e84b6865b7794163d0ec78a413e2aa0で、空値を保持するconfig parserは既修正だった。
+#147では製品挙動を変更せず、その動作を元の実本家記録と現CLIで検証した。
+純parserは全OSで17 Options条件を照合し、空の別argv/equals/short、非空/省略/真の値不足、last winsを区別する。
+RUBOCOP_OPTS入力は実entryと同じくargvより前へ重ね、テストでENVを変更しない。
+Windows実CLIは17条件:
+- I/O envelope11: 元I/O9とlast-empty2。exit2/stdout全bytes、同じOSへの実readエラー含有、Clap/ENOENT除外、原本bytes/mtime/out保持。
+- 正常JSON3: normal/omitted/empty_then_normal。native engine/spec identity確認後、metadata以外の全fieldsと通知bytesを比較する。
+- ENOENT1: prefix無しMissing本文とnative CRLF、exit/stdout/out/原本を照合する。
+- 真の値不足2: exit2/stdout空・Clapの値不足envelope・out/原本保持。OptionParserとの本文差を全文一致とは呼ばない。
+#135のparallel/cache通知は本家rawと厳密一致させ、旧NOTICE-or-empty緩和を除いた。
+20参照の残るhelp1/他引数error2はrawを保持するが、native本文互換の成功へ数えない。
+
+一般directory I/Oの本文/backtraceは依然未一致（通常不具合#209で別追跡）であり、envelopeを全文互換と呼ばない。
+新intentional divergenceにも登録しない。今回のnative CLI回帰はPATHを空にしても成立する。
+Windowsの実CLIに限る測定で、Unix実CLIの同じ20条件や全コーパス・性能は主張しない。
+入力case.rbと既存outのCRLFはそのまま保持する。fixture containerはLF、実pipe bytesはhexへ保存する。
+本家の別workで再採取するとI/O9/ENOENT1/last-empty2の計12 stderr_sha256だけがworkpath由来で変わる。
+この12hashを別比較し、他の全fields・API/source/runtime・stdout/out/input bytesを照合する。
+ライセンス: 既存licenses/RUBOCOP.txtのMIT licenceを再利用する。
+
+2026-10-29に公開collectorでfresh逐次再採取20件を初回終了0で完了した。
+元参照との差は上記12行のworkpath由来stderr_sha256だけで、他の全fields・runtime・source・Optionsは一致した。
+空指定とdirectory指定のnative CLIも各1回同じ入力で再確認し、一般I/O本文差の残存を別proofへ保存した。
+
+fixture SHA256: 5fa5b7601c5004b54e1e069a0cdcd8beb87963aee190e43e8bcb820aa56e7b03
+collector SHA256: 878857b215f188777f2e76fb725dce3a53ea1e5c8596b99e160bbd0af1b95b19

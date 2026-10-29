@@ -2835,4 +2835,74 @@ mod tests {
             std::borrow::Cow::Borrowed(_)
         ));
     }
+
+    #[test]
+    fn explicit_empty_config_matches_the_recorded_options_api() {
+        use clap::Parser;
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/empty_config_arguments.json"
+        ))
+        .unwrap();
+        assert_eq!(fixture["schema"], 1);
+        let cases = fixture["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 20);
+        let mut checked = 0;
+        for case in cases {
+            if matches!(case["kind"].as_str().unwrap(), "help" | "argument_priority") {
+                continue;
+            }
+            checked += 1;
+            let mut argv = vec![std::ffi::OsString::from("sonicop")];
+            // ENVを変更せず、実entryと同じ順でRUBOCOP_OPTSをargvの前へ重ねる。
+            if let Some(external) = case["environment"]["RUBOCOP_OPTS"].as_str() {
+                argv.extend(
+                    super::split_external_arguments(external)
+                        .unwrap()
+                        .into_iter()
+                        .map(std::ffi::OsString::from),
+                );
+            }
+            argv.extend(
+                case["args"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|arg| std::ffi::OsString::from(arg.as_str().unwrap())),
+            );
+            let result = super::Cli::try_parse_from(argv);
+            let api = &case["options"];
+            if api["error_class"] == "OptionParser::MissingArgument" {
+                // 空文字の存在と、argvに値そのものが無い場合を混同しない。
+                let error = result.unwrap_err();
+                assert!(
+                    error.to_string().contains("a value is required"),
+                    "{}: {error}",
+                    case["id"]
+                );
+            } else {
+                assert!(api["error_class"].is_null(), "{}", case["id"]);
+                let cli = result.unwrap();
+                assert_eq!(
+                    cli.config.is_some(),
+                    api["config_present"].as_bool().unwrap(),
+                    "{}",
+                    case["id"]
+                );
+                assert_eq!(
+                    cli.config,
+                    api["config"].as_str().map(std::path::PathBuf::from),
+                    "{}",
+                    case["id"]
+                );
+                let paths: Vec<_> = api["paths"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|path| std::path::PathBuf::from(path.as_str().unwrap()))
+                    .collect();
+                assert_eq!(cli.paths, paths, "{}", case["id"]);
+            }
+        }
+        assert_eq!(checked, 17);
+    }
 }

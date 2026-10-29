@@ -387,7 +387,7 @@
       "error_class": "Errno::EISDIR",
       "error_message_template": "Is a directory @ rb_sysopen - {cwd}",
       "stderr_sha256": "5eeb463663727043866cd520a86ab698513a21807fc8268b941b9c190a164a79",
-      "coverage": "known_residual"
+      "coverage": "directory_envelope"
     },
     {
       "id": "normal",

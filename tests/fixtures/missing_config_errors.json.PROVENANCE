@@ -15,10 +15,9 @@ File.exist?の事前推定でdirectory/アクセス拒否/ENOTDIRをMissingへ�
 
 17条件の比較scope:
 - Missing14: stdout/stderrの全bytes、終了2、原本bytes/mtime、out未作成または既存sentinel保持。
-- directory1: 終了2・stdout bytes・stderr非空でMissingではないI/O拒否envelope。backtrace全体の互換とは数えない。
+- directory2: directory/emptyの終了2・stdout bytes・同じOSの実readエラー含有、Clap/ENOENTではないI/O envelope。本文/backtraceの全文互換とは数えない。
 - normal1: 完了JSONのmetadata以外の全fields、native engine/rubocop版のidentity、stdout bytes、原本bytes/mtime。
-- empty1: 本家はdirectory I/OだがClap拒否の既知残差#147。metadataとして残し、成功16条件へ含めない。
-Windows専用backslash/verbatim/verbatim_inheritの3条件以外はOS共通回帰にし、Windows16/Unix13条件を実行する。
+Windows専用backslash/verbatim/verbatim_inheritの3条件以外はOS共通回帰にし、Windows17/Unix14条件を実行する。
 Unixのpipe改行だけをLFへ合わせる。Windowsのshort cwdをcanonical化せず、Unixの子cwdはphysical pathに合わせる。
 
 相対/絶対、absent/../のlexical正規化、日本語/空白、継承、版表示、phaseの色、既存out、late discoveryを含む。
@@ -31,5 +30,7 @@ raw stderrのSHA256は実workpathに依存する。別I/Oのraw backtraceはwork
 stdoutのparallel通知は現行#135の実bytesと厳密比較し、notice-or-emptyの旧基点緩和は使わない。
 早期version/force-defaultの追加8条件はmissing_config_early_phases.jsonへ別に保存する。
 
-fixture SHA256: 68f42961be5a98b59b8596a8c993d2ca6cbb4e1d249e95789af7ff56841a333c
-collector SHA256: 8f1f28c3c66a7925c0835903a0a0d2e6d03bbc6bda6bc5516fe39007c050048d
+fixture SHA256: 6dcf55496a3eebe83b9b8cc9c7b7f562aa887e4945de46063db3c6971df09d30
+collector SHA256: a71b65d1a262b479f76044b21cd84849f2bdf7ca0f6cdc505d02d250c19b261a
+
+#147でemptyのcoverageだけdirectory_envelopeへ昇格した。元raw/他fields/Unicode escape表記は保持し、skipしない。

@@ -20,4 +20,4 @@ collectorは入力と既存参照のガードを本fixtureから読み、候補�
 --initとconfigの組合せは未取得で、本8条件の成功主張へ含めない。
 
 fixture SHA256: 52e6013af95e74fe6350567741757cd0c238e673a4b46fd5a9007fbeaefb08d1
-collector SHA256: 8f1f28c3c66a7925c0835903a0a0d2e6d03bbc6bda6bc5516fe39007c050048d
+collector SHA256: a71b65d1a262b479f76044b21cd84849f2bdf7ca0f6cdc505d02d250c19b261a
