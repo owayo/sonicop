@@ -350,3 +350,10 @@ scripts/conformance/test_record_disk_listing.py text eol=lf
 tests/disk_listing.rs text eol=lf
 tests/fixtures/disk_listing.json text eol=lf
 tests/fixtures/disk_listing.json.PROVENANCE text eol=lf
+
+# ProgressのANSIと物理補正bytesは別々に固定する。
+scripts/conformance/record_progress_marker_colors.py text eol=lf
+scripts/conformance/test_record_progress_marker_colors.py text eol=lf
+tests/progress_marker_colors.rs text eol=lf
+tests/fixtures/progress_marker_colors.json text eol=lf
+tests/fixtures/progress_marker_colors.json.PROVENANCE text eol=lf
