@@ -340,3 +340,6 @@ tests/fixtures/late_config_display_filter.json.PROVENANCE text eol=lf
 
 tests/fixtures/runtime_requires*.json text eol=lf
 tests/fixtures/runtime_requires*.json.PROVENANCE text eol=lf
+
+tests/fixtures/default_cop_*.json text eol=lf
+tests/fixtures/default_cop_*.json.PROVENANCE text eol=lf

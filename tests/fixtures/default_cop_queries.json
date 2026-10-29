@@ -1,0 +1,1044 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "revision": "229531a6cfbf07e3caef30dbac24a2a3f3fed482",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "source_sha256": {
+      "options.rb": "adfe551344fc98ea2d13f21852b56ff1cd445a6fdf36cd0bde8cd2a154a4d8c4",
+      "config_loader_resolver.rb": "f8c40f5e08ad81ba25b76b8296e93ebd766af12730ab4d2bea770710d963c485",
+      "cop/registry.rb": "41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7"
+    }
+  },
+  "cases": [
+    {
+      "id": "ordinary",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "enable-default",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--enable-all-cops",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "enable-except-neighbor",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--enable-all-cops",
+        "--except",
+        "Style/UnlessElse",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "disable-only-neighbor",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--disable-all-cops",
+        "--only",
+        "Style/MissingElse,Style/UnlessElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "pending-none",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: pending\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a2070656e64696e670a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "null-none",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a206e756c6c0a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "false-none",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a2066616c73650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "pending-enable",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: pending\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--enable-all-cops",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a2070656e64696e670a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "null-enable",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--enable-all-cops",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a206e756c6c0a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "pending-disable",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: pending\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--disable-all-cops",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": []
+          }
+        ],
+        "summary": {
+          "offense_count": 0,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a2070656e64696e670a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "null-disable",
+      "query": "Style/UnlessElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nunless ready\r\n  work\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/MissingElse:\n  Enabled: true\nStyle/UnlessElse:\n  Enabled: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--disable-all-cops",
+        "--only",
+        "Style/MissingElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a226069666020636f6e646974696f6e20726571756972657320616e2060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f4d697373696e67456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a332c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a332c226c656e677468223a32332c226c696e65223a332c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "`if` condition requires an `else`-clause.",
+                "cop_name": "Style/MissingElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 3,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 3,
+                  "length": 23,
+                  "line": 3,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a756e6c6573732072656164790d0a2020776f726b0d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a20747275650a5374796c652f556e6c657373456c73653a0a2020456e61626c65643a206e756c6c0a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "typed-absent-none",
+      "query": "Style/MissingElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nif ready\r\n  work\r\nelse\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/EmptyElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/EmptyElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22526564756e64616e742060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f456d707479456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a352c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a342c226c656e677468223a342c226c696e65223a352c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Redundant `else`-clause.",
+                "cop_name": "Style/EmptyElse",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 5,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 4,
+                  "length": 4,
+                  "line": 5,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a69662072656164790d0a2020776f726b0d0a656c73650d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f456d707479456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "typed-pending-none",
+      "query": "Style/MissingElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nif ready\r\n  work\r\nelse\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/EmptyElse:\n  Enabled: true\nStyle/MissingElse:\n  Enabled: pending\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/EmptyElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22526564756e64616e742060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f456d707479456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a352c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a342c226c656e677468223a342c226c696e65223a352c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Redundant `else`-clause.",
+                "cop_name": "Style/EmptyElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 5,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 4,
+                  "length": 4,
+                  "line": 5,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a69662072656164790d0a2020776f726b0d0a656c73650d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f456d707479456c73653a0a2020456e61626c65643a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a2070656e64696e670a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "typed-null-none",
+      "query": "Style/MissingElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nif ready\r\n  work\r\nelse\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/EmptyElse:\n  Enabled: true\nStyle/MissingElse:\n  Enabled: null\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Style/EmptyElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22526564756e64616e742060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f456d707479456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a352c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a342c226c656e677468223a342c226c696e65223a352c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Redundant `else`-clause.",
+                "cop_name": "Style/EmptyElse",
+                "corrected": false,
+                "correctable": true,
+                "location": {
+                  "start_line": 5,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 4,
+                  "length": 4,
+                  "line": 5,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a69662072656164790d0a2020776f726b0d0a656c73650d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f456d707479456c73653a0a2020456e61626c65643a20747275650a5374796c652f4d697373696e67456c73653a0a2020456e61626c65643a206e756c6c0a"
+      },
+      "coverage": "full_report"
+    },
+    {
+      "id": "typed-absent-enable",
+      "query": "Style/MissingElse",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "# frozen_string_literal: true\r\n\r\nif ready\r\n  work\r\nelse\r\nend\r\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nStyle/EmptyElse:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--enable-all-cops",
+        "--only",
+        "Style/EmptyElse",
+        "a.rb"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22526564756e64616e742060656c7365602d636c617573652e222c22636f705f6e616d65223a225374796c652f456d707479456c7365222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a352c2273746172745f636f6c756d6e223a312c226c6173745f6c696e65223a352c226c6173745f636f6c756d6e223a342c226c656e677468223a342c226c696e65223a352c22636f6c756d6e223a317d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "report": {
+        "metadata": {
+          "rubocop_version": "1.89.0",
+          "ruby_engine": "ruby",
+          "ruby_version": "4.0.7",
+          "ruby_patchlevel": "0",
+          "ruby_platform": "x64-mingw-ucrt"
+        },
+        "files": [
+          {
+            "path": "a.rb",
+            "offenses": [
+              {
+                "severity": "convention",
+                "message": "Redundant `else`-clause.",
+                "cop_name": "Style/EmptyElse",
+                "corrected": false,
+                "correctable": false,
+                "location": {
+                  "start_line": 5,
+                  "start_column": 1,
+                  "last_line": 5,
+                  "last_column": 4,
+                  "length": 4,
+                  "line": 5,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "offense_count": 1,
+          "target_file_count": 1,
+          "inspected_file_count": 1
+        }
+      },
+      "after_hex": {
+        "Gemfile": "",
+        "a.rb": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650d0a0d0a69662072656164790d0a2020776f726b0d0a656c73650d0a656e640d0a",
+        "config.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a5374796c652f456d707479456c73653a0a2020456e61626c65643a20747275650a"
+      },
+      "coverage": "full_report"
+    }
+  ],
+  "queries": [
+    {
+      "id": "ordinary",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "enable-default",
+      "query": "Style/UnlessElse",
+      "value": true,
+      "ruby_class": "TrueClass",
+      "truthy": true
+    },
+    {
+      "id": "enable-except-neighbor",
+      "query": "Style/UnlessElse",
+      "value": true,
+      "ruby_class": "TrueClass",
+      "truthy": true
+    },
+    {
+      "id": "disable-only-neighbor",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "pending-none",
+      "query": "Style/UnlessElse",
+      "value": "pending",
+      "ruby_class": "String",
+      "truthy": true
+    },
+    {
+      "id": "null-none",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "false-none",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "pending-enable",
+      "query": "Style/UnlessElse",
+      "value": "pending",
+      "ruby_class": "String",
+      "truthy": true
+    },
+    {
+      "id": "null-enable",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "pending-disable",
+      "query": "Style/UnlessElse",
+      "value": "pending",
+      "ruby_class": "String",
+      "truthy": true
+    },
+    {
+      "id": "null-disable",
+      "query": "Style/UnlessElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "typed-absent-none",
+      "query": "Style/MissingElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "typed-pending-none",
+      "query": "Style/MissingElse",
+      "value": "pending",
+      "ruby_class": "String",
+      "truthy": true
+    },
+    {
+      "id": "typed-null-none",
+      "query": "Style/MissingElse",
+      "value": false,
+      "ruby_class": "FalseClass",
+      "truthy": false
+    },
+    {
+      "id": "typed-absent-enable",
+      "query": "Style/MissingElse",
+      "value": true,
+      "ruby_class": "TrueClass",
+      "truthy": true
+    }
+  ]
+}

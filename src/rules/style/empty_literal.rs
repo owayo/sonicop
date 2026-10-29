@@ -252,8 +252,6 @@ fn frozen_strings(context: &RuleContext<'_>) -> bool {
     }
     match specified {
         Some(enabled) => enabled,
-        None => context
-            .setting_of::<bool>("Style/FrozenStringLiteralComment", "Enabled")
-            .unwrap_or(true),
+        None => context.cop_enabled("Style/FrozenStringLiteralComment"),
     }
 }

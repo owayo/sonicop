@@ -1024,7 +1024,15 @@ fn try_run_with_warning_phase(
         return Ok(0);
     }
     if let Some(path) = &cli.list_enabled_cops_for {
-        list_enabled_cops(path, &configs)?;
+        list_enabled_cops(
+            path,
+            &configs,
+            if cli.disable_all_cops {
+                Some(false)
+            } else {
+                cli.enable_all_cops.then_some(true)
+            },
+        )?;
         return Ok(0);
     }
 
@@ -2763,10 +2771,11 @@ fn warn_unimplemented_matching(
         .known_cop_names()
         .filter(|name| !implemented.contains(name) && include(name))
         .filter(|&name| {
-            let enabled = config.rule_enabled_with_pending(
+            let enabled = config.rule_enabled_with_defaults(
                 name,
                 selection.enable_pending,
                 selection.disable_pending,
+                selection.default_cop_mode(),
             );
             selection.includes(name, enabled, config.rule_safe(name))
         })
@@ -2907,12 +2916,12 @@ fn docs_url(name: &str, config: &Config) -> String {
     format!("{base}/cops_{page}{extension}#{fragment}")
 }
 
-fn list_enabled_cops(path: &Path, configs: &ConfigStore) -> Result<()> {
+fn list_enabled_cops(path: &Path, configs: &ConfigStore, mode: Option<bool>) -> Result<()> {
     let config = configs.for_path_observed(path)?;
     configs.warn_renamed_cops(&config, &|_| true)?;
     let mut names = config
         .known_cop_names()
-        .filter(|name| config.rule_enabled(name))
+        .filter(|name| config.cop_enabled_with_defaults(name, mode))
         .collect::<Vec<_>>();
     names.sort();
     for name in names {

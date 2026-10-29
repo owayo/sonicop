@@ -32,9 +32,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .is_none_or(|style| style == "assign_to_condition"),
         single_line_only: context.setting("SingleLineConditionsOnly").unwrap_or(true),
         include_ternary: context.setting("IncludeTernaryExpressions").unwrap_or(true),
-        line_length: context
-            .setting_of::<bool>("Layout/LineLength", "Enabled")
-            .unwrap_or(true)
+        line_length: context.cop_enabled("Layout/LineLength")
             .then(|| {
                 context
                     .setting_of::<usize>("Layout/LineLength", "Max")

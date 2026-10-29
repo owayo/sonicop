@@ -802,24 +802,28 @@ const REDUNDANT_COP_DISABLE_DIRECTIVE_RULES: [&str; 3] = [
 ];
 
 impl Selection {
+    pub(crate) fn default_cop_mode(&self) -> Option<bool> {
+        if self.disable_all {
+            Some(false)
+        } else {
+            self.enable_all.then_some(true)
+        }
+    }
+
     pub fn includes(&self, name: &str, configured_enabled: bool, safe: bool) -> bool {
         if is_mandatory_cop(name) {
             return true;
         }
-        let explicitly_selected = self
-            .only
-            .iter()
-            .any(|selection| selector_matches(selection, name));
+        // Registryは個別名のonlyだけを強制する。departmentは有効なcopの集合を絞る。
         let selected = if self.only.is_empty() {
-            if self.disable_all {
-                false
-            } else if self.enable_all {
-                true
-            } else {
-                configured_enabled
-            }
+            configured_enabled
         } else {
-            explicitly_selected
+            self.only.iter().any(|selector| selector == name)
+                || (configured_enabled
+                    && self
+                        .only
+                        .iter()
+                        .any(|selector| selector_matches(selector, name)))
         };
         selected
             && (!self.safe_only || safe)
@@ -927,10 +931,11 @@ impl RulePlan {
         let mut standby = Vec::new();
         for (index, rule) in rules().enumerate() {
             let safe = config.rule_safe(rule.name);
-            let enabled = config.rule_enabled_with_pending(
+            let enabled = config.rule_enabled_with_defaults(
                 rule.name,
                 selection.enable_pending,
                 selection.disable_pending,
+                selection.default_cop_mode(),
             );
             if selection.includes(rule.name, enabled, safe) {
                 entries.push(planned(index, rule));
@@ -1125,6 +1130,7 @@ fn inspect_planned(
                 planned.severity,
                 selection.correcting,
             )
+            .with_default_cop_mode(selection.default_cop_mode())
             .reviewing_directives(&review);
             let mut reported = Vec::new();
             (planned.rule.check)(&context, &mut reported);
@@ -1187,7 +1193,8 @@ fn inspect_registered_rules<'a>(
                 syntax_rule,
                 syntax_severity,
                 selection.correcting,
-            ),
+            )
+            .with_default_cop_mode(selection.default_cop_mode()),
             &mut syntax_offenses,
         );
     });
@@ -1207,6 +1214,7 @@ fn inspect_registered_rules<'a>(
     )
     // `registry.disabled_names(config)`: the cops the run switches off, which is what an
     // `# rubocop:enable` has to undo. The standby list is that set already.
+    .with_default_cop_mode(selection.default_cop_mode())
     .with_disabled_cops(&plan.standby_names)
     .with_project_index(selection.project_index.as_deref());
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {

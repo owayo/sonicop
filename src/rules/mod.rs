@@ -156,6 +156,7 @@ pub(crate) struct RuleContext<'a> {
     severity: Severity,
     /// RuboCop's `autocorrect?`. See [`crate::engine::Selection::correcting`].
     correcting: bool,
+    default_cop_mode: Option<bool>,
     /// Set only for the cop that reads the file's directives rather than its syntax tree.
     directive_review: Option<&'a DirectiveReview<'a>>,
     /// RuboCop's `VariableForce`, run at most once per file.
@@ -217,6 +218,7 @@ impl<'a> RuleContext<'a> {
             rule,
             severity,
             correcting,
+            default_cop_mode: None,
             directive_review: None,
             analysis: OnceCell::new(),
             fragments: OnceCell::new(),
@@ -225,6 +227,11 @@ impl<'a> RuleContext<'a> {
             disabled_cops: &[],
             project_index: None,
         }
+    }
+
+    pub(crate) fn with_default_cop_mode(mut self, mode: Option<bool>) -> Self {
+        self.default_cop_mode = mode;
+        self
     }
 
     /// Records which cops the run switches off. See [`Self::disabled_cops`].
@@ -308,21 +315,27 @@ impl<'a> RuleContext<'a> {
 
     /// One of the cop's own configuration parameters, such as `Max` or `EnforcedStyle`.
     pub fn setting<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.config.cop_value(self.rule.name, key)
+        self.setting_of(self.rule.name, key)
     }
 
-    /// Another cop's configuration parameter, the way RuboCop's cops reach for
-    /// `config.for_cop('Layout/HashAlignment')`. A cop whose own behaviour is defined in terms of
-    /// a neighbour's configuration has to read that neighbour, not guess at its default.
+    /// 隣のcopのfor_cop設定を読み、Enabledだけは既定modeを反映した値を同じ型で渡す。
     pub fn setting_of<T: serde::de::DeserializeOwned>(&self, cop: &str, key: &str) -> Option<T> {
+        if key == "Enabled" {
+            // generic型をboolへ変えず、for_copのValueを要求された型で読む。
+            return T::deserialize(
+                &*self
+                    .config
+                    .cop_enabled_value_with_defaults(cop, self.default_cop_mode),
+            )
+            .ok();
+        }
         self.config.cop_value(cop, key)
     }
 
-    /// Whether another cop is switched on, the way RuboCop's cops ask
-    /// `config.cop_enabled?('Lint/SafeNavigationChain')`. A cop that leaves work to a neighbour
-    /// has to know whether the neighbour will do it.
+    /// config.cop_enabled?のtruthinessで隣の設定を問い合わせ、Registryのpending資格とは分ける。
     pub fn cop_enabled(&self, cop: &str) -> bool {
-        self.config.rule_enabled(cop)
+        self.config
+            .cop_enabled_with_defaults(cop, self.default_cop_mode)
     }
 
     /// `Registry#disabled_names(config)`: the cops the run switches off through the configuration.

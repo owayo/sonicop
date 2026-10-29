@@ -20,12 +20,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         matches!(style.as_str(), "nil" | "both"),
     );
     let allow_comments = context.setting::<bool>("AllowComments").unwrap_or(false);
-    // `autocorrect_forbidden?`: `Style/MissingElse` asks for the very branch this cop removes, so
-    // while it is on for this node's type the removal is withheld and the offense stays as a
-    // report.
-    let missing_else = context
-        .setting_of::<bool>("Style/MissingElse", "Enabled")
-        .unwrap_or(false)
+    // autocorrect_forbidden?: MissingElseが要求する節を消さず、診断だけを残す。
+    // fetch('Enabled')のtruthinessなので、pending文字列も有効として問い合わせる。
+    let missing_else = context.cop_enabled("Style/MissingElse")
         .then(|| {
             context
                 .setting_of::<String>("Style/MissingElse", "EnforcedStyle")
