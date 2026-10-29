@@ -248,13 +248,14 @@ impl OrderedKeys {
         target: &super::obsoletion::TargetRuby,
     ) -> Prepared {
         let plugins = configured_plugin_departments(value);
-        // rename以外の廃止名の旧拒否を保ち、個別カテゴリの移行は混ぜない。
+        // 今回移行するwarning旧名以外は、従来の廃止名拒否も維持する。
         let mut legacy_unknown: Vec<_> = super::cop_names(value)
             .into_iter()
             .filter(|name| {
                 !SCHEMA.contains_key(name)
                     && !belongs_to_plugin(name, &plugins)
                     && super::namespaces::is_obsolete(name)
+                    && !super::obsoletion::warning_name(name)
             })
             .collect();
         legacy_unknown.sort();
@@ -489,5 +490,10 @@ impl ConfigWarnings {
 
     pub(super) fn emit(&self, trace: &ValidationTrace) -> Result<()> {
         trace.replay(self.ignore_unknown, self.output.as_ref())
+    }
+
+    pub(super) fn emit_using(&self, message: &str) -> Result<()> {
+        // Config#initializeのheredocは本文内にLFを持ち、既存Parameterと同じreset境界になる。
+        (self.output)(&ConfigWarning::Parameter(message.to_owned()))
     }
 }

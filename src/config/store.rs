@@ -73,6 +73,17 @@ impl ConfigStore {
         &self.root
     }
 
+    pub(crate) fn warn_renamed_cops(
+        &self,
+        config: &Config,
+        selected: &dyn Fn(&str) -> bool,
+    ) -> Result<()> {
+        if let Some(warnings) = &self.warnings {
+            config.warn_renamed_cops(selected, &|message| warnings.emit_using(message))?;
+        }
+        Ok(())
+    }
+
     pub fn for_path(&self, path: &Path) -> Result<Arc<Config>> {
         if !self.discover_per_path {
             return Ok(Arc::clone(&self.root));
@@ -116,14 +127,14 @@ impl ConfigStore {
                     } else {
                         Config::load_with_options(origin, self.root.cwd(), discovered.is_none())?
                     });
-                    if !self.ignore_unrecognized && !config.unrecognized_cop_names().is_empty() {
+                    if !self.ignore_unrecognized && !config.unknown_config_cop_names().is_empty() {
                         // 失敗する snapshot より前の継承警告だけを残す。成功時の先読みは無出力。
                         if let Some(warnings) = &self.warnings {
                             config.emit_validation(warnings, &self.root)?;
                         }
                         bail!(
                             "unrecognized cop(s): {}",
-                            config.unrecognized_cop_names().join(", ")
+                            config.unknown_config_cop_names().join(", ")
                         );
                     }
                     store(&self.cache, key, &config)?;

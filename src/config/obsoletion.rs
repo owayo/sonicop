@@ -54,6 +54,56 @@ static RENAMED: LazyLock<Vec<RenamedCop>> = LazyLock::new(|| {
         .expect("recorded RuboCop renamed cops")
 });
 
+pub(super) fn warning_name(name: &str) -> bool {
+    RENAMED
+        .iter()
+        .any(|rule| matches!(rule.severity, Severity::Warning) && rule.old_name == name)
+}
+
+fn renamed_warnings(config: &Value, origin: &str) -> Vec<String> {
+    let Some(mapping) = config.as_mapping() else {
+        return Vec::new();
+    };
+    RENAMED
+        .iter()
+        .filter(|rule| matches!(rule.severity, Severity::Warning))
+        .filter(|rule| {
+            mapping.contains_key(rule.old_name.as_str())
+                || mapping.contains_key(rule.short_name.as_str())
+        })
+        .map(|rule| {
+            format!(
+                "{}\n(obsolete configuration found in {origin}, please update it)",
+                rule.message()
+            )
+        })
+        .collect()
+}
+
+pub(super) fn legacy_settings(config: &Value) -> Vec<(&'static str, &'static str, Mapping)> {
+    let disabled = config
+        .get("AllCops")
+        .and_then(|all| all.get("DisabledByDefault"))
+        .and_then(Value::as_bool)
+        == Some(true);
+    RENAMED
+        .iter()
+        .filter(|rule| matches!(rule.severity, Severity::Warning))
+        .filter_map(|rule| {
+            let mut settings = config.get(&rule.old_name)?.as_mapping()?.clone();
+            // ConfigLoaderResolverはDisabledByDefault時、空の旧HashにもEnabledを補う。
+            if disabled && !settings.contains_key("Enabled") {
+                settings.insert(Value::String("Enabled".to_owned()), Value::Bool(true));
+            }
+            (!settings.is_empty()).then_some((
+                rule.old_name.as_str(),
+                rule.new_name.as_str(),
+                settings,
+            ))
+        })
+        .collect()
+}
+
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum RetiredCop {
@@ -159,7 +209,7 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
         return Vec::new();
     };
     // keyの順やEnabledの値ではなくCopRule#violated?とrulesの順を使う。
-    // warning2の旧値移行は別scope。cop規則だけ本家のcategory順に集約する。
+    // warningはOutcomeでparameterと合流し、ここではfatal cop規則だけを登録順に集約する。
     let mut messages = RENAMED
         .iter()
         .filter(|rule| matches!(rule.severity, Severity::Error))
@@ -213,9 +263,11 @@ impl Outcome {
         match parameters::messages(config, origin, target) {
             Ok(messages) => {
                 fatal.extend(messages.fatal);
+                let mut warnings = renamed_warnings(config, origin);
+                warnings.extend(messages.warning);
                 Self {
-                    warning: (fatal.is_empty() && !messages.warning.is_empty())
-                        .then(|| format!("Warning: {}", messages.warning.join("\n"))),
+                    warning: (fatal.is_empty() && !warnings.is_empty())
+                        .then(|| format!("Warning: {}", warnings.join("\n"))),
                     fatal,
                     failure: None,
                 }

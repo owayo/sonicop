@@ -26,6 +26,21 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/mod.rs, src/config/obsoletion.rs, src/config/store.rs
+  src/config/validation.rs, src/cli.rs (warning renamed-cop configuration)
+  tests/fixtures/renamed_config.json
+  tests/fixtures/renamed_config_warning_order.json
+      Runtime legacy-Hash overlay and separate Class catalog values ported
+      from RuboCop 1.89.0 Config#for_cop, using the two warning entries in the
+      existing complete renamed_cops.json table. Thirty-six actual CLI and
+      four Config API conditions retain their documented finite projections.
+      Three separate records verify joined rename/parameter warning bodies
+      and suppression by fatal validation. Eight exact API Exclude fields
+      use a public placeholder; original raw values remain in private work.
+      Regenerate with scripts/conformance/record_renamed_config.py, adding
+      --warning-order for the three independent records. Adjacent .PROVENANCE
+      files record scope and hashes. Full licence: licenses/RUBOCOP.txt.
+
   src/config/namespaces.rs, src/cli.rs (ambiguous configuration errors)
   tests/fixtures/ambiguous_config_errors.json
       AmbiguousCopName refusal and CLI error transport ported from RuboCop
