@@ -45,11 +45,11 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
   tests/fixtures/ambiguous_config_errors.json
       AmbiguousCopName refusal and CLI error transport ported from RuboCop
       1.89.0 Registry and CLI. Twenty-three actual CLI conditions preserve
-      20 strict comparisons separately from three nested error-report
-      lifecycle conditions, whose stderr and exit are compared in full.
+      23 strict comparisons, including three nested error-report lifecycle
+      conditions with complete stdout, stderr and exit comparisons.
       Regenerate with scripts/conformance/record_ambiguous_config_errors.py.
       The adjacent .PROVENANCE records source hashes, raw preservation,
-      color phases and the separate late formatter limitation. Existing
+      color phases and the initial/late formatter boundaries. Existing
       namespace fixtures retain their original raw records and now compare
       all six ambiguity endings. Full licence: licenses/RUBOCOP.txt.
 
@@ -72,12 +72,28 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       .PROVENANCE files record source hashes, original raw scope and remaining
       differences. Full licence text is retained at licenses/RUBOCOP.txt.
 
+  src/cli.rs, src/engine.rs, src/formatter/lifecycle.rs, src/formatter/output.rs
+  tests/fixtures/late_config_reports.json
+  tests/fixtures/late_config_display_filter.json
+      Runner file visitation and formatter completion boundaries adapted from
+      RuboCop 1.89.0 Runner, TargetFinder, ExecuteRunner and FormatterSet.
+      Thirty-eight actual CLI records preserve initial rejection separately
+      from completed file prefixes, corrections and final reports. Thirty-two
+      compare full streams and reports; four Windows fork fallback notices,
+      one list transport and one generic I/O error retain documented limits.
+      Three separate display-filter channel controls and one unfiltered
+      positive control retain full JSON and exit comparisons. Regenerate with
+      scripts/conformance/record_late_config_reports.py and
+      scripts/conformance/record_late_config_display_filter.py.
+      Source hashes, raw scope and remaining differences are recorded in the
+      adjacent .PROVENANCE. Full licence text: licenses/RUBOCOP.txt.
+
   src/config/obsoletion.rs (removed, split and extracted cop categories)
   config/obsolete_cop_categories.json
   tests/fixtures/obsolete_cop_categories.json
       Sixteen ordered API rules ported from RuboCop 1.89.0 ConfigObsoletion:
       13 removed, one split and two extracted rules. Forty actual CLI records
-      retain 39 strict comparisons separately from one deferred late error JSON.
+      retain 40 strict comparisons, including the late empty completion JSON.
       Loaded plugin compatibility remains outside this finite comparison.
       Regenerate with scripts/conformance/record_obsolete_cop_categories.py;
       source hashes and scope are recorded in the adjacent .PROVENANCE files.

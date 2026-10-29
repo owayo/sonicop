@@ -1,0 +1,59 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-28実CLI38条件の原参照。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_late_config_reports.py
+再生成（固定Windows Ruby/gemが必要）:
+  python scripts/conformance/record_late_config_reports.py --ruby <ruby-4.0.7> --work-dir <fresh-private-work> --output <new-fixture.json>
+namespace採取器のLOADER/VERSIONS/reference_environmentだけを共用し、候補を起動しない。
+ENV4とambient NO_COLORを子copyから除き、明示CLICOLOR_FORCEだけを最後に重ねる。
+GEM/PATH/OS環境と親は保持する。source SHA4と実runtime/gem版を再取得してから採取する。
+work/outputの既存entry/danglingを先に拒否し、親解決/dotdot/Windows case差の同一保存先も拒否する。
+全38完了後だけexclusive xで保存する。private rawは各caseのprivate-raw.jsonへ排他保存する。
+
+元38の全既存fields/raw/ID順は不変。schema:1、sourcesと行ごとのcoverageだけを追加した。
+原参照container SHA256: 3ea1f6c2737b6e61a7885cc0e7265768aa479a6dfee9c3e2e3b061b0f03bb8eb
+旧採取とのraw hash差はworkpath由来のstderr31/stdout1だけで、期待hex/fieldsは元から同一だった。
+入力全fields/比較scopeのSHAと38ID順を固定する。空/欠落/重複/変更入力やbool件数を受理しない。
+
+比較範囲（Windows38、Unix34）:
+- strict32: metadata以外のstdout/stderr/outの全bytes、全JSON fields、exit、物理原本を比較する。
+  #150済みの曖昧名は最終Errorの候補順・origin・色・末尾改行まで全文照合する。
+- deferred_158のWindows4: correct-parallel/cache-parallel/stderr-parallel/unvisited-config。
+  本家のfork非対応通知1区間だけを除いた残り全bytes/report/原本を照合する。
+  Nativeの通常Sonicop通知は存在するならそのまま検出する。未測定のUnix fork挙動へ投影せず4件を未実行とする。
+- deferred_155のlist-files1: 元Windows CRLFを保持し、候補との比較は行末だけを限定投影する。
+- open_envelope1: out-is-directoryはopen失敗のexit2/stdout空と、nested設定へ到達しない順序だけを検査する。
+  Ruby内部backtraceは再現せず、公開側には実先頭行とraw hash、private rawには全文を保持する。
+これら6条件を全bytes互換の成功へ数えず、#155/#158解決時にも同rawから昇格できる分類を残す。
+
+root設定拒否と探索起点directory/force-exclusion+ignore-parentでの拒否はstarted前でreportを出さない。
+明示file/root directory/stdinでは実target数を得てからfile_started→設定観測→検査/補正→file_finishedと進む。
+失敗したfileを検査済みにせず、成功prefixだけをfinishedへ渡す。failed-firstはfiles空/target1または3/inspected0。
+未訪問の後続設定や原本の補正へ進まない。単一/複数formatterとstderr共有でも各実callbackの順を維持する。
+Fileはstarted前に登録順で開き、File bufferは維持し、streamだけを外部警告との境界でflushする。
+callback出力失敗はtyped errorで区別し、設定拒否のfinished/file_finishedとして再試行しない。
+public engineのResult<Vec<FileReport>>は保ち、private入力順resultsで並列tailのI/O失敗前prefixを保持する。
+CLIの並列fastpathは固定設定・非stdin・非補正・非failfast・selection拒否なしに限定し、先頭file利用後に進める。
+Usingは実設定利用時に発行し、clone共有claim・lock解放後I/O・quiet APIを保持する。
+
+JSON metadataは実engine/spec/Ruby版を確認後に除外する。他のmessage/空行/ANSI/field順は正規化しない。
+公開origin投影は実workdirのforward-slash形式の正確なprefix bytesだけを<WORKDIR>/へ置換する。
+全stream/原本の生bytesはprivate workに保持する。fresh raw hashは作業pathで変わり得るため、
+再採取のhashはfresh成果とprivate rawへ記録し、元fixtureのhashは上書きしない。他の全fieldsは一致を要求する。
+全入力/既存outはbytes/mtime/readonlyを検査し、不変bytesの再書込みを拒否する。
+非Windowsはpipe CRLFだけをLFへ投影する。補正原本は元が正確にx=1 LFまたはz=3 LFのASCII代入だけ投影し、
+DATA/literal/元CRLF/任意の本文へ一般化しない。macOSだけphysical cwdを使い、Windows短縮表記を保持する。
+
+先行参照の昇格は148 late1、150 nested3、151 stderr-progress1だけで、元rawを変えない。
+最終TargetRuby resolver/parserの#212、require/plugin実行#153、remote cache origin#201はこのscopeに含めない。
+ライセンス: MIT、Copyright (c) 2012-26 Bozhidar Batsov。全文: licenses/RUBOCOP.txt。
+
+2026-10-29にcargo全終了後、公開collectorでfresh38を初回終了0で逐次再採取した。
+元38の全非hash fields/全期待hexは一致し、freshの全raw hash bindingも各private-rawから再計算した。
+fresh raw hash差はstderr32/stdout1/output0。stderr31とstdout1はworkpath由来で、
+追加stderr1はout-is-directoryの非公開backtrace末尾の共用LOADER eval位置（-e:12→-e:14）だけである。
+同caseの公開先頭行・他の全期待fieldsは不変。元fixtureのraw hashをfresh値へ置換しない。
+Linuxだけの実/dev/full負対照は、file_finishedのwrite失敗後に後続JSONをfinishedしないことを検査する。
+このOS固有テストはWindowsで未実行であり、主38の実測成功数へ加算しない。
+
+fixture SHA256: cc532fc67b7891349b54dc5bb1fa50f4c10ce3ec7af129091144535cd22fe202
+collector SHA256: 6800add9c95f92d62d35e1eb731f5f873ff4f50315382ecb97dca2e0beaa9f7d

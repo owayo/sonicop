@@ -20,4 +20,4 @@ runtime/source SHAは本fixtureに保存する。ENV/fresh/exclusive方針は主
 公開fixtureとfresh出力のcontainer bytesも完全一致した。
 
 fixture SHA256: 258de62fad765ea1e74bd1a9c3ad8753a14503757c4555ca4b6c6ce9cf71add8
-collector SHA256: f2f1cffa05785675b7c6defcfac5d9fabad541e020341f207e84731a5b482b1e
+collector SHA256: 62d9ccc6037ff91a28b422f49c711baa0f42435be328ff78315ed15c916e6e09

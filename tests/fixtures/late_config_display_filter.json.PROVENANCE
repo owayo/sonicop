@@ -1,0 +1,32 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrt、2026-10-29実CLI4条件の原参照。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+生成元: scripts/conformance/record_late_config_display_filter.py
+再生成:
+  python scripts/conformance/record_late_config_display_filter.py --ruby <ruby-4.0.7> --work-dir <fresh-private-work> --output <new-fixture.json>
+原参照container SHA256: 6f3359b98cfb8e62197062aadd8ee8ac625780d403aedcbdc0beb62fcc072b8d
+元の全fields/全rawは変更せず保存した。主late_config_reports.jsonの38へ加算しない。
+
+positive_control1: unfiltered-disk-controlはuncorrectableなNaming/PredicatePrefix違反1件、exit1。
+cases3: --display-only-correctableでdisk/stdin file/stdin directoryを別に測定し、全てexit0/offense0。
+前2件はa.rbのtarget1/inspected1、stdin directoryはGemfile/a.rb/config.ymlのtarget3/inspected3。
+TargetFinderはstdin時に全fileをRuby入力として扱うため、directoryの1targetという仮定を置かない。
+本家の初回仮定guard失敗は採取成功へ含めず、同一入力のfresh完了4件だけを原参照にした。
+Runner#considered_failure?とoffense_displayed?の結合に基づき、表示対象だけでstatusを決める。
+旧Nativeのfilter前statusを仕様として固定せず、実本家の陽性/陰性を両方照合する。
+
+native回帰はengine/spec identityを確認してmetadata以外の全JSON fieldsとexit/stderr/out無しを比較する。
+全原本/config/Gemfileのbytes/mtime/readonlyは不変。collectorはmodeも含めて不変を要求する。
+固定4ID・全入力SHA・schema/types・全report・source SHA3/Ruby/gem版を検査する。
+正の完了集合と不完全なoffense、bool件数/exit/out flagを通常成功へ混ぜない。
+namespaceのLOADER/reference_environmentと主152の保存先/原本/primary照会guardを共用する。
+候補は呼ばず、fresh work/output/dangling/normalized aliasを子起動前拒否、全件後にexclusive保存する。
+本文だけ（mtime復元）/mtimeだけ/outだけの独立負対照を正しいCLI rawのまま検査する。
+ENV4/NO_COLORだけを子copyから除き、GEM/PATH/OS環境と親を保持する。
+公開データに私有cwd/内部backtraceは無く、全rawはprivate workにも保持する。
+containerはLF、hexと原本は元byteのまま。ライセンス全文: licenses/RUBOCOP.txt（MIT）。
+
+2026-10-29に公開collectorで別fresh workの実CLI4件を初回終了0で逐次再採取した。
+陽性1/filtered3の全fields/rawが元参照と一致し、fixtureとfreshのcontainer bytesも完全一致した。
+
+fixture SHA256: 6f3359b98cfb8e62197062aadd8ee8ac625780d403aedcbdc0beb62fcc072b8d
+collector SHA256: c35a1c08001842508e9f81aac86bdcb7b0c1a2b14f86306b4e22b6df6ec42709

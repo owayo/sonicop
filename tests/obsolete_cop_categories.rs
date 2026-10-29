@@ -1,4 +1,4 @@
-//! 39 strict CLIとlate1の元dataを分け、異なるlifecycle残差を隠さない。
+//! 初期拒否と途中拒否の40CLIを、元の実参照で照合する。
 
 use std::fs;
 use std::process::Command;
@@ -184,14 +184,14 @@ fn fixture() -> Value {
             .iter()
             .filter(|case| case["coverage"] == "strict")
             .count(),
-        39
+        40
     );
     assert_eq!(
         cases
             .iter()
             .filter(|case| case["coverage"] == "deferred_152")
             .count(),
-        1
+        0
     );
     fixture
 }
@@ -205,33 +205,8 @@ fn initial_categories_match_upstream_before_output_and_source_changes() {
         .iter()
         .filter(|case| case["coverage"] == "strict")
         .collect();
-    assert_eq!(cases.len(), 39);
+    assert_eq!(cases.len(), 40);
     for case in cases {
         inspect_case(case);
     }
-}
-
-#[test]
-fn late_reference_is_preserved_for_the_deferred_lifecycle_issue() {
-    let fixture = fixture();
-    let cases: Vec<_> = fixture["cases"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|case| case["phase"] == "late_rejection")
-        .collect();
-    assert_eq!(cases.len(), 1);
-    // #152へ元JSONを残し、現在の空stdoutを互換期待にしたり39成功へ混ぜない。
-    let case = cases[0];
-    assert_eq!(case["coverage"], "deferred_152");
-    assert_eq!(case["id"], "nested-discovery");
-    assert_eq!(case["exit"], 2);
-    let mut report: Value =
-        serde_json::from_slice(&bytes(case["stdout_hex"].as_str().unwrap())).unwrap();
-    report.as_object_mut().unwrap().remove("metadata");
-    assert_eq!(report, case["rejection_report"]);
-    assert_eq!(
-        report,
-        serde_json::json!({"files":[],"summary":{"offense_count":0,"target_file_count":1,"inspected_file_count":0}})
-    );
 }

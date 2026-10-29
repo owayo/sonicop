@@ -37,7 +37,7 @@ CASE_IDS = (
     "canonical",
     "priority-cache",
 )
-DEFERRED = frozenset(("nested-color", "nested-no-color", "nested-inherit-color"))
+LATE_CASES = frozenset(("nested-color", "nested-no-color", "nested-inherit-color"))
 RED = frozenset(
     (
         "force-color",
@@ -205,7 +205,7 @@ def case_inputs():
         kind="option",
     )
     for case in cases:
-        case["coverage"] = "deferred_152" if case["id"] in DEFERRED else "strict"
+        case["coverage"] = "strict"
     if tuple(case["id"] for case in cases) != CASE_IDS:
         raise ValueError("incomplete fixed input matrix")
     return cases
@@ -229,8 +229,7 @@ def child_environment(intentional=None):
 def _forms():
     forms = case_inputs()
     if tuple(case["id"] for case in forms) != CASE_IDS or any(
-        case["coverage"] != ("deferred_152" if case["id"] in DEFERRED else "strict")
-        for case in forms
+        case["coverage"] != "strict" for case in forms
     ):
         raise ValueError("incomplete fixed input/coverage matrix")
     return forms
@@ -278,7 +277,7 @@ def _validate_case(case, form):
     else:
         if case["exit"] != 2:
             raise ValueError("ambiguity was not rejected")
-        if case["id"] in DEFERRED:
+        if case["id"] in LATE_CASES:
             _report(stdout, 0)
         elif stdout != (NOTICE if case["id"] == "notice" else b""):
             raise ValueError("unexpected early formatter output")
@@ -305,7 +304,7 @@ def _validate_case(case, form):
 
 
 def validate_fixture(fixture):
-    """固定23入力と20strict/3後段残差を区別し、偽の完了や色を拒む。
+    """固定23入力と23strictを区別し、偽の完了や色を拒む。
 
     Raises:
         ValueError: 版・source・型・固定入力・出力段階が契約と異なる場合。

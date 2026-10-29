@@ -78,31 +78,19 @@ fn ambiguity_stderr_and_early_stdout_match_the_real_cli() {
             .iter()
             .filter(|row| row["coverage"] == "strict")
             .count(),
-        20
+        23
     );
     assert_eq!(
         cases
             .iter()
             .filter(|row| row["coverage"] == "deferred_152")
             .count(),
-        3
+        0
     );
     let mut full_strict = 0;
-    let mut stderr_only = 0;
     for case in cases {
         let name = case["id"].as_str().unwrap();
-        assert_eq!(
-            case["coverage"],
-            if matches!(
-                name,
-                "nested-color" | "nested-no-color" | "nested-inherit-color"
-            ) {
-                "deferred_152"
-            } else {
-                "strict"
-            },
-            "{name}"
-        );
+        assert_eq!(case["coverage"], "strict", "{name}");
         let directory = tempfile::tempdir().unwrap();
         let root = directory.path();
         let files = case["files"].as_object().unwrap();
@@ -163,20 +151,7 @@ fn ambiguity_stderr_and_early_stdout_match_the_real_cli() {
             expected_stream(case["stderr_hex"].as_str().unwrap(), root),
             "{name} stderr"
         );
-        let late_stdout_gap = case["coverage"] == "deferred_152";
-        if late_stdout_gap {
-            // late config失敗時の完了JSON欠落は別件。実本家JSONを保持し、stdoutは未達と分ける。
-            // lifecycle修正時に同じ3条件も全JSON比較へ戻し、空stdoutを期待値にしない。
-            assert_eq!(case["stdout_json"], true);
-            let mut reference: Value =
-                serde_json::from_slice(&decode_hex(case["stdout_hex"].as_str().unwrap())).unwrap();
-            reference.as_object_mut().unwrap().remove("metadata");
-            assert_eq!(
-                reference,
-                serde_json::json!({"files": [], "summary": {"offense_count": 0, "target_file_count": 1, "inspected_file_count": 0}})
-            );
-            stderr_only += 1;
-        } else if case["stdout_json"] == true {
+        if case["stdout_json"] == true {
             let mut actual: Value = serde_json::from_slice(&output.stdout).unwrap();
             assert_eq!(actual["metadata"]["ruby_engine"], "sonicop");
             assert_eq!(actual["metadata"]["rubocop_version"], "1.89.0");
@@ -192,9 +167,7 @@ fn ambiguity_stderr_and_early_stdout_match_the_real_cli() {
                 "{name} stdout"
             );
         }
-        if !late_stdout_gap {
-            full_strict += 1;
-        }
+        full_strict += 1;
         for (path, bytes, modified) in before {
             assert_eq!(
                 std::fs::read(&path).unwrap(),
@@ -213,5 +186,5 @@ fn ambiguity_stderr_and_early_stdout_match_the_real_cli() {
             "{name} out"
         );
     }
-    assert_eq!((full_strict, stderr_only), (20, 3));
+    assert_eq!(full_strict, 23);
 }

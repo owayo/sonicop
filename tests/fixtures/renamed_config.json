@@ -1447,7 +1447,7 @@
         "CLICOLOR_FORCE": "0"
       },
       "directories": [],
-      "comparison": "lifecycle_152",
+      "comparison": "lifecycle_bytes",
       "expected_exit": 1,
       "exit": 1,
       "stdout_hex": "",

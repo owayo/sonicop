@@ -1164,7 +1164,7 @@
           "inspected_file_count": 0
         }
       },
-      "coverage": "deferred_152"
+      "coverage": "strict"
     },
     {
       "id": "inherited-namespace",

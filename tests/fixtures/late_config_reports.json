@@ -1,0 +1,2150 @@
+{
+  "versions": {
+    "parser": "3.3.12.0",
+    "prism": "1.8.1",
+    "rubocop-ast": "1.50.0",
+    "rubocop": "1.89.0",
+    "rainbow": "3.1.1"
+  },
+  "cases": [
+    {
+      "id": "single",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "aca2638933469b0314cf0a7f1afe389874ade78e71525b607e3333dd9836ef22",
+        "raw_stderr_sha256": "b2bb47b3064986993d780365871b8050e2ba31561e1e91cf50167257502a0ceb",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "prefix-ambiguous",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "361fb59ffe15c7bb106f8fe5f4f261ce7c30dda56d7557732d641fff5d50bd17",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "prefix-unknown",
+      "kind": "unknown",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nLayout/DoesNotExist:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74204c61796f75742f446f65734e6f74457869737420666f756e6420696e206e65737465642f2e7275626f636f702e796d6c0d0a44696420796f75206d65616e20604c61796f75742f43617365496e64656e746174696f6e603f0d0a",
+        "stderr_contract": "unknown",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4c61796f75742f446f65734e6f7445786973743a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "6250d9e4ef9212dba85c005c27e6a55bc47e06f233997233dc2ad300d698c459",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "prefix-obsolete",
+      "kind": "obsolete",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nLayout/TrailingBlankLines:\n  Enabled: false\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "4572726f723a2054686520604c61796f75742f547261696c696e67426c616e6b4c696e65736020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f547261696c696e67456d7074794c696e6573602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e206e65737465642f2e7275626f636f702e796d6c2c20706c6561736520757064617465206974290d0a",
+        "stderr_contract": "obsolete",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4c61796f75742f547261696c696e67426c616e6b4c696e65733a0a2020456e61626c65643a2066616c73650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "cc08a8f8f1dc1f54152f45e93f4b66eaab708183d88dffed41c3eab37dc4040d",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "prefix-missing",
+      "kind": "missing",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\ninherit_from: absent.yml\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "436f6e66696775726174696f6e2066696c65206e6f7420666f756e643a203c574f524b4449523e2f6e65737465642f616273656e742e796d6c0d0a",
+        "stderr_contract": "missing",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a696e68657269745f66726f6d3a20616273656e742e796d6c0a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "ad357001388020e8f2d3a8e06d1f68dba00132d075d58371234a677a2a573c9f",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "failed-first",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb",
+        "good.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "d202166ca34085d3147e0873cf3751bac555759dc0c7c7be1391d6942ba888b8",
+        "raw_stderr_sha256": "466b84184ead3f7914dbe852fcf810885c87c2a813caf077839181434a420826",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "root-directory",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "."
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a2247656d66696c65222c226f6666656e736573223a5b5d7d2c7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a342c22696e737065637465645f66696c655f636f756e74223a337d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "44328d7954b1b66f1c51be99d3e6d1c72642369d18db48afae3a2c5a05e9a8cc",
+        "raw_stderr_sha256": "fbdb85281c71fdb3e5316457f1cec13d198b8cdf2127808e694e40b65326a76c",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "discovery-directory",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "8a12b39b6d7bc61bdf7ec6e676cec563a05a7b7d1895a09805df33a1d0ba60ac",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "initial",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "82e079ecc222e95a31e34d728653c5bb87567822e27df4b5279e4405af35c5eb",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "initial-out",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n",
+        "report.json": "SENTINEL\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [
+        "report.json"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb",
+          "report.json"
+        ],
+        "outputs": {
+          "report.json": "53454e54494e454c0a"
+        },
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "c21b86d286a1085575ebd62a5efb98db0c1e8f4e6fed00d59ed54278e595fe64",
+        "raw_output_sha256": {
+          "report.json": "a5c4718a11955dbd03a4742f7ea0f7105ec1ef5982920d3fe2579b5614daaf4e"
+        }
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "list-files",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--list-target-files",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 0,
+        "stdout_hex": "676f6f642e72620d0a6e65737465642f612e72620d0a6c6173742e72620d0a",
+        "stderr_hex": "",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "95e3d3eeefaa31917379210f9171aae287f805c216cdb6b7243797a6b827637f",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_output_sha256": {}
+      },
+      "coverage": "deferred_155"
+    },
+    {
+      "id": "list-directory",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--list-target-files",
+        "good.rb",
+        "nested"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "4338a020a52124a5a915088dd97d1aa1bce60e463d25ce1ef8b585595fe3eac1",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "failfast-offense",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--fail-fast",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 1,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "failfast-clean",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x = 1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--fail-fast",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "78203d20310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "536ffda103218257c1588728b66bb1374c55e2fd86860ee965a2b648cd0ebaeb",
+        "raw_stderr_sha256": "9a9899db772dbdb3c83c148f2873807837727d3c9d8870158b58408ab6a7345f",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "correct-a",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-a",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "78203d20310d0a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "681c843ca7d1f914418a340017811cd90769a683e3b10ff18180ba19ec81b217",
+        "raw_stderr_sha256": "63c66f412984852c6ce4c165137e592154310c37980cf839b0309b1619c1df13",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "correct-A",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-A",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "78203d20310d0a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "681c843ca7d1f914418a340017811cd90769a683e3b10ff18180ba19ec81b217",
+        "raw_stderr_sha256": "0109042b002d0bbf853cacfbc836c5d685aac163062feca41f7ef889977f847b",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "correct-parallel",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-A",
+        "--cache",
+        "true",
+        "--parallel",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "706172616c6c656c3a2050726f636573732e666f726b206973206e6f7420737570706f72746564206279207468697320527562790d0a6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "78203d20310d0a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "681c843ca7d1f914418a340017811cd90769a683e3b10ff18180ba19ec81b217",
+        "raw_stderr_sha256": "d02435e9c12c505c40a9ce0a9059abfbe4c6ded610c8051c326ca9825c8f0c16",
+        "raw_output_sha256": {}
+      },
+      "coverage": "deferred_158"
+    },
+    {
+      "id": "cache-single",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--cache",
+        "true",
+        "--no-parallel",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "3e062ef98ab5d4f620966495139f282e0325acd386d00c6606e85ee42bf17c66",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "cache-parallel",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--cache",
+        "true",
+        "--parallel",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "706172616c6c656c3a2050726f636573732e666f726b206973206e6f7420737570706f72746564206279207468697320527562790d0a6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "f2000e7135f89b186d1c56323ce43b531bd5c051eed0908b8a522a9962a1fca8",
+        "raw_output_sha256": {}
+      },
+      "coverage": "deferred_158"
+    },
+    {
+      "id": "multiple",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--format",
+        "progress",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "496e7370656374696e6720332066696c65730d0a437b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d0d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "37ba306cbe48c628739aa0666957cb196e5a392f89cc0e150ae496de1bd88328",
+        "raw_stderr_sha256": "d26dcb5b6167e75a595cff7377cf6ca507772c31558504c2da17fde660b40a79",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "json-out",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n",
+        "report.json": "SENTINEL\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [
+        "report.json"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {
+          "report.json": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d"
+        },
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "65d21a6e1480f4836ccd7a664778264b608dab35f4ceeaa570adf5ab608a4108",
+        "raw_output_sha256": {
+          "report.json": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb"
+        }
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stderr-progress",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--format",
+        "progress",
+        "--stderr",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "496e7370656374696e6720332066696c65730d0a436e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d0d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "a7b04b6306f8212d48171e9e39244e0d71e0c7cbc2f30be8e7a1794a4cf91824",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stderr-single",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--format",
+        "progress",
+        "--stderr",
+        "--cache",
+        "true",
+        "--no-parallel",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "496e7370656374696e6720332066696c65730d0a436e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d0d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "0e6ed2fa34e07123773b91e90766f455cd9310cdbc0c2fd125e77b78f10b1959",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stderr-parallel",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--format",
+        "progress",
+        "--stderr",
+        "--cache",
+        "true",
+        "--parallel",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "496e7370656374696e6720332066696c65730d0a706172616c6c656c3a2050726f636573732e666f726b206973206e6f7420737570706f72746564206279207468697320527562790d0a436e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d0d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "e98196888a6162b5b9c494d1835735cc08491e88433e4a92ff7ab7c5cb3d5add",
+        "raw_output_sha256": {}
+      },
+      "coverage": "deferred_158"
+    },
+    {
+      "id": "stdin-single",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "nested/a.rb",
+        "-a"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "aca2638933469b0314cf0a7f1afe389874ade78e71525b607e3333dd9836ef22",
+        "raw_stderr_sha256": "ecb882214812529184f4f4a32e0fd8d33bdd2f50a664e18398d4935afb7057dc",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stdin-single-files",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "--format",
+        "files",
+        "--stdin",
+        "nested/a.rb",
+        "-A"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [
+        "report.json"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {
+          "report.json": "7b2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d"
+        },
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "c5c73c4e7e3094bb691941ff187702ee4434b734158dda2d389e4915155dc0f1",
+        "raw_output_sha256": {
+          "report.json": "aca2638933469b0314cf0a7f1afe389874ade78e71525b607e3333dd9836ef22"
+        }
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stdin-directory-a",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        ".",
+        "-a"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a2247656d66696c65222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a342c22696e737065637465645f66696c655f636f756e74223a337d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "58795281eea377211f791d41473d23d10edb8b23664746144c2467951f1b09d8",
+        "raw_stderr_sha256": "63422e9ccc880392e4b2edb752a655d443d989bf8090538c07a757ed49f07e81",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stdin-directory-A",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        ".",
+        "-A"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a2247656d66696c65222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a342c22696e737065637465645f66696c655f636f756e74223a337d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "58795281eea377211f791d41473d23d10edb8b23664746144c2467951f1b09d8",
+        "raw_stderr_sha256": "2493ee09536e61777078ac40c20e7a3659c768ae4b6b9e3a4498390c6a428fc4",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "stdin-directory-files",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "report.json",
+        "--format",
+        "files",
+        "--stdin",
+        ".",
+        "-a"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [
+        "report.json"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "3c574f524b4449523e2f47656d66696c650d0a",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {
+          "report.json": "7b2266696c6573223a5b7b2270617468223a2247656d66696c65222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a224c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a342c22696e737065637465645f66696c655f636f756e74223a337d7d"
+        },
+        "raw_stdout_sha256": "53cb493f9eaf0a74b7a6f74d68e7c57e4f4b3f0a7069edac36e40f7fe74abb03",
+        "raw_stderr_sha256": "e307362f395961d7f1db3dd78f52cc30c60103cc0dd186fec387706e3b129aff",
+        "raw_output_sha256": {
+          "report.json": "a071aae756d815998e1f30ebb4cec85f61d07baef96d0c3937ae9b6fef12739d"
+        }
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "force-exclusion",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--force-exclusion",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "b89ed9b027ac76062855b69ee17259d6c317567c6ccd85ad96d46d544d7c7652",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "ignore-parent",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--force-exclusion",
+        "--ignore-parent-exclusion",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "439b217579db39085c64f36ad37116541b583db55a0faa52dad62b0a89843f10",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "recognized",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only-recognized-file-types",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "d3d6eedc93d74b256f036b63dd67caed63d7b74109b4b888a89bdcc4d7f0cac2",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "out-is-directory",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--out",
+        "output-dir",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [
+        "output-dir"
+      ],
+      "outputs": [],
+      "stderr_contract": "open-error",
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "",
+        "stderr_hex": "49732061206469726563746f727920402072625f7379736f70656e202d206f75747075742d6469720d0a",
+        "stderr_contract": "open-error",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_stderr_sha256": "a947c4045cd2840faffb102b5ed20521c65f6c76b20d011774f6946b6d93396c",
+        "raw_output_sha256": {}
+      },
+      "coverage": "open_envelope"
+    },
+    {
+      "id": "normal",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "good.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 1,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+        "stderr_hex": "",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "488032ac006472760d830bf0808eac9b790e31b03531c0d2841f87ef9a862c4f",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "normal-correct",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-A",
+        "good.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 0,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d2c7b2270617468223a226c6173742e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a747275652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a322c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a327d7d",
+        "stderr_hex": "",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "78203d20310d0a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a203d20330d0a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "nested/a.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "6e2352256dc75b34382a562730f288e80f36e6eee2fb3a1e4a03e615babade18",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "color-json",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--color",
+        "good.rb",
+        "nested/a.rb",
+        "last.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a1b5b33316d4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f1b5b306d0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "54f7e3e8754b638303470fa6ea95b19e647ec832635a519944e16b010b545067",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "selection-config",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "NotACop",
+        "nested/a.rb",
+        "good.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a322c22696e737065637465645f66696c655f636f756e74223a307d7d",
+        "stderr_hex": "6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "adf98d5872854989255ce479c26debed95ce2e44d9870ede9947f7bdbea3fecc",
+        "raw_stderr_sha256": "f808f68917851a8ae1660450044de5d40bb70bd4af582209e7a23a3c2e1d884e",
+        "raw_output_sha256": {}
+      },
+      "coverage": "strict"
+    },
+    {
+      "id": "unvisited-config",
+      "kind": "ambiguous",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "Gemfile": "",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "good.rb": "x=1\n",
+        "nested/a.rb": "y=2\n",
+        "last.rb": "z=3\n",
+        "after/z.rb": "z=3\n",
+        "after/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Bogus: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--cache",
+        "true",
+        "--parallel",
+        "good.rb",
+        "nested/a.rb",
+        "after/z.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "directories": [],
+      "outputs": [],
+      "expected": {
+        "exit": 2,
+        "stdout_hex": "7b2266696c6573223a5b7b2270617468223a22676f6f642e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a317d7d",
+        "stderr_hex": "706172616c6c656c3a2050726f636573732e666f726b206973206e6f7420737570706f72746564206279207468697320527562790d0a6e65737465642f2e7275626f636f702e796d6c3a205761726e696e673a206e6f206465706172746d656e7420676976656e20666f72204d756c7469706c65436f6d70617269736f6e2e0d0a4572726f723a20416d626967756f757320636f70206e616d6520604d756c7469706c65436f6d70617269736f6e60207573656420696e203c574f524b4449523e2f6e65737465642f2e7275626f636f702e796d6c206e65656473206465706172746d656e74207175616c69666965722e2044696420796f75206d65616e204c696e742f4d756c7469706c65436f6d70617269736f6e206f72205374796c652f4d756c7469706c65436f6d70617269736f6e3f0d0a",
+        "stderr_contract": "ambiguous",
+        "files_after": {
+          ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+          "Gemfile": "",
+          "nested/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4d756c7469706c65436f6d70617269736f6e3a0a2020456e61626c65643a20747275650a",
+          "good.rb": "783d310a",
+          "nested/a.rb": "793d320a",
+          "last.rb": "7a3d330a",
+          "after/z.rb": "7a3d330a",
+          "after/.rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a2020426f6775733a20747275650a"
+        },
+        "unchanged_files": [
+          ".rubocop.yml",
+          "Gemfile",
+          "nested/.rubocop.yml",
+          "good.rb",
+          "nested/a.rb",
+          "last.rb",
+          "after/z.rb",
+          "after/.rubocop.yml"
+        ],
+        "outputs": {},
+        "raw_stdout_sha256": "03ee55abce56a7c098bfec606419fafe4a0e138101a19836dd939d58d58366cb",
+        "raw_stderr_sha256": "0575ce46386869441318a2a827595a94599fbc1e61be4b474badcdb5da8c6059",
+        "raw_output_sha256": {}
+      },
+      "coverage": "deferred_158"
+    }
+  ],
+  "schema": 1,
+  "sources": {
+    "lib/rubocop/runner.rb": "d9772563cd45015aaff5ad893fce2bb37ce32bd587e82956006ccaa86086f122",
+    "lib/rubocop/target_finder.rb": "e70daa0cb8c201871d6c924c43f65abd43b3be61393f52e6e010b4de8a5a365b",
+    "lib/rubocop/cli/command/execute_runner.rb": "57bd0f7c5386465397570b06bcbadd65dbdb8be79900adc70b2a7d9ba4edcdaa",
+    "lib/rubocop/formatter/formatter_set.rb": "37507d81f02fb8a3e5e67e5a79296b588a5181f381009652ff2f324b3a9767a9"
+  }
+}

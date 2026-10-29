@@ -475,6 +475,22 @@ impl fmt::Debug for ConfigWarnings {
     }
 }
 
+// formatter/警告callback自身のI/O失敗を、設定拒否としてfinishedへ再送しない。
+#[derive(Debug)]
+pub(crate) struct WarningOutputFailure(anyhow::Error);
+
+impl std::fmt::Display for WarningOutputFailure {
+    fn fmt(&self, output: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(output)
+    }
+}
+
+impl std::error::Error for WarningOutputFailure {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
 impl ConfigWarnings {
     pub(crate) fn new(
         ignore_unknown: bool,
@@ -484,7 +500,9 @@ impl ConfigWarnings {
         Self {
             ignore_unknown,
             parent_exclusion,
-            output: Arc::new(output),
+            output: Arc::new(move |warning| {
+                output(warning).map_err(|error| WarningOutputFailure(error).into())
+            }),
         }
     }
 

@@ -31,13 +31,13 @@ CLI36の元raw/全fieldsは変更しない。show-new/pending-showのcatalog Exc
 - fatal1: stdout空/stderr全bytes/exit2と原本を照合する。
 - 早期/catalog/list7: 実版identity、catalogのsection/Enabled、listのtext transportだけの有限投影。
   全stdout互換とは呼ばず、list-targetsのWindows改行差#155は元rawのまま保持する。
-- stderr-progress1: Inspecting後のUsingという元raw順を保存し、formatter lifecycle#152へ分離する。
-  今回のstrict成功へ数えず、#152後に同じ原参照から昇格できるcomparisonを残す。
+- stderr-progress1: #152でcomparisonだけlifecycle_bytesへ昇格した。
+  元のInspecting→Using→file_finished→finishedというstdout/stderr全byteを照合し、元rawは変えない。
 元記録のprivate whole-section nil/bool3とdisable-all control1は36成功へ含めず、現在候補を期待へ固定しない。
 
 検証warningはOutcome→Arc Traceでrename2→parameter30の登録順にjoinし、Warning:は一度だけ。
 fatal/最低版評価失敗があれば警告を抑止し、namespace/一般parameterとの既存順を保つ。
-Usingは純getterや先読みに出さず、完了reportsを入力順で利用する時とlist-enabled利用点に出す。
+Usingは純getterや先読みに出さず、#152以後はfile_started後の実設定利用時とlist-enabled利用点に出す。
 only/exceptを通る候補はEnabled:false/null/safe:falseでもlookupに応じて警告する。
 Arc claimはclone間で一度、lock解放後にI/Oを呼ぶ。catalogはclaimを消費せずquiet libraryへ出力を追加しない。
 Usingのheredocは本文末尾LFを含み、色は本文内CRLF→reset→外CRLF。Obsoletionの末尾LF無しと区別する。
@@ -56,5 +56,5 @@ containerはLF、hexのCRLF/ANSIと物理原本は原値。Unix native比較はp
 主36の全fields/raw、primary全51/API全127class件数、API4の限定8 field以外が元参照と一致した。
 公開fixtureとfresh出力のcontainer bytesも完全一致した。
 
-fixture SHA256: db799a24cf8b8df9b353858bb55fc5d6e5990bea4462a67874151bdd52fff5a5
-collector SHA256: f2f1cffa05785675b7c6defcfac5d9fabad541e020341f207e84731a5b482b1e
+fixture SHA256: e2a312974be8d93d1fc2a7d13fc79f5bf5a7f29073fdfafbbd7cb9e407a7a29f
+collector SHA256: 62d9ccc6037ff91a28b422f49c711baa0f42435be328ff78315ed15c916e6e09

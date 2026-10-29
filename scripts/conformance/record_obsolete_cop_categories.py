@@ -212,7 +212,7 @@ def cases(primary):
     if len(result) != 40 or len({case["id"] for case in result}) != 40:
         raise ValueError("invalid finite scenario identity")
     for case in result:
-        case["coverage"] = "deferred_152" if case["phase"] == "late_rejection" else "strict"
+        case["coverage"] = "strict"
     return result
 
 
@@ -401,7 +401,7 @@ def record(ruby, case, work=None):
             raise ValueError("unexpected reference exit")
         out = root / "report.json"
         late = case["phase"] == "late_rejection"
-        if case["coverage"] != ("deferred_152" if late else "strict"):
+        if case["coverage"] != "strict":
             raise ValueError("wrong finite comparison coverage")
         if not completed and (
             (child.stdout and not late) or b"obsolete configuration found in " not in child.stderr

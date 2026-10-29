@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "sources": {
+    "lib/rubocop/runner.rb": "d9772563cd45015aaff5ad893fce2bb37ce32bd587e82956006ccaa86086f122",
+    "lib/rubocop/formatter/json_formatter.rb": "7d84c31ac3176caead93df74ddc6283cf69e040fc45d9679bfbafc35df3e519a",
+    "lib/rubocop/cli/command/execute_runner.rb": "57bd0f7c5386465397570b06bcbadd65dbdb8be79900adc70b2a7d9ba4edcdaa"
+  },
+  "scope": "3 display-only-correctable channel controls and 1 separate unfiltered positive control; successful capture CLI runs4; separate from lifecycle38",
+  "positive_control": {
+    "id": "unfiltered-disk-control",
+    "files": {
+      "Gemfile": "",
+      "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nNaming/PredicatePrefix:\n  Enabled: true\n",
+      "a.rb": "def is_ready?\n  true\nend\n"
+    },
+    "args": [
+      "--config",
+      "config.yml",
+      "--cache",
+      "false",
+      "--format",
+      "json",
+      "a.rb"
+    ],
+    "env": {
+      "CLICOLOR_FORCE": "0"
+    },
+    "stdin_hex": "",
+    "exit": 1,
+    "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a2252656e616d65206069735f72656164793f6020746f206072656164793f602e222c22636f705f6e616d65223a224e616d696e672f507265646963617465507265666978222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a66616c73652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a352c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a31332c226c656e677468223a392c226c696e65223a312c22636f6c756d6e223a357d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+    "stderr_hex": "",
+    "expected_target_paths": [
+      "a.rb"
+    ],
+    "input_bytes_mtime_mode_unchanged": true,
+    "out_exists": false,
+    "coverage": "reference_positive_control"
+  },
+  "cases": [
+    {
+      "id": "filtered-disk",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nNaming/PredicatePrefix:\n  Enabled: true\n",
+        "a.rb": "def is_ready?\n  true\nend\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--display-only-correctable",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin_hex": "",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "expected_target_paths": [
+        "a.rb"
+      ],
+      "input_bytes_mtime_mode_unchanged": true,
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "filtered-stdin-file",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nNaming/PredicatePrefix:\n  Enabled: true\n",
+        "a.rb": "def is_ready?\n  true\nend\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--display-only-correctable",
+        "--stdin",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin_hex": "6465662069735f72656164793f0a2020747275650a656e640a",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "expected_target_paths": [
+        "a.rb"
+      ],
+      "input_bytes_mtime_mode_unchanged": true,
+      "out_exists": false,
+      "coverage": "strict"
+    },
+    {
+      "id": "filtered-stdin-directory",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  UseProjectIndex: false\n  DisabledByDefault: true\nNaming/PredicatePrefix:\n  Enabled: true\n",
+        "a.rb": "def is_ready?\n  true\nend\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--display-only-correctable",
+        "--stdin",
+        "."
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "stdin_hex": "6465662069735f72656164793f0a2020747275650a656e640a",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a2247656d66696c65222c226f6666656e736573223a5b5d7d2c7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d2c7b2270617468223a22636f6e6669672e796d6c222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a332c22696e737065637465645f66696c655f636f756e74223a337d7d",
+      "stderr_hex": "",
+      "expected_target_paths": [
+        "Gemfile",
+        "a.rb",
+        "config.yml"
+      ],
+      "input_bytes_mtime_mode_unchanged": true,
+      "out_exists": false,
+      "coverage": "strict"
+    }
+  ]
+}

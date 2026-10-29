@@ -269,7 +269,7 @@ fn fatal_validation_suppresses_migration_warnings_before_any_report() {
 }
 
 #[test]
-fn recorded_lifecycle_dependency_is_not_counted_as_strict_compatibility() {
+fn progress_and_using_share_the_actual_runner_event_order() {
     let fixture = fixture();
     assert_eq!(fixture["coverage"]["actual_cli"], 36);
     assert_eq!(fixture["coverage"]["actual_api"], 4);
@@ -277,14 +277,27 @@ fn recorded_lifecycle_dependency_is_not_counted_as_strict_compatibility() {
     assert_eq!(
         cases
             .iter()
-            .filter(|case| case["comparison"] == "lifecycle_152")
+            .filter(|case| case["comparison"] == "lifecycle_bytes")
             .count(),
         1
     );
     let case = cases
         .iter()
-        .find(|case| case["comparison"] == "lifecycle_152")
+        .find(|case| case["comparison"] == "lifecycle_bytes")
         .unwrap();
+    let (directory, output) = run(case);
+    assert_eq!(
+        output.status.code(),
+        Some(case["exit"].as_i64().unwrap() as i32)
+    );
+    assert_eq!(
+        output.stdout,
+        expected(case, "stdout_hex", directory.path())
+    );
+    assert_eq!(
+        output.stderr,
+        expected(case, "stderr_hex", directory.path())
+    );
     let stderr = String::from_utf8(bytes(case["stderr_hex"].as_str().unwrap())).unwrap();
     assert!(stderr.find("Inspecting 1 file").unwrap() < stderr.find("Warning: Using").unwrap());
     assert_eq!(fixture["runtime_api"].as_array().unwrap().len(), 4);
