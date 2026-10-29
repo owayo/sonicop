@@ -1,0 +1,751 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "source_sha256": {
+      "lib/rubocop/formatter/progress_formatter.rb": "b99dd890265457397ce32830375c2fd15038a70447e03a0f519ec0da74595b98",
+      "lib/rubocop/formatter/simple_text_formatter.rb": "e2e21303fb0752dfe15a767757b67109511b0b11ddd28f5f1d5c01c85592ae83"
+    }
+  },
+  "cases": [
+    {
+      "id": "info",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: info\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 0,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33383b353b3138386d491b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33383b353b3138386d491b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a20696e666f0a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33383b353b3138386d491b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "refactor",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: refactor\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d521b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d521b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a207265666163746f720a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d521b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "convention",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: convention\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a20636f6e76656e74696f6e0a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "warning",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: warning\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33356d571b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33356d571b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a207761726e696e670a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33356d571b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "error",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: error\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33316d451b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33316d451b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a206572726f720a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33316d451b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "fatal",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: fatal\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33316d461b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33316d461b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a20666174616c0a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33316d461b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "clean",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x = 1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 0,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33326d2e1b5b306d0d0a0d0a312066696c6520696e737065637465642c201b5b33326d6e6f206f6666656e7365731b5b306d2064657465637465640d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "78203d20310a"
+          },
+          "marks_hex": "1b5b33326d2e1b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "corrected-C",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "-a",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 0,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33326d5b436f727265637465645d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33326d31206f6666656e73651b5b306d20636f727265637465640d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "78203d20310d0a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "mixed-corrected-high",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n  Severity: error\nLint/Debugger:\n  Enabled: true\n  Severity: warning\n",
+        "good.rb": "debugger\r\nx=1\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "-a",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33316d451b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a313a201b5b33356d571b5b306d3a204c696e742f44656275676765723a2052656d6f766520646562756767657220656e74727920706f696e74201b5b33336d64656275676765721b5b306d2e0d0a64656275676765720d0a5e5e5e5e5e5e5e5e0d0a1b5b33366d676f6f642e72621b5b306d3a323a323a201b5b33316d451b5b306d3a201b5b33326d5b436f727265637465645d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d32206f6666656e7365731b5b306d2064657465637465642c201b5b33366d31206f6666656e73651b5b306d20636f727265637465640d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a202053657665726974793a206572726f720a4c696e742f44656275676765723a0a2020456e61626c65643a20747275650a202053657665726974793a207761726e696e670a",
+            "good.rb": "64656275676765720d0a78203d20310d0a"
+          },
+          "marks_hex": "1b5b33316d451b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "mixed-files",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\nLint/Debugger:\n  Enabled: true\n  Severity: warning\n",
+        "clean.rb": "x = 1\n",
+        "warning.rb": "debugger\n",
+        "convention.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "clean.rb",
+        "warning.rb",
+        "convention.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "clean.rb",
+        "warning.rb",
+        "convention.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720332066696c65730d0a1b5b33326d2e1b5b306d1b5b33356d571b5b306d1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d7761726e696e672e72621b5b306d3a313a313a201b5b33356d571b5b306d3a204c696e742f44656275676765723a2052656d6f766520646562756767657220656e74727920706f696e74201b5b33336d64656275676765721b5b306d2e0d0a64656275676765720d0a5e5e5e5e5e5e5e5e0d0a1b5b33366d636f6e76656e74696f6e2e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a332066696c657320696e737065637465642c201b5b33316d32206f6666656e7365731b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a4c696e742f44656275676765723a0a2020456e61626c65643a20747275650a202053657665726974793a207761726e696e670a",
+            "clean.rb": "78203d20310a",
+            "warning.rb": "64656275676765720a",
+            "convention.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33326d2e1b5b306d1b5b33356d571b5b306d1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "no-color",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--no-color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "43"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "forced",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "43"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "forced-no-color",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--no-color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "43"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "stderr",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--color",
+        "--stderr",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stderr",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "",
+          "stderr_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "cache",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "true",
+        "--format",
+        "progress",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 2,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        },
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "shared-simple",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--format",
+        "simple",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d1b5b33336d3d3d20676f6f642e7262203d3d1b5b306d0d0a1b5b33336d431b5b306d3a2020313a2020323a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "separate-simple",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "--out",
+        "progress.txt",
+        "--format",
+        "simple",
+        "--color",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "progress.txt",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "1b5b33336d3d3d20676f6f642e7262203d3d1b5b306d0d0a1b5b33336d431b5b306d3a2020313a2020323a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {
+            "progress.txt": "496e7370656374696e6720312066696c650d0a1b5b33336d431b5b306d0d0a0d0a4f6666656e7365733a0d0a0d0a1b5b33366d676f6f642e72621b5b306d3a313a323a201b5b33336d431b5b306d3a201b5b33336d5b436f727265637461626c655d201b5b306d4c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72201b5b33336d3d1b5b306d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c201b5b33316d31206f6666656e73651b5b306d2064657465637465642c201b5b33336d31206f6666656e73651b5b306d206175746f636f727265637461626c650d0a"
+          },
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "1b5b33336d431b5b306d"
+        }
+      ],
+      "coverage": "full_bytes"
+    },
+    {
+      "id": "plain",
+      "files": {
+        "Gemfile": "",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "good.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "progress",
+        "good.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "targets": [
+        "good.rb"
+      ],
+      "progress_stream": "stdout",
+      "run_count": 1,
+      "runs": [
+        {
+          "exit": 1,
+          "stdout_hex": "496e7370656374696e6720312066696c650d0a430d0a0d0a4f6666656e7365733a0d0a0d0a676f6f642e72623a313a323a20433a205b436f727265637461626c655d204c61796f75742f537061636541726f756e644f70657261746f72733a20537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f72203d2e0d0a783d310d0a205e0d0a0d0a312066696c6520696e737065637465642c2031206f6666656e73652064657465637465642c2031206f6666656e7365206175746f636f727265637461626c650d0a",
+          "stderr_hex": "",
+          "artifacts_hex": {},
+          "after_hex": {
+            "Gemfile": "",
+            ".rubocop.yml": "416c6c436f70733a0a20204e6577436f70733a2064697361626c650a20205461726765745275627956657273696f6e3a20322e370a202053756767657374457874656e73696f6e733a2066616c73650a202044697361626c6564427944656661756c743a20747275650a4c61796f75742f537061636541726f756e644f70657261746f72733a0a2020456e61626c65643a20747275650a",
+            "good.rb": "783d310a"
+          },
+          "marks_hex": "43"
+        }
+      ],
+      "coverage": "full_bytes"
+    }
+  ]
+}

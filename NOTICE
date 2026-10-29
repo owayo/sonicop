@@ -26,6 +26,18 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/formatter/lifecycle.rs (Progress severity markers)
+  tests/fixtures/progress_marker_colors.json
+      Per-file Progress marker colors follow RuboCop 1.89.0 ProgressFormatter
+      and SimpleTextFormatter. Eighteen conditions retain nineteen actual CLI
+      runs, including corrected historical severities, empty green dots,
+      explicit color controls, cache reruns and shared/separate streams.
+      Full raw streams/artifacts and physical original/corrected bytes are
+      preserved independently. Regenerate with
+      scripts/conformance/record_progress_marker_colors.py; adjacent
+      .PROVENANCE records source hashes, runtime and finite projections.
+      Full licence: licenses/RUBOCOP.txt.
+
   src/cli.rs (target and enabled-cop listing output)
   tests/fixtures/disk_listing.json
       Target listing follows RuboCop 1.89.0 Runner#list_files and CLI stream

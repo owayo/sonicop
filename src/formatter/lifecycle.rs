@@ -80,6 +80,10 @@ impl<'a> Lifecycle<'a> {
                         None => "32",
                     };
                     output.write(&paint(&mark, color, self.options.color))
+                } else if self.format == Format::Progress {
+                    // 本家は補正済みも含む最大severityで塗り、空offensesだけgreenのdotにする。
+                    let color = severity.map_or("32", severity_color);
+                    output.write(&paint(&mark, color, self.options.color))
                 } else {
                     output.write(&mark)
                 }

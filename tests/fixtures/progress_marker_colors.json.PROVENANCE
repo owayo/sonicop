@@ -1,0 +1,48 @@
+RuboCop 1.89.0実CLIの有限18条件、19実行。元参照は2026-10-28、fresh再採取は2026-10-30。
+Ruby4.0.7 x64-mingw-ucrt / Psych5.3.1 / parser3.3.12.0 / Prism1.8.1 /
+rubocop-ast1.50.0 / RuboCop1.89.0 / Rainbow3.1.1。
+元runtimeと全case fields/入力/全runs/raw/marks/artifacts/after_hexは不変。
+追加metadataはtop schema:1とcase coverage:full_bytesだけである。
+元独立参照SHA256: f127f9571d1216ed0e304ca1a24de94aeaaa02d2c31dcf8e52998826a5affc2a
+
+生成元: scripts/conformance/record_progress_marker_colors.py
+再生成（固定版gemを導入したWindows）:
+  python scripts/conformance/record_progress_marker_colors.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <fresh-reference.json>
+現record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentを共用し、候補を受け取らない。
+子copyからENV4とambient NO_COLORを除き、GEM/PATH/OSと親環境は保持する。
+CLICOLOR_FORCEは元caseの0/1、XDG_CACHE_HOMEは各case内へ隔離し、TERM=dumbを固定する。
+TargetRubyVersionのshimや、期待値を候補から作る処理は追加しない。
+
+原severity6・空offenses・全補正C・補正高severityと未補正低severityの混在・3file順序・
+明示color/no-color・force環境・stderr・cache再実行・共有simple/分離simple・plainを保持する。
+cacheは同じ原本を2回検査する1条件であり、18条件を19条件とは数えない。性能計測ではない。
+本家ProgressFormatter#report_file_as_markは補正済みを除外せず、最大の過去severityで塗る。
+全補正Cもyellowのまま、補正errorは未補正warningより優先し、空offensesだけgreen dotになる。
+infoはRainbow3.1.1のindexed188。通常非TTYはCLICOLOR_FORCE=1でも--colorなしならplainである。
+これは初期設定warningの色とは異なる境界。Autogenconfのinfo/Pacman/summary/出力callbackは変更しない。
+
+全stdout/stderr/artifact bytes、exitと物理原本/補正bytesを比較する。Windowsは原raw全bytes。
+非Windowsではformatter stream/Fileの既知CRLF→LFだけを投影し、ANSIや終端/空行を削らない。
+物理sourceのafter_hexは投影しない。補正CRLF原本は既存のnative保持方針のまま照合する。
+これをPOSIX上の実Rubyの補正bytes互換や、一般のDATA/NUL/mixed改行へ広げる根拠にはしない。
+fixtureのcontainer/source/PROVENANCEはUTF-8 LF。実採取はWindowsだけである。
+
+採取器は18ID/順序/型/19run/全入力/元rawをcanonical hashでも固定する。
+runtime照会は固定ruby/platform/5gem版とprimary source2SHAを実gemから読み、LOADERでもPsychを検証する。
+private-runtimeと各private-runへ実exit/raw・inputs before/after bytes/mtime_ns/mode・artifacts状態をexclusive保存する。
+全原本のmodeを保ち、未変更入力はbytes/mtime/mode全体、補正sourceは元の期待物理bytesを別に検査する。
+progress.txtはlexists/lstatで観測し、dangling symlink/junctionを不生成成功と扱わずtargetを読まない。
+work/outの既存entry/dangling/別表記・Windows case alias・両方向親子を子起動前に拒む。
+全19runが完了した場合だけexclusive公開する。途中失敗で空/部分packetを公開しない。
+契約10件は色なし/誤った履歴最大色/未完了/元raw差替えと、正しいstreamのままのbytes/mtime/mode/
+artifact単独変更・実dangling entry・fresh/alias・未完了公開を独立に拒否する。normal/-Oとも実行する。
+
+Primary source SHA256:
+lib/rubocop/formatter/progress_formatter.rb b99dd890265457397ce32830375c2fd15038a70447e03a0f519ec0da74595b98
+lib/rubocop/formatter/simple_text_formatter.rb e2e21303fb0752dfe15a767757b67109511b0b11ddd28f5f1d5c01c85592ae83
+ライセンス: licenses/RUBOCOP.txtのMIT licence。NOTICEへ実装・fixture・再生成入口を記載した。
+
+fresh18条件/19実CLI+runtime1は終了0で、公開fixtureの全fields/container bytesと完全一致した。
+fixture SHA256: f7507541b89f2fac41dac4eaccf93316b31a079a1c25008d8c6b29c9144ec065
+collector SHA256: d434956754f0cbb54abb63bda8033909622398c3198ebd66c34c79e28c9c3b95
+contract SHA256: 22e2c6db4bb7477f802277fa26f3a86916bb5d322a1699094ae16515d655d467
