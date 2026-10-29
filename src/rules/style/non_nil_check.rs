@@ -11,12 +11,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let semantic_changes = context
         .setting::<bool>("IncludeSemanticChanges")
         .unwrap_or(false);
-    // `nil_comparison_style`: with `Style/NilComparison` asking for `== nil`, rewriting to a
-    // predicate would put the two cops at odds, so this one stands down.
+    // nil_comparison_style: NilComparisonが== nilを要求する時は、逆向きの補正を避ける。
+    // 隣のcopのConfig値を読み、only/exceptによる実行対象の除外は持ち込まない。
     if !semantic_changes
-        && context
-            .setting_of::<bool>("Style/NilComparison", "Enabled")
-            .unwrap_or(true)
+        && context.cop_enabled("Style/NilComparison")
         && context
             .setting_of::<String>("Style/NilComparison", "EnforcedStyle")
             .as_deref()

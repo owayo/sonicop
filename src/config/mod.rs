@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 mod inheritance;
 mod loader;
 mod namespaces;
@@ -425,54 +426,96 @@ impl Config {
         enable_pending: bool,
         disable_pending: bool,
     ) -> bool {
-        if name == "Lint/Syntax" {
-            return true;
-        }
-        if let Some(enabled) = self
+        self.rule_enabled_with_defaults(name, enable_pending, disable_pending, None)
+    }
+
+    pub(crate) fn rule_enabled_with_defaults(
+        &self,
+        name: &str,
+        enable_pending: bool,
+        disable_pending: bool,
+        default_enabled: Option<bool>,
+    ) -> bool {
+        // Registryの実行資格はConfigの!!値と異なり、true又は資格のあるpendingだけ。
+        self.resolve_enabled_value(
+            &self.cop_enabled_value_with_defaults(name, default_enabled),
+            name,
+            enable_pending,
+            disable_pending,
+        )
+    }
+
+    pub(crate) fn cop_enabled_with_defaults(&self, name: &str, mode: Option<bool>) -> bool {
+        !matches!(
+            &*self.cop_enabled_value_with_defaults(name, mode),
+            Value::Null | Value::Bool(false)
+        )
+    }
+
+    pub(crate) fn cop_enabled_value_with_defaults(
+        &self,
+        name: &str,
+        mode: Option<bool>,
+    ) -> Cow<'_, Value> {
+        // 旧Hashはfor_copの有効値計算後に重なる。null/pendingも生の型を保つ。
+        if let Some(value) = self
             .renamed_overrides
             .get(name)
             .and_then(|cop| cop.get("Enabled"))
         {
-            // enable_cop?の計算後に旧値を重ねるため、nullも有効値を無効にする。
-            return !enabled.is_null()
-                && self.resolve_enabled_value(enabled, name, enable_pending, disable_pending);
+            return Cow::Borrowed(value);
         }
-
+        if name == "Lint/Syntax" {
+            return Cow::Owned(Value::Bool(true));
+        }
         let configured = self.user_cop_mapping(name);
-        let configured_enabled = configured.and_then(|cop| cop.get("Enabled"));
-        let department = self.user_department_mapping(name);
-        let department_enabled = department.and_then(|cop| cop.get("Enabled"));
-
-        // An explicitly enabled cop overrides a disabled department.
-        if configured_enabled == Some(&Value::Bool(true)) {
-            return true;
+        let enabled = configured.and_then(|cop| cop.get("Enabled"));
+        let department = self
+            .user_department_mapping(name)
+            .and_then(|cop| cop.get("Enabled"));
+        let disabled = mode.map_or_else(
+            || self.all_cops_bool_value("DisabledByDefault"),
+            |value| !value,
+        );
+        let all_enabled = mode.unwrap_or_else(|| self.all_cops_bool_value("EnabledByDefault"));
+        // disable既定では明示空HashにもEnabled:trueを補う。CLIは明示値を消さない。
+        if enabled == Some(&Value::Bool(true))
+            || enabled.and_then(Value::as_str) == Some("override_department")
+            || (disabled && configured.is_some() && enabled.is_none())
+        {
+            return Cow::Owned(Value::Bool(true));
         }
-        if department_enabled == Some(&Value::Bool(false)) {
-            return false;
+        if department == Some(&Value::Bool(false)) {
+            return Cow::Owned(Value::Bool(false));
         }
-
-        if self.all_cops_bool_value("DisabledByDefault") {
-            if let Some(configured) = configured {
-                return configured.get("Enabled").is_none_or(|enabled| {
-                    self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
-                });
-            }
-            if department_enabled == Some(&Value::Bool(true)) {
-                return self.default_enabled(name, enable_pending, disable_pending);
-            }
-            return false;
+        if let Some(value) = enabled {
+            // merge_with_default(unset_nil:true)で消えたキーのfallbackは元AllCopsの値。
+            return if value.is_null() {
+                Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault")))
+            } else {
+                Cow::Borrowed(value)
+            };
         }
-
-        if self.all_cops_bool_value("EnabledByDefault") {
-            return configured_enabled.is_none_or(|enabled| {
-                self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
-            });
+        let original = || {
+            self.cop_raw_value(name, "Enabled").map_or(
+                Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault"))),
+                Cow::Borrowed,
+            )
+        };
+        if disabled {
+            // departmentを有効にすると、そのcop群は一律trueでなく元の既定値へ戻る。
+            return if department
+                .is_some_and(|value| !matches!(value, Value::Null | Value::Bool(false)))
+            {
+                original()
+            } else {
+                Cow::Owned(Value::Bool(false))
+            };
         }
-
-        configured_enabled.map_or_else(
-            || self.default_enabled(name, enable_pending, disable_pending),
-            |enabled| self.resolve_enabled_value(enabled, name, enable_pending, disable_pending),
-        )
+        if all_enabled {
+            return Cow::Owned(Value::Bool(true));
+        }
+        original()
     }
 
     pub fn rule_safe(&self, name: &str) -> bool {
@@ -764,12 +807,6 @@ impl Config {
             .as_mapping()
     }
 
-    fn default_enabled(&self, name: &str, enable_pending: bool, disable_pending: bool) -> bool {
-        self.cop_raw_value(name, "Enabled").is_none_or(|enabled| {
-            self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
-        })
-    }
-
     fn resolve_enabled_value(
         &self,
         enabled: &Value,
@@ -780,10 +817,10 @@ impl Config {
         match enabled {
             Value::Bool(value) => *value,
             Value::String(value) if value == "pending" => {
-                if enable_pending {
-                    true
-                } else if disable_pending {
+                if disable_pending {
                     false
+                } else if enable_pending {
+                    true
                 } else {
                     let department_new_cops = self
                         .cop_raw_value(cop_name::department(name), "NewCops")
@@ -798,7 +835,7 @@ impl Config {
                     )
                 }
             }
-            _ => true,
+            _ => false,
         }
     }
 
@@ -1084,6 +1121,84 @@ mod tests {
                     .any(|name| name == "Naming/PredicateName")
             );
             assert!(config.unknown_config_cop_names().is_empty());
+        }
+    }
+    #[test]
+    fn effective_enabled_values_match_the_fifteen_real_config_api_observations() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/default_cop_queries.json"
+        ))
+        .unwrap();
+        let cases = fixture["cases"].as_array().unwrap();
+        let queries = fixture["queries"].as_array().unwrap();
+        assert_eq!(cases.len(), 15);
+        assert_eq!(queries.len(), 15);
+        assert_eq!(
+            queries
+                .iter()
+                .map(|row| row["id"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            [
+                "ordinary",
+                "enable-default",
+                "enable-except-neighbor",
+                "disable-only-neighbor",
+                "pending-none",
+                "null-none",
+                "false-none",
+                "pending-enable",
+                "null-enable",
+                "pending-disable",
+                "null-disable",
+                "typed-absent-none",
+                "typed-pending-none",
+                "typed-null-none",
+                "typed-absent-enable"
+            ]
+        );
+        for (case, expected) in cases.iter().zip(queries) {
+            assert_eq!(case["id"], expected["id"]);
+            let directory = tempfile::tempdir().unwrap();
+            for (name, text) in case["files"].as_object().unwrap() {
+                std::fs::write(directory.path().join(name), text.as_str().unwrap()).unwrap();
+            }
+            let config =
+                Config::load(Some(&directory.path().join("config.yml")), directory.path()).unwrap();
+            let args = case["args"].as_array().unwrap();
+            let mode = if args.iter().any(|value| value == "--disable-all-cops") {
+                Some(false)
+            } else {
+                args.iter()
+                    .any(|value| value == "--enable-all-cops")
+                    .then_some(true)
+            };
+            let name = expected["query"].as_str().unwrap();
+            let before = config.cop_value::<serde_json::Value>(name, "Enabled");
+            let digest = *config.cache_digest().unwrap();
+            let enabled = config.cop_enabled_value_with_defaults(name, mode);
+            assert_eq!(
+                serde_json::to_value(&*enabled).unwrap(),
+                expected["value"],
+                "{}",
+                case["id"]
+            );
+            let class = match &*enabled {
+                serde_yaml_ng::Value::Bool(true) => "TrueClass",
+                serde_yaml_ng::Value::Bool(false) => "FalseClass",
+                serde_yaml_ng::Value::Null => "NilClass",
+                serde_yaml_ng::Value::String(_) => "String",
+                _ => panic!("参照外のEnabled型"),
+            };
+            assert_eq!(class, expected["ruby_class"].as_str().unwrap());
+            assert_eq!(
+                config.cop_enabled_with_defaults(name, mode),
+                expected["truthy"].as_bool().unwrap()
+            );
+            assert_eq!(
+                config.cop_value::<serde_json::Value>(name, "Enabled"),
+                before
+            );
+            assert_eq!(*config.cache_digest().unwrap(), digest);
         }
     }
 }

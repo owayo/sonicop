@@ -26,6 +26,23 @@ WHAT IS TAKEN
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/mod.rs, src/engine.rs, src/rules/mod.rs, src/directives.rs, src/cli.rs
+  tests/fixtures/default_cop_modes.json
+  tests/fixtures/default_cop_queries.json
+  tests/fixtures/default_cop_lists.json
+      Effective Enabled values and default-mode precedence follow RuboCop
+      1.89.0 ConfigLoaderResolver and Config#for_cop. Config truthiness remains
+      separate from Registry true/pending eligibility and inspection selectors.
+      Forty-five mode CLI records, fifteen cross-cop CLI plus fifteen Config
+      API observations, and three list records retain all original raw fields.
+      Non-Windows mode tests explicitly select EndOfLine's crlf style to match
+      Windows native style; all 45 projected inputs were checked with RuboCop.
+      The list tests document the existing Windows newline projection (#155).
+      Regenerate with scripts/conformance/record_default_cop_modes.py.
+      Adjacent .PROVENANCE files describe runtime/source hashes, input guards,
+      complete reports and original-byte preservation. Full licence:
+      licenses/RUBOCOP.txt.
+
   src/config/runtime.rs, lib/sonicop/runtime.rb
   src/config/inheritance.rs, src/config/namespaces.rs
   src/config/unrecognized.rs, src/config/obsoletion.rs, src/cli.rs

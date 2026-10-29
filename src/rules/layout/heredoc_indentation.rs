@@ -183,11 +183,9 @@ fn line_too_long(
     expected_indent: usize,
     actual_indent: usize,
 ) -> bool {
-    // `max_line_length` answers with nothing when the length cop is off, and `AllowHeredoc` is on
-    // by default, so this whole test normally waves the heredoc through.
-    if !context
-        .setting_of::<bool>("Layout/LineLength", "Enabled")
-        .unwrap_or(true)
+    // max_line_lengthはLineLengthのConfig値がfalsyなら無効。pendingの実行資格とは分ける。
+    // 既定のAllowHeredoc:trueでは、この長さ判定を通さない。
+    if !context.cop_enabled("Layout/LineLength")
         || context
             .setting_of::<bool>("Layout/LineLength", "AllowHeredoc")
             .unwrap_or(true)

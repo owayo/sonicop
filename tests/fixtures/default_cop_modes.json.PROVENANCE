@@ -1,0 +1,49 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実記録。原参照2026-10-28、再採取2026-10-29。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+元runtime/全case fields/入力/全raw/queriesは変更せず、top schema:1とcase coverageだけを追加した。
+3群の合計は63CLIと15APIであり、78CLIとは数えない。追加の互換マトリクスは含めない。
+
+生成元: scripts/conformance/record_default_cop_modes.py
+再生成（Windows、固定Ruby/gemの導入済み環境）:
+  python scripts/conformance/record_default_cop_modes.py --ruby <ruby-4.0.7> --work <fresh-private-work> --output <fresh-modes.json> --queries-output <fresh-queries.json> --lists-output <fresh-lists.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentを共用し、候補を起動しない。
+ENV4とambient NO_COLORだけを子copyから除去し、TERM=dumbを測定条件として固定する。
+親環境/GEM/PATH/OSを保つ。TargetRubyVersionのshimは追加しない。
+work/3出力の既存entry/dangling/別表記・Windows case aliasを子起動前に拒む。
+固定ID/順序/入力form SHA/runtime/sourceを検査し、全件完了後にexclusive xで保存する。
+CLI63とAPI15観測のprivate rawには実exit/stdout/stderr/全原本before-after bytes/mtime_ns/mode/out状態を残す。
+API15は元採取と同じ一つのRuby processで実行し、bool falseと数値0を同一視しない。
+original report/全offense fields/全件完了数を検査し、原本変更やreport.json生成、未完了を成功にしない。
+API後のoutはlexists/lstatで観測し、dangling symlink/junctionを無出力成功と扱わず、targetを読まない。
+契約テストは正しい参照応答のままbytes/mtime/mode/outを一つずつ変え、保存先aliasと既存entryも独立に検査する。
+Windowsのsymlink権限1314ではreal dangling junction、Unixではreal symlinkを使う。
+
+runtime.source_sha256は実options.rb/config_loader_resolver.rb/cop/registry.rbの3SHAを保持する。
+加えてConfig#for_cop/enable_cop?/cop_enabled?のsource config.rbを実Rubyで照会し、private-runtime.jsonへ保存した。
+config.rb SHA256: f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729
+固定runtime/schema/source集合の変更はCLI/APIより前に拒否する。
+ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用。NOTICEへ3fixtureと設定/選択実装を記載した。
+
+Native回帰はruby_engine=sonicop / rubocop_version=1.89.0を確認後、metadata以外の全JSON fieldsを照合する。
+stderrはWindows pipeの原bytesを比較し、Unix hostだけ参照のCRLFをLFへ投影する。
+実行入力のbyte/mtime/readonlyとout不生成も検査する。Ruby原本のCRLFを輸送のLFへ変換しない。
+45mode条件のPOSIX実行だけ、config.yml末尾へLayout/EndOfLineのEnforcedStyle: crlfを明示する。
+本家のnativeはWindowsでcrlf、それ以外でlfのため、同じCRLF原本を使うための入力style投影である。
+元の全設定に同節がないことを検査し、Enabledは指定しない。診断を削除する出力投影は行わない。
+設定の保持比較は投影後bytesを基準にする。Windows45の設定・公開fixture/rawと他18CLI/API15は変えない。
+この投影45CLIを固定版の実RuboCopでも別途実行し、元のexit/raw stdout/raw stderr/report全fieldsと全件一致した。
+投影後の全入力bytes/mtime_ns/mode保持とout不生成も確認した。元63CLI/15APIへ観測件数を加算しない。
+この確認はWindows実Rubyによる明示crlfの観測であり、POSIX上の実Ruby実行とは主張しない。
+本家cop/layout/end_of_line.rb SHA256: 2190b67dfea4015c71a2992b57af7d3902a923149262a9a6515c730c12bd2eef
+本家config/default.yml SHA256: 6d6c28038fb0d2449c974d0c154a56cc8b0846dbda68bbd11ac6355e1ac85478
+public raw cop_value/user/cache_digestを変えず、内部の実効EnabledとRegistry資格を分ける。
+Config truthinessはfalse/null以外、Registryはtrue又は資格のあるpending。only/exceptは内部queryに持ち込まない。
+CLI default modeは既定値を変え、継承後の明示値や空Hashを無条件に消さない。旧名overlayも生の型を保つ。
+
+公開collectorによるfresh再採取は終了0。3JSONの全fields及びcontainer bytesが公開fixtureと完全一致した。
+
+このfileの範囲: 45CLI。元独立参照SHA256: af6868679437b7078a9d4f68c7d14486466f780aacaca82716694603f1590278
+full_report45: true/false/null/pending/empty/absent、CLI両mode、department、inheritance、only/except、pending制御を比較する。
+fixture SHA256: 368f305432afb19a1a915546d1d6362dbcab03f89df68ce7724698bd6f7d5cd0
+collector SHA256: 22e9e058fa81c9ee7f7efbe340bf9c163726d2a6f247d73c7689f18893b37e08
+contract SHA256: c8cba5b8a37289e68071e387eb7eb8755d15f906f39a07c1bef7dbaab5a4f352

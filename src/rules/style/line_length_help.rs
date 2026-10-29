@@ -33,9 +33,7 @@ pub(super) struct LineLengthHelp<'a, 'tree> {
 
 impl<'a, 'tree> LineLengthHelp<'a, 'tree> {
     pub(super) fn new(context: &'a RuleContext<'tree>) -> Self {
-        let enabled = context
-            .setting_of::<bool>("Layout/LineLength", "Enabled")
-            .unwrap_or(true);
+        let enabled = context.cop_enabled("Layout/LineLength");
         Self {
             context,
             max: enabled

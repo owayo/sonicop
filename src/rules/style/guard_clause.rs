@@ -637,11 +637,9 @@ fn heredoc_end(context: &RuleContext<'_>, beginning: Node<'_>) -> Option<Range<u
     Some(terminator.byte_range())
 }
 
-/// `max_line_length`, which is `nil` when `Layout/LineLength` is switched off entirely.
+/// max_line_lengthはConfig上でLineLengthがfalsyならnilとなり、行長で補正を止めない。
 fn max_line_length(context: &RuleContext<'_>) -> Option<usize> {
-    context
-        .setting_of::<bool>("Layout/LineLength", "Enabled")
-        .unwrap_or(true)
+    context.cop_enabled("Layout/LineLength")
         .then(|| {
             context
                 .setting_of("Layout/LineLength", "Max")

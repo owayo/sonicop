@@ -1,0 +1,42 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実記録。原参照2026-10-28、再採取2026-10-29。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+元runtime/全case fields/入力/全raw/queriesは変更せず、top schema:1とcase coverageだけを追加した。
+3群の合計は63CLIと15APIであり、78CLIとは数えない。追加の互換マトリクスは含めない。
+
+生成元: scripts/conformance/record_default_cop_modes.py
+再生成（Windows、固定Ruby/gemの導入済み環境）:
+  python scripts/conformance/record_default_cop_modes.py --ruby <ruby-4.0.7> --work <fresh-private-work> --output <fresh-modes.json> --queries-output <fresh-queries.json> --lists-output <fresh-lists.json>
+record_config_cop_namespacesのLOADER/VERSIONS/reference_environmentを共用し、候補を起動しない。
+ENV4とambient NO_COLORだけを子copyから除去し、TERM=dumbを測定条件として固定する。
+親環境/GEM/PATH/OSを保つ。TargetRubyVersionのshimは追加しない。
+work/3出力の既存entry/dangling/別表記・Windows case aliasを子起動前に拒む。
+固定ID/順序/入力form SHA/runtime/sourceを検査し、全件完了後にexclusive xで保存する。
+CLI63とAPI15観測のprivate rawには実exit/stdout/stderr/全原本before-after bytes/mtime_ns/mode/out状態を残す。
+API15は元採取と同じ一つのRuby processで実行し、bool falseと数値0を同一視しない。
+original report/全offense fields/全件完了数を検査し、原本変更やreport.json生成、未完了を成功にしない。
+API後のoutはlexists/lstatで観測し、dangling symlink/junctionを無出力成功と扱わず、targetを読まない。
+契約テストは正しい参照応答のままbytes/mtime/mode/outを一つずつ変え、保存先aliasと既存entryも独立に検査する。
+Windowsのsymlink権限1314ではreal dangling junction、Unixではreal symlinkを使う。
+
+runtime.source_sha256は実options.rb/config_loader_resolver.rb/cop/registry.rbの3SHAを保持する。
+加えてConfig#for_cop/enable_cop?/cop_enabled?のsource config.rbを実Rubyで照会し、private-runtime.jsonへ保存した。
+config.rb SHA256: f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729
+固定runtime/schema/source集合の変更はCLI/APIより前に拒否する。
+ライセンス: licenses/RUBOCOP.txtのMIT licenceを再利用。NOTICEへ3fixtureと設定/選択実装を記載した。
+
+Native回帰はruby_engine=sonicop / rubocop_version=1.89.0を確認後、metadata以外の全JSON fieldsを照合する。
+stderrはWindows pipeの原bytesを比較し、Unix hostだけ参照のCRLFをLFへ投影する。
+原本のbyte/mtime/readonlyとout不生成も検査する。原本のCRLFを輸送のLFへ変換しない。
+public raw cop_value/user/cache_digestを変えず、内部の実効EnabledとRegistry資格を分ける。
+Config truthinessはfalse/null以外、Registryはtrue又は資格のあるpending。only/exceptは内部queryに持ち込まない。
+CLI default modeは既定値を変え、継承後の明示値や空Hashを無条件に消さない。旧名overlayも生の型を保つ。
+
+公開collectorによるfresh再採取は終了0。3JSONの全fields及びcontainer bytesが公開fixtureと完全一致した。
+
+このfileの範囲: 3list CLI。元独立参照SHA256: ad4ff7312f0626f713bec4cdf02089ee00c51c8d98a64580f9cd04fc261567c7
+list_newline_155の3条件: only/exceptやRegistry pending資格を適用せずConfig truthinessで列挙する。
+既存Native printlnのWindows LFと本家CRLFだけを参照側CRLF→LFで投影する。行順/全cop名/件数/終端LF/空行は削らない。
+この限定比較を全raw bytes一致とは主張せず、#155の製品改行処理は変更しない。元stdout_hex/cop_namesは完全保持する。
+fixture SHA256: 38484f614d907df2b06a85b9f5ac6737d5d9812c14a886c6139100f6b23182b1
+collector SHA256: 22e9e058fa81c9ee7f7efbe340bf9c163726d2a6f247d73c7689f18893b37e08
+contract SHA256: c8cba5b8a37289e68071e387eb7eb8755d15f906f39a07c1bef7dbaab5a4f352

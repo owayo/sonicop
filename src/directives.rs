@@ -920,10 +920,11 @@ impl CopRegistry {
         let config_disabled: HashSet<String> = names
             .iter()
             .filter(|name| {
-                let enabled = config.rule_enabled_with_pending(
+                let enabled = config.rule_enabled_with_defaults(
                     name,
                     selection.enable_pending,
                     selection.disable_pending,
+                    selection.default_cop_mode(),
                 ) && (!selection.safe_only || config.rule_safe(name));
                 !enabled
             })

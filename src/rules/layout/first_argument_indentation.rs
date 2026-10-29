@@ -88,9 +88,7 @@ fn argument_alignment_is_fixed(context: &RuleContext<'_>) -> bool {
 }
 
 fn first_argument_line_break_enabled(context: &RuleContext<'_>) -> bool {
-    context
-        .setting_of::<bool>("Layout/FirstMethodArgumentLineBreak", "Enabled")
-        .unwrap_or(false)
+    context.cop_enabled("Layout/FirstMethodArgumentLineBreak")
 }
 
 /// `comment_lines`: the lines holding a comment and nothing else.
