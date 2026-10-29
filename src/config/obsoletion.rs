@@ -1,13 +1,12 @@
 //! ConfigObsoletionの規則を評価し、CLIで未知copの検証より先に再生する。
 
-use std::collections::HashSet;
 use std::fmt;
 use std::sync::{Arc, LazyLock};
 
 use serde::Deserialize;
 use serde_yaml_ng::{Mapping, Value};
 
-use super::plugin::configured_plugin_departments;
+use super::runtime::Snapshot;
 
 mod parameters;
 pub(super) use parameters::TargetRuby;
@@ -125,7 +124,7 @@ enum RetiredCop {
 }
 
 impl RetiredCop {
-    fn message(&self, config: &Mapping, plugin_departments: &HashSet<String>) -> Option<String> {
+    fn message(&self, config: &Mapping, registry: &Snapshot) -> Option<String> {
         match self {
             Self::Removed {
                 old_name,
@@ -144,8 +143,8 @@ impl RetiredCop {
                 department,
                 gem,
             } => {
-                // native既存のplugin所有宣言を保つ。実Rubyのloaded_featuresと同値ではない。
-                if plugin_departments.contains(department) {
+                // 実際のloaded feature表記又はPlugin.about.nameだけを照合する。
+                if registry.plugin_loaded(gem) {
                     return None;
                 }
                 let prefix = format!("{department}/");
@@ -204,7 +203,12 @@ impl ObsoleteConfigError {
     }
 }
 
+#[cfg(test)]
 pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
+    fatal_messages_with_registry(config, origin, &Snapshot::default())
+}
+
+fn fatal_messages_with_registry(config: &Value, origin: &str, registry: &Snapshot) -> Vec<String> {
     let Some(mapping) = config.as_mapping() else {
         return Vec::new();
     };
@@ -224,9 +228,9 @@ pub(super) fn fatal_messages(config: &Value, origin: &str) -> Vec<String> {
             )
         })
         .collect::<Vec<_>>();
-    let plugins = configured_plugin_departments(config);
+
     messages.extend(RETIRED.iter().filter_map(|rule| {
-        rule.message(mapping, &plugins).map(|message| {
+        rule.message(mapping, registry).map(|message| {
             format!("{message}\n(obsolete configuration found in {origin}, please update it)")
         })
     }));
@@ -258,8 +262,13 @@ impl std::error::Error for SharedFailure {
 }
 
 impl Outcome {
-    pub(super) fn prepare(config: &Value, origin: &str, target: &TargetRuby) -> Self {
-        let mut fatal = fatal_messages(config, origin);
+    pub(super) fn prepare(
+        config: &Value,
+        origin: &str,
+        target: &TargetRuby,
+        registry: &Snapshot,
+    ) -> Self {
+        let mut fatal = fatal_messages_with_registry(config, origin, registry);
         match parameters::messages(config, origin, target) {
             Ok(messages) => {
                 fatal.extend(messages.fatal);

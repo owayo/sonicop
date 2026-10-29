@@ -263,6 +263,10 @@ struct Cli {
     plugin: Vec<String>,
     #[arg(short = 'r', long = "require", action = ArgAction::Append, value_name = "FILE", help_heading = "General Options")]
     requires: Vec<String>,
+    #[arg(skip)]
+    ruby_runtime: Option<Arc<crate::config::RuntimeSession>>,
+    #[arg(skip)]
+    stdin_bytes: Option<Vec<u8>>,
     #[arg(long, action = ArgAction::SetTrue, help_heading = "General Options")]
     color: bool,
     #[arg(long, conflicts_with = "color", help_heading = "General Options")]
@@ -316,6 +320,13 @@ pub fn run() -> i32 {
 }
 
 fn run_inner() -> i32 {
+    let runtime = match crate::config::RuntimeSession::from_wrapper() {
+        Ok(runtime) => Arc::new(runtime),
+        Err(error) => {
+            eprintln!("Error: {error:#}");
+            return 2;
+        }
+    };
     let arguments = match composed_arguments() {
         Ok(arguments) => arguments,
         Err(error) => {
@@ -350,10 +361,90 @@ fn run_inner() -> i32 {
     let outputs = output_paths_by_format(&matches);
     let formatter_error_color = !cli.no_color
         && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));
-    match try_run(cli, &outputs) {
+    cli.ruby_runtime = Some(Arc::clone(&runtime));
+    let mut entries = Vec::new();
+    for (id, plugin) in [("requires", false), ("plugin", true)] {
+        if let (Some(indices), Some(names)) =
+            (matches.indices_of(id), matches.get_many::<String>(id))
+        {
+            entries.extend(
+                indices
+                    .zip(names)
+                    .map(|(index, name)| (index, plugin, name.clone())),
+            );
+        }
+    }
+    entries.sort_by_key(|entry| entry.0);
+    let entries = entries
+        .into_iter()
+        .map(|(_, plugin, name)| (plugin, name))
+        .collect::<Vec<_>>();
+    let initial_color = initial_warning_color();
+    runtime.phase(false, initial_color);
+    let result = runtime
+        .cli_extensions(&entries)
+        .map_err(|error| crate::config::RuntimeError::with_color(error, initial_color))
+        .and_then(|()| {
+            // Options#parseはCLI requireの後、config requireの前にstdinを読み切る。
+            if cli.stdin.is_some() {
+                if !cli.paths.is_empty() {
+                    bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
+                }
+                cli.stdin_bytes = Some(if runtime.active() {
+                    runtime.read_stdin()?
+                } else {
+                    read_stdin(&cli)?
+                });
+            }
+            try_run(cli, &outputs)
+        });
+    let status = render_run_result(result, formatter_error_color);
+    // Nativeの最終表示後にRubyを同じstatusで終了し、at_exitによる最終statusも保つ。
+    match runtime.finish(status) {
+        Ok(status) => status,
+        Err(error) => {
+            eprintln!("Error: {error:#}");
+            2
+        }
+    }
+}
+
+fn read_stdin(cli: &Cli) -> Result<Vec<u8>> {
+    if let Some(bytes) = &cli.stdin_bytes {
+        return Ok(bytes.clone());
+    }
+    let mut bytes = Vec::new();
+    io::stdin()
+        .read_to_end(&mut bytes)
+        .context("failed to read source from stdin")?;
+    Ok(bytes)
+}
+
+fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
+    match result {
         Ok(code) => code,
         Err(error) => {
-            if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
+            if let Some(runtime) = error.downcast_ref::<crate::config::RuntimeError>() {
+                if runtime.kind() == "exit" {
+                    return runtime.status().unwrap_or(2);
+                }
+                if runtime.kind() == "interrupt" {
+                    let _ = io::stderr().write_all(&native_textmode_bytes(b"\nExiting...\n"));
+                    return 130;
+                }
+                let prefix = if matches!(runtime.kind(), "rubocop" | "ambiguous") {
+                    "Error: "
+                } else {
+                    ""
+                };
+                let message = format!("{prefix}{}", runtime.message());
+                let text = if runtime.color() && runtime.kind() != "plain" {
+                    format!("\x1b[31m{message}\x1b[0m\n")
+                } else {
+                    format!("{message}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
@@ -779,11 +870,15 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 }
 
-fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
-    let initial_warning_color = std::env::var("CLICOLOR_FORCE").is_ok_and(|value| value == "1")
+fn initial_warning_color() -> bool {
+    std::env::var("CLICOLOR_FORCE").is_ok_and(|value| value == "1")
         || (io::stdout().is_terminal()
             && io::stderr().is_terminal()
-            && std::env::var("TERM").as_deref() != Ok("dumb"));
+            && std::env::var("TERM").as_deref() != Ok("dumb"))
+}
+
+fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
+    let initial_warning_color = initial_warning_color();
     let info_mode = cli.show_cops.is_some()
         || cli.show_docs_url.is_some()
         || cli.list_enabled_cops_for.is_some()
@@ -834,6 +929,9 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             write_output(&text, None, true)
         },
     );
+    let runtime = cli.ruby_runtime.clone().unwrap_or_default();
+    let config_warnings = config_warnings.with_runtime(Arc::clone(&runtime));
+    runtime.phase(false, warning_color.load(Ordering::Relaxed));
     let phase = Arc::clone(&warning_color);
     try_run_with_warning_phase(
         cli,
@@ -844,6 +942,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     )
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
+        let error = crate::config::RuntimeError::with_color(error, color);
         AmbiguousConfigCopError::with_color(
             ObsoleteConfigError::with_color(
                 UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),
@@ -931,6 +1030,10 @@ fn try_run_with_warning_phase(
 
     // Rainbow の CLI 色指定は、情報表示の早期終了を通過してから反映される。
     warning_color.store(option_warning_color, Ordering::Relaxed);
+    configs
+        .root()
+        .ruby_runtime()
+        .phase(cli.stderr, option_warning_color);
     let correct_mode = cli.correct_mode();
     let PreparedSelection {
         mut selection,
@@ -1175,7 +1278,7 @@ struct PreparedSelection {
     failure: Option<SelectionFailure>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct SelectionFailure {
     message: String,
     error_prefix: bool,
@@ -1297,10 +1400,7 @@ fn inspect_rejected_inputs(
         }
         let anonymous = path.as_os_str().is_empty();
         let path = if anonymous { cwd } else { path.as_path() };
-        let mut bytes = Vec::new();
-        io::stdin()
-            .read_to_end(&mut bytes)
-            .context("failed to read source from stdin")?;
+        let bytes = read_stdin(cli)?;
         if !anonymous && path.is_dir() {
             // stdinの名前もTargetFinderが展開する。対象ゼロと一覧ではmobilizeへ届かない。
             let targets =
@@ -1588,10 +1688,7 @@ fn run_live_inspection(
                 "--stdin requires exactly one path supplied as its argument and no file arguments"
             );
         }
-        let mut bytes = Vec::new();
-        io::stdin()
-            .read_to_end(&mut bytes)
-            .context("failed to read source from stdin")?;
+        let bytes = read_stdin(cli)?;
         stdin_bytes = Some(bytes);
         if stdin_directory {
             discover_stdin_targets_with_store(path, cwd, configs, cli.directory_order())?
@@ -1667,6 +1764,8 @@ fn run_live_inspection(
     let mut had_write_failures = false;
     let mut stdin_corrected = None;
     let mut late_error = None;
+    let mut announced_ruby_names: HashSet<String> =
+        config.known_cop_names().map(str::to_owned).collect();
     if stdin_directory && selection_failure.is_none() {
         let run = inspect_stdin_directory_live(
             &targets,
@@ -1714,6 +1813,14 @@ fn run_live_inspection(
                     break;
                 }
             };
+            // Runnerは最初のfor_file後にRegistryを照会する。未訪問の後続requireを先読みしない。
+            let refreshed = (index == 0 && target_config.ruby_runtime().active())
+                .then(|| build_selection(cli, &target_config, cli.correct_mode()));
+            if let Some(refreshed) = &refreshed {
+                selection.only.clone_from(&refreshed.selection.only);
+                selection.except.clone_from(&refreshed.selection.except);
+                selection_failure = refreshed.failure.clone();
+            }
             if index == 0 && selection_failure.is_some() && stdin_bytes.is_none() {
                 let cached = cli.cache.as_deref() == Some("true")
                     || (cli.cache.as_deref() != Some("false")
@@ -1736,12 +1843,20 @@ fn run_live_inspection(
                 }
             }
             if index == 0 {
-                emit_selection_warnings(selection_warnings)?;
+                emit_selection_warnings(
+                    refreshed
+                        .as_ref()
+                        .map_or(selection_warnings, |value| value.warnings.as_slice()),
+                )?;
             }
             if let Some(failure) = selection_failure.take() {
                 late_error = Some(failure.into());
                 break;
             }
+            warn_unimplemented_matching(&target_config, selection, |name| {
+                !announced_ruby_names.contains(name)
+            });
+            announced_ruby_names.extend(target_config.known_cop_names().map(str::to_owned));
             warn_using(configs, &target_config, selection)?;
             let inspected = if let Some(bytes) = &stdin_bytes {
                 inspect_stdin(path.clone(), bytes.clone(), &target_config, selection)
@@ -1924,10 +2039,7 @@ fn inspect_inputs(
         stdin_path.clone()
     };
     // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
-    let mut bytes = Vec::new();
-    io::stdin()
-        .read_to_end(&mut bytes)
-        .context("failed to read source from stdin")?;
+    let bytes = read_stdin(cli)?;
     // 空名は #107 の仮想ファイル。cwd に展開してもディレクトリ探索へ変えない。
     if !anonymous_stdin && stdin_path.is_dir() {
         let targets =
@@ -2538,9 +2650,6 @@ fn report_noop_modes(cli: &Cli) {
     if cli.mcp {
         eprintln!("Sonicop: --mcp is accepted; the MCP transport is not implemented yet.");
     }
-    if !cli.plugin.is_empty() || !cli.requires.is_empty() {
-        eprintln!("Sonicop: Ruby plugins and --require entries are accepted but not executed.");
-    }
     if cli.profile || cli.memory {
         eprintln!(
             "Sonicop: profiling flags are accepted; use an external Rust profiler for native traces."
@@ -2639,20 +2748,20 @@ fn similar_cop_names(input: &str, config: &Config) -> Vec<String> {
     similar_names(input, selector_dictionary(config))
 }
 
-/// Tell the user about cops that resolved to enabled but have no implementation here.
-///
-/// An unimplemented cop is never planned, so a configuration that switches one on — or an explicit
-/// `--only` naming it — yields no offenses at all where RuboCop would report some. Reporting 394 of
-/// RuboCop's 609 cops is fine as long as nobody mistakes silence for a clean file, so say which
-/// checks did not happen.
-///
-/// The note goes to stderr, never stdout: RuboCop's own `-P/--parallel is being ignored` notice
-/// goes to stdout and corrupts its JSON output, which is a mistake worth not repeating.
+/// Ruby登録があってもNative実装のないcopは検査されないため、静かな成功に見せない。
 fn warn_unimplemented_enabled(config: &Config, selection: &Selection) {
+    warn_unimplemented_matching(config, selection, |_| true);
+}
+
+fn warn_unimplemented_matching(
+    config: &Config,
+    selection: &Selection,
+    include: impl Fn(&str) -> bool,
+) {
     let implemented: HashSet<&str> = rule_names().collect();
     let mut skipped = config
         .known_cop_names()
-        .filter(|name| !implemented.contains(name))
+        .filter(|name| !implemented.contains(name) && include(name))
         .filter(|&name| {
             let enabled = config.rule_enabled_with_pending(
                 name,

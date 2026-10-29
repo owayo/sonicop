@@ -4,7 +4,7 @@ use serde_yaml_ng::Value;
 use std::fmt;
 
 use super::namespaces::{registered_or_obsolete, suggestion_dictionary};
-use super::plugin::{belongs_to_plugin, configured_plugin_departments};
+use super::runtime::Snapshot;
 
 #[derive(Debug)]
 pub(crate) struct UnknownConfigError {
@@ -40,8 +40,12 @@ impl fmt::Display for UnknownConfigError {
 
 impl std::error::Error for UnknownConfigError {}
 
+#[cfg(test)]
 pub(super) fn names(value: &Value) -> Vec<String> {
-    let plugins = configured_plugin_departments(value);
+    names_with_registry(value, &Snapshot::default())
+}
+
+pub(super) fn names_with_registry(value: &Value, registry: &Snapshot) -> Vec<String> {
     value
         .as_mapping()
         .into_iter()
@@ -53,17 +57,43 @@ pub(super) fn names(value: &Value) -> Vec<String> {
                 "AllCops" | "inherit_mode" | "inherit_from" | "inherit_gem" | "require" | "plugins"
             )
         })
-        .filter(|name| !registered_or_obsolete(name) && !belongs_to_plugin(name, &plugins))
+        .filter(|name| {
+            !registered_or_obsolete(name)
+                && !registry.names.iter().any(|registered| registered == name)
+                && !registry
+                    .departments
+                    .iter()
+                    .any(|department| department == name)
+        })
         .map(str::to_owned)
         .collect()
 }
 
+#[cfg(test)]
 pub(super) fn messages(names: &[String], display: &str) -> Vec<String> {
+    messages_with_registry(names, display, &Snapshot::default())
+}
+
+pub(super) fn messages_with_registry(
+    names: &[String],
+    display: &str,
+    registry: &Snapshot,
+) -> Vec<String> {
     names
         .iter()
         .map(|name| {
+            let dictionary: Vec<&str> = if registry.names.is_empty() {
+                suggestion_dictionary().collect()
+            } else {
+                registry
+                    .departments
+                    .iter()
+                    .chain(&registry.names)
+                    .map(String::as_str)
+                    .collect()
+            };
             let mut message = format!("unrecognized cop or department {name} found in {display}");
-            let suggestions = crate::name_distance::similar_names(name, suggestion_dictionary());
+            let suggestions = crate::name_distance::similar_names(name, dictionary);
             if !suggestions.is_empty() {
                 message.push_str(&format!("\nDid you mean `{}`?", suggestions.join("`, `")));
             }

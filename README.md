@@ -135,7 +135,15 @@ Key compatibility flags include `-l`, `-x`, `--only`, `--except`, `-s/--stdin`, 
 
 ## Configuration
 
-Sonicop resolves `.rubocop.yml` from each inspected file, so nested configurations apply to its cops. For target discovery, a directory argument uses that directory's configuration across its walk, matching RuboCop; list a nested directory separately to apply its own `Include` and `Exclude` rules. Local and HTTPS `inherit_from`, `inherit_gem`, `inherit_mode`, `AllCops/DisabledByDefault`, `Include`, and `Exclude`, plus per-cop `Enabled`, `Exclude`, `Severity`, `Safe`, `SafeAutoCorrect`, and cop settings are supported. Cops supplied by declared plugins are accepted as recognized-but-unimplemented without executing Ruby plugin code. Remote configuration requests use 30-second network timeouts, and each response is limited to 5 MiB.
+Sonicop resolves `.rubocop.yml` from each inspected file, so nested configurations apply to its cops. For target discovery, a directory argument uses that directory's configuration across its walk, matching RuboCop; list a nested directory separately to apply its own `Include` and `Exclude` rules. Local and HTTPS `inherit_from`, `inherit_gem`, `inherit_mode`, `AllCops/DisabledByDefault`, `Include`, and `Exclude`, plus per-cop `Enabled`, `Exclude`, `Severity`, `Safe`, `SafeAutoCorrect`, and cop settings are supported. Remote configuration requests use 30-second network timeouts, and each response is limited to 5 MiB.
+
+Explicit `require` / `plugins` configuration and CLI `-r` / `--plugin` execute Ruby extension loaders in a process shared for that invocation. Sonicop uses the actual loaded features, plugin names, cop registry and default configuration changes for configuration validation. A declaration alone does not register a cop. CLI `-r` runs before configuration loading; relative configuration requires resolve from their own configuration file.
+
+This optional path needs Ruby 2.7 or later, RuboCop **1.89.0**, and the extension's installed dependencies (`gem install rubocop -v 1.89.0`). The gem wrapper passes its Ruby interpreter and load path, including `-I`; a standalone binary uses `ruby` from `PATH`, or `SONICOP_RUNTIME_RUBY` when set. Runs without explicit extensions keep the native path and need no Ruby runtime.
+
+Each runtime operation and finalization has a 60-second timeout.
+
+Ruby extension loading does not execute Ruby-defined cop inspection or correction methods. Enabled cops without a native implementation produce a stderr notice. Registration and native cop default changes are supported; arbitrary Ruby monkeypatches and every third-party plugin API are not covered by these compatibility measurements.
 
 ```yaml
 inherit_from: .rubocop_todo.yml
@@ -151,7 +159,7 @@ Style/StringLiterals:
   EnforcedStyle: single_quotes
 ```
 
-The CLI accepts RuboCop's server/LSP/MCP and plugin flags to keep existing command lines parse-compatible. Sonicop does not provide server transports, Ruby plugin execution, custom Ruby cops, or cops outside the implemented set. Each of those flags says so: `--server`, `--no-server`, `--lsp`, `--mcp`, and `--plugin` print a one-line notice on stderr.
+The CLI accepts RuboCop's server/LSP/MCP flags to keep existing command lines parse-compatible. Sonicop does not provide these server transports; `--server`, `--no-server`, `--lsp`, and `--mcp` print a one-line notice on stderr.
 
 Set `AllCops/UseProjectIndex: true` to enable project-wide analysis, including `Lint/DeprecatedReference`, `Lint/NameTypo` and `Lint/UnusedPrivateMethod`. The native executable can index project sources without Ruby. With `AllCops/ProjectIndexIncludesGems: true`, the Ruby gem wrapper also indexes bundled gem sources when Bundler is loaded. Project-index runs bypass the result cache, since changes to another file can change a diagnostic in the inspected file.
 

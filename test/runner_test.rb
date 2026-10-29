@@ -168,7 +168,7 @@ class RunnerTest < Minitest::Test
   # exec はプロセスを置き換えるので、wrapper は子プロセスで動かすほかない。
   def wrapper_output(binary, arguments)
     IO.popen(
-      [{ 'SONICOP_BINARY' => binary }, RbConfig.ruby, '-I', File.join(ROOT, 'lib'),
+      [{ 'SONICOP_BINARY' => binary, 'TMPDIR' => @root }, RbConfig.ruby, '-I', File.join(ROOT, 'lib'),
        '-rsonicop', '-e', "Sonicop::Runner.run(#{arguments.inspect})"],
       err: [:child, :out], &:read
     )
@@ -214,7 +214,7 @@ class RunnerTest < Minitest::Test
     FileUtils.chmod(0o755, unusable)
 
     output = IO.popen(
-      [{ 'SONICOP_BINARY' => unusable }, RbConfig.ruby, '-I', File.join(ROOT, 'lib'),
+      [{ 'SONICOP_BINARY' => unusable, 'TMPDIR' => @root }, RbConfig.ruby, '-I', File.join(ROOT, 'lib'),
        '-rsonicop', '-e', 'Sonicop::Runner.run([])'],
       err: [:child, :out], &:read
     )
@@ -233,7 +233,7 @@ class RunnerTest < Minitest::Test
     [false, true].each do |bundler_loaded|
       bootstrap = bundler_loaded ? 'module Bundler; end; ' : ''
       output = IO.popen(
-        [{ 'SONICOP_BINARY' => binary, 'SONICOP_BUNDLER_RUBY' => 'stale' },
+        [{ 'SONICOP_BINARY' => binary, 'TMPDIR' => @root, 'SONICOP_BUNDLER_RUBY' => 'stale' },
          RbConfig.ruby, '-I', File.join(ROOT, 'lib'), '-rsonicop', '-e',
          "#{bootstrap}Sonicop::Runner.run([])"], err: [:child, :out], &:read
       )

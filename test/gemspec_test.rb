@@ -10,7 +10,7 @@ class GemspecTest < Minitest::Test
   FIXTURE_FILES = %w[
     CONFORMANCE.md LICENSE NOTICE README.md README.ja.md
     Cargo.lock Cargo.toml build.rs
-    config/default.yml licenses/NOTICE
+    config/default.yml licenses/NOTICE lib/sonicop/runtime.rb
     src/main.rs ext/sonicop/extconf.rb
     licenses/PRISM.txt licenses/ONIGMO.txt
     licenses/RUBY_BSDL.txt licenses/RUBY_COPYING.txt licenses/RUBY_LEGAL.txt
@@ -73,6 +73,7 @@ class GemspecTest < Minitest::Test
     assert_includes spec.files, 'src/main.rs'
     assert_includes spec.files, 'lib/sonicop/version.rb'
     assert_includes spec.files, 'config/default.yml'
+    assert_includes spec.files, 'lib/sonicop/runtime.rb'
     refute(spec.files.any? { |path| path.start_with?('libexec/') })
   end
 
@@ -120,6 +121,7 @@ class GemspecTest < Minitest::Test
     assert_empty spec.extensions
     assert_includes spec.files, 'libexec/sonicop'
     assert_includes spec.files, 'config/default.yml'
+    assert_includes spec.files, 'lib/sonicop/runtime.rb'
     refute_includes spec.files, 'Cargo.toml'
     refute_includes spec.files, 'Cargo.lock'
     refute_includes spec.files, 'src/main.rs'

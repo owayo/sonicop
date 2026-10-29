@@ -36,6 +36,7 @@ fn main() {
         "config/renamed_cops.json",
         "config/obsolete_cop_categories.json",
         "config/obsolete_parameters.json",
+        "lib/sonicop/runtime.rb",
         "crates",
         "src",
     ] {
@@ -72,6 +73,7 @@ fn build_fingerprint() -> io::Result<blake3::Hash> {
         "config/renamed_cops.json",
         "config/obsolete_cop_categories.json",
         "config/obsolete_parameters.json",
+        "lib/sonicop/runtime.rb",
         "crates",
         "src",
     ] {
