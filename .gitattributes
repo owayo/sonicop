@@ -435,3 +435,10 @@ scripts/conformance/test_record_runtime_help.py text eol=lf
 tests/runtime_help.rs text eol=lf
 tests/fixtures/runtime_help.json text eol=lf
 tests/fixtures/runtime_help.json.PROVENANCE text eol=lf
+
+# for_pwdのcache有無と全reportのWindows実参照を保持する。
+scripts/conformance/record_configured_result_cache.py text eol=lf
+scripts/conformance/test_record_configured_result_cache.py text eol=lf
+tests/configured_result_cache.rs text eol=lf
+tests/fixtures/configured_result_cache.json text eol=lf
+tests/fixtures/configured_result_cache.json.PROVENANCE text eol=lf

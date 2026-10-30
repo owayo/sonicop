@@ -1,0 +1,36 @@
+RuboCop 1.89.0 / Ruby 4.0.7 x64-mingw-ucrtの実CLI21条件を各2回記録（2026-10-31）。schema: 1。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+primaryは実gem source8の全SHAとRuby/gem版を保持し、公開collectorはCLI起動前に実sourceを照合する。
+ライセンスはlicenses/RUBOCOP.txtのMIT licence。Runner#cached_run?の移植と本参照をNOTICEへ記載した。
+
+生成元: scripts/conformance/record_configured_result_cache.py
+再採取（固定Windows Ruby/gem環境、候補exeへの引数は受け取らない）:
+  python scripts/conformance/record_configured_result_cache.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <fresh-reference.json>
+固定schema/型/ID順/入力/primary/全raw/scopeをcanonical SHAで検査し、部分採取や空参照を拒否する。
+既存work/outのentryと、正規化後の重複・包含を子起動前に拒否する。dangling entryもlexistsで検査する。
+ENV4とRUBOCOP_CACHE_ROOT/NO_COLOR/SONICOP_PROFILEだけを子copyから除去し、GEM/PATH/OSと親環境を保つ。
+XDG_CACHE_HOMEを各case内へ固定する。metadata照会1回とCLI42回の全完了後だけ、exclusive xで完成JSONを保存する。
+privateには実exit/stdout/stderrと、全原本before/after bytes/mtime_ns/mode、report entryとcache状態を各回保存する。
+原本とcacheのlink/reparse pointをたどらず、reportの生成は本文を読まずにentryとして拒否する。
+
+条件はfalse/null/true/省略とCLI cache省略/true/falseの12組、Rubyでtruthyの0/'false'/''/[]/{}の5組、
+rootとnestedのUseCacheが逆になる4組。rootのfor_pwdを使い、対象の入れ子設定でcache有無を切り替えない。
+明示--no-parallelでdefault parallelを止める。--cache falseとの組合せでは、本家が出す通知prefixも全bytes保持する。
+rootとnestedの両方でDisabledByDefaultと対象copを明示し、全21条件の診断1件を本家から記録した。
+入れ子でもcop選択を揃え、既定Layout/EndOfLineのnative改行のOS差をこのcache検証へ混ぜない。
+全42回が終了1・stderr空・非空の完了JSON。cache生成26回、不生成16回。原本184観測のbytes/mtime/modeを保持する。
+本家はcache生成時に通常fileを1件保存した。動的hashを含むcache名・cache本文は公開fixtureへ固定しない。
+cache形式のengine間互換性や、2回目がcache hitだったことは本参照の成功範囲へ含めない。
+
+Native回帰はRubyのないPATHで同じ21条件を各2回起動し、exit/stderr/通知prefixとmetadata以外の全JSON fieldsを比較する。
+Native自身のengine=sonicop/spec=1.89.0/製品版を先に確認し、本家のidentityを書き換えない。
+Unix hostではWindows pipeのCRLFだけをLFへ投影する。Ruby/config原本のbytesは変換しない。
+cache生成時はNativeの実indexにも対象1件が保存されたことを別に検査する。cacheの保存形式・ファイル数は本家と比較しない。
+profiling/補正/stdin/project indexの既存除外や、明示parallelの初期拒否をこの42回の互換成功へ一般化しない。
+
+2026-10-31に公開collectorでfresh再採取を終了0で完了。実43プロセス、43 private journal、原本184観測が完了し、container bytesも完全一致した。
+collector契約テストは実Rubyの採取と別の模擬応答を使い、source相違・途中失敗・原本属性・cache生成だけの変更を個別に拒否する。
+Windowsの実dangling junction保存先も子起動前に拒否した。reportのsymlink負対照1件は権限不足で未実行とし、成功へ数えない。
+fixture SHA256: 2164f8a33553846559e17d599e155f3cf020203defe7c0e2f10995d3f475e8e7
+collector SHA256: 93a04913a88eee3eb1d4a7a993679a411cc8476fce8ec053d3b1a0ba6a921254
+contract SHA256: a00cb5e7f0e92d97563ff3aedea0ddd9e9fe0191c0f4aa9a520e27943636bdbe

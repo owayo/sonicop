@@ -100,6 +100,13 @@ ruby scripts/dump_display_width.rb > src/display_width_table.rs
 stat は本文を読む前に取得し、digest は NUL 処理前の本文から作る。
 保存形式を変えた場合は `RESULT_CACHE_SCHEMA` を上げる。
 
+**結果cacheの使用可否は起動位置の設定で決める。** Runner#cached_run?は明示した
+`--cache true/false`を優先し、指定がなければfor_pwdのUseCacheをRubyのtruthyとして読む。
+false/nullは無効、0・空文字列・配列等は有効。入れ子の対象設定でsession全体の判定を変えない。
+明示parallelの初期設定検証は別段階で、--cache trueでもfalse/nullによる拒否を上書きしない。
+`configured_result_cache.json`の実21条件を各2回、全report・原本184観測とcache有無で照合する。
+本家とNativeのcache保存形式は異なるため、Nativeの実indexへの保存は別に検査する。
+
 **Remote inherited configurations are bounded.** Network operations time out after 30 seconds and
 each response may contain at most 5 MiB. `ureq` rejects a body whose length equals the value passed
 to `BodyWithConfig::limit`, so pass one byte beyond the logical maximum. Preserve tests for both the
