@@ -1,0 +1,62 @@
+実参照: Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1 / Psych 5.3.1。
+期待値は実RuboCopのAPIとCLIから採り、候補exeから生成していない。
+RemoteConfig APIの12行、CLIの元12行を保持し、独立したcache true対照3行を追加した。
+元12行のうちcache-root/cache-false併用3行はblocked_casesへ無変更で移し、#231で追跡する。
+参照15条件を捨てずに再採取し、Nativeの比較成功は受理される12条件だけへ限定する。
+
+再採取（Windows固定Ruby/gem、存在しないwork/out、既存out親が必要）:
+  python scripts/conformance/record_remote_config_origins.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+実API一件と実CLI15件の計16 processを直列で実行し、完成値へ一致した後だけoutをexclusive保存する。
+APIはruntime/gemの版と、仕様版の次の四ファイルのSHAを確認する。
+  lib/rubocop/remote_config.rb: 6d7574ce55fb181ad5f9c7d364e392feb9cb2d3e3eb4d918121b12be5418c1ed
+  lib/rubocop/cache_config.rb: 98018b6e511c790e3f8b60bb873b351f277fe795e51ac158485f14439bb091c1
+  lib/rubocop/config_loader.rb: 90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e
+  lib/rubocop/cli.rb: 7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933
+
+動的binding:
+- BASEは専用localhost serverの実URL、HASH_iはsortしたrouteの完全URLに対するMD5。
+- CWD/CWD_FWDは新規の専用work、DRIVEはWindows API行のroot展開に使うdrive。
+- この明示した値だけを置換し、元のprivate stdout/stderr/config/cache bytesへ逆変換して一致を確認する。
+  任意のpath正規化やANSI・改行の除去を期待値へ適用しない。
+- stderr_templateは本家の実CRLFと文言・順序を保持する。全rawとbefore/afterはprivate workへ残す。
+
+有限の比較範囲:
+- API12行: URI schemeの小文字化、host case、既定portの除去、query/fragmentを含むdigest、
+  .yml/.YAMLの除去、218 byteのstem、percent表記、空pathとroot pathのcache名を照合する。
+  Windowsではcache_path全体も検査し、他OSでは純粋なURI/path/nameだけを照合する。
+  未escapeのUnicode URI、userinfo、任意のinvalid URI、UNC展開を受理した証拠ではない。
+- 比較するCLI12条件: ENV、ENVとCLI、明示CLI、暗黙CLI、projectのtoplevel、XDG、
+  force-default、qualifiedの陰性、入れ子remote、同一URLの二辺、曖昧名、実Ruby登録を含む。
+  11の完了JSONの全fieldsと、全12のstderr/終了値・取得順を比較する。曖昧名はstdout空も厳密に検査する。
+  製品固有identity四項目だけを除き、patchlevel/spec版を含む残りmetadataを保持する。
+  15のnamespace行と、三つのcache-root変更警告の順序・全bytesを比較する。
+- 明示config内のremoteはapply_options!中にrootを先にmemoするため、CLI overrideより前のrootを使う。
+  後でdesiredへ再設定し、暗黙configのCLI overrideは最初から反映する。
+- 全15の原本50観測のbytes/mtime/modeを確認する。比較12条件の原本は40観測。
+  server要求は計16、参照のremote cache fileは計16。cache falseでも本家が作る実artifactを別に保持する。
+  Runtime一件は実featureを読んでcop登録とmarkerを確認するが、Ruby定義copのbody実行を証明しない。
+- Nativeの厳密なCLI照合はWindowsだけ。通常11条件のPATHは空、runtime一件は固定Rubyを必須gateで検査する。
+  保存済みWindows pipeを他OSの実CLIへ投影せず、URI/nameの純粋なAPI比較と区別する。
+
+採取はENV4とambient NO_COLORを子copyから除き、root/TERM/CLICOLOR/XDGを条件ごとに明示する。
+GEM/PATH/OSと親環境は保ち、NO_PROXY/no_proxyはlocalhostに設定する。
+既存leaf・dangling entry・alias・work/out包含・out親なしを生成前に拒否する。
+原本はlstatで通常fileを要求し、未知のlink/reparse entryを辿らない。
+実rawを先に保存し、timeoutのpartialも保全してから失敗させる。
+属性・marker・cache本文・要求順・全raw・完了値を確認した後だけ完成版を保存する。
+
+未解決の比較範囲:
+- blocked_cases三件の本家成功は保持するが、Nativeの先行CLI拒否#231のため互換成功へ数えない。
+  #231対応時にこの三件を通常の全stream比較へ昇格する。
+- queryを含むRemoteConfig APIが成功することは、CLI inherit_fromのquery採用を意味しない。
+  本家の事前glob処理との実差は#230へ記録した。
+- Native側のremote cache保存・再利用は本件で追加していない。配信停止後の再実行の差は#232へ記録した。
+  出典名の一致や参照artifactの存在をNativeのcache I/O成功へ読み替えない。
+- HTTP timeout30秒と最大5MiB（ureq limitは+1 byte）の既存制約を保つ。
+  TTL/304、redirect/認証、remote内の相対require・Ruby版推定、非Windows CLI、TTYはこの参照の証明範囲外。
+
+fixture canonical SHA256: 8d8c0bcdf2c77092def77a4649ae86881ca282412804cb82271e12c30f9be626
+fixture file SHA256: 8ce891e1efbb9e4c2f31e865028decdafb645e9c2be49a2451e211a11c84966c
+RuboCop由来の命名・phase選択・データはMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
+NativeのDigest計算にはmd5 0.8.1をMIT選択で使用する。licenses/MD5.txtを参照。

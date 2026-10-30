@@ -511,6 +511,8 @@ type WarningOutput = dyn Fn(&ConfigWarning) -> Result<()> + Send + Sync;
 /// library の値解決と CLI の警告出力を分ける。parameter の色は出力時の CLI phase が決める。
 #[derive(Clone)]
 pub(crate) struct ConfigWarnings {
+    pub(super) cache_root_override: Option<PathBuf>,
+    pub(super) remote_cache_root: Arc<std::sync::Mutex<Option<String>>>,
     pub(super) runtime: Arc<super::RuntimeSession>,
     pub(super) ignore_unknown: bool,
     pub(super) parent_exclusion: bool,
@@ -544,6 +546,10 @@ impl std::error::Error for WarningOutputFailure {
 }
 
 impl ConfigWarnings {
+    pub(crate) fn with_cache_root(mut self, root: Option<PathBuf>) -> Self {
+        self.cache_root_override = root;
+        self
+    }
     pub(crate) fn emit_cache_root(&self, message: String) -> Result<()> {
         (self.output)(&ConfigWarning::CacheRoot(message))
     }
@@ -554,6 +560,8 @@ impl ConfigWarnings {
         output: impl Fn(&ConfigWarning) -> Result<()> + Send + Sync + 'static,
     ) -> Self {
         Self {
+            cache_root_override: None,
+            remote_cache_root: Arc::new(std::sync::Mutex::new(None)),
             runtime: Arc::new(super::RuntimeSession::default()),
             ignore_unknown,
             parent_exclusion,

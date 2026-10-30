@@ -1,0 +1,738 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "source_sha256": {
+    "lib/rubocop/remote_config.rb": "6d7574ce55fb181ad5f9c7d364e392feb9cb2d3e3eb4d918121b12be5418c1ed",
+    "lib/rubocop/cache_config.rb": "98018b6e511c790e3f8b60bb873b351f277fe795e51ac158485f14439bb091c1",
+    "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+    "lib/rubocop/cli.rb": "7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933"
+  },
+  "metadata_identity_keys": [
+    "ruby_engine",
+    "ruby_version",
+    "ruby_platform",
+    "sonicop_version"
+  ],
+  "api": [
+    {
+      "url": "http://example.invalid/config.yml",
+      "uri": "http://example.invalid/config.yml",
+      "path": "/config.yml",
+      "name": "config-3cda7384068dffcefd750039c167e205.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/config-3cda7384068dffcefd750039c167e205.yml"
+    },
+    {
+      "url": "https://example.invalid/config.YAML",
+      "uri": "https://example.invalid/config.YAML",
+      "path": "/config.YAML",
+      "name": "config-7bb9b5707c46a64a0d476bd6c7f76574.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/config-7bb9b5707c46a64a0d476bd6c7f76574.yml"
+    },
+    {
+      "url": "http://example.invalid/team/.rubocop.yml?ref=main/a",
+      "uri": "http://example.invalid/team/.rubocop.yml?ref=main/a",
+      "path": "/team/.rubocop.yml",
+      "name": ".rubocop-da2595fe9061c6f98e58fec7aa3efc9d.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/.rubocop-da2595fe9061c6f98e58fec7aa3efc9d.yml"
+    },
+    {
+      "url": "http://example.invalid/one.yml#anchor",
+      "uri": "http://example.invalid/one.yml#anchor",
+      "path": "/one.yml",
+      "name": "one-8e71890a53c866ede62cce7e54fa803f.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/one-8e71890a53c866ede62cce7e54fa803f.yml"
+    },
+    {
+      "url": "http://example.invalid/",
+      "uri": "http://example.invalid/",
+      "path": "/",
+      "name": "/-84718c0d6a1bee37adb68992a64181b7.yml",
+      "cache_path_template": "<DRIVE>/-84718c0d6a1bee37adb68992a64181b7.yml"
+    },
+    {
+      "url": "http://example.invalid",
+      "uri": "http://example.invalid",
+      "path": "",
+      "name": "-6de031245a89b1674bc988893bb8c09e.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/-6de031245a89b1674bc988893bb8c09e.yml"
+    },
+    {
+      "url": "http://example.invalid:80/config.yml",
+      "uri": "http://example.invalid/config.yml",
+      "path": "/config.yml",
+      "name": "config-3cda7384068dffcefd750039c167e205.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/config-3cda7384068dffcefd750039c167e205.yml"
+    },
+    {
+      "url": "https://example.invalid:443/config.yml",
+      "uri": "https://example.invalid/config.yml",
+      "path": "/config.yml",
+      "name": "config-5b51499d8f7e0991a31febee0a63abce.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/config-5b51499d8f7e0991a31febee0a63abce.yml"
+    },
+    {
+      "url": "HTTP://EXAMPLE.invalid:080/config.yml",
+      "uri": "http://EXAMPLE.invalid/config.yml",
+      "path": "/config.yml",
+      "name": "config-9f2cdebf695f028cf39e307ffe683437.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/config-9f2cdebf695f028cf39e307ffe683437.yml"
+    },
+    {
+      "url": "https://example.invalid:8443/dir/name.yaml?raw=1#part",
+      "uri": "https://example.invalid:8443/dir/name.yaml?raw=1#part",
+      "path": "/dir/name.yaml",
+      "name": "name-141168c7b8985cf67bf6c390baf1913b.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/name-141168c7b8985cf67bf6c390baf1913b.yml"
+    },
+    {
+      "url": "https://example.invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yml",
+      "uri": "https://example.invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yml",
+      "path": "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yml",
+      "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-e02a456b5cdc9476039575ebb080f269.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-e02a456b5cdc9476039575ebb080f269.yml"
+    },
+    {
+      "url": "https://example.invalid/%E3%81%82.yml",
+      "uri": "https://example.invalid/%E3%81%82.yml",
+      "path": "/%E3%81%82.yml",
+      "name": "%E3%81%82-16674130f68090b41c459ca9100d88d6.yml",
+      "cache_path_template": "<CWD_FWD>/cache/rubocop_cache/%E3%81%82-16674130f68090b41c459ca9100d88d6.yml"
+    }
+  ],
+  "cases": [
+    {
+      "id": "env-root",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "toplevel-root",
+      "mode": "top",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n",
+        ".rubocop.yml": "AllCops:\n  CacheRootDirectory: project-cache\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "project-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nWarning: Remote configuration cache files were stored in `project-cache/rubocop_cache` because a desired cache root (`<CWD>\\xdg-cache/0/rubocop_cache`) was not set at the top level. Consider setting `AllCops: CacheRootDirectory` in your toplevel configuration file, using the `RUBOCOP_CACHE_ROOT` environment variable, or using CLI options.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "project-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "xdg-root",
+      "mode": "xdg",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "xdg-cache/0/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "xdg-cache\\0\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "force-default-root",
+      "mode": "force",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n",
+        ".rubocop.yml": "AllCops:\n  CacheRootDirectory: project-cache\n"
+      },
+      "args": [
+        "--force-default-config",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--disable-pending-cops",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "project-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nWarning: Remote configuration cache files were stored in `project-cache/rubocop_cache` because a desired cache root (`<CWD>\\xdg-cache/0/rubocop_cache`) was not set at the top level. Consider setting `AllCops: CacheRootDirectory` in your toplevel configuration file, using the `RUBOCOP_CACHE_ROOT` environment variable, or using CLI options.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "project-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "qualified-negative",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nLayout/SpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "nested",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/parent.yml\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/child.yaml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nTrailingWhitespace:\n  Enabled: true\n",
+        "/parent.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/child.yaml\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/parent.yml",
+        "/child.yaml"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/child-<HASH_0>.yml: Warning: no department given for TrailingWhitespace.\r\nenv-cache/rubocop_cache/parent-<HASH_1>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\child-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nTrailingWhitespace:\r\n  Enabled: true\r\n"
+        },
+        {
+          "path_template": "env-cache\\rubocop_cache\\parent-<HASH_1>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\ninherit_from: <BASE>/child.yaml\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "duplicate",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from:\n  - <BASE>/config.YAML\n  - <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nenv-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "ambiguous",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nenv-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for MultipleComparison.\r\nError: Ambiguous cop name `MultipleComparison` used in <CWD_FWD>/env-cache/rubocop_cache/config-<HASH_0>.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\nMultipleComparison:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "mode": "env",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n",
+        "feature.rb": "require 'rubocop'\nmodule RuboCop\n  module Cop\n    module Demo\n      class OriginProbe < Base\n      end\n    end\n  end\nend\nFile.binwrite('loaded_marker', 'yes')\n"
+      },
+      "args": [
+        "--require",
+        "./feature.rb",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nOriginProbe:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nenv-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for OriginProbe.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": "796573",
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\nOriginProbe:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "env-over-cli-cache-true",
+      "mode": "env-cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "cli-root-cache-true",
+      "mode": "cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n",
+        ".rubocop.yml": "AllCops:\n  CacheRootDirectory: project-cache\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--config",
+        "config.yml",
+        "--cache",
+        "true",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "project-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nWarning: Remote configuration cache files were stored in `project-cache/rubocop_cache` because a desired cache root (`cli-cache/rubocop_cache`) was not set at the top level. Consider setting `AllCops: CacheRootDirectory` in your toplevel configuration file, using the `RUBOCOP_CACHE_ROOT` environment variable, or using CLI options.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "project-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "implicit-cli-root-cache-true",
+      "mode": "implicit-cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  CacheRootDirectory: project-cache\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--cache",
+        "true",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "cli-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "cli-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "actual_cli_cases": 15,
+    "actual_cache_name_api_rows": 12,
+    "source_observations": 50,
+    "dynamic_binding_inverse_exact": true,
+    "namespace_and_initial_cache_root_phase": true,
+    "native_remote_cache_io": false,
+    "api_queries_are_not_cli_inherit_query_acceptance": true,
+    "subset": false,
+    "compared_cli_cases": 12,
+    "blocked_cli_cases": 3,
+    "blocked_by_issue": 231,
+    "compared_source_observations": 40,
+    "original_twelve_rows_unchanged": true,
+    "native_remote_cache_io_issue": 232,
+    "inherit_query_cli_issue": 230
+  },
+  "blocked_cases": [
+    {
+      "id": "env-over-cli",
+      "mode": "env-cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache",
+        "RUBOCOP_CACHE_ROOT": "<CWD>\\env-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "env-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "env-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "cli-root",
+      "mode": "cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: <BASE>/config.YAML\n",
+        ".rubocop.yml": "AllCops:\n  CacheRootDirectory: project-cache\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "project-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\nWarning: Remote configuration cache files were stored in `project-cache/rubocop_cache` because a desired cache root (`cli-cache/rubocop_cache`) was not set at the top level. Consider setting `AllCops: CacheRootDirectory` in your toplevel configuration file, using the `RUBOCOP_CACHE_ROOT` environment variable, or using CLI options.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "project-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    },
+    {
+      "id": "implicit-cli-root",
+      "mode": "implicit-cli",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  CacheRootDirectory: project-cache\ninherit_from: <BASE>/config.YAML\n"
+      },
+      "args": [
+        "--cache-root",
+        "cli-cache",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "env": {
+        "XDG_CACHE_HOME": "<CWD>\\xdg-cache"
+      },
+      "routes": {
+        "/config.YAML": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "requests": [
+        "/config.YAML"
+      ],
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "cli-cache/rubocop_cache/config-<HASH_0>.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null,
+      "reference_cache_files": [
+        {
+          "path_template": "cli-cache\\rubocop_cache\\config-<HASH_0>.yml",
+          "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
+        }
+      ]
+    }
+  ]
+}

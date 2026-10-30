@@ -2,43 +2,108 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use super::Cli;
-use crate::config::{Config, ConfigWarnings};
+use super::{Config, ConfigWarnings};
 
 #[cfg(all(test, windows))]
 #[path = "../../tests/support/cache_root_paths.rs"]
 mod cache_root_paths;
 
-pub(super) fn report(
-    cli: &Cli,
+pub(crate) fn report(
+    override_root: Option<&Path>,
     cwd: &Path,
     desired: Option<&str>,
     warnings: &ConfigWarnings,
 ) -> Result<()> {
-    // ENVとCLIの上書きは軽量lookupとfor_pwdの双方より優先する。空文字もRubyでは真。
-    if cli.cache_root.is_some() || std::env::var_os("RUBOCOP_CACHE_ROOT").is_some() {
+    // RemoteConfigが先にrootを固定した場合、CLI上書き前の値を比較へ残す。
+    let cached = warnings
+        .remote_cache_root
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone();
+    if cached.is_none()
+        && (override_root.is_some() || std::env::var_os("RUBOCOP_CACHE_ROOT").is_some())
+    {
         return Ok(());
     }
-    let early = Config::toplevel_cache_root(cwd)?;
-    if early.as_deref() == desired {
+    let early = if cached.is_none() {
+        Config::toplevel_cache_root(cwd)?
+    } else {
+        None
+    };
+    let environment = std::env::var("RUBOCOP_CACHE_ROOT").ok();
+    let override_root = override_root.map(|path| path.to_string_lossy().into_owned());
+    let desired = environment
+        .as_deref()
+        .or(override_root.as_deref())
+        .or(desired);
+    if cached.is_none() && early.as_deref() == desired {
         return Ok(());
     }
     let xdg = std::env::var("XDG_CACHE_HOME").ok();
-    let home = if xdg.is_none() && (early.is_none() || desired.is_none()) {
+    let home = if xdg.is_none() && ((cached.is_none() && early.is_none()) || desired.is_none()) {
         let home = Config::cache_home_directory().context("could not find home directory")?;
         Some(join(&realpath(&home.to_string_lossy())?, ".cache"))
     } else {
         None
     };
     let root = |value| root_dir(value, xdg.as_deref(), home.as_deref(), user_id());
-    let early = root(early.as_deref());
+    let early = cached.unwrap_or_else(|| root(early.as_deref()));
     let desired = root(desired);
+    // act_on_optionsは比較前に有効rootを再設定し、後の入れ子設定にも引き継ぐ。
+    *warnings
+        .remote_cache_root
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(desired.clone());
     if early == desired || same_real_path(&early, &desired) {
         return Ok(());
     }
     warnings.emit_cache_root(format!(
         "Warning: Remote configuration cache files were stored in `{early}` because a desired cache root (`{desired}`) was not set at the top level. Consider setting `AllCops: CacheRootDirectory` in your toplevel configuration file, using the `RUBOCOP_CACHE_ROOT` environment variable, or using CLI options."
     ))
+}
+
+pub(super) fn early_root(override_root: Option<&Path>, cwd: &Path) -> Result<String> {
+    // RemoteConfigは有効設定の解決が終わる前にrootを要求するため、同じ軽量lookupを使う。
+    let configured = std::env::var("RUBOCOP_CACHE_ROOT")
+        .ok()
+        .or_else(|| override_root.map(|path| path.to_string_lossy().into_owned()));
+    let configured = match configured {
+        Some(root) => Some(root),
+        None => Config::toplevel_cache_root(cwd)?,
+    };
+    let xdg = std::env::var("XDG_CACHE_HOME").ok();
+    let home = if configured.is_none() && xdg.is_none() {
+        let home = Config::cache_home_directory().context("could not find home directory")?;
+        Some(join(&realpath(&home.to_string_lossy())?, ".cache"))
+    } else {
+        None
+    };
+    Ok(root_dir(
+        configured.as_deref(),
+        xdg.as_deref(),
+        home.as_deref(),
+        user_id(),
+    ))
+}
+
+pub(super) fn for_remote(warnings: Option<&ConfigWarnings>, cwd: &Path) -> Result<String> {
+    let Some(warnings) = warnings else {
+        return early_root(None, cwd);
+    };
+    if let Some(root) = warnings
+        .remote_cache_root
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+    {
+        return Ok(root);
+    }
+    let root = early_root(warnings.cache_root_override.as_deref(), cwd)?;
+    let mut cached = warnings
+        .remote_cache_root
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    Ok(cached.get_or_insert(root).clone())
 }
 
 fn root_dir(configured: Option<&str>, xdg: Option<&str>, home: Option<&str>, uid: u32) -> String {
