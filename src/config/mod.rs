@@ -2,6 +2,7 @@ use std::borrow::Cow;
 mod inheritance;
 mod loader;
 mod namespaces;
+mod new_cops;
 mod obsoletion;
 mod paths;
 mod pending_cops;
@@ -33,6 +34,7 @@ use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_
 
 pub(crate) use loader::MissingConfigError;
 pub(crate) use namespaces::AmbiguousConfigCopError;
+pub(crate) use new_cops::InvalidNewCopsError;
 pub(crate) use obsoletion::ObsoleteConfigError;
 pub(crate) use obsoletion::TargetRubyGetterError;
 pub(crate) use pending_cops::display_version as pending_cop_version;
@@ -236,6 +238,10 @@ impl Config {
             (default, Value::Mapping(Mapping::new()), Vec::new())
         };
 
+        if warnings.is_none() {
+            // libraryの未知名metadataは保ち、NewCopsの無効値だけを無出力で拒否する。
+            validation.trace.check_new_cops()?;
+        }
         let result = (|| -> Result<Self> {
             if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
                 bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");

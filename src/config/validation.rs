@@ -297,6 +297,12 @@ impl OrderedKeys {
         }
         Prepared {
             obsolete: super::obsoletion::Outcome::prepare(value, display, target, registry),
+            new_cops: super::new_cops::validation_error(
+                value,
+                display,
+                self.sections.iter().map(|section| section.name.as_str()),
+                registry,
+            ),
             warnings,
             unknown,
             legacy_unknown,
@@ -334,6 +340,7 @@ pub(crate) enum ConfigWarning {
 #[derive(Debug, Default)]
 struct Prepared {
     obsolete: super::obsoletion::Outcome,
+    new_cops: Option<super::new_cops::InvalidNewCopsError>,
     namespaces: Vec<ConfigWarning>,
     warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
@@ -348,6 +355,7 @@ pub(super) struct ValidationTrace {
     has_warnings: bool,
     has_unknown: bool,
     has_obsolete: bool,
+    has_new_cops: bool,
 }
 
 impl ValidationTrace {
@@ -391,6 +399,8 @@ impl ValidationTrace {
         Arc::new(Self {
             has_obsolete: own.obsolete.is_fatal()
                 || inherited.iter().any(|trace| trace.has_obsolete),
+            has_new_cops: own.new_cops.is_some()
+                || inherited.iter().any(|trace| trace.has_new_cops),
             has_warnings: !own.unknown.is_empty()
                 || own.obsolete.warning.is_some()
                 || !own.namespaces.is_empty()
@@ -402,6 +412,31 @@ impl ValidationTrace {
             inherited,
             own,
         })
+    }
+
+    pub(super) fn check_new_cops(&self) -> Result<()> {
+        // quiet APIも継承先から検査する。妥当な共有部分木を展開しない。
+        let mut stack = vec![(self, false)];
+        while let Some((trace, own)) = stack.pop() {
+            if !trace.has_new_cops {
+                continue;
+            }
+            if own {
+                if let Some(error) = &trace.own.new_cops {
+                    return Err(error.clone().into());
+                }
+            } else {
+                stack.push((trace, true));
+                stack.extend(
+                    trace
+                        .inherited
+                        .iter()
+                        .rev()
+                        .map(|child| (child.as_ref(), false)),
+                );
+            }
+        }
+        Ok(())
     }
 
     fn replay(
@@ -419,6 +454,7 @@ impl ValidationTrace {
                 Visit::Tree(trace) => {
                     // 警告もfatalもない共有部分木だけを省略し、ignoreで廃止copの拒否を失わない。
                     if !trace.has_obsolete
+                        && !trace.has_new_cops
                         && !trace.has_warnings
                         && (ignore_unknown || !trace.has_unknown)
                     {
@@ -448,6 +484,9 @@ impl ValidationTrace {
                         } else {
                             return Err(super::UnknownConfigError::new(&prepared.unknown).into());
                         }
+                    }
+                    if let Some(error) = &prepared.new_cops {
+                        return Err(error.clone().into());
                     }
                     for warning in &prepared.warnings {
                         emit(warning)?;

@@ -92,6 +92,13 @@ pub(super) fn is_obsolete(name: &str) -> bool {
     REGISTRY.obsolete.contains(name)
 }
 
+pub(super) fn registered_department(name: &str) -> bool {
+    REGISTRY
+        .departments
+        .iter()
+        .any(|department| department == name)
+}
+
 pub(super) fn suggestion_dictionary() -> impl Iterator<Item = &'static str> {
     REGISTRY
         .departments

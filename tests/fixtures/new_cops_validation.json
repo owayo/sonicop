@@ -1,0 +1,2492 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    },
+    "source_sha256": {
+      "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+      "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e"
+    }
+  },
+  "cases": [
+    {
+      "id": "AllCops-pending",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: pending\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-disable",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-enable",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: enable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-version",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-garbage",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: future\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642066757475726520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-capital",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: Enable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420456e61626c6520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-empty",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: ''\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642020666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-int",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: 185\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642031383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-float",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: 1.85\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-bool-true",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207472756520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-bool-false",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: false\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642066616c736520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-null",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: null\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-array",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: [enable, '1.85']\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964205b22656e61626c65222c2022312e3835225d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "AllCops-mapping",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: {x: true}\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207b227822203d3e20747275657d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-pending",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: pending\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-disable",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: disable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-enable",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: enable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-version",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-garbage",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: future\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642066757475726520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-capital",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: Enable\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420456e61626c6520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-empty",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: ''\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642020666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-int",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: 185\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-float",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: 1.85\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-bool-true",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207472756520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-bool-false",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: false\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642066616c736520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-null",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: null\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-array",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: [enable, '1.85']\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964205b22656e61626c65222c2022312e3835225d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "Lint-mapping",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: {x: true}\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207b227822203d3e20747275657d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "version",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--version",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "show",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--show-cops",
+        "Layout/SpaceAroundOperators",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "list",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--list-target-files",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "stderr",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--stderr",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "no-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--no-color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "force",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c651b5b306d0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "force-no-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--no-color",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "1b5b33316d4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c651b5b306d0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "unknown-cop",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--only",
+        "UnknownCop",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "early-syntax",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--except",
+        "Lint/Syntax",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "other-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "53796e74617820636865636b696e672063616e6e6f74206265207475726e6564206f66662e0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "bad-cache",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--cache",
+        "invalid",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "other-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "2d432f2d2d636163686520617267756d656e74206d7573742062652074727565206f722066616c73650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "out-before-error",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n",
+        "report.json": "must survive\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--out",
+        "report.json",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": true,
+      "out_hex": "6d75737420737572766976650a",
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "priority-target",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 0.0\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "priority-unknown",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\nZZZUnknown: {}\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "other-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74205a5a5a556e6b6e6f776e20666f756e6420696e20636f6e6669672e796d6c0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "priority-obsolete",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\nLayout/AlignArray:\n  Enabled: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "other-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a2054686520604c61796f75742f416c69676e41727261796020636f7020686173206265656e2072656e616d656420746f20604c61796f75742f4172726179416c69676e6d656e74602e0d0a286f62736f6c65746520636f6e66696775726174696f6e20666f756e6420696e20636f6e6669672e796d6c2c20706c6561736520757064617465206974290d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "priority-parameter",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n  WrongParameter: true\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "all-before-departments",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\nStyle:\n  NewCops: stylebad\nLint:\n  NewCops: lintbad\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-order-style",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nStyle:\n  NewCops: stylebad\nLint:\n  NewCops: lintbad\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207374796c6562616420666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-order-lint",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: lintbad\nStyle:\n  NewCops: stylebad\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964206c696e7462616420666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "unknown-department",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nZZZUnknown:\n  NewCops: future\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "other-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20756e7265636f676e697a656420636f70206f72206465706172746d656e74205a5a5a556e6b6e6f776e20666f756e6420696e20636f6e6669672e796d6c0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "ignored-unknown-department",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nZZZUnknown:\n  NewCops: future\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--ignore-unrecognized-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "54686520666f6c6c6f77696e6720636f7073206f72206465706172746d656e747320617265206e6f74207265636f676e697a656420616e642077696c6c2062652069676e6f7265643a0d0a756e7265636f676e697a656420636f70206f72206465706172746d656e74205a5a5a556e6b6e6f776e20666f756e6420696e20636f6e6669672e796d6c0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-integer-string",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '1'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-patch-string",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '1.50.0'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-trailing-dot",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '1.'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-leading-dot",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '.1'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964202e3120666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-prefix",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: 'v1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642076312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "department-unicode-digits",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: '１.８５'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420efbc912eefbc98efbc9520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "array-inspect",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: [\"#{x}\", \"#@v\", \"#$v\", \"\\u3042\\u001b\\u000b\\u0000\\u007f\\u0085\", null, false]\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964205b225c237b787d222c20225c234076222c20225c232476222c2022e381825c655c765c75303030305c75303037465c7530303835222c206e696c2c2066616c73655d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "force-default-explicit",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--force-default-config",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "force-default-discovery",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--force-default-config",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "inherit-invalid-parent",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\ninherit_from: parent.yml\n",
+        "a.rb": "x=1\n",
+        "parent.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20706172656e742e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "inherit-invalid-child",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\ninherit_from: parent.yml\n",
+        "a.rb": "x=1\n",
+        "parent.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "nested-plain",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "sub/.rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "sub/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "sub/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full-report",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e207375622f2e7275626f636f702e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "nested-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "sub/.rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "sub/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--color",
+        "sub/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full-report",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "1b5b33316d4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e207375622f2e7275626f636f702e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c651b5b306d0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "nested-force",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "sub/.rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "sub/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "sub/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full-report",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "1b5b33316d4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e207375622f2e7275626f636f702e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c651b5b306d0d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "nested-no-color",
+      "files": {
+        "Gemfile": "",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\n",
+        "sub/.rubocop.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: '1.85'\n",
+        "sub/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "--no-color",
+        "sub/a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full-report",
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_hex": "4572726f723a20696e76616c696420312e383520666f7220604e6577436f70736020666f756e6420696e207375622f2e7275626f636f702e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "tiny-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: 1.0e-9\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e30652d303920666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "large-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: 1.0e20\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e3065323020666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "nan-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: .nan\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964204e614e20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "infinity-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: .inf\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420496e66696e69747920666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "negative-infinity-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: -.inf\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964202d496e66696e69747920666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "negative-zero-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: -0.0\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964202d302e3020666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "float-array-inspect",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: [1.0e-9, 1.0e20, .nan, -.inf, -0.0]\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964205b312e30652d30392c2022312e30653230222c204e614e2c202d496e66696e6974792c202d302e305d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "float-hash-inspect",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: {value: 1.0e-9, number: 1.0e20}\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207b2276616c756522203d3e20312e30652d30392c20226e756d62657222203d3e2022312e30653230227d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "inherit-order-style-lint",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\ninherit_from: parent.yml\nLint:\n  NewCops: lintbad\nStyle:\n  NewCops: stylebad\n",
+        "parent.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nStyle:\n  NewCops: enable\nLint:\n  NewCops: enable\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964206c696e7462616420666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "inherit-order-lint-style",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\ninherit_from: parent.yml\nStyle:\n  NewCops: stylebad\nLint:\n  NewCops: lintbad\n",
+        "parent.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nLint:\n  NewCops: enable\nStyle:\n  NewCops: enable\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964207374796c6562616420666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "large-signed-float",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: 1.0e+20\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c696420312e30652b323020666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "float-array-signed",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: [1.0e+20, 1.0e-9, -0.0]\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c6964205b312e30652b32302c20312e30652d30392c202d302e305d20666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f69636573206172653a2070656e64696e672c2064697361626c652c20656e61626c650d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "runtime-department-invalid",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nrequire: ./probe.rb\nExample:\n  NewCops: future\n",
+        "probe.rb": "module RuboCop\n  module Cop\n    module Example\n      class Marker < Base\n      end\n    end\n  end\nend\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "new-cops-error",
+      "comparison": "full",
+      "requires_ruby": true,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_hex": "4572726f723a20696e76616c69642066757475726520666f7220604e6577436f70736020666f756e6420696e20636f6e6669672e796d6c0d0a56616c69642063686f6963657320666f722061206465706172746d656e74206172653a2070656e64696e672c2064697361626c652c20656e61626c652c206f7220612076657273696f6e20737472696e67206c696b652027312e3530270d0a",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    },
+    {
+      "id": "runtime-department-accepted",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  NewCops: disable\nrequire: ./probe.rb\nExample:\n  NewCops: enable\n",
+        "probe.rb": "module RuboCop\n  module Cop\n    module Example\n      class Marker < Base\n      end\n    end\n  end\nend\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--only",
+        "Lint/Syntax",
+        "--disable-pending-cops",
+        "a.rb"
+      ],
+      "env": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "kind": "accepted",
+      "comparison": "full",
+      "requires_ruby": true,
+      "exit": 0,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_hex": "",
+      "out_exists": false,
+      "out_hex": null,
+      "inputs_bytes_mtime_preserved": true
+    }
+  ],
+  "coverage": {
+    "actual_cli_conditions": 78,
+    "subset": false,
+    "early_new_cops_rejections": 53,
+    "accepted_reports": 16,
+    "earlier_errors": 5,
+    "late_full_reports": 4,
+    "runtime_require_conditions": 2
+  }
+}

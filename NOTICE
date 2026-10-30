@@ -40,6 +40,18 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/new_cops.rs, src/config/validation.rs, src/config/namespaces.rs
+  src/config/mod.rs, src/cli.rs, tests/fixtures/new_cops_validation.json
+      NewCops type choices, department versions and validation order adapted
+      from RuboCop 1.89.0 ConfigValidator. Seventy-eight actual CLI conditions
+      preserve 53 early NewCops rejections, 16 accepted reports, five earlier
+      errors and four complete late reports. Four previously limited late
+      comparisons now include every JSON field. Fourteen added conditions
+      cover scalar display, inherited order and an actual runtime department.
+      Regenerate with scripts/conformance/record_new_cops_validation.py.
+      Adjacent .PROVENANCE records fixed sources and finite comparison scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/cli.rs, tests/fixtures/parallel_fork_fallback.json
       Runner's parallel invocation and formatter-start ordering adapted
       from RuboCop 1.89.0. Reference collection and scope are documented in
