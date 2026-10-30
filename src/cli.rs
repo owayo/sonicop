@@ -448,6 +448,13 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<ParallelCacheConfigError>() {
+                let text = if failure.color {
+                    format!("\x1b[31m{failure}\x1b[0m\n")
+                } else {
+                    format!("{failure}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(missing) = error.downcast_ref::<MissingConfigError>() {
                 // ConfigNotFoundErrorだけはError:もOS detailも足さず、native改行を一度だけ通す。
                 let text = if missing.color() {
@@ -1051,6 +1058,7 @@ fn try_run_with_warning_phase(
         .root()
         .ruby_runtime()
         .phase(cli.stderr, option_warning_color);
+    validate_parallel_cache_config(&cli, &config, option_warning_color)?;
     report_pending_cops(&cli, &config, option_warning_color)?;
     let correct_mode = cli.correct_mode();
     let PreparedSelection {
@@ -2537,6 +2545,43 @@ impl FailLevel {
                 .flat_map(|report| &report.offenses)
                 .any(Offense::is_correctable)
     }
+}
+
+#[derive(Debug)]
+struct ParallelCacheConfigError {
+    color: bool,
+}
+
+impl std::fmt::Display for ParallelCacheConfigError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(
+            "-P/--parallel uses caching to speed up execution, so combining with \
+             AllCops: UseCache: false is not allowed.",
+        )
+    }
+}
+
+impl std::error::Error for ParallelCacheConfigError {}
+
+fn validate_parallel_cache_config(cli: &Cli, config: &Config, color: bool) -> Result<()> {
+    // OptionsValidatorが無効化したparallelを、後段の設定検証で再び有効扱いしない。
+    if !cli.parallel
+        || cli.no_parallel
+        || cli.fail_fast
+        || cli.profile
+        || cli.memory
+        || cli.cache.as_deref() == Some("false")
+    {
+        return Ok(());
+    }
+    // CLI#validate_options_vs_configはRubyのtruthyで判定し、--cache trueでも上書きしない。
+    if matches!(
+        config.all_cops_value::<serde_yaml_ng::Value>("UseCache"),
+        None | Some(serde_yaml_ng::Value::Null | serde_yaml_ng::Value::Bool(false))
+    ) {
+        return Err(ParallelCacheConfigError { color }.into());
+    }
+    Ok(())
 }
 
 fn parallel_option_notice(cli: &Cli) -> Option<String> {
