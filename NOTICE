@@ -28,6 +28,7 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 
   src/cli.rs (Windows Process.fork fallback notification)
   tests/fixtures/parallel_fork_fallback.json
+  tests/fixtures/cache_parallel_preflight.json (one pending-notice control)
       Notification and its timing adapted from Parallel 2.3.0 map, as called
       by RuboCop 1.89.0 Runner. Twenty-five actual CLI conditions preserve
       complete streams for 23 conditions and output-open phase checks for
@@ -35,10 +36,22 @@ Parallel -- https://github.com/grosser/parallel -- MIT
       references. Regenerate with
       scripts/conformance/record_parallel_fork_fallback.py. The adjacent
       .PROVENANCE records runtime, source hashes and finite comparison scope.
+      The cache/parallel fixture also retains this notification in one
+      enabled pending-report control; see its own .PROVENANCE.
       Full licence text: licenses/PARALLEL.txt.
 
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
+
+  src/cli.rs, tests/fixtures/cache_parallel_preflight.json
+      Explicit parallel/cache validation and its position before pending-cop
+      reporting follow RuboCop 1.89.0 CLI#validate_options_vs_config and
+      OptionsValidator. Thirty-four actual CLI conditions retain all raw
+      streams, twelve complete JSON reports, three exact early text modes,
+      and two separate native version-identity controls. Regenerate with
+      scripts/conformance/record_cache_parallel_preflight.py. The adjacent
+      .PROVENANCE records source hashes, preservation and finite scope.
+      Full licence text: licenses/RUBOCOP.txt.
 
   src/config/new_cops.rs, src/config/validation.rs, src/config/namespaces.rs
   src/config/mod.rs, src/cli.rs, tests/fixtures/new_cops_validation.json

@@ -381,3 +381,10 @@ scripts/conformance/test_record_new_cops_validation.py text eol=lf
 tests/new_cops_validation.rs text eol=lf
 tests/fixtures/new_cops_validation.json text eol=lf
 tests/fixtures/new_cops_validation.json.PROVENANCE text eol=lf
+
+# cache/parallelの初期拒否と既存通知の全rawをLF containerで保持する。
+scripts/conformance/record_cache_parallel_preflight.py text eol=lf
+scripts/conformance/test_record_cache_parallel_preflight.py text eol=lf
+tests/cache_parallel_preflight.rs text eol=lf
+tests/fixtures/cache_parallel_preflight.json text eol=lf
+tests/fixtures/cache_parallel_preflight.json.PROVENANCE text eol=lf

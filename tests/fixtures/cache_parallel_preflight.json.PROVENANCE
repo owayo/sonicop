@@ -1,0 +1,54 @@
+実参照: Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1 / Parallel 2.3.0。
+Psych 5.3.1もLOADERで固定する。候補exeから期待値を作っていない。
+2026-10-28の実CLI28条件の全row・全rawを無変更で保持し、2026-10-30の実6条件を追加した。
+schema:1、全34件の有限scopeと、実APIで確認したParallel/source情報を追加した。
+元28条件container SHA256: c5a73b5670bec2c330bb1b99f68cffa62fe59201c5cf172452c732e3ec9064a7
+
+再採取（固定Windows Ruby/gem、存在しないwork/outと既存out親が必要）:
+  python scripts/conformance/record_cache_parallel_preflight.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+API一件でruntimeとgem版、RuboCopのCLI/Options/LICENSE、Parallel本体/MIT-LICENSEのSHA五件を確認する。
+CLI34件の全入力・型・raw・原本属性・report状態が完成値へ一致した後だけ、exclusiveで保存する。
+部分集合は採取せず、全入力・全raw・scopeをcanonical SHAで固定する。
+
+有限の比較範囲:
+- cache設定の初期拒否13件: stdout空、prefixのない全stderr、ANSI色、終了2と原本・既存outの保持。
+- 先行cache不正3件とunknown設定1件: 全raw・終了2と原本・出力保持。別errorを本件拒否へ数えない。
+- 通常report9件と既存Options通知付き2件: stdoutの通知bytesと全JSON fields、全stderr・終了1と原本保持。
+- pending通知付き1件: 完全な2file/違反0のJSON、全stderr・終了0と原本保持。
+- show-cops/show-docs/list-enabledの3件: 全stdout/stderr・終了0。既存listing修正後の全raw一致を実確認した。
+- version/verbose-versionの2件: 本家の元identityをfixtureに保持し、native自身のidentityとhost改行を別に検査する。
+  二つのversion stdoutや、異なるtool metadataをraw一致として数えない。
+12のJSONは実engine/仕様版を確認後、metadataだけを分けて全fieldsを比較し、compact JSONに終端改行を足さない。
+Unixはreport輸送のCRLFだけをLFへ投影し、pending-trueの末尾にあるWindows専用fork通知54bytesだけを除く。
+pending本文は省略しない。非Windowsの実Ruby再採取や、native schedulerの互換性を主張するものではない。
+
+追加6条件はpending通知の順序二件と、Rubyでtruthyな0・文字列'false'・空Array・空Hashの四件。
+false/nullと明示--parallelの拒否は、情報表示の早期終了と色反映の後、pending通知・探索・out作成より前に起こる。
+--cache trueは設定制約を上書きしない。Optionsがparallelを無効化する--cache false/--fail-fastの既存通知は保つ。
+明示しないnativeの既定並列、Windowsのfork fallback通知と実際の並列backendは変更対象ではない。
+通常検査でUseCache:false/nullでもnativeの結果cacheを作成する差は#226で追跡し、report一致をcache I/O一致とみなさない。
+この34件を任意のRuby値・全CLI組合せやJRuby構成の互換性へ一般化しない。
+
+Ruby/config/Gemfile/sentinel原本はUTF-8 LFの構築入力で、物理bytes・mtime_ns・modeを前後で確認する。
+既存sentinelは同一本文の再書込みも許さない。report.jsonはlstatで通常fileと確認してから読み、
+API/CLIの前後で新規の通常file・dangling entryを拒否する。
+private-process.jsonに全channelを先に保存し、private-run0.jsonに原本とreportの前後の観測を保持する。
+work/outの既存entry・dangling entry・別表記・両方向親子とout親の欠落は、子起動前に拒否する。
+最終保存の競合もexclusive openで拒否し、他の所有者のbytes/mtime/modeを保持する。
+ENV4とambient NO_COLORは子copyから除き、TERM=dumbとcase固有のCLICOLOR_FORCE/cacheを明示する。
+親環境とGEM/PATH/OSは保持する。13契約テストは通常と-Oで、独立した本文/mtime/modeの変化、
+同一本文sentinel、実作成を観測したAPI/CLI前後の通常/dangling entry、型・全report・途中失敗と競合を検査する。
+
+RuboCop由来の検証・参照資料はMIT、Copyright (c) 2012-26 Bozhidar Batsov。
+Parallel由来の通知はMIT、Copyright (C) 2013 Michael Grosser。
+全文はlicenses/RUBOCOP.txtとlicenses/PARALLEL.txt。NOTICEにも出典を記載する。
+
+2026-10-30の公開collectorによるfresh再採取は終了0で全35processが完了した。
+元28の全row/rawと追加6の実入力/rawを独立照合し、原本137観測のbytes/mtime/modeが不変だった。
+report不在はAPI一件とCLI33件、既存sentinel一件は本文・mtime・modeまで保持した。
+12の完了JSONと、導入済みgemの採取元五件のSHAも独立に照合した。
+
+fixture SHA256: 8e9262923b6f180fa264c8b0ff07f0e536a4af265c94d56b33710c81b43b317b
+collector SHA256: ae0f7c8422f4f5e8fcde3450548a43f2cb025c2f4746a5d4deb28ecc8a61321e
+contract SHA256: eead1a55dbd955467087ad6f4f8c99563849e4b3d2e001209e893bb4986bf683
