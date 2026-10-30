@@ -140,6 +140,16 @@ versionとlistingはparserを作らず、拒否した通常実行はfinished後�
 設定値の未対応版検証とは分ける。target_ruby_environment.jsonの二十六API/CLIはWindows実測で、
 Ruby内部frameは参照専用。新しい型や版の受理は、実API値・CLI・原本保持を別々に確かめる。
 
+**対象版の解決後検証は探索で読んだ設定だけに行う。** `--config` の options_config と
+force-default・設定fileのないdefault_configurationは、値をparser作成まで保つ。
+自動探索した設定はENV由来でもsupported?を検査し、出典・Float表示・対応版一覧を返す。
+入れ子設定の拒否はfinished後の空reportを保ち、明示設定のparser拒否とは本文を分ける。
+短い版表示のcache root短絡を保ち、verbose表示も上書きがあるときは解決後検証を早めない。
+設定の数値・文字列はto_fで読み、NaNのbackend選択にはIEEEの比較を使う。
+Eq/Ordの全順序を崩さない。target_ruby_validation.jsonの51 CLIと9 getterはWindows実測で、
+原本・既存report・物理streamを検査する。内部backtraceをNative全文一致へ数えず、
+Windows限定のCLIを他OSの実走や任意の版の互換性へ一般化しない。
+
 **Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
 root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
 every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside

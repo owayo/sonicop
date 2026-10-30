@@ -1,0 +1,1295 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "psych": "5.3.1",
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1"
+    }
+  },
+  "source_sha256": {
+    "lib/rubocop/target_ruby.rb": "d4f89edfb74cc3d30172da6a6e245170a5a174a6ffa5cd0ca06aa66a0b2ca7cb",
+    "lib/rubocop/config.rb": "f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729",
+    "lib/rubocop/config_validator.rb": "0b72f7299ccf72b41f2f917508e8f242bfae1e2cdd7d8cc5eb504a1cd90dd60e",
+    "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+    "lib/rubocop/config_store.rb": "9e00f29e13c446142b00fb1e8f0cbb2f23a4c6689f9896d9efe457820289b290",
+    "lib/rubocop/cli.rb": "7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933",
+    "LICENSE.txt": "102cbdf7e36a90dea7e545c683cf457ea8b993bce627b417744609088fd8b377",
+    "rubocop-ast/processed_source.rb": "b1f42ab71f0f043ff34bd0fd70dbb6ee0c5bb82070c03703dd7fcf351f657c5b"
+  },
+  "api": [
+    {
+      "id": "integer-99",
+      "scalar_yaml": "99",
+      "getter_class": "Float",
+      "getter_inspect": "99.0",
+      "parser_engine": "default"
+    },
+    {
+      "id": "string-310",
+      "scalar_yaml": "'3.10'",
+      "getter_class": "Float",
+      "getter_inspect": "3.1",
+      "parser_engine": "default"
+    },
+    {
+      "id": "integer-2",
+      "scalar_yaml": "2",
+      "getter_class": "Float",
+      "getter_inspect": "2.0",
+      "parser_engine": "default"
+    },
+    {
+      "id": "negative-zero",
+      "scalar_yaml": "-0.0",
+      "getter_class": "Float",
+      "getter_inspect": "-0.0",
+      "parser_engine": "default"
+    },
+    {
+      "id": "nan",
+      "scalar_yaml": ".nan",
+      "getter_class": "Float",
+      "getter_inspect": "NaN",
+      "parser_engine": "default"
+    },
+    {
+      "id": "infinity",
+      "scalar_yaml": ".inf",
+      "getter_class": "Float",
+      "getter_inspect": "Infinity",
+      "parser_engine": "default"
+    },
+    {
+      "id": "large",
+      "scalar_yaml": "1.0e+17",
+      "getter_class": "Float",
+      "getter_inspect": "1.0e+17",
+      "parser_engine": "default"
+    },
+    {
+      "id": "suffix-32",
+      "scalar_yaml": "'3.2suffix'",
+      "getter_class": "Float",
+      "getter_inspect": "3.2",
+      "parser_engine": "default"
+    },
+    {
+      "id": "alias-35",
+      "scalar_yaml": "3.5",
+      "getter_class": "Float",
+      "getter_inspect": "3.5",
+      "parser_engine": "default"
+    }
+  ],
+  "cases": [
+    {
+      "id": "integer-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "float-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99.0\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "string-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: '99'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "fractional-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99.12\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.12 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.12 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "negative",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: -1\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version -1.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version -1.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 0\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "negative-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: -0.0\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version -0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version -0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "obsolete-19",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 1.9\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unsupported Ruby version 1.9 in `TargetRubyVersion` parameter (in .rubocop.yml). 1.9-compatible analysis was dropped after version 0.41.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unsupported Ruby version 1.9 in `TargetRubyVersion` parameter (in .rubocop.yml). 1.9-compatible analysis was dropped after version 0.41.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "unknown-35",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.5\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 3.5 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 3.5 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "suffix-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: '99suffix'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "ruby-prefix",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 'ruby-3.4'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 0.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "string-310",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: '3.10'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "integer-2",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 2\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "valid-34",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "null-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: null\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "explicit-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "explicit-nested",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "nested/config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "nested/config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "inherited-overridden",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "inherit_from: base.yml\nAllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "base.yml": "AllCops:\n  TargetRubyVersion: 99\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "inherited-final-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "inherit_from: base.yml\nAllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "base.yml": "AllCops:\n  TargetRubyVersion: 99\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "ruby-version-file",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        ".ruby-version": "99.1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.1 in `.ruby-version`.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.1 in `.ruby-version`.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "environment-overrides",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "RUBOCOP_TARGET_RUBY_VERSION": "3.4"
+      },
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "environment-parser-error",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "RUBOCOP_TARGET_RUBY_VERSION": "99"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `RUBOCOP_TARGET_RUBY_VERSION` environment variable.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `RUBOCOP_TARGET_RUBY_VERSION` environment variable.\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "version-before-config",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "listing-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--show-cops=Layout/SpaceAroundOperators"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "stdin-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "--stdin",
+        "a.rb"
+      ],
+      "stdin_hex": "783d310a",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "autocorrect-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "-a",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "version-cli-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 0,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "version_identity",
+      "report_present": false
+    },
+    {
+      "id": "version-env-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "RUBOCOP_CACHE_ROOT": "cache"
+      },
+      "exit": 0,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "version_identity",
+      "report_present": false
+    },
+    {
+      "id": "verbose-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--verbose-version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "verbose-cli-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 0,
+      "stdout_hex": "312e38392e3020287573696e672050617273657220332e332e31322e302c20507269736d20312e382e312c207275626f636f702d61737420312e35302e302c20616e616c797a696e6720617320527562792039392e302c2072756e6e696e67206f6e207275627920342e302e3729205b7836342d6d696e67772d756372745d0d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "verbose_identity",
+      "report_present": false
+    },
+    {
+      "id": "color-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "force-color-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "\u001b[31mError: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\u001b[0m\r\n",
+      "stderr_header_template": "\u001b[31mError: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\u001b[0m\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "version-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 0,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "version_identity",
+      "report_present": false
+    },
+    {
+      "id": "force-default-environment",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--force-default-config",
+        "--disable-pending-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "RUBOCOP_TARGET_RUBY_VERSION": "99"
+      },
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "discovered-nested",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.4\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in nested/.rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in nested/.rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "existing-report",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 99\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "report.json": "KEEP\u0000\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb",
+        "--out",
+        "report.json"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 99.0 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": true
+    },
+    {
+      "id": "nan-discovered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: .nan\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version NaN in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version NaN in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "nan-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: .nan\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.4 and below with `parser`. Specified target Ruby version: NaN\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:416:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.4 and below with `parser`. Specified target Ruby version: NaN\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "infinity-discovered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: .inf\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version Infinity in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version Infinity in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "infinity-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: .inf\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: Infinity\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: Infinity\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "large-discovered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 1.0e+17\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Error: RuboCop found unknown Ruby version 1.0e+17 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "stderr_header_template": "Error: RuboCop found unknown Ruby version 1.0e+17 in `TargetRubyVersion` parameter (in .rubocop.yml).\r\nSupported versions: 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0, 3.1, 3.2, 3.3, 3.4, 4.0, 4.1\r\n",
+      "comparison": "full_streams",
+      "report_present": false
+    },
+    {
+      "id": "large-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 1.0e+17\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 1.0e+17\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 1.0e+17\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "suffix-32-discovered",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: '3.2suffix'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "suffix-32-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: '3.2suffix'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "alias-19-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 1.9\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "alias-35-explicit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 3.5\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "report",
+      "report_present": false
+    },
+    {
+      "id": "discovered-prism-27-run",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "discovered-prism-27-version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 0,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "version_identity",
+      "report_present": false
+    },
+    {
+      "id": "explicit-prism-27-run",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 2.7\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    },
+    {
+      "id": "explicit-prism-27-version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  SuggestExtensions: false\n  DisabledByDefault: true\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_prism\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--version"
+      ],
+      "stdin_hex": "",
+      "environment": {},
+      "exit": 0,
+      "stdout_hex": "312e38392e300d0a",
+      "stderr_template": "",
+      "stderr_header_template": "",
+      "comparison": "version_identity",
+      "report_present": false
+    },
+    {
+      "id": "no-config-environment-99",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "stdin_hex": "",
+      "environment": {
+        "RUBOCOP_TARGET_RUBY_VERSION": "99"
+      },
+      "exit": 2,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a307d7d",
+      "stderr_template": "The following cops were added to RuboCop, but are not configured. Please set Enabled to either `true` or `false` in your `.rubocop.yml` file.\r\n\r\nPlease also note that you can opt-in to new cops by default by adding this to your config:\r\n  AllCops:\r\n    NewCops: enable\r\nGemspec/AddRuntimeDependency: # new in 1.65\r\n  Enabled: true\r\nGemspec/AttributeAssignment: # new in 1.77\r\n  Enabled: true\r\nGemspec/DeprecatedAttributeAssignment: # new in 1.30\r\n  Enabled: true\r\nGemspec/DevelopmentDependencies: # new in 1.44\r\n  Enabled: true\r\nGemspec/RequireMFA: # new in 1.23\r\n  Enabled: true\r\nLayout/EmptyLinesAfterModuleInclusion: # new in 1.79\r\n  Enabled: true\r\nLayout/LineContinuationLeadingSpace: # new in 1.31\r\n  Enabled: true\r\nLayout/LineContinuationSpacing: # new in 1.31\r\n  Enabled: true\r\nLayout/LineEndStringConcatenationIndentation: # new in 1.18\r\n  Enabled: true\r\nLayout/SpaceBeforeBrackets: # new in 1.7\r\n  Enabled: true\r\nLint/AmbiguousAssignment: # new in 1.7\r\n  Enabled: true\r\nLint/AmbiguousOperatorPrecedence: # new in 1.21\r\n  Enabled: true\r\nLint/AmbiguousRange: # new in 1.19\r\n  Enabled: true\r\nLint/ArrayLiteralInRegexp: # new in 1.71\r\n  Enabled: true\r\nLint/ConstantOverwrittenInRescue: # new in 1.31\r\n  Enabled: true\r\nLint/ConstantReassignment: # new in 1.70\r\n  Enabled: true\r\nLint/CopDirectiveSyntax: # new in 1.72\r\n  Enabled: true\r\nLint/DataDefineOverride: # new in 1.85\r\n  Enabled: true\r\nLint/DeprecatedConstants: # new in 1.8\r\n  Enabled: true\r\nLint/DeprecatedReference: # new in 1.89\r\n  Enabled: true\r\nLint/DuplicateBranch: # new in 1.3\r\n  Enabled: true\r\nLint/DuplicateMagicComment: # new in 1.37\r\n  Enabled: true\r\nLint/DuplicateMatchPattern: # new in 1.50\r\n  Enabled: true\r\nLint/DuplicateRegexpCharacterClassElement: # new in 1.1\r\n  Enabled: true\r\nLint/DuplicateSetElement: # new in 1.67\r\n  Enabled: true\r\nLint/EmptyBlock: # new in 1.1\r\n  Enabled: true\r\nLint/EmptyClass: # new in 1.3\r\n  Enabled: true\r\nLint/EmptyInPattern: # new in 1.16\r\n  Enabled: true\r\nLint/HashNewWithKeywordArgumentsAsDefault: # new in 1.69\r\n  Enabled: true\r\nLint/IncompatibleIoSelectWithFiberScheduler: # new in 1.21\r\n  Enabled: true\r\nLint/ItWithoutArgumentsInBlock: # new in 1.59\r\n  Enabled: true\r\nLint/LambdaWithoutLiteralBlock: # new in 1.8\r\n  Enabled: true\r\nLint/LiteralAssignmentInCondition: # new in 1.58\r\n  Enabled: true\r\nLint/MixedCaseRange: # new in 1.53\r\n  Enabled: true\r\nLint/NameTypo: # new in 1.89\r\n  Enabled: true\r\nLint/NoReturnInBeginEndBlocks: # new in 1.2\r\n  Enabled: true\r\nLint/NonAtomicFileOperation: # new in 1.31\r\n  Enabled: true\r\nLint/NumberedParameterAssignment: # new in 1.9\r\n  Enabled: true\r\nLint/NumericOperationWithConstantResult: # new in 1.69\r\n  Enabled: true\r\nLint/OrAssignmentToConstant: # new in 1.9\r\n  Enabled: true\r\nLint/RedundantDirGlobSort: # new in 1.8\r\n  Enabled: true\r\nLint/RedundantRegexpQuantifiers: # new in 1.53\r\n  Enabled: true\r\nLint/RedundantTypeConversion: # new in 1.72\r\n  Enabled: true\r\nLint/RefinementImportMethods: # new in 1.27\r\n  Enabled: true\r\nLint/RequireRangeParentheses: # new in 1.32\r\n  Enabled: true\r\nLint/RequireRelativeSelfPath: # new in 1.22\r\n  Enabled: true\r\nLint/SharedMutableDefault: # new in 1.70\r\n  Enabled: true\r\nLint/SuppressedExceptionInNumberConversion: # new in 1.72\r\n  Enabled: true\r\nLint/SymbolConversion: # new in 1.9\r\n  Enabled: true\r\nLint/ToEnumArguments: # new in 1.1\r\n  Enabled: true\r\nLint/TripleQuotes: # new in 1.9\r\n  Enabled: true\r\nLint/UnescapedBracketInRegexp: # new in 1.68\r\n  Enabled: true\r\nLint/UnexpectedBlockArity: # new in 1.5\r\n  Enabled: true\r\nLint/UnmodifiedReduceAccumulator: # new in 1.1\r\n  Enabled: true\r\nLint/UnreachablePatternBranch: # new in 1.85\r\n  Enabled: true\r\nLint/UselessConstantScoping: # new in 1.72\r\n  Enabled: true\r\nLint/UselessDefaultValueArgument: # new in 1.76\r\n  Enabled: true\r\nLint/UselessDefined: # new in 1.69\r\n  Enabled: true\r\nLint/UselessNumericOperation: # new in 1.66\r\n  Enabled: true\r\nLint/UselessOr: # new in 1.76\r\n  Enabled: true\r\nLint/UselessRescue: # new in 1.43\r\n  Enabled: true\r\nLint/UselessRuby2Keywords: # new in 1.23\r\n  Enabled: true\r\nMetrics/CollectionLiteralLength: # new in 1.47\r\n  Enabled: true\r\nNaming/BlockForwarding: # new in 1.24\r\n  Enabled: true\r\nNaming/PredicateMethod: # new in 1.76\r\n  Enabled: true\r\nSecurity/CompoundHash: # new in 1.28\r\n  Enabled: true\r\nSecurity/IoMethods: # new in 1.22\r\n  Enabled: true\r\nStyle/AmbiguousEndlessMethodDefinition: # new in 1.68\r\n  Enabled: true\r\nStyle/ArgumentsForwarding: # new in 1.1\r\n  Enabled: true\r\nStyle/ArrayIntersect: # new in 1.40\r\n  Enabled: true\r\nStyle/ArrayIntersectWithSingleElement: # new in 1.81\r\n  Enabled: true\r\nStyle/BitwisePredicate: # new in 1.68\r\n  Enabled: true\r\nStyle/CollectionCompact: # new in 1.2\r\n  Enabled: true\r\nStyle/CollectionQuerying: # new in 1.77\r\n  Enabled: true\r\nStyle/CombinableDefined: # new in 1.68\r\n  Enabled: true\r\nStyle/ComparableBetween: # new in 1.74\r\n  Enabled: true\r\nStyle/ComparableClamp: # new in 1.44\r\n  Enabled: true\r\nStyle/ConcatArrayLiterals: # new in 1.41\r\n  Enabled: true\r\nStyle/DataInheritance: # new in 1.49\r\n  Enabled: true\r\nStyle/DigChain: # new in 1.69\r\n  Enabled: true\r\nStyle/DirEmpty: # new in 1.48\r\n  Enabled: true\r\nStyle/DocumentDynamicEvalDefinition: # new in 1.1\r\n  Enabled: true\r\nStyle/EmptyClassDefinition: # new in 1.84\r\n  Enabled: true\r\nStyle/EmptyHeredoc: # new in 1.32\r\n  Enabled: true\r\nStyle/EmptyStringInsideInterpolation: # new in 1.76\r\n  Enabled: true\r\nStyle/EndlessMethod: # new in 1.8\r\n  Enabled: true\r\nStyle/EnvHome: # new in 1.29\r\n  Enabled: true\r\nStyle/ExactRegexpMatch: # new in 1.51\r\n  Enabled: true\r\nStyle/FetchEnvVar: # new in 1.28\r\n  Enabled: true\r\nStyle/FileEmpty: # new in 1.48\r\n  Enabled: true\r\nStyle/FileNull: # new in 1.69\r\n  Enabled: true\r\nStyle/FileOpen: # new in 1.85\r\n  Enabled: true\r\nStyle/FileRead: # new in 1.24\r\n  Enabled: true\r\nStyle/FileTouch: # new in 1.69\r\n  Enabled: true\r\nStyle/FileWrite: # new in 1.24\r\n  Enabled: true\r\nStyle/HashConversion: # new in 1.10\r\n  Enabled: true\r\nStyle/HashExcept: # new in 1.7\r\n  Enabled: true\r\nStyle/HashFetchChain: # new in 1.75\r\n  Enabled: true\r\nStyle/HashSlice: # new in 1.71\r\n  Enabled: true\r\nStyle/IfWithBooleanLiteralBranches: # new in 1.9\r\n  Enabled: true\r\nStyle/InPatternThen: # new in 1.16\r\n  Enabled: true\r\nStyle/ItAssignment: # new in 1.70\r\n  Enabled: true\r\nStyle/ItBlockParameter: # new in 1.75\r\n  Enabled: true\r\nStyle/KeywordArgumentsMerging: # new in 1.68\r\n  Enabled: true\r\nStyle/MagicCommentFormat: # new in 1.35\r\n  Enabled: true\r\nStyle/MapCompactWithConditionalBlock: # new in 1.30\r\n  Enabled: true\r\nStyle/MapIntoArray: # new in 1.63\r\n  Enabled: true\r\nStyle/MapJoin: # new in 1.85\r\n  Enabled: true\r\nStyle/MapToHash: # new in 1.24\r\n  Enabled: true\r\nStyle/MapToSet: # new in 1.42\r\n  Enabled: true\r\nStyle/MinMaxComparison: # new in 1.42\r\n  Enabled: true\r\nStyle/ModuleMemberExistenceCheck: # new in 1.82\r\n  Enabled: true\r\nStyle/MultilineInPatternThen: # new in 1.16\r\n  Enabled: true\r\nStyle/NegatedIfElseCondition: # new in 1.2\r\n  Enabled: true\r\nStyle/NegativeArrayIndex: # new in 1.84\r\n  Enabled: true\r\nStyle/NestedFileDirname: # new in 1.26\r\n  Enabled: true\r\nStyle/NilLambda: # new in 1.3\r\n  Enabled: true\r\nStyle/NumberedParameters: # new in 1.22\r\n  Enabled: true\r\nStyle/NumberedParametersLimit: # new in 1.22\r\n  Enabled: true\r\nStyle/ObjectThen: # new in 1.28\r\n  Enabled: true\r\nStyle/OneClassPerFile: # new in 1.85\r\n  Enabled: true\r\nStyle/OpenStructUse: # new in 1.23\r\n  Enabled: true\r\nStyle/OperatorMethodCall: # new in 1.37\r\n  Enabled: true\r\nStyle/PartitionInsteadOfDoubleSelect: # new in 1.85\r\n  Enabled: true\r\nStyle/PredicateWithKind: # new in 1.85\r\n  Enabled: true\r\nStyle/QuotedSymbols: # new in 1.16\r\n  Enabled: true\r\nStyle/ReduceToHash: # new in 1.85\r\n  Enabled: true\r\nStyle/RedundantArgument: # new in 1.4\r\n  Enabled: true\r\nStyle/RedundantArrayConstructor: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantArrayFlatten: # new in 1.76\r\n  Enabled: true\r\nStyle/RedundantConstantBase: # new in 1.40\r\n  Enabled: true\r\nStyle/RedundantCurrentDirectoryInPath: # new in 1.53\r\n  Enabled: true\r\nStyle/RedundantDoubleSplatHashBraces: # new in 1.41\r\n  Enabled: true\r\nStyle/RedundantEach: # new in 1.38\r\n  Enabled: true\r\nStyle/RedundantFilterChain: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantFormat: # new in 1.72\r\n  Enabled: true\r\nStyle/RedundantHeredocDelimiterQuotes: # new in 1.45\r\n  Enabled: true\r\nStyle/RedundantInitialize: # new in 1.27\r\n  Enabled: true\r\nStyle/RedundantInterpolationUnfreeze: # new in 1.66\r\n  Enabled: true\r\nStyle/RedundantLineContinuation: # new in 1.49\r\n  Enabled: true\r\nStyle/RedundantMinMaxBy: # new in 1.85\r\n  Enabled: true\r\nStyle/RedundantRegexpArgument: # new in 1.53\r\n  Enabled: true\r\nStyle/RedundantRegexpConstructor: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantSelfAssignmentBranch: # new in 1.19\r\n  Enabled: true\r\nStyle/RedundantStringEscape: # new in 1.37\r\n  Enabled: true\r\nStyle/ReturnNilInPredicateMethodDefinition: # new in 1.53\r\n  Enabled: true\r\nStyle/ReverseFind: # new in 1.84\r\n  Enabled: true\r\nStyle/SafeNavigationChainLength: # new in 1.68\r\n  Enabled: true\r\nStyle/SelectByKind: # new in 1.85\r\n  Enabled: true\r\nStyle/SelectByRange: # new in 1.85\r\n  Enabled: true\r\nStyle/SelectByRegexp: # new in 1.22\r\n  Enabled: true\r\nStyle/SendWithLiteralMethodName: # new in 1.64\r\n  Enabled: true\r\nStyle/SingleLineDoEndBlock: # new in 1.57\r\n  Enabled: true\r\nStyle/StringChars: # new in 1.12\r\n  Enabled: true\r\nStyle/SuperArguments: # new in 1.64\r\n  Enabled: true\r\nStyle/SuperWithArgsParentheses: # new in 1.58\r\n  Enabled: true\r\nStyle/SwapValues: # new in 1.1\r\n  Enabled: true\r\nStyle/TallyMethod: # new in 1.85\r\n  Enabled: true\r\nStyle/YAMLFileRead: # new in 1.53\r\n  Enabled: true\r\nFor more information: https://docs.rubocop.org/rubocop/versioning.html\r\nRuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:430:in 'RuboCop::AST::ProcessedSource#parser_class'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:450:in 'RuboCop::AST::ProcessedSource#create_parser'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:320:in 'RuboCop::AST::ProcessedSource#parse'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:111:in 'RuboCop::AST::ProcessedSource#initialize'\r\n<AST_ROOT>/lib/rubocop/ast/processed_source.rb:84:in 'RuboCop::AST::ProcessedSource.from_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:635:in 'RuboCop::Runner#get_processed_source'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:372:in 'RuboCop::Runner#do_inspection_loop'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:265:in 'block in RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:290:in 'RuboCop::Runner#file_offense_cache'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:264:in 'RuboCop::Runner#file_offenses'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:254:in 'RuboCop::Runner#process_file'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:149:in 'block in RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:239:in 'block in RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Array#each'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'Enumerable#each_with_index'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:237:in 'RuboCop::Runner#serial_file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:177:in 'RuboCop::Runner#file_iterator'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:148:in 'RuboCop::Runner#inspect_files'\r\n<RUBOCOP_ROOT>/lib/rubocop/runner.rb:80:in 'RuboCop::Runner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:26:in 'block in RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:52:in 'RuboCop::CLI::Command::ExecuteRunner#with_redirect'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:25:in 'RuboCop::CLI::Command::ExecuteRunner#execute_runner'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command/execute_runner.rb:17:in 'RuboCop::CLI::Command::ExecuteRunner#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/command.rb:11:in 'RuboCop::CLI::Command.run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli/environment.rb:18:in 'RuboCop::CLI::Environment#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:130:in 'RuboCop::CLI#run_command'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:137:in 'RuboCop::CLI#execute_runners'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:54:in 'block in RuboCop::CLI#run'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<RUBOCOP_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n-e:14:in '<main>'\r\n",
+      "stderr_header_template": "The following cops were added to RuboCop, but are not configured. Please set Enabled to either `true` or `false` in your `.rubocop.yml` file.\r\n\r\nPlease also note that you can opt-in to new cops by default by adding this to your config:\r\n  AllCops:\r\n    NewCops: enable\r\nGemspec/AddRuntimeDependency: # new in 1.65\r\n  Enabled: true\r\nGemspec/AttributeAssignment: # new in 1.77\r\n  Enabled: true\r\nGemspec/DeprecatedAttributeAssignment: # new in 1.30\r\n  Enabled: true\r\nGemspec/DevelopmentDependencies: # new in 1.44\r\n  Enabled: true\r\nGemspec/RequireMFA: # new in 1.23\r\n  Enabled: true\r\nLayout/EmptyLinesAfterModuleInclusion: # new in 1.79\r\n  Enabled: true\r\nLayout/LineContinuationLeadingSpace: # new in 1.31\r\n  Enabled: true\r\nLayout/LineContinuationSpacing: # new in 1.31\r\n  Enabled: true\r\nLayout/LineEndStringConcatenationIndentation: # new in 1.18\r\n  Enabled: true\r\nLayout/SpaceBeforeBrackets: # new in 1.7\r\n  Enabled: true\r\nLint/AmbiguousAssignment: # new in 1.7\r\n  Enabled: true\r\nLint/AmbiguousOperatorPrecedence: # new in 1.21\r\n  Enabled: true\r\nLint/AmbiguousRange: # new in 1.19\r\n  Enabled: true\r\nLint/ArrayLiteralInRegexp: # new in 1.71\r\n  Enabled: true\r\nLint/ConstantOverwrittenInRescue: # new in 1.31\r\n  Enabled: true\r\nLint/ConstantReassignment: # new in 1.70\r\n  Enabled: true\r\nLint/CopDirectiveSyntax: # new in 1.72\r\n  Enabled: true\r\nLint/DataDefineOverride: # new in 1.85\r\n  Enabled: true\r\nLint/DeprecatedConstants: # new in 1.8\r\n  Enabled: true\r\nLint/DeprecatedReference: # new in 1.89\r\n  Enabled: true\r\nLint/DuplicateBranch: # new in 1.3\r\n  Enabled: true\r\nLint/DuplicateMagicComment: # new in 1.37\r\n  Enabled: true\r\nLint/DuplicateMatchPattern: # new in 1.50\r\n  Enabled: true\r\nLint/DuplicateRegexpCharacterClassElement: # new in 1.1\r\n  Enabled: true\r\nLint/DuplicateSetElement: # new in 1.67\r\n  Enabled: true\r\nLint/EmptyBlock: # new in 1.1\r\n  Enabled: true\r\nLint/EmptyClass: # new in 1.3\r\n  Enabled: true\r\nLint/EmptyInPattern: # new in 1.16\r\n  Enabled: true\r\nLint/HashNewWithKeywordArgumentsAsDefault: # new in 1.69\r\n  Enabled: true\r\nLint/IncompatibleIoSelectWithFiberScheduler: # new in 1.21\r\n  Enabled: true\r\nLint/ItWithoutArgumentsInBlock: # new in 1.59\r\n  Enabled: true\r\nLint/LambdaWithoutLiteralBlock: # new in 1.8\r\n  Enabled: true\r\nLint/LiteralAssignmentInCondition: # new in 1.58\r\n  Enabled: true\r\nLint/MixedCaseRange: # new in 1.53\r\n  Enabled: true\r\nLint/NameTypo: # new in 1.89\r\n  Enabled: true\r\nLint/NoReturnInBeginEndBlocks: # new in 1.2\r\n  Enabled: true\r\nLint/NonAtomicFileOperation: # new in 1.31\r\n  Enabled: true\r\nLint/NumberedParameterAssignment: # new in 1.9\r\n  Enabled: true\r\nLint/NumericOperationWithConstantResult: # new in 1.69\r\n  Enabled: true\r\nLint/OrAssignmentToConstant: # new in 1.9\r\n  Enabled: true\r\nLint/RedundantDirGlobSort: # new in 1.8\r\n  Enabled: true\r\nLint/RedundantRegexpQuantifiers: # new in 1.53\r\n  Enabled: true\r\nLint/RedundantTypeConversion: # new in 1.72\r\n  Enabled: true\r\nLint/RefinementImportMethods: # new in 1.27\r\n  Enabled: true\r\nLint/RequireRangeParentheses: # new in 1.32\r\n  Enabled: true\r\nLint/RequireRelativeSelfPath: # new in 1.22\r\n  Enabled: true\r\nLint/SharedMutableDefault: # new in 1.70\r\n  Enabled: true\r\nLint/SuppressedExceptionInNumberConversion: # new in 1.72\r\n  Enabled: true\r\nLint/SymbolConversion: # new in 1.9\r\n  Enabled: true\r\nLint/ToEnumArguments: # new in 1.1\r\n  Enabled: true\r\nLint/TripleQuotes: # new in 1.9\r\n  Enabled: true\r\nLint/UnescapedBracketInRegexp: # new in 1.68\r\n  Enabled: true\r\nLint/UnexpectedBlockArity: # new in 1.5\r\n  Enabled: true\r\nLint/UnmodifiedReduceAccumulator: # new in 1.1\r\n  Enabled: true\r\nLint/UnreachablePatternBranch: # new in 1.85\r\n  Enabled: true\r\nLint/UselessConstantScoping: # new in 1.72\r\n  Enabled: true\r\nLint/UselessDefaultValueArgument: # new in 1.76\r\n  Enabled: true\r\nLint/UselessDefined: # new in 1.69\r\n  Enabled: true\r\nLint/UselessNumericOperation: # new in 1.66\r\n  Enabled: true\r\nLint/UselessOr: # new in 1.76\r\n  Enabled: true\r\nLint/UselessRescue: # new in 1.43\r\n  Enabled: true\r\nLint/UselessRuby2Keywords: # new in 1.23\r\n  Enabled: true\r\nMetrics/CollectionLiteralLength: # new in 1.47\r\n  Enabled: true\r\nNaming/BlockForwarding: # new in 1.24\r\n  Enabled: true\r\nNaming/PredicateMethod: # new in 1.76\r\n  Enabled: true\r\nSecurity/CompoundHash: # new in 1.28\r\n  Enabled: true\r\nSecurity/IoMethods: # new in 1.22\r\n  Enabled: true\r\nStyle/AmbiguousEndlessMethodDefinition: # new in 1.68\r\n  Enabled: true\r\nStyle/ArgumentsForwarding: # new in 1.1\r\n  Enabled: true\r\nStyle/ArrayIntersect: # new in 1.40\r\n  Enabled: true\r\nStyle/ArrayIntersectWithSingleElement: # new in 1.81\r\n  Enabled: true\r\nStyle/BitwisePredicate: # new in 1.68\r\n  Enabled: true\r\nStyle/CollectionCompact: # new in 1.2\r\n  Enabled: true\r\nStyle/CollectionQuerying: # new in 1.77\r\n  Enabled: true\r\nStyle/CombinableDefined: # new in 1.68\r\n  Enabled: true\r\nStyle/ComparableBetween: # new in 1.74\r\n  Enabled: true\r\nStyle/ComparableClamp: # new in 1.44\r\n  Enabled: true\r\nStyle/ConcatArrayLiterals: # new in 1.41\r\n  Enabled: true\r\nStyle/DataInheritance: # new in 1.49\r\n  Enabled: true\r\nStyle/DigChain: # new in 1.69\r\n  Enabled: true\r\nStyle/DirEmpty: # new in 1.48\r\n  Enabled: true\r\nStyle/DocumentDynamicEvalDefinition: # new in 1.1\r\n  Enabled: true\r\nStyle/EmptyClassDefinition: # new in 1.84\r\n  Enabled: true\r\nStyle/EmptyHeredoc: # new in 1.32\r\n  Enabled: true\r\nStyle/EmptyStringInsideInterpolation: # new in 1.76\r\n  Enabled: true\r\nStyle/EndlessMethod: # new in 1.8\r\n  Enabled: true\r\nStyle/EnvHome: # new in 1.29\r\n  Enabled: true\r\nStyle/ExactRegexpMatch: # new in 1.51\r\n  Enabled: true\r\nStyle/FetchEnvVar: # new in 1.28\r\n  Enabled: true\r\nStyle/FileEmpty: # new in 1.48\r\n  Enabled: true\r\nStyle/FileNull: # new in 1.69\r\n  Enabled: true\r\nStyle/FileOpen: # new in 1.85\r\n  Enabled: true\r\nStyle/FileRead: # new in 1.24\r\n  Enabled: true\r\nStyle/FileTouch: # new in 1.69\r\n  Enabled: true\r\nStyle/FileWrite: # new in 1.24\r\n  Enabled: true\r\nStyle/HashConversion: # new in 1.10\r\n  Enabled: true\r\nStyle/HashExcept: # new in 1.7\r\n  Enabled: true\r\nStyle/HashFetchChain: # new in 1.75\r\n  Enabled: true\r\nStyle/HashSlice: # new in 1.71\r\n  Enabled: true\r\nStyle/IfWithBooleanLiteralBranches: # new in 1.9\r\n  Enabled: true\r\nStyle/InPatternThen: # new in 1.16\r\n  Enabled: true\r\nStyle/ItAssignment: # new in 1.70\r\n  Enabled: true\r\nStyle/ItBlockParameter: # new in 1.75\r\n  Enabled: true\r\nStyle/KeywordArgumentsMerging: # new in 1.68\r\n  Enabled: true\r\nStyle/MagicCommentFormat: # new in 1.35\r\n  Enabled: true\r\nStyle/MapCompactWithConditionalBlock: # new in 1.30\r\n  Enabled: true\r\nStyle/MapIntoArray: # new in 1.63\r\n  Enabled: true\r\nStyle/MapJoin: # new in 1.85\r\n  Enabled: true\r\nStyle/MapToHash: # new in 1.24\r\n  Enabled: true\r\nStyle/MapToSet: # new in 1.42\r\n  Enabled: true\r\nStyle/MinMaxComparison: # new in 1.42\r\n  Enabled: true\r\nStyle/ModuleMemberExistenceCheck: # new in 1.82\r\n  Enabled: true\r\nStyle/MultilineInPatternThen: # new in 1.16\r\n  Enabled: true\r\nStyle/NegatedIfElseCondition: # new in 1.2\r\n  Enabled: true\r\nStyle/NegativeArrayIndex: # new in 1.84\r\n  Enabled: true\r\nStyle/NestedFileDirname: # new in 1.26\r\n  Enabled: true\r\nStyle/NilLambda: # new in 1.3\r\n  Enabled: true\r\nStyle/NumberedParameters: # new in 1.22\r\n  Enabled: true\r\nStyle/NumberedParametersLimit: # new in 1.22\r\n  Enabled: true\r\nStyle/ObjectThen: # new in 1.28\r\n  Enabled: true\r\nStyle/OneClassPerFile: # new in 1.85\r\n  Enabled: true\r\nStyle/OpenStructUse: # new in 1.23\r\n  Enabled: true\r\nStyle/OperatorMethodCall: # new in 1.37\r\n  Enabled: true\r\nStyle/PartitionInsteadOfDoubleSelect: # new in 1.85\r\n  Enabled: true\r\nStyle/PredicateWithKind: # new in 1.85\r\n  Enabled: true\r\nStyle/QuotedSymbols: # new in 1.16\r\n  Enabled: true\r\nStyle/ReduceToHash: # new in 1.85\r\n  Enabled: true\r\nStyle/RedundantArgument: # new in 1.4\r\n  Enabled: true\r\nStyle/RedundantArrayConstructor: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantArrayFlatten: # new in 1.76\r\n  Enabled: true\r\nStyle/RedundantConstantBase: # new in 1.40\r\n  Enabled: true\r\nStyle/RedundantCurrentDirectoryInPath: # new in 1.53\r\n  Enabled: true\r\nStyle/RedundantDoubleSplatHashBraces: # new in 1.41\r\n  Enabled: true\r\nStyle/RedundantEach: # new in 1.38\r\n  Enabled: true\r\nStyle/RedundantFilterChain: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantFormat: # new in 1.72\r\n  Enabled: true\r\nStyle/RedundantHeredocDelimiterQuotes: # new in 1.45\r\n  Enabled: true\r\nStyle/RedundantInitialize: # new in 1.27\r\n  Enabled: true\r\nStyle/RedundantInterpolationUnfreeze: # new in 1.66\r\n  Enabled: true\r\nStyle/RedundantLineContinuation: # new in 1.49\r\n  Enabled: true\r\nStyle/RedundantMinMaxBy: # new in 1.85\r\n  Enabled: true\r\nStyle/RedundantRegexpArgument: # new in 1.53\r\n  Enabled: true\r\nStyle/RedundantRegexpConstructor: # new in 1.52\r\n  Enabled: true\r\nStyle/RedundantSelfAssignmentBranch: # new in 1.19\r\n  Enabled: true\r\nStyle/RedundantStringEscape: # new in 1.37\r\n  Enabled: true\r\nStyle/ReturnNilInPredicateMethodDefinition: # new in 1.53\r\n  Enabled: true\r\nStyle/ReverseFind: # new in 1.84\r\n  Enabled: true\r\nStyle/SafeNavigationChainLength: # new in 1.68\r\n  Enabled: true\r\nStyle/SelectByKind: # new in 1.85\r\n  Enabled: true\r\nStyle/SelectByRange: # new in 1.85\r\n  Enabled: true\r\nStyle/SelectByRegexp: # new in 1.22\r\n  Enabled: true\r\nStyle/SendWithLiteralMethodName: # new in 1.64\r\n  Enabled: true\r\nStyle/SingleLineDoEndBlock: # new in 1.57\r\n  Enabled: true\r\nStyle/StringChars: # new in 1.12\r\n  Enabled: true\r\nStyle/SuperArguments: # new in 1.64\r\n  Enabled: true\r\nStyle/SuperWithArgsParentheses: # new in 1.58\r\n  Enabled: true\r\nStyle/SwapValues: # new in 1.1\r\n  Enabled: true\r\nStyle/TallyMethod: # new in 1.85\r\n  Enabled: true\r\nStyle/YAMLFileRead: # new in 1.53\r\n  Enabled: true\r\nFor more information: https://docs.rubocop.org/rubocop/versioning.html\r\nRuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 99.0\r\n",
+      "comparison": "parser_header",
+      "report_present": false
+    }
+  ],
+  "metadata_identity_keys": [
+    "sonicop_version",
+    "ruby_engine",
+    "ruby_version",
+    "ruby_platform"
+  ],
+  "scope": {
+    "cli_conditions": 51,
+    "api_getters": 9,
+    "platform": "Windows actual streams only",
+    "parser_backtraces": "reference only; native compares warning prefix and complete parser headline",
+    "reports": "all fields except four checked product identity keys",
+    "originals": "bytes, mtime and mode; existing report retained",
+    "api": "Float class/inspect and raw config parser_engine only; not an effective backend claim"
+  }
+}

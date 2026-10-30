@@ -1,0 +1,54 @@
+実参照: Windows x64 UCRT / Ruby 4.0.7 / RuboCop 1.89.0。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+候補exeを使わず、固定した本家を実行して採取した51 CLIと9 getter。
+
+再採取:
+  python scripts/conformance/record_target_ruby_validation.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+一つのAPI processで9 getter、その後51 CLIを直列に実行する。
+runtime、出典8 SHA256、API値、全stdout/stderr rawと原本を全件照合した後だけexclusive保存する。
+APIの元19 file観測とCLIの158観測（既存report一件を含む）のbytes/mtime/modeを保つ。
+caseの入れ子設定も新規entryへexclusiveに用意する。
+
+出典SHA256はfixture.source_sha256に保持する。
+RuboCopのtarget_ruby.rb、config.rb、config_validator.rb、config_loader.rb、config_store.rb、
+cli.rb、LICENSE.txt、およびrubocop-astのprocessed_source.rbを実Gemから照合する。
+両者はMIT。NOTICE、licenses/RUBOCOP.txtとlicenses/RUBOCOP_AST.txtを参照。
+
+bindingはCWD、そのforward表記CWD_FWD、実GemのRUBOCOP_ROOT/AST_ROOTだけ。
+元rawへ逆変換して全bytesの一致を確認した。再採取時に任意のANSI・改行・frameを除かない。
+CLIは固定LOADERに続く-eのCLI.new.runで実行し、frameの位置も保持する。
+
+Native比較範囲:
+- 全51 CLIはRubyのないPATHで実行し、終了値、原本158観測、reportの有無を検査する。
+- 25件はstderr/stdout全bytesを比較する。説明、出典、対応版一覧とCRLFを保つ。
+- parser拒否9件は警告prefixと見出し全bytesを比較する。内部frame全文は参照専用で、
+  Nativeの全文一致へ数えない。完成した空JSONの全fieldsも比較する。
+- 通常11件のreportとparser拒否のreportは、製品identity四項目だけを除く全JSONを比較する。
+  Nativeの製品版、仕様版とengineを確認してから投影し、patchlevelを含む他fieldsは保つ。
+- short version五件とverbose一件は本家の元rawを保持し、Nativeの製品identityを別に検査する。
+- getter9件は実Floatのclass/inspectを記録し、Nativeの値を静かな別processで検査する。
+  Native APIの設定とGemfile計18観測もbytes/mtime/modeを保つ。
+  本家のparser_engineはload_file直後のraw default値であり、実backendを示すものではない。
+- 純粋な設定getter・NaNの選択とEq/Ordの契約は他OSでも実行する。51 CLIの他OS実走とは呼ばない。
+- 既存のheredoc回帰の未対応2.7+Prism六条件も、discovered-prism-27-runの完成JSONを共有する。
+  別途、本家の元heredoc・設定・only指定でLF/CRLFと検査/-a/-Aを実行し、六つのstdoutが
+  保存済みの全JSON bytesと等しいこと、parser先頭行と原本保持を確認した。
+  旧heredoc fixtureは理由だけを保存していたため、その記録を変えず、空stdoutという
+  Native由来の旧期待だけを取り除く。他OSではJSON fieldsの比較として使い、
+  Windows以外の本家の物理streamを測定した証拠へ読み替えない。
+
+数値99/99.0、文字列、suffix、負数・signed zero・NaN・Infinity・大きな指数、1.9、3.5、
+既知版の対照、継承による上書きと最終値、.ruby-version、ENVの優先、版表示、listing、
+stdin、-a、color指定のphase、既存report、入れ子設定、force-default、設定fileなしを含む。
+明示2.7+Prismの通常実行と版表示も実測し、parser拒否を設定読込へ前倒ししない。
+既存target_ruby_environmentの26条件は別に保ち、未計測の型・ファイル形式・任意の版や
+コーパス全体の互換性へ一般化しない。
+
+採取I/Oは既存のrecord_target_ruby_environment._captureと共通freshness検査を使う。
+timeoutのpartial、本文/mtime/modeの変化、新規link/reparse、保存race等は既存6契約で検査する。
+追加3契約は入力・型・全raw・API・scopeの固定、子起動前のentry検査、全52processの
+API/runtime/最終CLI/全frame不一致による保存拒否を通常・最適化Pythonで検査する。
+stubの52件は採取器の契約であり、52回の実本家実行とは別に数える。
+
+fixture canonical SHA256: c7c7bc4dc31c0431b57eddf8e89a67030ef1cadbe69ce7ebc1b7e0daa42d96aa
+fixture file SHA256: 9e450836352332c76f105c8652482f7ea5dfa3d31e0b7d229ac0698570e8e24f

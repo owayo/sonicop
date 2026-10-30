@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use regex::Regex;
 use tree_sitter::{Node, Parser};
 
@@ -32,7 +32,7 @@ const DEFAULT_TARGET_RUBY: RubyVersion = RubyVersion::new(2, 7);
 pub struct RubyVersion {
     major: u16,
     minor: u16,
-    // ENVのto_fは負数や任意の小数も返す。拒否前にmajor.minorへ丸めない。
+    // TargetRubyのto_fは負数や任意の小数も返す。拒否前にmajor.minorへ丸めない。
     number: Option<u64>,
 }
 
@@ -53,7 +53,10 @@ impl RubyVersion {
     }
 
     fn from_environment(value: &str) -> Self {
-        let number = string_to_f(value);
+        Self::from_float(string_to_f(value))
+    }
+
+    pub(crate) fn from_float(number: f64) -> Self {
         // parser_classにはTargetRuby::KNOWN_RUBIES外の互換aliasもある。
         KNOWN_RUBIES
             .iter()
@@ -82,6 +85,11 @@ impl RubyVersion {
             },
             f64::from_bits,
         )
+    }
+
+    pub(crate) fn defaults_to_prism(self) -> bool {
+        // NaNの大小比較はRubyでもfalse。Eq/Ordに必要なtotal_cmpとは分ける。
+        self.as_float() >= 3.3
     }
 
     pub(crate) fn validate_parser(self, prism: bool) -> Result<()> {
@@ -142,6 +150,33 @@ impl fmt::Display for ParserTargetError {
 }
 
 impl std::error::Error for ParserTargetError {}
+
+#[derive(Debug)]
+pub(crate) struct ConfigTargetError {
+    message: String,
+    color: bool,
+}
+
+impl ConfigTargetError {
+    pub(crate) fn color(&self) -> bool {
+        self.color
+    }
+
+    pub(crate) fn with_color(mut error: anyhow::Error, color: bool) -> anyhow::Error {
+        if let Some(failure) = error.downcast_mut::<Self>() {
+            failure.color = color;
+        }
+        error
+    }
+}
+
+impl fmt::Display for ConfigTargetError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for ConfigTargetError {}
 
 pub(crate) fn string_to_f(value: &str) -> f64 {
     static FLOAT_PREFIX: LazyLock<Regex> = LazyLock::new(|| {
@@ -511,12 +546,57 @@ fn target_from_lockfile(path: &Path) -> Option<RubyVersion> {
     None
 }
 
-pub(crate) fn validate_supported(version: RubyVersion) -> Result<()> {
+pub(crate) fn validate_supported(
+    target: &ResolvedTargetRuby,
+    config_origin: Option<&Path>,
+    cwd: &Path,
+) -> Result<()> {
+    let version = target.version;
     if KNOWN_RUBIES.contains(&version) {
-        Ok(())
-    } else {
-        bail!("unsupported TargetRubyVersion: {version}")
+        return Ok(());
     }
+    let source = match &target.source {
+        TargetRubySource::Environment => {
+            "`RUBOCOP_TARGET_RUBY_VERSION` environment variable".to_owned()
+        }
+        TargetRubySource::Configuration => format!(
+            "`TargetRubyVersion` parameter (in {})",
+            config_origin
+                .map(|path| crate::formatter::smart_path(path, cwd))
+                .unwrap_or_default()
+        ),
+        TargetRubySource::Gemspec(path) => {
+            format!("`required_ruby_version` parameter (in {})", path.display())
+        }
+        TargetRubySource::RubyVersionFile(_) => "`.ruby-version`".to_owned(),
+        TargetRubySource::MiseToml(_) => "`mise.toml`".to_owned(),
+        TargetRubySource::ToolVersions(_) => "`.tool-versions`".to_owned(),
+        TargetRubySource::BundlerLock(path) => format!("`{}`", path.display()),
+        TargetRubySource::Default => "default".to_owned(),
+    };
+    // supported?が先なので、OBSOLETE_RUBIESに残る2.0〜2.6は拒否しない。
+    let description = if version == RubyVersion::new(1, 9) {
+        "unsupported"
+    } else {
+        "unknown"
+    };
+    let mut message = format!("RuboCop found {description} Ruby version {version} in {source}.");
+    if description == "unsupported" {
+        message.push_str(" 1.9-compatible analysis was dropped after version 0.41.");
+    }
+    message.push_str("\nSupported versions: ");
+    message.push_str(
+        &KNOWN_RUBIES
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", "),
+    );
+    Err(ConfigTargetError {
+        message,
+        color: false,
+    }
+    .into())
 }
 
 #[cfg(test)]

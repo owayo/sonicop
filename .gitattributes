@@ -442,3 +442,10 @@ scripts/conformance/test_record_configured_result_cache.py text eol=lf
 tests/configured_result_cache.rs text eol=lf
 tests/fixtures/configured_result_cache.json text eol=lf
 tests/fixtures/configured_result_cache.json.PROVENANCE text eol=lf
+
+# 対象版の設定解決・parser拒否の物理streamを別々に保持する。
+scripts/conformance/record_target_ruby_validation.py text eol=lf
+scripts/conformance/test_record_target_ruby_validation.py text eol=lf
+tests/target_ruby_validation.rs text eol=lf
+tests/fixtures/target_ruby_validation.json text eol=lf
+tests/fixtures/target_ruby_validation.json.PROVENANCE text eol=lf
