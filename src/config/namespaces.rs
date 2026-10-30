@@ -144,13 +144,8 @@ pub(super) fn normalize(
     };
     let (full, display) = match origin {
         Origin::File(path) | Origin::Remote(path) => {
-            // canonicalizeのWindows API prefixはRubyの表示に含まれない。
+            // 生成したcanonicalと入力originはloaderで分け、明示prefixをここで消さない。
             let full = path.to_string_lossy().replace('\\', "/");
-            let full = if let Some(unc) = full.strip_prefix("//?/UNC/") {
-                format!("//{unc}")
-            } else {
-                full.strip_prefix("//?/").unwrap_or(&full).to_owned()
-            };
             let display = crate::formatter::smart_path(Path::new(&full), &std::env::current_dir()?);
             (full, display)
         }

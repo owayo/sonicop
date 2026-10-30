@@ -31,8 +31,12 @@ impl MissingConfigError {
     }
 }
 
-/// Missing表示の由来だけを別に保つ。namespaceの明示verbatim表示は別件#204のままにする。
+/// Missing表示も通常のoriginも、File.absolute_pathの入力表記から展開する。
 pub(super) fn absolute_config_error_origin(path: &Path) -> io::Result<PathBuf> {
+    Ok(absolute_config_spelling(path, &std::env::current_dir()?))
+}
+
+fn absolute_config_spelling(path: &Path, cwd: &Path) -> PathBuf {
     let text = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
     let (input, prefix) = if let Some(unc) = text.strip_prefix("//?/UNC/") {
@@ -44,7 +48,7 @@ pub(super) fn absolute_config_error_origin(path: &Path) -> io::Result<PathBuf> {
     };
     #[cfg(not(windows))]
     let input = text;
-    let full = crate::formatter::absolute_path(Path::new(&input), &std::env::current_dir()?);
+    let full = crate::formatter::absolute_path(Path::new(&input), cwd);
     #[cfg(windows)]
     let full = match prefix {
         Some("UNC") => format!("//?/UNC/{}", full.trim_start_matches('/')),
@@ -52,7 +56,7 @@ pub(super) fn absolute_config_error_origin(path: &Path) -> io::Result<PathBuf> {
         None => full,
     }
     .replace('/', "\\");
-    Ok(PathBuf::from(full))
+    PathBuf::from(full)
 }
 
 pub(super) fn config_io_error(path: &Path, error: io::Error) -> anyhow::Error {
@@ -80,16 +84,23 @@ pub(super) fn canonicalize_config_path(
 
 /// File.absolute_pathの親の短縮名・symlink表記を保ち、Windowsでは末尾の実名だけを戻す。
 pub(super) fn absolute_config_origin(path: &Path) -> std::io::Result<PathBuf> {
-    let full = crate::formatter::absolute_path(path, &std::env::current_dir()?);
-    let full = if let Some(unc) = full.strip_prefix("//?/UNC/") {
-        format!("//{unc}")
-    } else {
-        full.strip_prefix("//?/").unwrap_or(&full).to_owned()
-    };
-    let full = PathBuf::from(full);
+    Ok(absolute_config_origin_at(path, &std::env::current_dir()?))
+}
+
+fn absolute_config_origin_at(path: &Path, cwd: &Path) -> PathBuf {
+    let full = absolute_config_spelling(path, cwd);
     #[cfg(windows)]
-    let full = expand_existing_basename(full);
-    Ok(full)
+    let full = if path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .starts_with("//?/")
+    {
+        // 本家は明示verbatimの末尾の大文字・8.3名も入力通りに残す。
+        full
+    } else {
+        expand_existing_basename(full)
+    };
+    full
 }
 
 #[cfg(windows)]
@@ -178,10 +189,21 @@ pub(super) fn find_config_with_origin(start: &Path) -> Option<(PathBuf, PathBuf)
 /// 選択する設定は従来のcanonical探索で決め、同じfileを指す入力表記だけを表示用に残す。
 fn config_location(path: &Path, origin: Option<&Path>) -> Option<(PathBuf, PathBuf)> {
     let canonical = fs::canonicalize(path).ok()?;
-    let origin = origin
-        .filter(|origin| fs::canonicalize(origin).is_ok_and(|path| path == canonical))
-        .unwrap_or(&canonical);
-    Some((canonical.clone(), absolute_config_origin(origin).ok()?))
+    let origin =
+        origin.filter(|origin| fs::canonicalize(origin).is_ok_and(|path| path == canonical));
+    let origin = if let Some(origin) = origin {
+        absolute_config_origin(origin).ok()?
+    } else {
+        // APIが内部で足したprefixだけを除き、明示originのprefixと混ぜない。
+        let full = canonical.to_string_lossy().replace('\\', "/");
+        let full = if let Some(unc) = full.strip_prefix("//?/UNC/") {
+            format!("//{unc}")
+        } else {
+            full.strip_prefix("//?/").unwrap_or(&full).to_owned()
+        };
+        absolute_config_origin(Path::new(&full)).ok()?
+    };
+    Some((canonical, origin))
 }
 
 pub(super) fn home_directory() -> Option<PathBuf> {
@@ -294,6 +316,82 @@ mod tests {
                 .find(|(name, _)| *name == key)
                 .map(|(_, value)| OsString::from(*value))
         }
+    }
+
+    #[cfg(windows)]
+    fn windows_name(path: &Path, short: bool) -> String {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Storage::FileSystem::{GetLongPathNameW, GetShortPathNameW};
+        let input: Vec<_> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        let mut output = vec![0; 32_768];
+        let length = unsafe {
+            if short {
+                GetShortPathNameW(input.as_ptr(), output.as_mut_ptr(), output.len() as u32)
+            } else {
+                GetLongPathNameW(input.as_ptr(), output.as_mut_ptr(), output.len() as u32)
+            }
+        };
+        assert!(length > 0 && length < output.len() as u32);
+        String::from_utf16(&output[..length as usize]).unwrap()
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn explicit_origins_match_ten_actual_windows_file_absolute_path_calls() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/verbatim_config_origins.json"
+        ))
+        .unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        for (name, body) in fixture["api_files"].as_object().unwrap() {
+            std::fs::write(directory.path().join(name), body.as_str().unwrap()).unwrap();
+        }
+        let cwd = windows_name(directory.path(), false);
+        let short = windows_name(
+            &Path::new(&cwd).join("long-configuration-filename.yml"),
+            true,
+        );
+        let short_file = Path::new(&short).file_name().unwrap().to_string_lossy();
+        assert_ne!(
+            short_file, "long-configuration-filename.yml",
+            "実8.3名が無ければ未計測を成功にしない"
+        );
+        let bind = |text: &str| {
+            text.replace("<CWD_FWD>", &cwd.replace('\\', "/"))
+                .replace("<CWD>", &cwd)
+                .replace("<SHORT_FILE>", &short_file)
+        };
+        let rows = fixture["api"].as_array().unwrap();
+        assert_eq!(rows.len(), 10);
+        for row in rows {
+            let input = bind(row["input"].as_str().unwrap());
+            let base = row["base"]
+                .as_str()
+                .map(bind)
+                .unwrap_or_else(|| cwd.clone());
+            let actual = super::absolute_config_origin_at(Path::new(&input), Path::new(&base));
+            assert_eq!(
+                actual.to_string_lossy().replace('\\', "/"),
+                bind(row["absolute_path"].as_str().unwrap()),
+                "{}",
+                row["id"]
+            );
+        }
+        // canonicalの内部prefixは通常参照へ戻し、同一fileへの明示originだけを残す。
+        let config = Path::new(&cwd).join("config.yml");
+        let generated = super::config_location(&config, None).unwrap();
+        assert_eq!(
+            generated.1.to_string_lossy().replace('\\', "/"),
+            bind(rows[0]["absolute_path"].as_str().unwrap())
+        );
+        let explicit = std::path::PathBuf::from(format!(r"\\?\{}\config.yml", cwd));
+        let requested = super::config_location(&config, Some(&explicit)).unwrap();
+        assert_eq!(generated.0, requested.0);
+        let measured = rows.iter().find(|row| row["id"] == "verbatim").unwrap();
+        assert_eq!(
+            requested.1.to_string_lossy().replace('\\', "/"),
+            bind(measured["absolute_path"].as_str().unwrap())
+        );
     }
 
     #[test]

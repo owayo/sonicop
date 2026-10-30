@@ -406,3 +406,11 @@ tests/remote_config_origins.rs text eol=lf
 tests/fixtures/remote_config_origins.json text eol=lf
 tests/fixtures/remote_config_origins.json.PROVENANCE text eol=lf
 licenses/MD5.txt text eol=lf
+
+# 明示verbatimの出典は、APIと全streamの実測をLF containerへ保存する。
+src/config/loader.rs text eol=lf
+scripts/conformance/record_verbatim_config_origins.py text eol=lf
+scripts/conformance/test_record_verbatim_config_origins.py text eol=lf
+tests/verbatim_config_origins.rs text eol=lf
+tests/fixtures/verbatim_config_origins.json text eol=lf
+tests/fixtures/verbatim_config_origins.json.PROVENANCE text eol=lf

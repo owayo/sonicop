@@ -112,6 +112,12 @@ URIのscheme・既定portを本家のto_sへ揃えてからMD5を取り、stem�
 `remote_config_origins.json`のWindows CLIと純粋な命名APIを分け、#231の先行拒否三件を
 成功件数へ混ぜない。命名一致はremote cache保存・再利用の証明ではなく、I/O差は#232で追跡する。
 
+**明示verbatimと内部canonicalのprefixを分ける。** Windowsの`File.absolute_path`は通常の
+末尾名だけを実名へ展開し、明示`\\?\`では大文字・8.3名も入力通りに残す。相対継承もその
+originから展開し、namespace表示の直前でprefixを一括除去しない。探索のfallbackでだけ、
+OSが生成したcanonicalのprefixを除く。`verbatim_config_origins.json`の実API十行とCLI十条件
+（実Ruby登録二件を含む）はWindows限定とし、通常の短縮名・欠落設定・remoteの対照も保つ。
+
 **Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
 root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
 every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside

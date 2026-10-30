@@ -50,6 +50,16 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/loader.rs, src/config/namespaces.rs
+  tests/fixtures/verbatim_config_origins.json
+      Explicit Windows origin preservation follows RuboCop 1.89.0
+      ConfigLoader, Registry and PathUtil, with ten actual File.absolute_path
+      API rows and ten actual CLI conditions (including two Ruby-registration
+      conditions). Regenerate with
+      scripts/conformance/record_verbatim_config_origins.py. The adjacent
+      .PROVENANCE records source hashes, bindings and Windows-only scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/config/remote_origin.rs, src/config/cache_root.rs
   src/config/inheritance.rs, src/config/namespaces.rs, src/config/validation.rs
   src/cli.rs, tests/fixtures/remote_config_origins.json
