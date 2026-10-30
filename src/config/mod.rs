@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 pub(crate) mod cache_root;
+mod inherit_glob;
 mod inheritance;
 mod loader;
 mod namespaces;

@@ -449,3 +449,14 @@ scripts/conformance/test_record_target_ruby_validation.py text eol=lf
 tests/target_ruby_validation.rs text eol=lf
 tests/fixtures/target_ruby_validation.json text eol=lf
 tests/fixtures/target_ruby_validation.json.PROVENANCE text eol=lf
+
+# globのAPI順序とHTTP要求・全診断の独立した実参照を保持する。
+src/config/inherit_glob.rs text eol=lf
+scripts/conformance/record_inherit_glob.py text eol=lf
+scripts/conformance/test_record_inherit_glob.py text eol=lf
+tests/inherit_glob.rs text eol=lf
+tests/fixtures/inherit_glob_api.json text eol=lf
+tests/fixtures/inherit_glob_cli.json text eol=lf
+tests/fixtures/inherit_glob.json.PROVENANCE text eol=lf
+licenses/GLOB.txt text eol=lf
+licenses/LIBC.txt text eol=lf

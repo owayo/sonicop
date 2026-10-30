@@ -112,6 +112,15 @@ each response may contain at most 5 MiB. `ureq` rejects a body whose length equa
 to `BodyWithConfig::limit`, so pass one byte beyond the logical maximum. Preserve tests for both the
 exact limit and the first rejected byte when changing this path.
 
+**inherit_from は URL 判定より先に glob 展開する。** 本家の PathUtil.glob? は `*{[?` の
+存在だけで判定し、Dir.glob は設定の親ではなくプロセスの cwd を使う。一致しない URL の
+query や pattern は取得しない。brace の順と重複を保ち、展開後に各設定の origin へ結合する。
+remote 内の相対継承にも同じ順序を使う。49 API 条件と14 CLI 条件で、HTTP 要求順・全診断・
+原本を検査する。Windows の物理 stream と他 OS の実 API 比較を分け、remote cache の保存や
+再利用の証明へ読み替えない。
+macOS の照合は OS 名だけで決めず、本家と同じ volume capability を fd から照会する。
+大文字小文字を区別する volume も保ち、API の最初の不一致で他条件の採取を打ち切らない。
+
 **remoteの取得URLと診断出典を分ける。** namespaceの出典はRemoteConfigのcache名に合わせるが、
 HTTP取得・相対継承・memoのkeyには元URLを残す。明示configのremote読込はCLI root反映前に
 軽量rootを固定し、act_on_optionsでdesiredへ更新した後は入れ子設定にも同じrootを渡す。
@@ -706,7 +715,7 @@ whitequark と Prism は空行・行継続・EOF のコメントに対する `tN
 ## Conformance measurement
 
 2026-10-22 の CLI 掃引は **登録 609 / 発火 609 / 全項目一致 609**。
-測定可能な 42,433 入力・1,543 設定群に、索引 174 ケースとファイル名依存 2 ケースを加えた。
+測定可能な 42,493 入力・1,549 設定群に、索引 174 ケースとファイル名依存 2 ケースを加えた。
 本家 CLI が設定を拒む 6 設定群・161 入力は未測定として分ける。
 テスト関数は Rust 2,328・Ruby 82・検証ツール 15 の計 2,425 件。
 このメンテナンスで追加したものは 15 件で、fixture 内の入力数とは分けて数える。
