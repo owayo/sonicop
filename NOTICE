@@ -797,3 +797,17 @@ Runtime, source hashes and comparison scope:
 `tests/fixtures/runtime_help.json.PROVENANCE`.
 RuboCop is Copyright (c) 2012-26 Bozhidar Batsov,
 licensed under the MIT License; see `licenses/RUBOCOP.txt`.
+
+inherit_from glob reference output and matcher
+---------------------------------------------
+`tests/fixtures/inherit_glob_api.json` records 49 actual RuboCop 1.89.0 /
+Ruby 4.0.7 glob API conditions for Windows; `inherit_glob_cli.json` records
+14 actual CLI runs. Collector: `scripts/conformance/record_inherit_glob.py`.
+Source hashes, raw output and comparison limits are described in
+`tests/fixtures/inherit_glob.json.PROVENANCE`.
+RuboCop is Copyright (c) 2012-26 Bozhidar Batsov, under the MIT License;
+see `licenses/RUBOCOP.txt`. Ruby's license is reproduced above.
+The native component matcher uses glob 0.3.4, Copyright (c) 2014 The Rust
+Project Developers, under the MIT License; see `licenses/GLOB.txt`.
+On macOS, volume capability queries use libc 0.2.191, Copyright (c) 2014
+The Rust Project Developers, under the MIT License; see `licenses/LIBC.txt`.

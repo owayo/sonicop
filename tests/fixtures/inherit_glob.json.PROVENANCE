@@ -1,0 +1,49 @@
+実参照: Windows x64 UCRT / Ruby 4.0.7 / RuboCop 1.89.0。
+候補exeに依存せず本家から採取した49 API条件と14 CLI条件。
+
+再採取:
+  python scripts/conformance/record_inherit_glob.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+三つのAPI processで49条件、その後14 CLIを直列実行する。
+出力はapi/cliの二つの固定fixtureを含むJSONで、全17 processが一致した後だけexclusive保存する。
+runtime、RuboCopのpath_util.rb/config_loader_resolver.rbのSHA256、全API値、全CLIの終了値、
+stdout/stderr全bytes、HTTP要求順と原本のbytes/mtime/modeを照合する。
+出典SHA256はinherit_glob_api.json.source_sha256に保持する。
+RuboCopはMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
+RubyのlicenseはNOTICEに保持し、glob 0.3.4のMITはlicenses/GLOB.txtに保持する。
+
+APIはPathUtil.glob?の実値と、真の場合の実Dir.globを記録する。
+普通の欠落名はglobではないため後段へ残り、query・star・brace・IPv6 literalのURLは
+一致しないglobとして消える。braceの順序、重複、入れ子、単一brace、escape、class、
+hidden file、ASCII/Unicodeのcase、Unicode一文字、**の0階層と再帰、slashを含む。
+保存済み49値はWindows限定。CIでは全OSの実Ruby/RuboCopに同じ49入力を渡し、
+そのOSの実API値とNativeを比較する。保存済みWindows値を他OSの実走と呼ばない。
+
+CLIはquery/glob URL、普通のremote、その配列順、remote内のquery/glob/普通の相対継承、
+local star/brace/no-match/配列、入れ子設定のcwd基準のglobを記録する。
+URL判定より先に展開することを、HTTP要求順と設定が適用された全JSONで検査する。
+本家のstdout全bytesを保持し、Nativeは製品identity四項目だけを確認後に取り除いて比較する。
+仕様版とpatchlevelを含む残りの全fields、終了値、stderr全bytesを比較する。
+Native CLIはRubyのないPATHで実行する。CLIの物理streamはWindows限定。
+動的bindingはBASE、CWD/CWD_FWD、各routeの実URLのMD5 HASH_iだけ。
+元rawへ逆変換し、警告のcache出典も全bytes一致することを確認した。
+HTTP要求・出典名・設定適用の一致をNativeのremote cache保存や再利用の証明にはしない。
+cache I/Oは別Issue #232、inherit_fromのnull受理は別Issue #244で追跡する。
+
+採取I/Oは共通_captureを使い、timeoutのpartial、原本変更、link/reparse、新規保存先を検査する。
+追加3契約は固定参照の削減、子起動前の既存entry拒否、最後のCLI/API/runtime/HTTP要求の
+不一致による保存拒否を通常・最適化Pythonで検査する。stubを実Rubyの件数へ数えない。
+未計測の任意のpattern・OS・filesystemへの完全互換は主張しない。
+
+macOS CIの実Dir.globでALPHA*.ymlがalpha.ymlへ一致することを確認した。
+MRI dir.cのis_case_sensitiveと同じく、開いたdirectory fdからvolume capabilityを照会する。
+OS全体を常にcase-insensitiveと仮定せず、validなCASE_SENSITIVE能力がfalseの場合だけfoldする。
+照会失敗時は本家同様foldしない。Windowsの保存済み49値は変更しない。
+参照実装: https://github.com/ruby/ruby/blob/master/dir.c
+Mac専用のlibc 0.2.191を既存lockから直接依存へ追加した。licenses/LIBC.txtはMIT原文。
+各OSのAPI比較は全49条件を実行して不一致を集め、最初の条件だけで成功・失敗を数えない。
+
+原本観測数: API 23、CLI 54（各runの全入力）。
+inherit_glob_api.json canonical SHA256: 6d38978f5172e9a042565d3b9cea66243f59e7d4534989db97a6366bdfbb1897
+inherit_glob_api.json file SHA256: 28430134653c851e856922e3cec842e9c43b606235eb4984a81a34a720d2780f
+inherit_glob_cli.json canonical SHA256: 48d4fd59efea13f77bb0a1f8946ff562477efb16e467246cf9a42a1486e8bd02
+inherit_glob_cli.json file SHA256: d23df6486af992da0d8084632d6ede8c4de463bc89f1813d1a70663b0d2c0212

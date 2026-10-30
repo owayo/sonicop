@@ -183,6 +183,7 @@ fn load_local_with_inheritance(
     let parent = origin.parent().unwrap_or(Path::new("."));
     let mut inherited_paths = resolve_inherit_gems(inherit_gem)?;
     inherited_paths.extend(parse_inherit_paths(inherit)?);
+    let inherited_paths = expand_inherit_paths(inherited_paths)?;
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
     let mut inherited_traces = Vec::new();
@@ -299,7 +300,7 @@ fn load_remote_with_inheritance(
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
     let mut inherited_traces = Vec::new();
-    for inherited in parse_inherit_paths(inherit)? {
+    for inherited in expand_inherit_paths(parse_inherit_paths(inherit)?)? {
         let inherited_url = if inherited.starts_with("http://") || inherited.starts_with("https://")
         {
             inherited
@@ -457,6 +458,14 @@ fn parse_inherit_paths(value: Option<Value>) -> Result<Vec<String>> {
             .collect(),
         Some(_) => bail!("inherit_from must be a path or a list of paths"),
     }
+}
+
+fn expand_inherit_paths(paths: Vec<String>) -> Result<Vec<String>> {
+    let cwd = std::env::current_dir()?;
+    Ok(paths
+        .iter()
+        .flat_map(|pattern| super::inherit_glob::expand(pattern, &cwd))
+        .collect())
 }
 
 fn resolve_inherit_gems(value: Option<Value>) -> Result<Vec<String>> {

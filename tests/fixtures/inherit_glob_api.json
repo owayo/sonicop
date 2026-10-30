@@ -1,0 +1,408 @@
+{
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt"
+  },
+  "source_sha256": {
+    "lib/rubocop/path_util.rb": "daf716c5cb6eb9fbb9a687ef63195b96bdd511e0fbe31a563544e0c23e47c271",
+    "lib/rubocop/config_loader_resolver.rb": "f8c40f5e08ad81ba25b76b8296e93ebd766af12730ab4d2bea770710d963c485"
+  },
+  "groups": [
+    {
+      "files": {
+        "alpha.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "beta.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        ".hidden.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "[literal].yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "{literal}.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "configs/a.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "configs/b.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "configs/deep/c.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "configs/.hidden.yml": "AllCops:\r\n  NewCops: disable\r\n",
+        "Gemfile": ""
+      },
+      "rows": [
+        {
+          "pattern": "plain.yml",
+          "glob": false,
+          "expanded": [
+            "plain.yml"
+          ]
+        },
+        {
+          "pattern": "http://127.0.0.1:12345/config.yml",
+          "glob": false,
+          "expanded": [
+            "http://127.0.0.1:12345/config.yml"
+          ]
+        },
+        {
+          "pattern": "http://127.0.0.1:12345/config.yml?ref=main",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "http://127.0.0.1:12345/config*.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "http://[::1]:12345/config.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "*.yml",
+          "glob": true,
+          "expanded": [
+            "[literal].yml",
+            "alpha.yml",
+            "beta.yml",
+            "{literal}.yml"
+          ]
+        },
+        {
+          "pattern": "?.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "[ab]*.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml",
+            "beta.yml"
+          ]
+        },
+        {
+          "pattern": "[literal].yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "\\[literal].yml",
+          "glob": true,
+          "expanded": [
+            "[literal].yml"
+          ]
+        },
+        {
+          "pattern": "{beta,alpha}.yml",
+          "glob": true,
+          "expanded": [
+            "beta.yml",
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "{alpha,beta,alpha}.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml",
+            "beta.yml",
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "{literal}.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "{alpha}.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "{",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "[",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "[[]literal].yml",
+          "glob": true,
+          "expanded": [
+            "[literal].yml"
+          ]
+        },
+        {
+          "pattern": "configs/**/*.yml",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml",
+            "configs/b.yml",
+            "configs/deep/c.yml"
+          ]
+        },
+        {
+          "pattern": "configs/{b,a}.yml",
+          "glob": true,
+          "expanded": [
+            "configs/b.yml",
+            "configs/a.yml"
+          ]
+        },
+        {
+          "pattern": "{configs/*.yml,*.yml}",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml",
+            "configs/b.yml",
+            "[literal].yml",
+            "alpha.yml",
+            "beta.yml",
+            "{literal}.yml"
+          ]
+        },
+        {
+          "pattern": "ALPHA*.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "[A]lpha.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "*.YML",
+          "glob": true,
+          "expanded": [
+            "[literal].yml",
+            "alpha.yml",
+            "beta.yml",
+            "{literal}.yml"
+          ]
+        },
+        {
+          "pattern": "configs/**",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml",
+            "configs/b.yml",
+            "configs/deep"
+          ]
+        },
+        {
+          "pattern": "configs/**/",
+          "glob": true,
+          "expanded": [
+            "configs/",
+            "configs/deep/"
+          ]
+        },
+        {
+          "pattern": "configs/**/**.yml",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml",
+            "configs/b.yml",
+            "configs/deep/c.yml"
+          ]
+        },
+        {
+          "pattern": "configs/*/../*.yml",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml/../a.yml",
+            "configs/a.yml/../b.yml",
+            "configs/b.yml/../a.yml",
+            "configs/b.yml/../b.yml",
+            "configs/deep/../a.yml",
+            "configs/deep/../b.yml"
+          ]
+        },
+        {
+          "pattern": "configs\\*.yml",
+          "glob": true,
+          "expanded": []
+        },
+        {
+          "pattern": "{alpha,{beta,alpha}}.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml",
+            "beta.yml",
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "{,alpha}.yml",
+          "glob": true,
+          "expanded": [
+            "alpha.yml"
+          ]
+        },
+        {
+          "pattern": "[!b]*.yml",
+          "glob": true,
+          "expanded": [
+            "[literal].yml",
+            "alpha.yml",
+            "{literal}.yml"
+          ]
+        },
+        {
+          "pattern": "[^b]*.yml",
+          "glob": true,
+          "expanded": [
+            "[literal].yml",
+            "alpha.yml",
+            "{literal}.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "files": {
+        "[": "",
+        "{": "",
+        "{a}.yml": "",
+        "{a.yml": "",
+        "alpha.yml": "",
+        "Ä.yml": "",
+        "ß.yml": "",
+        ".yml": "",
+        "Gemfile": ""
+      },
+      "rows": [
+        {
+          "pattern": "[",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "{",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "[{]a.yml",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "\\{a\\}.yml",
+          "expanded": [
+            "{a}.yml"
+          ],
+          "glob": true
+        },
+        {
+          "pattern": "ä*.yml",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "SS*.yml",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "?.yml",
+          "expanded": [
+            "Ä.yml",
+            "ß.yml"
+          ],
+          "glob": true
+        },
+        {
+          "pattern": "**.yml",
+          "expanded": [
+            "alpha.yml",
+            "{a.yml",
+            "{a}.yml",
+            "Ä.yml",
+            "ß.yml"
+          ],
+          "glob": true
+        },
+        {
+          "pattern": "[ä].yml",
+          "expanded": [],
+          "glob": true
+        },
+        {
+          "pattern": "[[]",
+          "expanded": [
+            "["
+          ],
+          "glob": true
+        },
+        {
+          "pattern": "\\[",
+          "expanded": [
+            "["
+          ],
+          "glob": true
+        }
+      ]
+    },
+    {
+      "files": {
+        "a.yml": "AllCops: {}\n",
+        "configs/a.yml": "AllCops: {}\n",
+        "configs/deep/c.yml": "AllCops: {}\n",
+        "Gemfile": ""
+      },
+      "rows": [
+        {
+          "pattern": "**/",
+          "glob": true,
+          "expanded": [
+            "configs/",
+            "configs/deep/"
+          ]
+        },
+        {
+          "pattern": "configs/**/**/*.yml",
+          "glob": true,
+          "expanded": [
+            "configs/a.yml",
+            "configs/deep/c.yml"
+          ]
+        },
+        {
+          "pattern": "configs/**/**/",
+          "glob": true,
+          "expanded": [
+            "configs/",
+            "configs/deep/"
+          ]
+        },
+        {
+          "pattern": "./**/*.yml",
+          "glob": true,
+          "expanded": [
+            "./a.yml",
+            "./configs/a.yml",
+            "./configs/deep/c.yml"
+          ]
+        },
+        {
+          "pattern": "configs//*.yml",
+          "glob": true,
+          "expanded": [
+            "configs//a.yml"
+          ]
+        },
+        {
+          "pattern": "configs/../*.yml",
+          "glob": true,
+          "expanded": [
+            "configs/../a.yml"
+          ]
+        }
+      ]
+    }
+  ]
+}
