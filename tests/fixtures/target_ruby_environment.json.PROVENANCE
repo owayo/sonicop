@@ -1,0 +1,62 @@
+実参照: Windows / Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+期待値は実本家の二十六CLIと、別processの二十六load_file/getter呼出しから採取した。
+候補exeを入力とせず、Nativeの現在値から期待値を作っていない。
+
+再採取:
+  python scripts/conformance/record_target_ruby_environment.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+API用の一processとCLI二十六processを直列に実行する。APIの長い入力はJSON fileで渡し、
+Floatのinspectを記録するためInfinityやsigned zeroをJSON numberへ置換しない。
+全runtime/source、API行、CLI全raw、reportと原本の照合後にだけexclusive保存する。
+
+出典SHA256:
+  rubocop/target_ruby.rb: d4f89edfb74cc3d30172da6a6e245170a5a174a6ffa5cd0ca06aa66a0b2ca7cb
+  rubocop/config.rb: f782fd539108614e655d15f5eb07f19737c5479de6d56b8e8be18da9d7c07729
+  rubocop/cli.rb: 7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933
+  rubocop/runner.rb: d9772563cd45015aaff5ad893fce2bb37ce32bd587e82956006ccaa86086f122
+  rubocop-ast/processed_source.rb: b1f42ab71f0f043ff34bd0fd70dbb6ee0c5bb82070c03703dd7fcf351f657c5b
+RuboCopとrubocop-astはいずれもMIT。NOTICE、licenses/RUBOCOP.txtとlicenses/RUBOCOP_AST.txtを参照。
+
+bindingはCWD、そのforward表記CWD_FWD、実Gem配置RUBOCOP_ROOT/AST_ROOT、
+実launcher LAUNCHERのみ。初回の元rawへ逆変換して一致を確認した。
+再採取はbinding後のstderr全文を比較し、任意の改行・ANSI・frame除去をしない。
+launcherのRuby版検査はloadと同じ行へ置き、実参照のframe位置を変えない。
+
+比較範囲:
+- CLI二十六条件: parser先頭行十五、完成report八（有効な版七とencodingエラー一）、
+  version・listing・Missing各一。Nativeは全件RubyのないPATHで実行する。
+- parser十五件は全stderr先頭行のCRLF bytes、終了2/stdout空、完成した空JSONを比較する。
+  本家内部backtrace全文も参照へ保持するが、Nativeの全文一致とは呼ばない。
+- 完成reportは製品identity四項目（sonicop_version/ruby_engine/ruby_version/ruby_platform）
+  だけを除く全JSON fieldsを比較し、仕様版・patchlevel・全診断とsummaryを保つ。
+- versionの製品版表示だけをNative identityへ投影する。listingとMissingは全streamを比較する。
+  これら三件のreportは元のKEEP bytes/mtime/modeを保持する。
+- 全CLIの非report原本七十八観測、保持report三観測を検査する。
+- 本家API二十六行: getter二十五件のFloat class/inspect/parser_engineと全stream、
+  Missing一件の例外class/messageを保存する。API入力百五観測
+  （root Gemfile一と各条件四file）と全reportの保持を検査する。
+- Native APIは二十五getter値の表示とロード成功、Missingの拒否を別processで検査する。
+  Rust Config::loadは探索と既定値mergeも行うため、MissingのAPI本文を本家load_file全文互換へ数えない。
+  元の二十六API用file全百四観測はbytes/mtime/modeを保持する。
+- 空・数値を含まないENV、0.0、負数、signed zero、小数、指数、Infinity、
+  数値prefixと3.10、実測した1.9/2.8/3.5のparser aliasを含む。
+- Prism明示、version、listing、Missing先行、stdin、-A、設定boolのENV優先、
+  us-asciiのencodingエラーがparser拒否より先になる対照を含む。
+  empty-targetsという初回labelの条件も実target_file_countは1であり、ゼロ対象の証拠にしない。
+- 存在しない明示対象の別のphase差は#236へ記録し、この二十六条件へ混ぜていない。
+- parameter_obsoletion_priority.jsonの旧residual二件も元データを変えず、先頭行とreport比較へ昇格する。
+  既存のcop fatal・NoMethodError・namespace・早期versionの優先順を保つ。
+
+採取器は既存entry、work/out包含、out親なし、dangling entryを子起動前に拒否する。
+ENV4・NO_COLOR・cache rootを子copyから除き、条件の存在する空ENVを明示して戻す。
+GEM/PATH/OSと親環境は保ち、stdinを原bytesで渡す。原本の本文/mtime/mode変化、
+新規link/reparse、timeoutのpartial、全raw/API/reportと保存raceを契約六件で検査する。
+全entryのstub契約一件はWindows限定で、非Windowsでの省略を実測成功へ数えない。
+
+新しい全CLIとNative API subprocessはWindows限定。純粋なgetter値・型付きparser先頭行・
+全順序の契約は他OSでも実行できるが、同じ二十六CLIの他OS実走と呼ばない。
+任意の文字列・任意の版・cop・コーパス全体の互換性へ一般化しない。
+設定から指定した未対応版の既存検証は#228と分けて維持する。
+
+fixture canonical SHA256: a27bcd62f0bc4b1da5a7aaad72c421fcd621ad7e6d5c8dacd5b78dc92dc5ad77
+fixture file SHA256: dea95f62c998ded4321547735d86536e1f6af3033643023feccb25246b09f440

@@ -5,12 +5,11 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
-use regex::Regex;
 use serde::Deserialize;
 use serde_yaml_ng::Value;
 
 use super::Severity;
-use crate::ruby_version::resolve_target_ruby;
+use crate::ruby_version::{resolve_target_ruby, string_to_f};
 
 /// ConfigValidatorが継承前に作るTargetRubyを、merge後の設定値とは別に保つ。
 pub(in crate::config) struct TargetRuby {
@@ -81,17 +80,6 @@ impl TargetRuby {
         let inferred = resolve_target_ruby(None, base)?.version;
         Ok(string_to_f(&inferred.to_string()))
     }
-}
-
-fn string_to_f(value: &str) -> f64 {
-    static FLOAT_PREFIX: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"^[\t\n\x0b\x0c\r ]*([+-]?(?:[0-9](?:_?[0-9])*(?:\.(?:[0-9](?:_?[0-9])*)?)?|\.[0-9](?:_?[0-9])*)(?:[eE][+-]?[0-9](?:_?[0-9])*)?)")
-            .expect("Ruby String#to_f prefix")
-    });
-    FLOAT_PREFIX
-        .captures(value)
-        .and_then(|captures| captures[1].replace('_', "").parse().ok())
-        .unwrap_or(0.0)
 }
 
 #[derive(Deserialize)]

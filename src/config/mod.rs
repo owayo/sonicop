@@ -24,7 +24,7 @@ use serde_yaml_ng::{Mapping, Value};
 
 use crate::cop_name;
 use crate::ruby_version::{
-    ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
+    ResolvedTargetRuby, RubyVersion, TargetRubySource, resolve_target_ruby, validate_supported,
 };
 
 use inheritance::{load_recorded_in_context, merge_config};
@@ -310,13 +310,22 @@ impl Config {
             }
 
             let path_base = path_parameter_base_directory(config_path.as_deref(), cwd);
-            let configured_target = configured_target_ruby(&raw)?;
+            // ENVのgetterは設定値より先。存在する空文字列も設定へfallbackしない。
+            let environment = std::env::var_os("RUBOCOP_TARGET_RUBY_VERSION").is_some();
+            let configured_target = if environment {
+                None
+            } else {
+                configured_target_ruby(&raw)?
+            };
             let target_ruby = resolve_target_ruby(configured_target, path_base)?;
-            validate_supported(target_ruby.version)?;
-            if all_cops_mapping(&raw)
-                .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
-                .and_then(Value::as_str)
-                == Some("parser_prism")
+            if !environment {
+                validate_supported(target_ruby.version)?;
+            }
+            if !environment
+                && all_cops_mapping(&raw)
+                    .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
+                    .and_then(Value::as_str)
+                    == Some("parser_prism")
                 && target_ruby.version < RubyVersion::new(3, 3)
             {
                 bail!(
@@ -480,6 +489,18 @@ impl Config {
 
     pub fn target_ruby_version(&self) -> RubyVersion {
         self.target_ruby.version
+    }
+
+    pub(crate) fn validate_parser_target(&self) -> Result<()> {
+        if self.target_ruby.source != TargetRubySource::Environment {
+            return Ok(());
+        }
+        let prism = match self.all_cops_value::<String>("ParserEngine").as_deref() {
+            Some("parser_prism") => true,
+            Some("parser_whitequark") => false,
+            _ => self.target_ruby.version >= RubyVersion::new(3, 3),
+        };
+        self.target_ruby.version.validate_parser(prism)
     }
 
     pub fn display_cop_names(&self) -> bool {

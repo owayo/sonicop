@@ -455,6 +455,12 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                     format!("{failure}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) =
+                error.downcast_ref::<crate::ruby_version::ParserTargetError>()
+            {
+                // parserの対象版拒否も、finished後に元の先頭行だけを表示する。
+                let text = format!("{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<ConfigIoError>() {
                 // SystemCallErrorの先頭行を保つ。Ruby内部のbacktraceは生成しない。
                 let text = format!("{failure}\n");
