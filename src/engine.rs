@@ -1062,6 +1062,7 @@ fn inspect_planned(
     check_directives: bool,
     raw_source: Option<String>,
 ) -> Result<FileReport> {
+    config.validate_parser_target()?;
     // NULの代替と打ち切りはtree-sitter用の投影だけに適用する。原本をcopと補正へ渡し、
     // コメントのNULや字句器が読まない後続本文を無関係な補正で変えない。
     // NUL分類と本体parseには同じ対象Ruby・パーサーの束縛を使う。

@@ -421,3 +421,10 @@ scripts/conformance/test_record_config_io_error_headers.py text eol=lf
 tests/config_io_error_headers.rs text eol=lf
 tests/fixtures/config_io_error_headers.json text eol=lf
 tests/fixtures/config_io_error_headers.json.PROVENANCE text eol=lf
+
+# ENV getterのFloat値と、parser拒否後の全report・rawを保持する。
+scripts/conformance/record_target_ruby_environment.py text eol=lf
+scripts/conformance/test_record_target_ruby_environment.py text eol=lf
+tests/target_ruby_environment.rs text eol=lf
+tests/fixtures/target_ruby_environment.json text eol=lf
+tests/fixtures/target_ruby_environment.json.PROVENANCE text eol=lf

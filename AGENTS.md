@@ -125,6 +125,14 @@ Missingの経路と他のI/O故障を保つ。`config_io_error_headers.json`の�
 原本・directory・既存reportの保持と、Ruby内部frameを除く先頭行の全bytesを検査し、
 参照へ保持したbacktraceをNative全文一致の成功へ数えない。
 
+**ENVの対象RubyはgetterのFloat値として保つ。** 存在する空文字列や不正文字列もto_fで0.0に
+なり、設定へfallbackしない。3.10は3.1、3.2suffixは3.2として読み、負数・Infinity・signed zeroを
+整数のmajor.minorへ丸めない。通常の版の比較は既存の軽い経路を使い、混在する値でもEqと全順序を保つ。
+ENVのparser対象版検証はinspect_plannedへ置き、先行するI/O/encoding診断を保つ。
+versionとlistingはparserを作らず、拒否した通常実行はfinished後の空reportを返す。
+設定値の未対応版検証とは分ける。target_ruby_environment.jsonの二十六API/CLIはWindows実測で、
+Ruby内部frameは参照専用。新しい型や版の受理は、実API値・CLI・原本保持を別々に確かめる。
+
 **Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
 root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
 every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside

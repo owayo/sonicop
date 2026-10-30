@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,15 +28,21 @@ const KNOWN_RUBIES: &[RubyVersion] = &[
 
 const DEFAULT_TARGET_RUBY: RubyVersion = RubyVersion::new(2, 7);
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RubyVersion {
     major: u16,
     minor: u16,
+    // ENVのto_fは負数や任意の小数も返す。拒否前にmajor.minorへ丸めない。
+    number: Option<u64>,
 }
 
 impl RubyVersion {
     pub const fn new(major: u16, minor: u16) -> Self {
-        Self { major, minor }
+        Self {
+            major,
+            minor,
+            number: None,
+        }
     }
 
     pub fn parse(value: &str) -> Option<Self> {
@@ -44,11 +51,131 @@ impl RubyVersion {
         let minor = parts.next()?.parse().ok()?;
         Some(Self::new(major, minor))
     }
+
+    fn from_environment(value: &str) -> Self {
+        let number = string_to_f(value);
+        // parser_classにはTargetRuby::KNOWN_RUBIES外の互換aliasもある。
+        KNOWN_RUBIES
+            .iter()
+            .copied()
+            .chain([
+                Self::new(0, 0),
+                Self::new(1, 9),
+                Self::new(2, 8),
+                Self::new(3, 5),
+            ])
+            .find(|version| {
+                version.as_float() == number && !(number == 0.0 && number.is_sign_negative())
+            })
+            .unwrap_or(Self {
+                major: 0,
+                minor: 0,
+                number: Some(number.to_bits()),
+            })
+    }
+
+    fn as_float(self) -> f64 {
+        self.number.map_or_else(
+            || {
+                let digits = self.minor.checked_ilog10().unwrap_or(0) + 1;
+                f64::from(self.major) + f64::from(self.minor) / f64::from(10_u32.pow(digits))
+            },
+            f64::from_bits,
+        )
+    }
+
+    pub(crate) fn validate_parser(self, prism: bool) -> Result<()> {
+        let supported = if prism {
+            matches!((self.major, self.minor), (3, 3..=5) | (4, 0..=1))
+        } else {
+            matches!((self.major, self.minor), (1, 9) | (2, 0..=8) | (3, 0..=4))
+        };
+        if self.number.is_none() && supported {
+            return Ok(());
+        }
+        let supported = if prism {
+            "3.3 and above with Prism"
+        } else {
+            "3.4 and below with `parser`"
+        };
+        Err(ParserTargetError(format!(
+            "RuboCop supports target Ruby versions {supported}. Specified target Ruby version: {self}"
+        ))
+        .into())
+    }
+}
+
+impl Ord for RubyVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.number.is_none() && other.number.is_none() && self.minor < 10 && other.minor < 10 {
+            return (self.major, self.minor).cmp(&(other.major, other.minor));
+        }
+        self.as_float().total_cmp(&other.as_float()).then_with(|| {
+            (self.major, self.minor, self.number).cmp(&(other.major, other.minor, other.number))
+        })
+    }
+}
+
+impl PartialOrd for RubyVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl fmt::Display for RubyVersion {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{}.{}", self.major, self.minor)
+        if let Some(number) = self.number {
+            formatter.write_str(&float_inspect(f64::from_bits(number)))
+        } else {
+            write!(formatter, "{}.{}", self.major, self.minor)
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ParserTargetError(String);
+
+impl fmt::Display for ParserTargetError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ParserTargetError {}
+
+pub(crate) fn string_to_f(value: &str) -> f64 {
+    static FLOAT_PREFIX: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"^[\t\n\x0b\x0c\r ]*([+-]?(?:[0-9](?:_?[0-9])*(?:\.(?:[0-9](?:_?[0-9])*)?)?|\.[0-9](?:_?[0-9])*)(?:[eE][+-]?[0-9](?:_?[0-9])*)?)")
+            .expect("Ruby String#to_f prefix")
+    });
+    FLOAT_PREFIX
+        .captures(value)
+        .and_then(|captures| captures[1].replace('_', "").parse().ok())
+        .unwrap_or(0.0)
+}
+
+fn float_inspect(number: f64) -> String {
+    if number == f64::INFINITY {
+        return "Infinity".to_owned();
+    }
+    if number == f64::NEG_INFINITY {
+        return "-Infinity".to_owned();
+    }
+    if number != 0.0 && (number.abs() < 0.0001 || number.abs() >= 1e16) {
+        // MRIのFloat#inspectは小数点と指数の符号・最低2桁を保つ。
+        let text = format!("{number:e}");
+        let (mantissa, exponent) = text.split_once('e').unwrap();
+        let mantissa = if mantissa.contains('.') {
+            mantissa.to_owned()
+        } else {
+            format!("{mantissa}.0")
+        };
+        let exponent: i32 = exponent.parse().unwrap();
+        format!("{mantissa}e{exponent:+03}")
+    } else if number.fract() == 0.0 {
+        format!("{number:.1}")
+    } else {
+        number.to_string()
     }
 }
 
@@ -78,8 +205,7 @@ pub(crate) fn resolve_target_ruby(
         let value = value
             .into_string()
             .map_err(|_| anyhow::anyhow!("RUBOCOP_TARGET_RUBY_VERSION is not valid UTF-8"))?;
-        let version = RubyVersion::parse(&value)
-            .with_context(|| format!("invalid RUBOCOP_TARGET_RUBY_VERSION: {value}"))?;
+        let version = RubyVersion::from_environment(&value);
         return Ok(ResolvedTargetRuby {
             version,
             source: TargetRubySource::Environment,
@@ -400,6 +526,60 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{Requirement, RubyVersion, TargetRubySource, resolve_target_ruby};
+
+    #[test]
+    fn environment_getter_and_parser_rejection_follow_actual_ruby_values() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/target_ruby_environment.json"
+        ))
+        .unwrap();
+        let mut values = Vec::new();
+        for row in fixture["cases"].as_array().unwrap() {
+            let environment = row["environment"]["RUBOCOP_TARGET_RUBY_VERSION"]
+                .as_str()
+                .unwrap();
+            let actual = RubyVersion::from_environment(environment);
+            if row["api"]["kind"] == "value" {
+                assert_eq!(
+                    actual.to_string(),
+                    row["api"]["target_inspect"].as_str().unwrap(),
+                    "{}",
+                    row["id"]
+                );
+            }
+            if row["comparison"] == "parser_headline" {
+                let prism = row["files"]["config.yml"]
+                    .as_str()
+                    .unwrap()
+                    .contains("ParserEngine: parser_prism")
+                    || actual >= RubyVersion::new(3, 3);
+                let error = actual.validate_parser(prism).unwrap_err();
+                assert_eq!(
+                    format!("{error}\r\n"),
+                    row["first_line_template"].as_str().unwrap()
+                );
+            }
+            values.push(actual);
+        }
+        // signed zeroや同じFloat値の異なる表記でも、Eqと全順序の契約を壊さない。
+        assert_eq!(RubyVersion::from_environment(""), RubyVersion::new(0, 0));
+        values.extend([
+            RubyVersion::new(0, 0),
+            RubyVersion::new(3, 10),
+            RubyVersion::new(3, 14),
+        ]);
+        for a in &values {
+            for b in &values {
+                assert_eq!(a.cmp(b).is_eq(), a == b);
+                assert_eq!(a.cmp(b), b.cmp(a).reverse());
+                for c in &values {
+                    if a <= b && b <= c {
+                        assert!(a <= c);
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn resolves_minimum_known_version_from_gemspec_requirements() {

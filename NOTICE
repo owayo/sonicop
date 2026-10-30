@@ -50,6 +50,17 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/ruby_version.rs, src/config/mod.rs, src/config/obsoletion/parameters.rs
+  src/engine.rs, src/cli.rs, tests/fixtures/target_ruby_environment.json
+      Environment target values and parser rejection timing follow RuboCop 1.89.0,
+      with 26 actual ConfigLoader/getter calls and 26 Windows CLI conditions.
+      Reference backtraces are retained; native parser error comparison covers
+      the first line and complete finished reports, with documented product identity.
+      Regenerate with scripts/conformance/record_target_ruby_environment.py.
+      The adjacent .PROVENANCE records source hashes, bindings and finite scope.
+      Full licence text: licenses/RUBOCOP.txt. Parser version dispatch also follows
+      rubocop-ast 1.50.0 (MIT); see licenses/RUBOCOP_AST.txt below.
+
   src/config/loader.rs, src/config/mod.rs, src/cli.rs
   tests/fixtures/config_io_error_headers.json
       System I/O headlines follow RuboCop 1.89.0 ConfigLoader and CLI,

@@ -34,3 +34,8 @@ remoteの最低版推定fallbackは未測定で本fixtureの成功範囲に含�
 
 fixture SHA256: d6cf433c89281ce1c25a3042cae94fc44418090ef502921b7f36541c12ae01fd
 collector SHA256: 1cca911604880e4f1c7e9129a67d7eb8271dd42a8371cb89dcde480dccc31c83
+
+#212の更新: 元のresidual二件はデータを変えず、Nativeの先頭行全bytesと完成reportの
+全JSON fields（製品identity四項目だけを除く）・非report原本保持を実検査するようにした。
+採取時のlabelと上の説明は履歴として残す。新しい二十六条件はtarget_ruby_environment.jsonへ
+別に保存し、Ruby内部backtraceの全文互換へ数えない。

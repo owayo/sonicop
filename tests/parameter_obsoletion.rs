@@ -310,13 +310,12 @@ fn minimum_getter_failures_preserve_priority_namespace_prefix_and_early_version(
             "empty-env-version"
         ]
     );
-    let (mut early, mut getter, mut residual) = (0, 0, 0);
+    let (mut early, mut getter, mut parser) = (0, 0, 0);
     for case in cases {
         match case["scope"].as_str().unwrap() {
             "existing_target_parser_lifecycle_residual" => {
-                // 最終parser/版推定の既知差は保存し、最低版getterの成功件数へ混ぜない。
-                residual += 1;
-                continue;
+                // 採取時のlabelは残し、#212で先頭行とfinished reportも実検査へ昇格する。
+                parser += 1;
             }
             "early_version_or_cop_fatal" => early += 1,
             "error_priority_prefix_envelope" => getter += 1,
@@ -329,11 +328,13 @@ fn minimum_getter_failures_preserve_priority_namespace_prefix_and_early_version(
             let path = directory.path().join(name);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(&path, text.as_str().unwrap()).unwrap();
-            originals.push((
-                path.clone(),
-                fs::read(&path).unwrap(),
-                fs::metadata(&path).unwrap().modified().unwrap(),
-            ));
+            if name != "report.json" || case["out_preserved"] == true {
+                originals.push((
+                    path.clone(),
+                    fs::read(&path).unwrap(),
+                    fs::metadata(&path).unwrap().modified().unwrap(),
+                ));
+            }
         }
         let actual = additional_run(case, directory.path());
         assert_eq!(
@@ -342,7 +343,7 @@ fn minimum_getter_failures_preserve_priority_namespace_prefix_and_early_version(
             "{id}"
         );
         let prefix = reference_pipe(bytes(case["stderr_prefix_hex"].as_str().unwrap()));
-        if case["scope"] == "early_version_or_cop_fatal" {
+        if case["scope"] != "error_priority_prefix_envelope" {
             assert_eq!(actual.stderr, prefix, "{id}");
         } else {
             // NoMethodErrorの内部Ruby stackは比較せず、先行namespaceと先頭行まで実測する。
@@ -361,11 +362,24 @@ fn minimum_getter_failures_preserve_priority_namespace_prefix_and_early_version(
             reference_pipe(bytes(case["stdout_hex"].as_str().unwrap()))
         };
         assert_eq!(actual.stdout, stdout, "{id}");
-        assert_eq!(
-            fs::read(directory.path().join("report.json")).unwrap(),
-            bytes(case["out_hex"].as_str().unwrap()),
-            "{id}"
-        );
+        let report = fs::read(directory.path().join("report.json")).unwrap();
+        let expected = bytes(case["out_hex"].as_str().unwrap());
+        if case["out_preserved"] == false {
+            let mut report: Value = serde_json::from_slice(&report).unwrap();
+            let mut expected: Value = serde_json::from_slice(&expected).unwrap();
+            for key in [
+                "sonicop_version",
+                "ruby_engine",
+                "ruby_version",
+                "ruby_platform",
+            ] {
+                report["metadata"].as_object_mut().unwrap().remove(key);
+                expected["metadata"].as_object_mut().unwrap().remove(key);
+            }
+            assert_eq!(report, expected, "{id}");
+        } else {
+            assert_eq!(report, expected, "{id}");
+        }
         for (path, original, modified) in originals {
             assert_eq!(fs::read(&path).unwrap(), original, "{id}");
             assert_eq!(
@@ -375,7 +389,7 @@ fn minimum_getter_failures_preserve_priority_namespace_prefix_and_early_version(
             );
         }
     }
-    assert_eq!((early, getter, residual), (4, 7, 2));
+    assert_eq!((early, getter, parser), (4, 7, 2));
 }
 
 #[test]
