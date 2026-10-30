@@ -467,3 +467,8 @@ scripts/conformance/test_record_cache_root_option_order.py text eol=lf
 tests/cache_root_option_order.rs text eol=lf
 tests/fixtures/cache_root_option_order.json text eol=lf
 tests/fixtures/cache_root_option_order.json.PROVENANCE text eol=lf
+
+# リモート設定cacheの実I/O比較は本文の物理改行を検査する。
+src/config/remote_cache.rs text eol=lf
+tests/remote_config_cache.rs text eol=lf
+licenses/CHRONO.txt text eol=lf

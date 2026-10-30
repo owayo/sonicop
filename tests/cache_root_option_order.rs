@@ -183,7 +183,7 @@ fn check(wrapper: bool) {
                 assert!(text.starts_with(&format!("sonicop {} ", env!("CARGO_PKG_VERSION"))));
                 assert!(
                     text.contains("RuboCop 1.89 CLI")
-                        && text.contains("tree-sitter-ruby v26.10.105")
+                        && text.contains("tree-sitter-ruby v26.10.106")
                 );
                 assert!(text.ends_with("\r\n"));
             }

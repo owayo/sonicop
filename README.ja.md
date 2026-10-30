@@ -135,7 +135,7 @@ sonicop --show-cops
 
 ## 設定
 
-検査するファイルごとに `.rubocop.yml` を解決するため、サブディレクトリ設定も cop に適用します。対象ファイルの探索には、指定したディレクトリの設定を配下全体に使います。入れ子の `Include`／`Exclude` を探索に反映するには、そのディレクトリを別に指定してください。この挙動は RuboCop と一致します。ローカル／HTTPS の `inherit_from`、`inherit_gem`、`inherit_mode`、`AllCops/DisabledByDefault`、`Include`／`Exclude`、Cop ごとの `Enabled`、`Exclude`、`Severity`、`Safe`、`SafeAutoCorrect` と設定値に対応します。リモート設定のリクエストには 30 秒のネットワークタイムアウトを設け、応答は 1 件あたり 5 MiB に制限します。
+検査するファイルごとに `.rubocop.yml` を解決するため、サブディレクトリ設定も cop に適用します。対象ファイルの探索には、指定したディレクトリの設定を配下全体に使います。入れ子の `Include`／`Exclude` を探索に反映するには、そのディレクトリを別に指定してください。この挙動は RuboCop と一致します。ローカル／HTTPS の `inherit_from`、`inherit_gem`、`inherit_mode`、`AllCops/DisabledByDefault`、`Include`／`Exclude`、Cop ごとの `Enabled`、`Exclude`、`Severity`、`Safe`、`SafeAutoCorrect` と設定値に対応します。リモート設定のリクエストには 30 秒のネットワークタイムアウトを設け、応答は 1 件あたり 5 MiB に制限します。リモート設定には別のディスクキャッシュがあり、`--cache false` でも有効です。24 時間は再利用し、期限切れ後は `If-Modified-Since` で再検証します。304 応答では保存本文と更新時刻を保ちます。
 
 設定の `require` / `plugins` と CLI の `-r` / `--plugin` は、その実行で共有する Ruby プロセスで拡張の loader を実行します。実際の loaded features、plugin 名、cop registry、既定設定の変更を設定検証へ反映します。宣言だけで cop を登録済みとは扱いません。CLI の `-r` は設定の読込み前に実行し、設定内の相対 require は各設定ファイルを基準に解決します。
 

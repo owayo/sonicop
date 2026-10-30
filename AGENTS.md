@@ -127,7 +127,10 @@ HTTP取得・相対継承・memoのkeyには元URLを残す。明示configのrem
 URIのscheme・既定portを本家のto_sへ揃えてからMD5を取り、stemは217 bytesまでにする。
 `remote_config_origins.json`のWindows CLI十五条件と純粋な命名APIを分ける。#231の先行拒否を
 解消した三件も、元のrawのまま全streamと取得順の比較に含める。命名一致はremote cache保存・
-再利用の証明ではなく、I/O差は#232で追跡する。
+再利用の証明ではない。`remote_config_cache.rs` は別processの実本家CLIと保存本文・HTTP要求を比較する。
+24時間ぴったりと未来のmtimeは再利用し、期限切れだけmtimeのローカルoffset付きrfc2822で再検証する。
+304はmtimeを変えず、200は本文の上限を検査してから同じfileへ書く。読み取り専用をrenameで置換しない。
+WindowsではFile.writeのLF追加とFile.readのCRLF復号をそれぞれ一回だけ適用する。
 
 **cache-root は指定位置の cache 値で検証する。** 本家の Options#option callback は、
 cache false の後の root だけをその場で拒否する。root の後の false は受理し、途中の上書きや
@@ -260,7 +263,7 @@ JSON を保存する。パスの同一性だけを根拠に表示の互換性を
 
 **依存更新も構文診断を変える。** tree-sitter 0.27.1 は旧 grammar で有効な percent literal に
 誤った `tSTAR` を追加した。grammar v26.10.103 との組でその回帰が解消することを実測した。
-現在は 0.27.1 と grammar v26.10.105 を固定し、文字列後の `%`、VT/FF を区切りとする `%Q`、
+現在は 0.27.1 と grammar v26.10.106 を固定し、文字列後の `%`、VT/FF を区切りとする `%Q`、
 入れ子の control/meta character を、原文のノード範囲・座標と本家の実診断で検査する。
 回帰テストは新たな誤診断を拒むが、既知の EOF 誤診断を期待値へ固定しない。
 
