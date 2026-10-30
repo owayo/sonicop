@@ -184,7 +184,7 @@ fn config_location(path: &Path, origin: Option<&Path>) -> Option<(PathBuf, PathB
     Some((canonical.clone(), absolute_config_origin(origin).ok()?))
 }
 
-fn home_directory() -> Option<PathBuf> {
+pub(super) fn home_directory() -> Option<PathBuf> {
     resolve_home_directory(|key| std::env::var_os(key))
 }
 

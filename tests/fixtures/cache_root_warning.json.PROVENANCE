@@ -1,0 +1,54 @@
+実参照: Windows x64 UCRT、Ruby 4.0.7 / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1 / Psych 5.3.1。
+候補exeから期待を作らず、固定LOADERを使った本家実CLI/APIだけで採取した。
+2026-10-28の元6 CLI条件・10 join入力は全rowを無変更で保持し、2026-10-30の
+実13 CLI条件・16 realpath観測・11警告対をschema:2へ追加した。
+元container SHA256: a04c7ba93875913808a0f193ee034784583159408356adb700bda6741a7b9e24
+
+再採取（Windows固定Ruby/gem、既存out親、存在しないwork/out、実8.3名が必要）:
+  python scripts/conformance/record_cache_root_warning.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+実API一件とCLI19件を直列で実行し、完成版と一致した後だけoutをexclusive保存する。
+APIはruntime全版と次の仕様ファイルを照合する。
+  lib/rubocop/cli.rb: 7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933
+  lib/rubocop/cache_config.rb: 98018b6e511c790e3f8b60bb873b351f277fe795e51ac158485f14439bb091c1
+
+動的binding:
+WORK/LONG/SHORT/UPPER/LOWER_LONGと各forward表記だけを明示して置換する。
+CLI stderrは完全なearly/desired文字列だけをEARLY/DESIREDへ置換する。
+元のprivate rawへbindingを戻したとき、API全選択fieldとCLIのstderr/config bytesが
+厳密に復元されることを別途確認した。任意のパス正規化やcase折り畳みはしない。
+APIのwarning_stringはStringIOの論理LF、CLI stderr_templateは実pipeのCRLFとANSIを保持する。
+全rawと動的binding、原本before/afterはprivate workへ保存し、公開fixtureへ個人パスを含めない。
+
+有限の比較範囲:
+- 元6 CLI: force-defaultの初回/反復positive2、rootなし/forceなし/ENV/equalの陰性4。
+  本家のpending通知も省略せず、全stderr・全JSON field・終了0を比較する。
+- 追加13 CLI: 長名/短縮名/junction/dot/caseの6、version/verbose/show-copsの3、
+  初期色とCLI color/no-colorの3、暗黙設定のPrism/Ruby 2.7でも版表示が成功する1。report9件は全JSON field、show-copsは全stdout raw、
+  全13件のstderr/終了値を比較する。version三つの本家stdoutは参照に残すが、
+  native自身のidentityを別に検査し、両製品の版本文がraw一致したとは数えない。
+- JSONは実engineと仕様版を確認してから、製品固有identity4項目だけを除く。
+  ruby_patchlevelとrubocop_versionを含む残りmetadata・files・summaryを比較する。
+- 16実パスと11警告対: MRIは通常componentのcase・8.3・drive case・verbatim prefixを保つ。
+  junctionを解決してから..を処理する。物理ファイルの同一性だけで警告を抑止しない。
+  10 joinは設定/ENV/XDGの各実値を保持する。WindowsのProcess.uidは0。
+- 全19件でRuby本文・設定・空Gemfileのbytes/mtime/modeを実検査する。
+  cache falseの元6条件は保存先非生成も確認する。追加13のalias保存先は事前作成している。
+  警告の文言をremote通信やcache書込みの証拠には数えない。
+- Native回帰はPATH空で通常実行し、requireなしの経路にRubyを要求しない。
+
+採取はENV4とambient NO_COLORを子copyから除き、TERM/CLICOLOR/XDGを明示する。
+RUBOCOP_CACHE_ROOTは各条件に従って子copyだけで除去/設定し、親・GEM/PATH/OS環境は保つ。
+既存leaf、dangling entry、alias、work/out包含、out親なしは子生成前に拒否する。
+取得したrawを先に保存し、通常fileのlstat・bytes/mtime/modeを検査する。
+実8.3名がない環境は採取を拒否し、未測定を成功へ数えない。
+Ruby cop実行、ERB一般、non-string root、任意UNC/drive-relativeパス、JRuby、
+非Windowsの実CLI、TTY、remote cache I/OはこのWindows参照の証明範囲に含めない。
+
+fixture canonical SHA256: fbd2d05535f25ddb5a91cf159da0713cf7cac2d8d300751e5047ba22106cfc28
+fixture file SHA256: c2a3db3af014af7986bf3d648cb09c78491467fc0b2d9d64ba3c445b7a51054a
+RuboCop由来のデータと警告・選択処理はMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
+
+追加の版表示対照は本家で終了0/1.89.0のCRLF/全stderr空を実測し、
+暗黙設定を読む際にも検査用ParserEngineを先に構築しないことを検査する。
+未対応対象版の解決後検証・エラー本文は別Issueの既存差であり、本件の一致へ含めない。

@@ -83,6 +83,27 @@ pub struct Config {
 }
 
 impl Config {
+    /// CacheConfigの軽量lookupは継承・force-default・CLIの明示configを適用しない。
+    pub(crate) fn toplevel_cache_root(cwd: &Path) -> Result<Option<String>> {
+        let Some((path, _)) = find_config_with_origin(cwd) else {
+            return Ok(None);
+        };
+        let contents = std::fs::read_to_string(&path)?;
+        if !contents.contains("CacheRootDirectory") {
+            return Ok(None);
+        }
+        let value = inheritance::parse_yaml_configuration(&contents, path.display())?;
+        Ok(value
+            .get("AllCops")
+            .and_then(|all| all.get("CacheRootDirectory"))
+            .and_then(Value::as_str)
+            .map(str::to_owned))
+    }
+
+    pub(crate) fn cache_home_directory() -> Option<PathBuf> {
+        loader::home_directory()
+    }
+
     /// Stable digest of the on-disk result cache's view of this configuration. The merged raw
     /// configuration determines cop behaviour, while the resolved paths and Ruby version cover
     /// behaviour derived from where the configuration was loaded and from the surrounding project.
@@ -117,8 +138,11 @@ impl Config {
         Self::load_internal(explicit, cwd, force_default, None, false)
     }
 
-    /// ConfigStore.apply_options!のload_fileだけを観測し、merge-default後のTargetRuby解決を早めない。
-    pub(crate) fn observe_file_for_cli(path: &Path, warnings: &ConfigWarnings) -> Result<()> {
+    /// ConfigStore.apply_options!の検証とmerge-defaultまでを観測し、最終TargetRuby解決を早めない。
+    pub(crate) fn observe_file_for_cli(
+        path: &Path,
+        warnings: &ConfigWarnings,
+    ) -> Result<Option<String>> {
         match load_recorded_in_context(
             path,
             path,
@@ -126,12 +150,48 @@ impl Config {
             &warnings.runtime,
             Some(warnings),
         ) {
-            Ok(loaded) => warnings.emit(&loaded.validation.trace),
+            Ok(loaded) => {
+                warnings.emit(&loaded.validation.trace)?;
+                let mut defaults: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)?;
+                warnings.runtime.snapshot().apply_defaults(&mut defaults)?;
+                let value = merge_config(defaults, loaded.value);
+                Ok(all_cops_mapping(&value)
+                    .and_then(|all| all.get("CacheRootDirectory"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned))
+            }
             Err(failure) => {
                 warnings.emit(&failure.prefix)?;
                 Err(failure.error)
             }
         }
+    }
+
+    pub(crate) fn default_cache_root_for_cli(warnings: &ConfigWarnings) -> Result<Option<String>> {
+        warnings.runtime.observe_default_query()?;
+        let mut value: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)?;
+        warnings.runtime.snapshot().apply_defaults(&mut value)?;
+        Ok(all_cops_mapping(&value)
+            .and_then(|all| all.get("CacheRootDirectory"))
+            .and_then(Value::as_str)
+            .map(str::to_owned))
+    }
+
+    /// 版表示用のfor_pwdは設定の検証を行うが、検査用ParserEngineは構築しない。
+    pub(crate) fn inferred_cache_root_for_cli(
+        cwd: &Path,
+        warnings: &ConfigWarnings,
+    ) -> Result<Option<String>> {
+        let Some((path, origin)) = find_config_with_origin(cwd) else {
+            return Self::default_cache_root_for_cli(warnings);
+        };
+        let root = Self::observe_file_for_cli(&origin, warnings)?;
+        if warnings.parent_exclusion
+            && let Some(parent) = loader::parent_exclusion_config(&path, &origin, cwd)
+        {
+            Self::observe_file_for_cli(&parent, warnings)?;
+        }
+        Ok(root)
     }
 
     pub(crate) fn load_for_cli(

@@ -36,6 +36,7 @@ use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 #[path = "cache_string_printable_table.rs"]
 mod cache_string_printable_table;
 
+mod cache_root_warning;
 mod config_yaml;
 
 #[cfg(any(windows, test))]
@@ -929,7 +930,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
                 ConfigWarning::Parameter(message) if color.load(Ordering::Relaxed) => {
                     format!("\x1b[33m{message}\x1b[0m\n")
                 }
-                ConfigWarning::Obsoletion(message) => {
+                ConfigWarning::Obsoletion(message) | ConfigWarning::CacheRoot(message) => {
                     // warnの外側のnewlineをreset後へ置き、既存parameter本文の末尾LFと分ける。
                     if color.load(Ordering::Relaxed) {
                         format!("\x1b[33m{message}\x1b[0m\n")
@@ -976,12 +977,28 @@ fn try_run_with_warning_phase(
     warning_color: Arc<AtomicBool>,
     option_warning_color: bool,
 ) -> Result<i32> {
-    if (cli.version || cli.force_default_config)
+    let observed_cache_root = if (cli.version || cli.force_default_config)
         && let Some(path) = cli.config.as_deref()
     {
-        Config::observe_file_for_cli(path, &config_warnings)?;
-    }
+        Config::observe_file_for_cli(path, &config_warnings)?
+    } else {
+        None
+    };
     if cli.version {
+        // ResultCache.cache_rootのfor_pwdはENV/CLI上書きのあるときだけ短絡する。
+        let cwd = std::env::current_dir().context("failed to determine current directory")?;
+        let desired =
+            if cli.cache_root.is_some() || std::env::var_os("RUBOCOP_CACHE_ROOT").is_some() {
+                None
+            } else if cli.force_default_config {
+                Config::default_cache_root_for_cli(&config_warnings)?
+            } else if cli.config.is_some() {
+                // options_configはmerge-defaultまで。validate_after_resolutionを先に呼ばない。
+                observed_cache_root
+            } else {
+                Config::inferred_cache_root_for_cli(&cwd, &config_warnings)?
+            };
+        cache_root_warning::report(&cli, &cwd, desired.as_deref(), &config_warnings)?;
         write_output(&format!("{VERSION}\n"), None, false)?;
         return Ok(0);
     }
@@ -991,6 +1008,14 @@ fn try_run_with_warning_phase(
             cli.config.as_deref(),
             &cwd,
             cli.force_default_config,
+            &config_warnings,
+        )?;
+        cache_root_warning::report(
+            &cli,
+            &cwd,
+            config
+                .all_cops_value::<String>("CacheRootDirectory")
+                .as_deref(),
             &config_warnings,
         )?;
         write_output(
@@ -1020,6 +1045,14 @@ fn try_run_with_warning_phase(
         &config_warnings,
     )?;
     validate_config(&config, cli.ignore_unrecognized_cops)?;
+    cache_root_warning::report(
+        &cli,
+        &cwd,
+        config
+            .all_cops_value::<String>("CacheRootDirectory")
+            .as_deref(),
+        &config_warnings,
+    )?;
     let configs = ConfigStore::new(
         config.clone(),
         cli.config.is_none() && !cli.force_default_config,

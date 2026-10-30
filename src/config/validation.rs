@@ -334,6 +334,7 @@ pub(crate) enum ConfigWarning {
     Namespace(String),
     Parameter(String),
     Obsoletion(String),
+    CacheRoot(String),
     Unrecognized(Vec<String>),
 }
 
@@ -543,6 +544,10 @@ impl std::error::Error for WarningOutputFailure {
 }
 
 impl ConfigWarnings {
+    pub(crate) fn emit_cache_root(&self, message: String) -> Result<()> {
+        (self.output)(&ConfigWarning::CacheRoot(message))
+    }
+
     pub(crate) fn new(
         ignore_unknown: bool,
         parent_exclusion: bool,
