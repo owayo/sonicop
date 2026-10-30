@@ -1,0 +1,46 @@
+実参照: Windows x64 UCRT / Ruby 4.0.7 / RuboCop 1.89.0。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+候補exeに依存せず本家を実行して得た42 CLI条件と、実出典API一件。
+
+再採取:
+  python scripts/conformance/record_cache_root_option_order.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+source API一件とCLI四十二件の全43 processを直列実行する。
+runtime/gems、出典SHA五件、全stdout/stderr bytes、marker、元fileのbytes/mtime/mode、
+補正一件のディスク上の実bytes、明示cache rootのdirectory存在が一致した後だけexclusive保存する。
+出典はoptions.rb、cli.rb、config_loader.rb、cache_config.rb、LICENSE.txtで、fixture.source_sha256へ保持。
+RuboCopはMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
+候補の出力から期待値を生成せず、公開データに実行時の絶対配置を含める必要もない。
+
+本家はcache-root指定時のcache Stringがfalseの場合だけcallbackで拒否する。
+rootを先に指定した場合、途中のcache上書き、rootの複数回、短縮/attached指定、
+help/version、先行/後続require、featureのexit 0とat_exit、初期phaseの強制色指定を含む。
+通常検査、parallelの無視通知と設定UseCache:falseによる正当な拒否、listing、targets、
+版表示、-aの実書込、明示cache trueを対照に含む。
+
+Nativeの比較範囲:
+- Windowsの42条件をNativeとRuby wrapperの両方で実行し、計84 invocationを検査する。
+- stderrは全42条件の全bytesを比較する。bare見出し、ANSI、CRLFを保つ。
+- 完了JSON11条件は通知prefixとat_exit suffixを全bytesで比較し、JSONは製品identity四項目だけを
+  検査後に除いて全fieldsを比較する。仕様版、patchlevel、診断、位置、補正情報も残す。
+- bytes23条件は全stdoutを比較する。listing/targets/拒否/feature終了を含む。
+- help6条件は本家本文全bytesを参照へ残し、Nativeはprefix/suffixとfeature境界を比較する。
+  製品固有のhelp本文を全文一致へ数えない。版表示二件も製品identityを別に検査する。
+- requireを実際に読む五条件は固定Rubyが必須。その他37条件はNativeのPATHを空にし、
+  後続のrequireを先に実行しないことも検査する。wrapperは全条件で実Rubyを使う。
+- 42件の原本は計159 file観測。一件の-aでa.rbだけが変わり、その実bytesを別に比較する。
+  その他158観測のbytes/mtime/modeと、補正fileの権限を保つ。採取APIのGemfile一観測も不変。
+- 指定されたcache rootのdirectory存在だけを比較し、独自のcache形式・file数を本家と同一視しない。
+  remote cacheの保存・再利用は別Issue #232の範囲。
+- CLIの物理streamはWindows限定。non-runtime37条件の純粋なflag順序は全OSで検査し、
+  保存したWindows pipeを他OSの実CLIへ読み替えない。既存help回帰も別に保つ。
+- remote_config_originsの先行拒否三件は元rawのまま昇格し、全15 CLIの全stream・取得順を比較する。
+  その独立した16実Ruby再採取と、命名API十二行の比較範囲は隣のPROVENANCEへ保持する。
+
+採取は共通_captureの原本・link/reparse・timeout raw保全・新規保存先の検査を使う。
+-aのa.rbだけはprotected listから除き、実行前後の全原本を別journalへ保存して全bytesとmodeを照合する。
+追加三契約は入力と全raw/比較範囲の固定、子起動前の既存entry拒否、最後のCLI・API・marker・
+補正本文の不一致による保存拒否を通常/最適化Pythonで検査する。stubを実Rubyの回数へ数えない。
+未計測の他オプションや任意のRuby monkeypatchへ互換性を一般化しない。
+
+fixture canonical SHA256: 236f1d51c4cb715e3ca611ad580d8286bf249e7ea209284df4cd9eabd605dbc9
+fixture file SHA256: 15a4eefa762b87438bddc3f3897ca49d25d68c4295179c67b4125e8cc03a2aee

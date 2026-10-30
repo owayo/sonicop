@@ -594,26 +594,7 @@
           "content_template": "AllCops:\r\n  NewCops: disable\r\n  TargetRubyVersion: 2.7\r\n  SuggestExtensions: false\r\n  DisabledByDefault: true\r\nSpaceAroundOperators:\r\n  Enabled: true\r\n"
         }
       ]
-    }
-  ],
-  "coverage": {
-    "actual_cli_cases": 15,
-    "actual_cache_name_api_rows": 12,
-    "source_observations": 50,
-    "dynamic_binding_inverse_exact": true,
-    "namespace_and_initial_cache_root_phase": true,
-    "native_remote_cache_io": false,
-    "api_queries_are_not_cli_inherit_query_acceptance": true,
-    "subset": false,
-    "compared_cli_cases": 12,
-    "blocked_cli_cases": 3,
-    "blocked_by_issue": 231,
-    "compared_source_observations": 40,
-    "original_twelve_rows_unchanged": true,
-    "native_remote_cache_io_issue": 232,
-    "inherit_query_cli_issue": 230
-  },
-  "blocked_cases": [
+    },
     {
       "id": "env-over-cli",
       "mode": "env-cli",
@@ -734,5 +715,24 @@
         }
       ]
     }
-  ]
+  ],
+  "coverage": {
+    "actual_cli_cases": 15,
+    "actual_cache_name_api_rows": 12,
+    "source_observations": 50,
+    "dynamic_binding_inverse_exact": true,
+    "namespace_and_initial_cache_root_phase": true,
+    "native_remote_cache_io": false,
+    "api_queries_are_not_cli_inherit_query_acceptance": true,
+    "subset": false,
+    "compared_cli_cases": 15,
+    "blocked_cli_cases": 0,
+    "blocked_by_issue": null,
+    "compared_source_observations": 50,
+    "original_twelve_rows_unchanged": true,
+    "native_remote_cache_io_issue": 232,
+    "inherit_query_cli_issue": 230,
+    "resolved_cli_issue": 231
+  },
+  "blocked_cases": []
 }

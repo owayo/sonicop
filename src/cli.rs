@@ -137,7 +137,12 @@ struct Cli {
         help_heading = "Caching"
     )]
     cache: Option<String>,
-    #[arg(long, value_name = "DIR", help_heading = "Caching")]
+    #[arg(
+        long,
+        overrides_with = "cache_root",
+        value_name = "DIR",
+        help_heading = "Caching"
+    )]
     cache_root: Option<PathBuf>,
 
     #[arg(short = 'f', long = "format", action = ArgAction::Append, value_name = "FORMATTER", help_heading = "Output Options")]
@@ -334,6 +339,21 @@ fn run_inner() -> i32 {
             return 2;
         }
     };
+    if let Some(entries) = cache_root_callback_entries(&arguments) {
+        // Options#optionのcallbackはhelpや後続requireより先に止まる。
+        let initial_color = initial_warning_color();
+        runtime.phase(false, initial_color);
+        let result = runtime
+            .cli_extensions(&entries)
+            .map_err(|error| crate::config::RuntimeError::with_color(error, initial_color))
+            .and_then(|()| {
+                Err(CacheRootOptionError {
+                    color: initial_color,
+                }
+                .into())
+            });
+        return finish_runtime(&runtime, result, initial_color);
+    }
     let matches = match Cli::command().try_get_matches_from(&arguments) {
         Ok(matches) => matches,
         Err(error)
@@ -396,7 +416,16 @@ fn run_inner() -> i32 {
 fn help_extensions(arguments: &[String]) -> Result<Vec<(bool, String)>> {
     // helpを通常flagとして再解析し、値や短縮flagの束をClapと同じ規則で区別する。
     // helpは複数回現れても最初の位置を使い、後続のrequireを実行しない。
-    let matches = Cli::command()
+    let matches = ordered_option_matches(arguments)?;
+    let index = matches
+        .indices_of("help")
+        .and_then(|mut indices| indices.next())
+        .context("missing help option index")?;
+    Ok(cli_extension_entries(&matches, index))
+}
+
+fn ordered_option_matches(arguments: &[String]) -> Result<ArgMatches> {
+    Ok(Cli::command()
         .disable_help_flag(true)
         .arg(
             clap::Arg::new("help")
@@ -406,13 +435,59 @@ fn help_extensions(arguments: &[String]) -> Result<Vec<(bool, String)>> {
                 .num_args(0)
                 .default_missing_value("true"),
         )
+        // 最終値だけでは、途中のfalseを見たcache-root callbackを再現できない。
+        .mut_arg("cache", |arg| {
+            arg.overrides_with(clap::builder::Resettable::Reset)
+                .action(ArgAction::Append)
+        })
+        .mut_arg("cache_root", |arg| {
+            arg.overrides_with(clap::builder::Resettable::Reset)
+                .action(ArgAction::Append)
+        })
         .ignore_errors(true)
-        .try_get_matches_from(arguments)?;
-    let index = matches
+        .try_get_matches_from(arguments)?)
+}
+
+fn cache_root_callback_entries(arguments: &[String]) -> Option<Vec<(bool, String)>> {
+    // 通常実行にはこのcallbackが無いため、flag全体を二度解析する必要もない。
+    if !arguments
+        .iter()
+        .any(|value| value == "--cache-root" || value.starts_with("--cache-root="))
+    {
+        return None;
+    }
+    let matches = ordered_option_matches(arguments).ok()?;
+    let before = matches
         .indices_of("help")
         .and_then(|mut indices| indices.next())
-        .context("missing help option index")?;
-    Ok(cli_extension_entries(&matches, index))
+        .unwrap_or(usize::MAX);
+    let mut options = Vec::new();
+    if let (Some(indices), Some(values)) = (
+        matches.indices_of("cache"),
+        matches.get_many::<String>("cache"),
+    ) {
+        options.extend(
+            indices
+                .zip(values)
+                .map(|(index, value)| (index, Some(value.as_str()))),
+        );
+    }
+    if let Some(indices) = matches.indices_of("cache_root") {
+        options.extend(indices.map(|index| (index, None)));
+    }
+    options.sort_unstable_by_key(|option| option.0);
+    let mut cache = None;
+    for (index, value) in options {
+        if index >= before {
+            break;
+        }
+        if let Some(value) = value {
+            cache = Some(value);
+        } else if cache == Some("false") {
+            return Some(cli_extension_entries(&matches, index));
+        }
+    }
+    None
 }
 
 fn cli_extension_entries(matches: &ArgMatches, before: usize) -> Vec<(bool, String)> {
@@ -490,6 +565,13 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
             } else if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<CacheRootOptionError>() {
+                let text = if failure.color {
+                    format!("\x1b[31m{failure}\x1b[0m\n")
+                } else {
+                    format!("{failure}\n")
+                };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<ParallelCacheConfigError>() {
                 let text = if failure.color {
@@ -1441,6 +1523,19 @@ fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
 }
 
 impl std::error::Error for SelectionFailure {}
+
+#[derive(Debug)]
+struct CacheRootOptionError {
+    color: bool,
+}
+
+impl std::fmt::Display for CacheRootOptionError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("--cache-root cannot be used with --cache false")
+    }
+}
+
+impl std::error::Error for CacheRootOptionError {}
 
 fn result_cache(
     cli: &Cli,
@@ -2743,9 +2838,6 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
         }
         .into());
     }
-    if cli.cache.as_deref() == Some("false") && cli.cache_root.is_some() {
-        bail!("--cache-root cannot be used with --cache false");
-    }
     // OptionsValidator は略名解決前の、最後に指定された format 値だけを検査する。
     if cli.display_only_failed && cli.formats.last().map(String::as_str) != Some("junit") {
         return Err(SelectionFailure {
@@ -3608,6 +3700,46 @@ mod tests {
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn cache_root_callback_order_matches_thirty_seven_actual_non_runtime_conditions() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/cache_root_option_order.json"
+        ))
+        .unwrap();
+        let mut checked = 0;
+        for row in fixture["cases"].as_array().unwrap() {
+            // 先行featureのexit等は実runtimeで検査する。ここは純粋なflagの順序だけ。
+            if row["requires_runtime"] == true {
+                continue;
+            }
+            let arguments = std::iter::once("sonicop".to_owned())
+                .chain(
+                    row["args"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|v| v.as_str().unwrap().to_owned()),
+                )
+                .collect::<Vec<_>>();
+            let hex = row["stderr_hex"].as_str().unwrap();
+            let stderr = (0..hex.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+                .collect::<Vec<_>>();
+            let rejected = String::from_utf8(stderr)
+                .unwrap()
+                .contains("--cache-root cannot be used with --cache false");
+            assert_eq!(
+                super::cache_root_callback_entries(&arguments).is_some(),
+                rejected,
+                "{}",
+                row["id"]
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, 37);
     }
 
     #[test]

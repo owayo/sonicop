@@ -811,3 +811,15 @@ The native component matcher uses glob 0.3.4, Copyright (c) 2014 The Rust
 Project Developers, under the MIT License; see `licenses/GLOB.txt`.
 On macOS, volume capability queries use libc 0.2.191, Copyright (c) 2014
 The Rust Project Developers, under the MIT License; see `licenses/LIBC.txt`.
+
+Cache-root option callback reference output
+------------------------------------------
+`tests/fixtures/cache_root_option_order.json` records 42 actual RuboCop 1.89.0
+CLI runs on Ruby 4.0.7 for Windows, including explicit require lifecycle and
+one correction on disk. Product help text and version identities have a
+separate comparison scope. Collector:
+`scripts/conformance/record_cache_root_option_order.py`.
+Source hashes and byte-level provenance:
+`tests/fixtures/cache_root_option_order.json.PROVENANCE`.
+RuboCop is Copyright (c) 2012-26 Bozhidar Batsov, under the MIT License;
+see `licenses/RUBOCOP.txt`.

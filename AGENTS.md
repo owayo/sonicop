@@ -125,8 +125,16 @@ macOS の照合は OS 名だけで決めず、本家と同じ volume capability 
 HTTP取得・相対継承・memoのkeyには元URLを残す。明示configのremote読込はCLI root反映前に
 軽量rootを固定し、act_on_optionsでdesiredへ更新した後は入れ子設定にも同じrootを渡す。
 URIのscheme・既定portを本家のto_sへ揃えてからMD5を取り、stemは217 bytesまでにする。
-`remote_config_origins.json`のWindows CLIと純粋な命名APIを分け、#231の先行拒否三件を
-成功件数へ混ぜない。命名一致はremote cache保存・再利用の証明ではなく、I/O差は#232で追跡する。
+`remote_config_origins.json`のWindows CLI十五条件と純粋な命名APIを分ける。#231の先行拒否を
+解消した三件も、元のrawのまま全streamと取得順の比較に含める。命名一致はremote cache保存・
+再利用の証明ではなく、I/O差は#232で追跡する。
+
+**cache-root は指定位置の cache 値で検証する。** 本家の Options#option callback は、
+cache false の後の root だけをその場で拒否する。root の後の false は受理し、途中の上書きや
+複数 root も順に扱う。先行 require は実行するが、拒否・help より後のものは実行しない。
+先行 feature の exit と at_exit を保ち、callback の色は初期 phase に従う。
+`cache_root_option_order.json`のWindows実CLI四十二条件とNative/wrapperの八十四実行を検査する。
+help本文・製品版のidentityを全stdout一致へ数えず、非runtime三十七条件の純粋な順序は全OSで検査する。
 
 **明示verbatimと内部canonicalのprefixを分ける。** Windowsの`File.absolute_path`は通常の
 末尾名だけを実名へ展開し、明示`\\?\`では大文字・8.3名も入力通りに残す。相対継承もその

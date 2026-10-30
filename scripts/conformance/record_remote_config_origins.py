@@ -21,7 +21,7 @@ from record_cache_parallel_preflight import (
 from record_config_cop_namespaces import LOADER
 
 FIXTURE = Path(__file__).resolve().parents[2] / "tests/fixtures/remote_config_origins.json"
-DATA_SHA256 = "8d8c0bcdf2c77092def77a4649ae86881ca282412804cb82271e12c30f9be626"
+DATA_SHA256 = "a00ea2fe62eed4cd1171fbbc7a4759f6647fdc500e6a39e5ab16a865069e7bef"
 API = (
     LOADER
     + """
@@ -44,7 +44,7 @@ puts JSON.generate(runtime:{ruby:RUBY_VERSION,platform:RUBY_PLATFORM,
 
 
 def template():
-    """元12条件を保持し、追加3条件と未解決3条件を明示した固定参照を読む。
+    """元12条件を保持し、追加3条件と昇格した3条件を保持した固定参照を読む。
 
     Returns:
         dict: 全型・全raw・出典を固定した独立参照。
@@ -68,9 +68,9 @@ def validate(value):
     if digest != DATA_SHA256:
         raise ValueError("固定参照の入力・型・raw・scopeが変わりました")
     _same(value["schema"], 1)
-    _same(len(value["cases"]), 12)
-    _same(len(value["blocked_cases"]), 3)
-    _same(value["coverage"]["blocked_by_issue"], 231)
+    _same(len(value["cases"]), 15)
+    _same(len(value["blocked_cases"]), 0)
+    _same(value["coverage"]["blocked_by_issue"], None)
     for row in value["cases"] + value["blocked_cases"]:
         _same(row["source_bytes_mtime_mode_preserved"], True)
         _same(row["exit"], 2 if row["id"] == "ambiguous" else 1)
@@ -312,7 +312,7 @@ def collect(ruby, work, output):
 
 
 def main():
-    """候補exeを受け取らず、未解決3行も含めて全記録を再採取する。"""
+    """候補exeを受け取らず、全15行を再採取する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ruby", type=Path, required=True)
     parser.add_argument("--work", type=Path, required=True)

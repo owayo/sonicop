@@ -460,3 +460,10 @@ tests/fixtures/inherit_glob_cli.json text eol=lf
 tests/fixtures/inherit_glob.json.PROVENANCE text eol=lf
 licenses/GLOB.txt text eol=lf
 licenses/LIBC.txt text eol=lf
+
+# cache-rootのcallback順と、先行require・補正後本文の実参照を保持する。
+scripts/conformance/record_cache_root_option_order.py text eol=lf
+scripts/conformance/test_record_cache_root_option_order.py text eol=lf
+tests/cache_root_option_order.rs text eol=lf
+tests/fixtures/cache_root_option_order.json text eol=lf
+tests/fixtures/cache_root_option_order.json.PROVENANCE text eol=lf
