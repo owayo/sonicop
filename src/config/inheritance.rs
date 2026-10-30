@@ -364,7 +364,7 @@ fn load_remote_with_inheritance(
 ///
 /// 本家の `yaml_tree_to_hash(...) || {}` に合わせ、空の設定と false は既定値を残す。
 /// それ以外の scalar を許すと既定設定全体が置換され、Include / Exclude や無効 cop を失う。
-fn parse_yaml_configuration(contents: &str, origin: impl Display) -> Result<Value> {
+pub(super) fn parse_yaml_configuration(contents: &str, origin: impl Display) -> Result<Value> {
     // 本家の ConfigLoader は BOM 付き設定を YAML として拒否する。通常の UTF-8 設定とは区別する。
     if contents.starts_with('\u{feff}') {
         bail!(

@@ -43,6 +43,19 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/cli/cache_root_warning.rs, src/config/mod.rs, src/cli.rs
+  tests/fixtures/cache_root_warning.json
+      Early and desired cache-root comparison, warning text and initial
+      color phase follow RuboCop 1.89.0 CacheConfig and CLI. Nineteen actual
+      Windows CLI records preserve six original cases and thirteen alias,
+      color and early-exit controls. Ten File.join inputs, sixteen actual
+      File.realpath observations and eleven warning pairs retain spelling
+      and junction/parent traversal boundaries. Dynamic roots are explicitly
+      bound; API logical LF and CLI physical CRLF remain separate.
+      Regenerate with scripts/conformance/record_cache_root_warning.py.
+      Adjacent .PROVENANCE records hashes and finite comparison scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/cli.rs, tests/fixtures/cache_parallel_preflight.json
       Explicit parallel/cache validation and its position before pending-cop
       reporting follow RuboCop 1.89.0 CLI#validate_options_vs_config and
