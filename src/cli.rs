@@ -12,7 +12,7 @@ use anyhow::{Context, Result, bail};
 use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
 
 use crate::config::{
-    AmbiguousConfigCopError, Config, ConfigStore, ConfigWarning, ConfigWarnings,
+    AmbiguousConfigCopError, Config, ConfigIoError, ConfigStore, ConfigWarning, ConfigWarnings,
     MissingConfigError, ObsoleteConfigError, TargetRubyGetterError, UnknownConfigError, cache_root,
 };
 use crate::cop_name::{self, selector_matches};
@@ -454,6 +454,10 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                 } else {
                     format!("{failure}\n")
                 };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<ConfigIoError>() {
+                // SystemCallErrorの先頭行を保つ。Ruby内部のbacktraceは生成しない。
+                let text = format!("{failure}\n");
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(missing) = error.downcast_ref::<MissingConfigError>() {
                 // ConfigNotFoundErrorだけはError:もOS detailも足さず、native改行を一度だけ通す。

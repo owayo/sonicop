@@ -162,25 +162,15 @@ fn missing_config_errors_match_the_real_body_without_hiding_other_io_errors() {
         );
         if case["kind"] == "io" {
             assert_eq!(case["error_class"], "Errno::EISDIR");
-            // 一般I/Oの全文互換とは呼ばず、同じOSへの実readを分類根拠にする。
-            let path = if case["id"] == "directory" {
-                folder.path().join("configdir")
-            } else {
-                folder.path().to_owned()
-            };
-            let io_error = fs::read_to_string(path).unwrap_err();
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            assert!(
-                stderr.contains(&io_error.to_string()),
-                "{}: {stderr}",
-                case["id"]
+            // 元の実APIが返したmessageを使い、一般I/Oの先頭行までを照合する。
+            let expected = format!(
+                "{}\r\n",
+                expand(
+                    case["error_message_template"].as_str().unwrap(),
+                    &display_cwd,
+                )
             );
-            assert!(
-                !stderr.contains("Configuration file not found:"),
-                "{}",
-                case["id"]
-            );
-            assert!(!stderr.contains("a value is required"), "{}", case["id"]);
+            assert_eq!(output.stderr, native(expected.as_bytes()), "{}", case["id"]);
         } else {
             let expected = String::from_utf8(bytes(case["stderr_hex"].as_str().unwrap())).unwrap();
             assert_eq!(

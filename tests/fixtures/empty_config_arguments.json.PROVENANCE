@@ -40,3 +40,8 @@ Windowsの実CLIに限る測定で、Unix実CLIの同じ20条件や全コーパ�
 
 fixture SHA256: 5fa5b7601c5004b54e1e069a0cdcd8beb87963aee190e43e8bcb820aa56e7b03
 collector SHA256: 878857b215f188777f2e76fb725dce3a53ea1e5c8596b99e160bbd0af1b95b19
+
+#209の更新: 元20参照は変更せず、I/O十一条件のNative回帰をOS envelopeから
+実stderr_first_lineとCRLFの厳密比較へ昇格した。原本・既存out保持、他六条件の範囲も保つ。
+上の「一般I/O未一致」は#147時点の記録で、現在は先頭行のみ一致する。
+Ruby内部backtraceは参照に保持し、Native全文一致とは呼ばない。

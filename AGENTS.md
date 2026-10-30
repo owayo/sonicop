@@ -118,6 +118,13 @@ originから展開し、namespace表示の直前でprefixを一括除去しな�
 OSが生成したcanonicalのprefixを除く。`verbatim_config_origins.json`の実API十行とCLI十条件
 （実Ruby登録二件を含む）はWindows限定とし、通常の短縮名・欠落設定・remoteの対照も保つ。
 
+**設定I/Oの種類はOSの分類だけで決めない。** Windowsのdirectory readはアクセス拒否5、
+共有違反32はRustでUncategorizedになる。本家のEISDIR/EACCESへ合わせる際は、実I/O失敗の後で
+対象がdirectoryか通常fileかを確認し、全アクセス拒否や全Uncategorizedを変換しない。
+Missingの経路と他のI/O故障を保つ。`config_io_error_headers.json`の十CLIと五APIはWindows実測。
+原本・directory・既存reportの保持と、Ruby内部frameを除く先頭行の全bytesを検査し、
+参照へ保持したbacktraceをNative全文一致の成功へ数えない。
+
 **Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
 root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
 every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside

@@ -31,6 +31,20 @@ impl MissingConfigError {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct ConfigIoError {
+    reason: &'static str,
+    path: String,
+}
+
+impl fmt::Display for ConfigIoError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{} @ rb_sysopen - {}", self.reason, self.path)
+    }
+}
+
+impl std::error::Error for ConfigIoError {}
+
 /// Missing表示も通常のoriginも、File.absolute_pathの入力表記から展開する。
 pub(super) fn absolute_config_error_origin(path: &Path) -> io::Result<PathBuf> {
     Ok(absolute_config_spelling(path, &std::env::current_dir()?))
@@ -60,6 +74,31 @@ fn absolute_config_spelling(path: &Path, cwd: &Path) -> PathBuf {
 }
 
 pub(super) fn config_io_error(path: &Path, error: io::Error) -> anyhow::Error {
+    // Windowsの共有違反32はUncategorizedになる。全Uncategorizedや全アクセス拒否は混ぜない。
+    let permission = error.kind() == io::ErrorKind::PermissionDenied
+        || (cfg!(windows) && error.raw_os_error() == Some(32));
+    let directory = error.kind() == io::ErrorKind::IsADirectory
+        || (cfg!(windows) && error.raw_os_error() == Some(5));
+    if permission || directory {
+        let metadata = fs::metadata(path).ok();
+        // 他OSのACLによるPermissionDeniedを、Windowsのdirectory readへ読み替えない。
+        let reason = if directory && metadata.as_ref().is_some_and(fs::Metadata::is_dir) {
+            Some("Is a directory")
+        } else if permission && metadata.as_ref().is_some_and(fs::Metadata::is_file) {
+            Some("Permission denied")
+        } else {
+            None
+        };
+        if let Some(reason) = reason
+            && let Ok(origin) = absolute_config_origin(path)
+        {
+            return ConfigIoError {
+                reason,
+                path: origin.to_string_lossy().replace('\\', "/"),
+            }
+            .into();
+        }
+    }
     if error.kind() != io::ErrorKind::NotFound {
         return error.into();
     }
@@ -419,6 +458,78 @@ mod tests {
         );
         assert_eq!(missing.to_string(), expected);
         assert!(missing.color());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn real_io_failures_match_five_actual_config_loader_api_results() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/config_io_error_headers.json"
+        ))
+        .unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        for (name, body) in fixture["api_files"].as_object().unwrap() {
+            std::fs::write(directory.path().join(name), body.as_str().unwrap()).unwrap();
+        }
+        std::fs::create_dir(directory.path().join("configdir")).unwrap();
+        let cwd = windows_name(directory.path(), false);
+        let bind = |text: &str| {
+            text.replace("<CWD_FWD>", &cwd.replace('\\', "/"))
+                .replace("<CWD>", &cwd)
+        };
+        let guard = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(directory.path().join("locked.yml"))
+            .unwrap();
+        let rows = fixture["api"].as_array().unwrap();
+        assert_eq!(rows.len(), 5);
+        for row in rows {
+            let path = bind(row["path"].as_str().unwrap());
+            let actual = std::fs::read_to_string(&path);
+            if row["kind"] == "value" {
+                assert_eq!(actual.unwrap().as_bytes(), b"{}\n");
+            } else {
+                let error = super::config_io_error(Path::new(&path), actual.unwrap_err())
+                    .context("outer reader");
+                let message = if row["class"] == "RuboCop::ConfigNotFoundError" {
+                    error
+                        .downcast_ref::<super::MissingConfigError>()
+                        .unwrap()
+                        .to_string()
+                } else {
+                    error
+                        .downcast_ref::<super::ConfigIoError>()
+                        .unwrap()
+                        .to_string()
+                };
+                assert_eq!(
+                    message,
+                    bind(row["message"].as_str().unwrap()),
+                    "{}",
+                    row["id"]
+                );
+            }
+        }
+        drop(guard);
+        // 属性不明や別のI/O故障を、確認できたdirectory/通常fileの診断へ誤変換しない。
+        let path = directory.path().join("readable.yml");
+        for kind in [
+            std::io::ErrorKind::InvalidData,
+            std::io::ErrorKind::NotADirectory,
+        ] {
+            let error = super::config_io_error(&path, std::io::Error::new(kind, "kept"));
+            assert_eq!(error.downcast_ref::<std::io::Error>().unwrap().kind(), kind);
+        }
+        let error = super::config_io_error(
+            &directory.path().join("configdir"),
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "kept"),
+        );
+        assert_eq!(
+            error.downcast_ref::<std::io::Error>().unwrap().to_string(),
+            "kept"
+        );
     }
 
     #[test]
