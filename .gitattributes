@@ -390,10 +390,19 @@ tests/fixtures/cache_parallel_preflight.json text eol=lf
 tests/fixtures/cache_parallel_preflight.json.PROVENANCE text eol=lf
 
 # cache rootの警告と実パスの動的bindingをLF containerで保持する。
-src/cli/cache_root_warning.rs text eol=lf
+src/config/cache_root.rs text eol=lf
 scripts/conformance/record_cache_root_warning.py text eol=lf
 scripts/conformance/test_record_cache_root_warning.py text eol=lf
 tests/cache_root_warning.rs text eol=lf
 tests/support/cache_root_paths.rs text eol=lf
 tests/fixtures/cache_root_warning.json text eol=lf
 tests/fixtures/cache_root_warning.json.PROVENANCE text eol=lf
+
+# remoteの取得URLと警告出典の実参照を、動的bindingのままLFで保存する。
+src/config/remote_origin.rs text eol=lf
+scripts/conformance/record_remote_config_origins.py text eol=lf
+scripts/conformance/test_record_remote_config_origins.py text eol=lf
+tests/remote_config_origins.rs text eol=lf
+tests/fixtures/remote_config_origins.json text eol=lf
+tests/fixtures/remote_config_origins.json.PROVENANCE text eol=lf
+licenses/MD5.txt text eol=lf

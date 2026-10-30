@@ -105,6 +105,13 @@ each response may contain at most 5 MiB. `ureq` rejects a body whose length equa
 to `BodyWithConfig::limit`, so pass one byte beyond the logical maximum. Preserve tests for both the
 exact limit and the first rejected byte when changing this path.
 
+**remoteの取得URLと診断出典を分ける。** namespaceの出典はRemoteConfigのcache名に合わせるが、
+HTTP取得・相対継承・memoのkeyには元URLを残す。明示configのremote読込はCLI root反映前に
+軽量rootを固定し、act_on_optionsでdesiredへ更新した後は入れ子設定にも同じrootを渡す。
+URIのscheme・既定portを本家のto_sへ揃えてからMD5を取り、stemは217 bytesまでにする。
+`remote_config_origins.json`のWindows CLIと純粋な命名APIを分け、#231の先行拒否三件を
+成功件数へ混ぜない。命名一致はremote cache保存・再利用の証明ではなく、I/O差は#232で追跡する。
+
 **Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
 root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
 every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside

@@ -13,7 +13,7 @@ use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error:
 
 use crate::config::{
     AmbiguousConfigCopError, Config, ConfigStore, ConfigWarning, ConfigWarnings,
-    MissingConfigError, ObsoleteConfigError, TargetRubyGetterError, UnknownConfigError,
+    MissingConfigError, ObsoleteConfigError, TargetRubyGetterError, UnknownConfigError, cache_root,
 };
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
@@ -36,7 +36,6 @@ use crate::{RUBOCOP_COMPAT_VERSION, VERSION};
 #[path = "cache_string_printable_table.rs"]
 mod cache_string_printable_table;
 
-mod cache_root_warning;
 mod config_yaml;
 
 #[cfg(any(windows, test))]
@@ -946,7 +945,14 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         },
     );
     let runtime = cli.ruby_runtime.clone().unwrap_or_default();
-    let config_warnings = config_warnings.with_runtime(Arc::clone(&runtime));
+    let config_warnings = config_warnings
+        .with_runtime(Arc::clone(&runtime))
+        // 明示configのremote読込はapply_options!内なので、CLI root反映より先に走る。
+        .with_cache_root(if cli.config.is_none() {
+            cli.cache_root.clone()
+        } else {
+            None
+        });
     runtime.phase(false, warning_color.load(Ordering::Relaxed));
     let phase = Arc::clone(&warning_color);
     try_run_with_warning_phase(
@@ -998,7 +1004,12 @@ fn try_run_with_warning_phase(
             } else {
                 Config::inferred_cache_root_for_cli(&cwd, &config_warnings)?
             };
-        cache_root_warning::report(&cli, &cwd, desired.as_deref(), &config_warnings)?;
+        cache_root::report(
+            cli.cache_root.as_deref(),
+            &cwd,
+            desired.as_deref(),
+            &config_warnings,
+        )?;
         write_output(&format!("{VERSION}\n"), None, false)?;
         return Ok(0);
     }
@@ -1010,8 +1021,8 @@ fn try_run_with_warning_phase(
             cli.force_default_config,
             &config_warnings,
         )?;
-        cache_root_warning::report(
-            &cli,
+        cache_root::report(
+            cli.cache_root.as_deref(),
             &cwd,
             config
                 .all_cops_value::<String>("CacheRootDirectory")
@@ -1045,8 +1056,8 @@ fn try_run_with_warning_phase(
         &config_warnings,
     )?;
     validate_config(&config, cli.ignore_unrecognized_cops)?;
-    cache_root_warning::report(
-        &cli,
+    cache_root::report(
+        cli.cache_root.as_deref(),
         &cwd,
         config
             .all_cops_value::<String>("CacheRootDirectory")

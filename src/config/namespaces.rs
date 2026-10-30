@@ -129,7 +129,7 @@ pub(super) fn qualified_for_pending(
 
 pub(super) enum Origin<'a> {
     File(&'a Path),
-    Remote(&'a str),
+    Remote(&'a Path),
 }
 
 pub(super) fn normalize(
@@ -143,7 +143,7 @@ pub(super) fn normalize(
         return Ok(String::new());
     };
     let (full, display) = match origin {
-        Origin::File(path) => {
+        Origin::File(path) | Origin::Remote(path) => {
             // canonicalizeのWindows API prefixはRubyの表示に含まれない。
             let full = path.to_string_lossy().replace('\\', "/");
             let full = if let Some(unc) = full.strip_prefix("//?/UNC/") {
@@ -154,7 +154,6 @@ pub(super) fn normalize(
             let display = crate::formatter::smart_path(Path::new(&full), &std::env::current_dir()?);
             (full, display)
         }
-        Origin::Remote(url) => (url.to_owned(), url.to_owned()),
     };
     if runtime.active() {
         let names = keys

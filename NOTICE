@@ -23,6 +23,13 @@ licence position checkable rather than remembered.
 WHAT IS TAKEN
 ================================================================================
 
+md5 -- https://github.com/stainless-steel/md5 -- MIT (selected option)
+  Copyright 2015–2026 The md5 Developers
+
+  Cargo dependency md5 0.8.1, used by src/config/remote_origin.rs
+      Computes the URI digest used in RuboCop's remote-configuration name.
+      Full selected licence text: licenses/MD5.txt.
+
 Parallel -- https://github.com/grosser/parallel -- MIT
   Copyright (C) 2013 Michael Grosser <michael@grosser.it>
 
@@ -43,7 +50,21 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
-  src/cli/cache_root_warning.rs, src/config/mod.rs, src/cli.rs
+  src/config/remote_origin.rs, src/config/cache_root.rs
+  src/config/inheritance.rs, src/config/namespaces.rs, src/config/validation.rs
+  src/cli.rs, tests/fixtures/remote_config_origins.json
+      Cache-source naming and initial-root timing adapted from RuboCop
+      1.89.0 RemoteConfig, CacheConfig, ConfigLoader and CLI. Twelve actual
+      naming API rows and fifteen actual Windows CLI records retain all
+      streams and original attributes. Twelve accepted CLI conditions are
+      compared; three further records retain an independent CLI restriction
+      tracked in issue 231. Regenerate with
+      scripts/conformance/record_remote_config_origins.py. The adjacent
+      .PROVENANCE records bindings, source hashes and finite scope; naming
+      comparisons do not assert native persistence or HTTP-cache reuse.
+      Full licence text: licenses/RUBOCOP.txt.
+
+  src/config/cache_root.rs, src/config/mod.rs, src/cli.rs
   tests/fixtures/cache_root_warning.json
       Early and desired cache-root comparison, warning text and initial
       color phase follow RuboCop 1.89.0 CacheConfig and CLI. Nineteen actual

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+pub(crate) mod cache_root;
 mod inheritance;
 mod loader;
 mod namespaces;
@@ -6,6 +7,7 @@ mod new_cops;
 mod obsoletion;
 mod paths;
 mod pending_cops;
+mod remote_origin;
 mod runtime;
 mod store;
 mod unrecognized;

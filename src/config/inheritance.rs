@@ -286,6 +286,10 @@ fn load_remote_with_inheritance(
     if !visited.insert(url.to_owned()) {
         bail!("circular remote inherit_from detected at {url}");
     }
+    // 取得元のURLと、Registryが出典として表示するRemoteConfigの名前を分ける。
+    let cwd = std::env::current_dir()?;
+    let root = super::cache_root::for_remote(resolved.warnings.as_ref(), &cwd)?;
+    let remote_origin = super::remote_origin::path(url, &root, &cwd)?;
     let contents = fetch_remote_config(url)?;
     let mut current = parse_yaml_configuration(&contents, url)?;
     let mut keys = OrderedKeys::from_value(&current);
@@ -316,7 +320,7 @@ fn load_remote_with_inheritance(
     let display = match namespaces::normalize(
         &mut value,
         &mut keys,
-        Origin::Remote(url),
+        Origin::Remote(&remote_origin),
         &mut namespace_warnings,
         &resolved.runtime,
     ) {
