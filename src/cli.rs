@@ -481,6 +481,14 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                     format!("Error: {unknown}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(invalid) = error.downcast_ref::<crate::config::InvalidNewCopsError>()
+            {
+                let text = if invalid.color() {
+                    format!("\x1b[31mError: {invalid}\x1b[0m\n")
+                } else {
+                    format!("Error: {invalid}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<FormatterLookupFailure>() {
                 // builtin_formatter_class は名前を原文で埋め込み、Ruby の frame と分ける。
                 let suggestion =
@@ -943,6 +951,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
         let error = crate::config::RuntimeError::with_color(error, color);
+        let error = crate::config::InvalidNewCopsError::with_color(error, color);
         AmbiguousConfigCopError::with_color(
             ObsoleteConfigError::with_color(
                 UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),

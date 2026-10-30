@@ -1,0 +1,61 @@
+実参照: Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+2026-10-28の独立した実CLI64条件へ、2026-10-30に実測した14条件を追加した。
+元64の全fields/rawは維持し、入れ子4条件のcomparisonだけをfull-reportへ昇格した。
+schema:1と有限比較scopeを追加し、候補exeから期待値を作っていない。
+元参照container SHA256: 32469d1b2fd87e30162ca031b756daa918f6250f5a6740f4e6bb53f5f3a2389d
+
+再採取（固定Windows Ruby/gemと存在しないwork/outが必要）:
+  python scripts/conformance/record_new_cops_validation.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+namespace採取器のLOADER/VERSIONS/reference_environmentだけを共用する。
+実API一件でruntime/gem版とConfigValidator/ConfigLoaderのsource SHA二件を取得し、CLI78件を逐次実行する。
+全79processの型・終了・raw・入力属性・report状態を検証した後だけexclusiveで保存する。
+比較対象の定義・全入力・全raw・scopeはcanonical SHAで固定し、部分集合を成功へ数えない。
+source SHAはJSON runtime.source_sha256に保持する。
+
+比較範囲:
+- 初期NewCops拒否53件と先行error5件: stdout空、stderrの全bytes、終了2、原本と既存outの保持。
+- 受理16件: JSONの全fields（実engine/仕様版確認後のmetadataだけを分ける）、全stderr、終了0と原本保持。
+- 入れ子4件: stderrの全bytesと色・終了2、empty-finished JSONの全fields、target1/inspected0/files空と原本保持。
+  既存152でstdout境界が揃ったため、元4件の保存済みJSONを省略せず検査する。
+全stdout/stderrと既存outの元bytesはhexで保存する。非Windowsはreport輸送のCRLFだけをLFへ投影する。
+非Windowsの実Ruby採取を行ったとは主張しない。Ruby/config/Gemfile/probe/sentinel原本はUTF-8 LFの構築入力。
+
+AllCopsはnull/pending/disable/enableだけを許容し、部門は追加でNumber又はASCII数字のdot列を許容する。
+falseはnullへ読み替えない。AllCopsを先に、本家Hashの検証順で部門を調べる。
+namespace→fatal廃止項目→unknown→NewCops→一般parameterの順と、情報表示より前の明示設定拒否を保つ。
+元64は明示disable-pending-copsで157の通知と分離する。force-defaultの明示/探索、inherit親/子、
+TargetRuby/unknown/obsolete/parameter/earlySyntax/badCacheの先行関係も同じ元rawへ照合する。
+初期の--colorはまだ反映せず、CLICOLOR_FORCE=1は初期--no-colorでも赤を保つ。後段はeffectiveな色を使う。
+quiet libraryはNewCopsの無効値だけを無出力で拒否し、既存の未知名metadata契約は保つ。
+共有validation traceの妥当な部分木を省略し、無効値の検査はignore-unrecognizedでも失わない。
+
+追加14件: 小さいFloat、符号付きの大きいFloat、NaN/Infinity/-Infinity/-0.0、Array/Hash内の表示、
+継承後の部門順二件、requireで実登録したExample部門の拒否/受理二件。
+large-floatというIDの無符号1.0e20は実際にはPsychのStringで、1.0e+20はFloatである。
+型とto_sは別のConfigLoader.load_yaml_configuration APIでも実確認した。
+任意のFloat/String#inspect、全optional gem/JRuby構成の完全互換をこの有限集合から主張しない。
+実require二件は固定Ruby/RuboCopがないローカルでは明示的に未計測とし、CIのSONICOP_RUNTIME_TESTS=1では欠落を失敗にする。
+実runtimeのRuby版はmise.tomlに従い、Windowsでは4.0.7、Linux/macOSでは4.0.8を要求する。
+Windowsで採取した参照記録の4.0.7と、各OSで実行する固定版の確認を分ける。
+通常条件はNativeのPATHを空にし、Rubyを起動せず検査する。
+
+private-process.jsonに全channelを先に保存し、private-run0.jsonに入力のbytes/mtime_ns/modeとreportの前後状態を保持する。
+既存sentinelも不変bytesの再書込みを許さない。entryはlstatで通常fileと確認してから読む。
+work/outの通常・dangling entry、別表記・両方向の親子を子起動前に拒否し、完成outはexclusive openする。
+ENV4とambient NO_COLORは子copyから除き、TERM=dumb、case固有のCLICOLOR_FORCE/cacheを明示する。
+親とGEM/PATH/OSは保持する。13契約テストは通常/-Oで、独立したbytes/mtime/mode、同一本文sentinel再書込み、
+API/CLI前後の通常/実dangling出力、型/版/出典、空/重複report、別error/色/stream、途中失敗・保存競合を検査する。
+dangling負対照は実作成を別に観測し、補助関数の失敗を採取器の拒否へ混ぜない。
+
+RuboCop由来の検証・参照資料はMIT、Copyright (c) 2012-26 Bozhidar Batsov。
+全文はlicenses/RUBOCOP.txt。NOTICEにも出典を記載する。
+
+2026-10-30の公開collectorによるfresh再採取は初回終了0で全79processが完了した。
+元64の全raw/fieldsと追加14の実入力・rawを独立照合し、入力254観測のbytes/mtime/modeが不変だった。
+report不在はAPI一件とCLI77件、既存sentinel一件は本文・mtime・modeまで保持した。
+20個のJSON reportとsource SHA二件も独立に照合した。
+
+fixture SHA256: d519c683c2f36915fcd021191ee917d7603aa66024ba5b68623437f6d8e34caa
+collector SHA256: 573de606a1e2b9d3af8d8678796d3e87d519ebed516e0e4989e11f3da5922ed3
+contract SHA256: 95630e9bf1a98ba0a302760b64b7b82ec371d065fac0e40f357d8fe2cc994984

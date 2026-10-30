@@ -373,3 +373,11 @@ tests/parallel_fork_fallback.rs text eol=lf
 tests/fixtures/parallel_fork_fallback.json text eol=lf
 tests/fixtures/parallel_fork_fallback.json.PROVENANCE text eol=lf
 licenses/PARALLEL.txt text eol=lf
+
+# NewCopsの型・検証phaseの実rawと採取器はLF containerで保持する。
+src/config/new_cops.rs text eol=lf
+scripts/conformance/record_new_cops_validation.py text eol=lf
+scripts/conformance/test_record_new_cops_validation.py text eol=lf
+tests/new_cops_validation.rs text eol=lf
+tests/fixtures/new_cops_validation.json text eol=lf
+tests/fixtures/new_cops_validation.json.PROVENANCE text eol=lf
