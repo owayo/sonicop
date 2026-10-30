@@ -218,16 +218,16 @@ fn inspect(row: &Value, fixture: &Value) -> bool {
 }
 
 #[test]
-fn remote_namespaces_match_twelve_actual_root_phase_order_and_runtime_conditions() {
+fn remote_namespaces_match_fifteen_actual_root_phase_order_and_runtime_conditions() {
     let fixture: Value =
         serde_json::from_str(include_str!("fixtures/remote_config_origins.json")).unwrap();
-    assert_eq!(fixture["cases"].as_array().unwrap().len(), 12);
-    assert_eq!(fixture["blocked_cases"].as_array().unwrap().len(), 3);
-    assert_eq!(fixture["coverage"]["blocked_by_issue"], 231);
-    // 有効なflagを先に拒否する#231の三記録は保持し、root比較の成功件数へ混ぜない。
+    assert_eq!(fixture["cases"].as_array().unwrap().len(), 15);
+    assert_eq!(fixture["blocked_cases"].as_array().unwrap().len(), 0);
+    assert!(fixture["coverage"]["blocked_by_issue"].is_null());
+    // #231の先行拒否を解消し、元の三記録も全streamとHTTP順の比較へ含める。
     let mut complete = 0;
     for row in fixture["cases"].as_array().unwrap() {
         complete += usize::from(inspect(row, &fixture));
     }
-    assert_eq!(complete, if ruby().is_some() { 12 } else { 11 });
+    assert_eq!(complete, if ruby().is_some() { 15 } else { 14 });
 }

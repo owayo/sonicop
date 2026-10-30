@@ -21,8 +21,8 @@ from test_record_cache_parallel_preflight import _dangling_entry, _remove_entry
 class RemoteOriginRecorderContract(unittest.TestCase):
     """実I/Oと独立した破損を使い、誤ったerrorによる偽成功を拒否する。"""
 
-    def test_fixture_keeps_all_fifteen_rows_types_raw_and_blocked_scope(self):
-        """未解決3行の削除・型混同・raw/出典/比較範囲の変更を拒否する。"""
+    def test_fixture_keeps_all_fifteen_rows_types_raw_and_completed_scope(self):
+        """昇格した三行の欠落・型混同・raw/出典/比較範囲の変更を拒否する。"""
         value = recorder.template()
         self.assertEqual(len(value["cases"]) + len(value["blocked_cases"]), 15)
         for mutation in ("empty", "blocked", "exit", "scope", "source", "raw", "cache"):
@@ -30,7 +30,7 @@ class RemoteOriginRecorderContract(unittest.TestCase):
             if mutation == "empty":
                 data["cases"] = []
             elif mutation == "blocked":
-                data["blocked_cases"] = []
+                data["blocked_cases"] = [copy.deepcopy(data["cases"][-1])]
             elif mutation == "exit":
                 data["cases"][0]["exit"] = True
             elif mutation == "scope":
