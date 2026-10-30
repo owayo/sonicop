@@ -1436,11 +1436,17 @@ fn result_cache(
     selection: &Selection,
     config: &Config,
 ) -> Result<Option<ResultCache>> {
-    // Profiling reports what inspecting the files costs, so it serves cached reports to nobody --
-    // unless the run asks for the cache in as many words, which is how the cost of a cache *hit*
-    // gets measured at all.
+    // Runner#cached_run?はCLI明示値を優先し、for_pwdの設定ではfalse/nullを偽にする。
+    let requested = match cli.cache.as_deref() {
+        Some(value) => value == "true",
+        None => !matches!(
+            config.all_cops_value::<serde_yaml_ng::Value>("UseCache"),
+            None | Some(serde_yaml_ng::Value::Null | serde_yaml_ng::Value::Bool(false))
+        ),
+    };
+    // 通常のprofileは検査自体を測る。cache hitの費用は--cache trueの明示時だけ測る。
     let profiling = std::env::var_os("SONICOP_PROFILE").is_some();
-    let enabled = cli.cache.as_deref() != Some("false")
+    let enabled = requested
         && !crate::ProjectIndex::enabled(config)
         && !selection.correcting
         && cli.stdin.is_none()

@@ -119,6 +119,16 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       .PROVENANCE records source hashes, preservation and finite scope.
       Full licence text: licenses/RUBOCOP.txt.
 
+  src/cli.rs, tests/fixtures/configured_result_cache.json
+      Result-cache eligibility follows RuboCop 1.89.0 Runner#cached_run?,
+      including explicit CLI overrides and the root configuration's truthiness.
+      Twenty-one actual CLI conditions are each recorded twice with full
+      streams, complete reports, input preservation and cache presence.
+      Cache file formats are not compared between engines. Regenerate with
+      scripts/conformance/record_configured_result_cache.py. The adjacent
+      .PROVENANCE records source hashes and the finite comparison scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/config/new_cops.rs, src/config/validation.rs, src/config/namespaces.rs
   src/config/mod.rs, src/cli.rs, tests/fixtures/new_cops_validation.json
       NewCops type choices, department versions and validation order adapted
