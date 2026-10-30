@@ -934,7 +934,7 @@
         "raw_stderr_sha256": "d02435e9c12c505c40a9ce0a9059abfbe4c6ded610c8051c326ca9825c8f0c16",
         "raw_output_sha256": {}
       },
-      "coverage": "deferred_158"
+      "coverage": "strict"
     },
     {
       "id": "cache-single",
@@ -1048,7 +1048,7 @@
         "raw_stderr_sha256": "f2000e7135f89b186d1c56323ce43b531bd5c051eed0908b8a522a9962a1fca8",
         "raw_output_sha256": {}
       },
-      "coverage": "deferred_158"
+      "coverage": "strict"
     },
     {
       "id": "multiple",
@@ -1344,7 +1344,7 @@
         "raw_stderr_sha256": "e98196888a6162b5b9c494d1835735cc08491e88433e4a92ff7ab7c5cb3d5add",
         "raw_output_sha256": {}
       },
-      "coverage": "deferred_158"
+      "coverage": "strict"
     },
     {
       "id": "stdin-single",
@@ -2137,7 +2137,7 @@
         "raw_stderr_sha256": "0575ce46386869441318a2a827595a94599fbc1e61be4b474badcdb5da8c6059",
         "raw_output_sha256": {}
       },
-      "coverage": "deferred_158"
+      "coverage": "strict"
     }
   ],
   "schema": 1,

@@ -365,3 +365,11 @@ src/config/pending_cops.rs text eol=lf
 tests/pending_cops.rs text eol=lf
 tests/fixtures/pending_cops.json text eol=lf
 tests/fixtures/pending_cops.json.PROVENANCE text eol=lf
+
+# Windowsのfork通知と採取元licenseをLF containerで保存する。
+scripts/conformance/record_parallel_fork_fallback.py text eol=lf
+scripts/conformance/test_record_parallel_fork_fallback.py text eol=lf
+tests/parallel_fork_fallback.rs text eol=lf
+tests/fixtures/parallel_fork_fallback.json text eol=lf
+tests/fixtures/parallel_fork_fallback.json.PROVENANCE text eol=lf
+licenses/PARALLEL.txt text eol=lf

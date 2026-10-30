@@ -126,15 +126,17 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
     let mut strict = 0;
     for case in cases {
         let id = case["id"].as_str().unwrap();
-        let coverage = match id {
-            "correct-parallel" | "cache-parallel" | "stderr-parallel" | "unvisited-config" => {
-                "deferred_158"
-            }
-            "out-is-directory" => "open_envelope",
-            _ => "strict",
+        let windows_fork = matches!(
+            id,
+            "correct-parallel" | "cache-parallel" | "stderr-parallel" | "unvisited-config"
+        );
+        let coverage = if id == "out-is-directory" {
+            "open_envelope"
+        } else {
+            "strict"
         };
         assert_eq!(case["coverage"], coverage, "{id}");
-        if !cfg!(windows) && coverage == "deferred_158" {
+        if !cfg!(windows) && windows_fork {
             // 原4条件はWindowsのfork非対応fallback。未測定のUnix fork動作へ読み替えない。
             continue;
         }
@@ -202,21 +204,7 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
             differences.push(format!("{id}: stdout {actual:?} != {expected_stdout:?}"));
         }
         let stderr = template(&output.stderr, root);
-        let mut expected_stderr = native(&expected["stderr_hex"]);
-        if case["coverage"] == "deferred_158" {
-            let notice = native(&Value::String(
-                "parallel: Process.fork is not supported by this Ruby\r\n"
-                    .as_bytes()
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect(),
-            ));
-            let start = expected_stderr
-                .windows(notice.len())
-                .position(|part| part == notice)
-                .unwrap();
-            expected_stderr.drain(start..start + notice.len());
-        }
+        let expected_stderr = native(&expected["stderr_hex"]);
         if expected["stderr_contract"] == "open-error" {
             // generic Ruby backtraceは対象外。openが設定訪問より先であることを検査する。
             if stderr.is_empty() || String::from_utf8_lossy(&stderr).contains("nested/.rubocop.yml")
@@ -276,7 +264,7 @@ fn late_config_failures_keep_finished_reports_and_only_the_completed_prefix_writ
         }
     }
     assert_eq!(executed, if cfg!(windows) { 38 } else { 34 });
-    assert_eq!(strict, 33);
+    assert_eq!(strict, if cfg!(windows) { 37 } else { 33 });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
 
