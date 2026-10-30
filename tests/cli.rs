@@ -4948,6 +4948,20 @@ fn numeric_predicate_keeps_the_original_when_upstream_writes_invalid_ruby() {
 #[test]
 fn nested_heredocs_preserve_physical_reads_across_parser_settings() {
     let fixture = support::nested_heredocs::fixture();
+    let validation: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/target_ruby_validation.json")).unwrap();
+    let rejected = validation["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "discovered-prism-27-run")
+        .unwrap();
+    let hex = rejected["stdout_hex"].as_str().unwrap();
+    let bytes: Vec<_> = (0..hex.len())
+        .step_by(2)
+        .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+        .collect();
+    let rejection_report: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(fixture["cases"].as_array().unwrap().len(), 7);
     assert_eq!(fixture["profiles"].as_array().unwrap().len(), 9);
     let mut checked = 0;
@@ -5001,7 +5015,20 @@ fn nested_heredocs_preserve_physical_reads_across_parser_settings() {
                                 .contains(expected["error"].as_str().unwrap()),
                             "{label}"
                         );
-                        assert!(output.stdout.is_empty(), "{label}");
+                        // 本家はparser作成に失敗してもfinishedを呼ぶ。六条件の実CLIも同じJSONを返す。
+                        let mut found: serde_json::Value =
+                            serde_json::from_slice(&output.stdout).unwrap();
+                        let mut reference = rejection_report.clone();
+                        assert_eq!(found["metadata"]["sonicop_version"], sonicop::VERSION);
+                        assert_eq!(found["metadata"]["ruby_engine"], "sonicop");
+                        assert_eq!(found["metadata"]["ruby_version"], "n/a");
+                        assert_eq!(found["metadata"]["ruby_platform"], std::env::consts::OS);
+                        for key in validation["metadata_identity_keys"].as_array().unwrap() {
+                            let key = key.as_str().unwrap();
+                            found["metadata"].as_object_mut().unwrap().remove(key);
+                            reference["metadata"].as_object_mut().unwrap().remove(key);
+                        }
+                        assert_eq!(found, reference, "{label}");
                     } else {
                         let found: serde_json::Value =
                             serde_json::from_slice(&output.stdout).unwrap();

@@ -499,6 +499,15 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) =
+                error.downcast_ref::<crate::ruby_version::ConfigTargetError>()
+            {
+                let text = if failure.color() {
+                    format!("\x1b[31mError: {failure}\x1b[0m\n")
+                } else {
+                    format!("Error: {failure}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) =
                 error.downcast_ref::<crate::ruby_version::ParserTargetError>()
             {
                 // parserの対象版拒否も、finished後に元の先頭行だけを表示する。
@@ -1018,6 +1027,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
         let error = crate::config::RuntimeError::with_color(error, color);
+        let error = crate::ruby_version::ConfigTargetError::with_color(error, color);
         let error = crate::config::InvalidNewCopsError::with_color(error, color);
         AmbiguousConfigCopError::with_color(
             ObsoleteConfigError::with_color(
@@ -1073,6 +1083,7 @@ fn try_run_with_warning_phase(
             &cwd,
             cli.force_default_config,
             &config_warnings,
+            cli.cache_root.is_none() && std::env::var_os("RUBOCOP_CACHE_ROOT").is_none(),
         )?;
         cache_root::report(
             cli.cache_root.as_deref(),
@@ -1107,6 +1118,7 @@ fn try_run_with_warning_phase(
         &cwd,
         cli.force_default_config,
         &config_warnings,
+        true,
     )?;
     validate_config(&config, cli.ignore_unrecognized_cops)?;
     cache_root::report(

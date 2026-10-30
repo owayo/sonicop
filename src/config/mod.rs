@@ -24,7 +24,7 @@ use serde_yaml_ng::{Mapping, Value};
 
 use crate::cop_name;
 use crate::ruby_version::{
-    ResolvedTargetRuby, RubyVersion, TargetRubySource, resolve_target_ruby, validate_supported,
+    ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
 };
 
 use inheritance::{load_recorded_in_context, merge_config};
@@ -137,7 +137,11 @@ impl Config {
         cwd: &Path,
         force_default: bool,
     ) -> Result<Self> {
-        Self::load_internal(explicit, cwd, force_default, None, false)
+        let config = Self::load_internal(explicit, cwd, force_default, None, false)?;
+        if explicit.is_none() && !force_default {
+            config.validate_resolved_target()?;
+        }
+        Ok(config)
     }
 
     /// ConfigStore.apply_options!の検証とmerge-defaultまでを観測し、最終TargetRuby解決を早めない。
@@ -184,16 +188,8 @@ impl Config {
         cwd: &Path,
         warnings: &ConfigWarnings,
     ) -> Result<Option<String>> {
-        let Some((path, origin)) = find_config_with_origin(cwd) else {
-            return Self::default_cache_root_for_cli(warnings);
-        };
-        let root = Self::observe_file_for_cli(&origin, warnings)?;
-        if warnings.parent_exclusion
-            && let Some(parent) = loader::parent_exclusion_config(&path, &origin, cwd)
-        {
-            Self::observe_file_for_cli(&parent, warnings)?;
-        }
-        Ok(root)
+        let config = Self::load_for_cli(None, cwd, false, warnings, true)?;
+        Ok(config.all_cops_value("CacheRootDirectory"))
     }
 
     pub(crate) fn load_for_cli(
@@ -201,8 +197,13 @@ impl Config {
         cwd: &Path,
         force_default: bool,
         warnings: &ConfigWarnings,
+        validate_resolution: bool,
     ) -> Result<Self> {
         let config = Self::load_internal(explicit, cwd, force_default, Some(warnings), true)?;
+        // options_configとforce-defaultはConfigValidator#validate_after_resolutionを通らない。
+        if validate_resolution && explicit.is_none() && !force_default {
+            config.validate_resolved_target()?;
+        }
         config.emit_parent_validation(warnings, None)?;
         Ok(config)
     }
@@ -213,7 +214,12 @@ impl Config {
         force_default: bool,
         warnings: &ConfigWarnings,
     ) -> Result<Self> {
-        Self::load_internal(explicit, cwd, force_default, Some(warnings), false)
+        let config = Self::load_internal(explicit, cwd, force_default, Some(warnings), false)?;
+        if let Err(error) = config.validate_resolved_target() {
+            warnings.emit(&config.validation.trace)?;
+            return Err(error);
+        }
+        Ok(config)
     }
 
     fn load_internal(
@@ -318,22 +324,6 @@ impl Config {
                 configured_target_ruby(&raw)?
             };
             let target_ruby = resolve_target_ruby(configured_target, path_base)?;
-            if !environment {
-                validate_supported(target_ruby.version)?;
-            }
-            if !environment
-                && all_cops_mapping(&raw)
-                    .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
-                    .and_then(Value::as_str)
-                    == Some("parser_prism")
-                && target_ruby.version < RubyVersion::new(3, 3)
-            {
-                bail!(
-                    "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: {}",
-                    target_ruby.version
-                );
-            }
-
             let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
             let mut renamed_overrides = HashMap::<String, Mapping>::new();
             let mut renamed_sources = Vec::new();
@@ -446,7 +436,10 @@ impl Config {
         force_default: bool,
         runtime: Arc<RuntimeSession>,
     ) -> Result<Self> {
-        Self::load_internal_in_runtime(explicit, cwd, force_default, None, false, runtime)
+        let config =
+            Self::load_internal_in_runtime(explicit, cwd, force_default, None, false, runtime)?;
+        config.validate_resolved_target()?;
+        Ok(config)
     }
 
     /// Ruby拡張を実行した設定のRegistry snapshot。未起動時にgetterだけでRubyを起動しない。
@@ -492,15 +485,20 @@ impl Config {
     }
 
     pub(crate) fn validate_parser_target(&self) -> Result<()> {
-        if self.target_ruby.source != TargetRubySource::Environment {
-            return Ok(());
-        }
         let prism = match self.all_cops_value::<String>("ParserEngine").as_deref() {
             Some("parser_prism") => true,
             Some("parser_whitequark") => false,
-            _ => self.target_ruby.version >= RubyVersion::new(3, 3),
+            _ => self.target_ruby.version.defaults_to_prism(),
         };
         self.target_ruby.version.validate_parser(prism)
+    }
+
+    fn validate_resolved_target(&self) -> Result<()> {
+        // default_configurationもload_fileの後段検証を通らず、parser作成まで値を保つ。
+        if self.config_path.is_none() {
+            return Ok(());
+        }
+        validate_supported(&self.target_ruby, self.config_origin(), &self.cwd)
     }
 
     pub fn display_cop_names(&self) -> bool {
@@ -983,15 +981,15 @@ fn configured_target_ruby(config: &Value) -> Result<Option<RubyVersion>> {
     let Some(value) = value else {
         return Ok(None);
     };
-    let text = match value {
+    let number = match value {
         Value::Null => return Ok(None),
-        Value::Number(number) => number.to_string(),
-        Value::String(string) => string.clone(),
+        Value::Number(number) => number
+            .as_f64()
+            .context("TargetRubyVersion is not a float")?,
+        Value::String(string) => crate::ruby_version::string_to_f(string),
         _ => bail!("AllCops/TargetRubyVersion must be a major.minor version"),
     };
-    RubyVersion::parse(&text)
-        .map(Some)
-        .with_context(|| format!("invalid AllCops/TargetRubyVersion: {text}"))
+    Ok(Some(RubyVersion::from_float(number)))
 }
 
 fn cop_names(value: &Value) -> HashSet<String> {
@@ -1012,6 +1010,39 @@ mod tests {
     use tempfile::tempdir;
 
     use super::Config;
+
+    #[test]
+    fn configured_scalar_getters_match_the_nine_actual_float_values() {
+        let data: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/target_ruby_validation.json"
+        ))
+        .unwrap();
+        let mut versions = Vec::new();
+        for row in data["api"].as_array().unwrap() {
+            let raw = serde_yaml_ng::from_str(&format!(
+                "AllCops:\n  TargetRubyVersion: {}\n",
+                row["scalar_yaml"].as_str().unwrap()
+            ))
+            .unwrap();
+            let version = super::configured_target_ruby(&raw).unwrap().unwrap();
+            assert_eq!(version.to_string(), row["getter_inspect"].as_str().unwrap());
+            versions.push(version);
+        }
+        // 実NaNのparser見出しはwhitequark。並べ替え用の全順序では判定しない。
+        assert!(!versions[4].defaults_to_prism());
+        versions.extend([
+            crate::ruby_version::RubyVersion::new(3, 1),
+            crate::ruby_version::RubyVersion::new(3, 3),
+        ]);
+        for left in &versions {
+            for right in &versions {
+                assert_eq!(left.cmp(right).is_eq(), left == right);
+                assert_eq!(left.cmp(right), right.cmp(left).reverse());
+            }
+        }
+        versions.sort();
+        assert!(versions.windows(2).all(|pair| pair[0] <= pair[1]));
+    }
 
     #[test]
     fn recognizes_all_upstream_cops() {
