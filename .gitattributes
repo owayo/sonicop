@@ -428,3 +428,10 @@ scripts/conformance/test_record_target_ruby_environment.py text eol=lf
 tests/target_ruby_environment.rs text eol=lf
 tests/fixtures/target_ruby_environment.json text eol=lf
 tests/fixtures/target_ruby_environment.json.PROVENANCE text eol=lf
+
+# help前のrequireとruntime終了の実参照を保持する。
+scripts/conformance/record_runtime_help.py text eol=lf
+scripts/conformance/test_record_runtime_help.py text eol=lf
+tests/runtime_help.rs text eol=lf
+tests/fixtures/runtime_help.json text eol=lf
+tests/fixtures/runtime_help.json.PROVENANCE text eol=lf

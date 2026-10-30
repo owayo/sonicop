@@ -342,8 +342,16 @@ fn run_inner() -> i32 {
                 ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
             ) =>
         {
-            print!("{error}");
-            return 0;
+            let initial_color = initial_warning_color();
+            runtime.phase(false, initial_color);
+            let result = help_extensions(&arguments)
+                .and_then(|entries| runtime.cli_extensions(&entries))
+                .map_err(|error| crate::config::RuntimeError::with_color(error, initial_color))
+                .map(|()| {
+                    print!("{error}");
+                    0
+                });
+            return finish_runtime(&runtime, result, initial_color);
         }
         Err(error) => {
             eprint!("{error}");
@@ -362,23 +370,7 @@ fn run_inner() -> i32 {
     let formatter_error_color = !cli.no_color
         && (cli.color || (cli.out.is_empty() && !cli.stderr && io::stdout().is_terminal()));
     cli.ruby_runtime = Some(Arc::clone(&runtime));
-    let mut entries = Vec::new();
-    for (id, plugin) in [("requires", false), ("plugin", true)] {
-        if let (Some(indices), Some(names)) =
-            (matches.indices_of(id), matches.get_many::<String>(id))
-        {
-            entries.extend(
-                indices
-                    .zip(names)
-                    .map(|(index, name)| (index, plugin, name.clone())),
-            );
-        }
-    }
-    entries.sort_by_key(|entry| entry.0);
-    let entries = entries
-        .into_iter()
-        .map(|(_, plugin, name)| (plugin, name))
-        .collect::<Vec<_>>();
+    let entries = cli_extension_entries(&matches, usize::MAX);
     let initial_color = initial_warning_color();
     runtime.phase(false, initial_color);
     let result = runtime
@@ -398,6 +390,57 @@ fn run_inner() -> i32 {
             }
             try_run(cli, &outputs)
         });
+    finish_runtime(&runtime, result, formatter_error_color)
+}
+
+fn help_extensions(arguments: &[String]) -> Result<Vec<(bool, String)>> {
+    // helpを通常flagとして再解析し、値や短縮flagの束をClapと同じ規則で区別する。
+    // helpは複数回現れても最初の位置を使い、後続のrequireを実行しない。
+    let matches = Cli::command()
+        .disable_help_flag(true)
+        .arg(
+            clap::Arg::new("help")
+                .short('h')
+                .long("help")
+                .action(ArgAction::Append)
+                .num_args(0)
+                .default_missing_value("true"),
+        )
+        .ignore_errors(true)
+        .try_get_matches_from(arguments)?;
+    let index = matches
+        .indices_of("help")
+        .and_then(|mut indices| indices.next())
+        .context("missing help option index")?;
+    Ok(cli_extension_entries(&matches, index))
+}
+
+fn cli_extension_entries(matches: &ArgMatches, before: usize) -> Vec<(bool, String)> {
+    let mut entries = Vec::new();
+    for (id, plugin) in [("requires", false), ("plugin", true)] {
+        if let (Some(indices), Some(names)) =
+            (matches.indices_of(id), matches.get_many::<String>(id))
+        {
+            entries.extend(
+                indices
+                    .zip(names)
+                    .filter(|(index, _)| *index < before)
+                    .map(|(index, name)| (index, plugin, name.clone())),
+            );
+        }
+    }
+    entries.sort_by_key(|entry| entry.0);
+    entries
+        .into_iter()
+        .map(|(_, plugin, name)| (plugin, name))
+        .collect()
+}
+
+fn finish_runtime(
+    runtime: &crate::config::RuntimeSession,
+    result: Result<i32>,
+    formatter_error_color: bool,
+) -> i32 {
     let status = render_run_result(result, formatter_error_color);
     // Nativeの最終表示後にRubyを同じstatusで終了し、at_exitによる最終statusも保つ。
     match runtime.finish(status) {
@@ -1041,7 +1084,7 @@ fn try_run_with_warning_phase(
         )?;
         write_output(
             &format!(
-                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby {}) [{} {}]\n",
+                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.105, analyzing as Ruby {}) [{} {}]\n",
                 config.target_ruby_version(),
                 std::env::consts::OS,
                 std::env::consts::ARCH
@@ -3547,6 +3590,35 @@ mod tests {
     #[test]
     fn cli_definition_is_valid() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn help_extensions_stop_at_the_first_actual_help_flag() {
+        for (arguments, expected) in [
+            (vec!["-r", "./first.rb", "--help"], vec!["./first.rb"]),
+            (vec!["--help", "-r", "./first.rb"], vec![]),
+            (vec!["-r./first.rb", "-h"], vec!["./first.rb"]),
+            (vec!["--require=./first.rb", "--help"], vec!["./first.rb"]),
+            (vec!["-lr./first.rb", "-h"], vec!["./first.rb"]),
+            (vec!["-lhr./first.rb"], vec![]),
+            (
+                vec!["-r./first.rb", "-h", "-r./second.rb", "--help"],
+                vec!["./first.rb"],
+            ),
+        ] {
+            let arguments = std::iter::once("sonicop")
+                .chain(arguments)
+                .map(str::to_owned)
+                .collect::<Vec<_>>();
+            let actual = super::help_extensions(&arguments).unwrap();
+            assert_eq!(
+                actual,
+                expected
+                    .into_iter()
+                    .map(|name| (false, name.to_owned()))
+                    .collect::<Vec<_>>()
+            );
+        }
     }
 
     #[test]

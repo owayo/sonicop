@@ -1,0 +1,37 @@
+実参照: Windows / Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+Psych 5.3.1 / parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 /
+Rainbow 3.1.1 / lint_roller 1.1.0。runtimeと出典六ファイルのSHA256はJSONのprimaryへ保存する。
+RuboCopのhelp出力はMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
+
+本家二十五CLIの実出力から期待値を保存した。候補の出力は期待値へ使っていない。
+同じhelp本文をreference_help_hexへ一度だけ保持し、各条件のprefix、help、suffixを
+順に結合すると本家のstdout全bytesになる。改行、空白、ANSIの一般的な正規化はしない。
+Missing requireのstderrは本家の全backtraceを保持する。動的部分はRUBOCOP_ROOTと
+RUBY_LIBの二つだけで、元の配置先へ戻して初回rawとの一致を確認した。
+
+再採取:
+  python scripts/conformance/record_runtime_help.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+候補exeを受け取らず、版・出典を調べる一processと、二十五CLIを直列で実行する。
+CLIは空stdinを渡し、原本と既存report全百七十八観測のbytes/mtime/modeを保持する。
+timeout時はpartial streamをprivate workへ残し、全照合が成功した場合だけexclusive保存する。
+既存entry・work/outの包含・出力親なしは子起動前に拒否する。
+親のENV4・NO_COLORとcache rootを子copyから除き、条件のRUBOCOP_OPTSを明示して戻す。
+GEM/PATH/OSは保持する。新規reparse/linkは既存の共通capture guardで拒否する。
+
+NativeとRubyラッパーの検査範囲:
+- 前後の-r、短縮形、--require=、重複・複数feature、--versionとhelpの前後、
+  Missing require、featureのexit 7、help後のat_exit 7、短縮flagの束。
+- .rubocop、RUBOCOP_OPTS、argvの結合順、複数helpの最初の境界、先行するfile引数。
+- featureのprefix/suffix全bytes、helpの有無と順序、終了値、非エラー時のstderr空。
+- Missing requireはstderr_native_hexの先頭行全bytesを比較する。
+  本家内部のbacktraceは参照専用で、Native全文一致とは呼ばない。
+- version-controlでは本家の1.89.0だけを候補の製品版へ置換する。
+- help本文は製品ごとに異なる。Native本文の一致や全オプションの互換性は主張しない。
+- Windowsで二十五CLIの両入口を検査する。他OSのテストでは、このASCII featureと
+  エラー先頭行に限りCRLFをLFへ投影する。他OSの同じ全raw実参照とは呼ばない。
+- helpがfeatureより前の場合は、別のRubyなしPATHでも早期終了を検査する。
+
+不正な--onlyの値とhelpが隣接する条件は通常のoption callbackの順序差であり、
+この二十五件の成功へ混ぜていない。#238に別途記録し、任意のoptionエラー前の副作用へ一般化しない。
+
+fixture canonical SHA256: b974aa5b8bafe608d8ede9357a7192cc08eef920bfbacf200c027340a8fd6ffa
