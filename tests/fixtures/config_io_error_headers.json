@@ -1,0 +1,440 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1",
+      "psych": "5.3.1"
+    }
+  },
+  "source_sha256": {
+    "config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+    "cli.rb": "7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933",
+    "options.rb": "adfe551344fc98ea2d13f21852b56ff1cd445a6fdf36cd0bde8cd2a154a4d8c4"
+  },
+  "gem_root_template": "<GEM_ROOT>",
+  "metadata_identity_keys": [
+    "sonicop_version",
+    "ruby_engine",
+    "ruby_version",
+    "ruby_platform"
+  ],
+  "coverage": {
+    "windows_cli": 10,
+    "system_io_headlines": 7,
+    "missing_complete_streams": 2,
+    "valid_complete_report": 1,
+    "cli_file_observations": 49,
+    "cli_directory_observations": 10,
+    "existing_reports": 9,
+    "api_rows": 5,
+    "api_file_observations": 2,
+    "ruby_backtrace_reference_only": true
+  },
+  "api_files": {
+    "locked.yml": "{}\n",
+    "readable.yml": "{}\n"
+  },
+  "api": [
+    {
+      "id": "directory",
+      "path": "<CWD>\\configdir",
+      "kind": "error",
+      "class": "Errno::EISDIR",
+      "message": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir"
+    },
+    {
+      "id": "missing",
+      "path": "<CWD>\\absent.yml",
+      "kind": "error",
+      "class": "RuboCop::ConfigNotFoundError",
+      "message": "Configuration file not found: <CWD_FWD>/absent.yml"
+    },
+    {
+      "id": "not-directory",
+      "path": "<CWD>\\readable.yml\\child.yml",
+      "kind": "error",
+      "class": "RuboCop::ConfigNotFoundError",
+      "message": "Configuration file not found: <CWD_FWD>/readable.yml/child.yml"
+    },
+    {
+      "id": "locked-file",
+      "path": "<CWD>\\locked.yml",
+      "kind": "error",
+      "class": "Errno::EACCES",
+      "message": "Permission denied @ rb_sysopen - <CWD_FWD>/locked.yml"
+    },
+    {
+      "id": "valid",
+      "path": "<CWD>\\readable.yml",
+      "kind": "value",
+      "value_hex": "7b7d0a"
+    }
+  ],
+  "cases": [
+    {
+      "id": "empty",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - <CWD_FWD>\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - <CWD_FWD>\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "directory",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "configdir",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "dot",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        ".",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - <CWD_FWD>\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - <CWD_FWD>\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "absolute-directory",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "<CWD>\\configdir",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "verbatim-directory",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "\\\\?\\<CWD>\\configdir",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - //?/<CWD_FWD>/configdir\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - //?/<CWD_FWD>/configdir\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "forced-color",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "configdir",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "locked_file": null,
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Is a directory @ rb_sysopen - <CWD_FWD>/configdir\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "missing",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "absent.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "complete_stderr",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Configuration file not found: <CWD_FWD>/absent.yml\r\n",
+      "first_line_template": "Configuration file not found: <CWD_FWD>/absent.yml\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "not-directory",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "good.yml/child.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "complete_stderr",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Configuration file not found: <CWD_FWD>/good.yml/child.yml\r\n",
+      "first_line_template": "Configuration file not found: <CWD_FWD>/good.yml/child.yml\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "locked-file",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n",
+        "out.json": "keep this report"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": "good.yml",
+      "comparison": "system_headline",
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "Permission denied @ rb_sysopen - <CWD_FWD>/good.yml\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'IO.read'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:253:in 'RuboCop::ConfigLoader.read_file'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:79:in 'RuboCop::ConfigLoader.load_yaml_configuration'\r\n<GEM_ROOT>/lib/rubocop/config_loader.rb:56:in 'RuboCop::ConfigLoader.load_file'\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:34:in 'RuboCop::ConfigStore#options_config='\r\n<GEM_ROOT>/lib/rubocop/config_store.rb:29:in 'RuboCop::ConfigStore#apply_options!'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:169:in 'RuboCop::CLI#act_on_options'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:89:in 'RuboCop::CLI#profile_if_needed'\r\n<GEM_ROOT>/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\r\n<GEM_ROOT>/exe/rubocop:15:in '<top (required)>'\r\n<LAUNCHER>:15:in 'Kernel#load'\r\n<LAUNCHER>:15:in '<main>'\r\n",
+      "first_line_template": "Permission denied @ rb_sysopen - <CWD_FWD>/good.yml\r\n",
+      "out_hex": "6b6565702074686973207265706f7274",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    },
+    {
+      "id": "valid",
+      "files": {
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "good.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n",
+        "Gemfile": "",
+        "case.rb": "x = 1\r\n"
+      },
+      "directories": [
+        "configdir"
+      ],
+      "args": [
+        "--config",
+        "good.yml",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "--out",
+        "out.json",
+        "case.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "0"
+      },
+      "locked_file": null,
+      "comparison": "report",
+      "exit": 0,
+      "stdout_hex": "",
+      "stderr_template": "",
+      "first_line_template": "",
+      "out_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22636173652e7262222c226f6666656e736573223a5b5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a302c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "source_bytes_mtime_mode_preserved": true,
+      "directory_mtime_mode_preserved": true
+    }
+  ]
+}

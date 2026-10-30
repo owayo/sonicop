@@ -1,0 +1,52 @@
+実参照: Windows / Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1 / Psych 5.3.1。
+期待値は実本家のCLIとConfigLoader.read_file APIから採り、候補exeから生成していない。
+
+再採取（固定版Windows Ruby/gem、新規work/out、既存out親が必要）:
+  python scripts/conformance/record_config_io_error_headers.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+API一processが五行を返し、CLI十processを直列で実行する。全十一件の完了と、
+runtime/gem・出典SHA・全raw・原本五十一観測・directory十一観測・既存report九件を
+照合した後だけoutをexclusive保存する。rawとbefore/afterはprivate workへ先に保存する。
+
+出典SHA256（RuboCop 1.89.0 lib/rubocop/）:
+  config_loader.rb: 90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e
+  cli.rb: 7a097a2918f7bf4b03b71a49d868910f243b78aa26e31035520822709d33e933
+  options.rb: adfe551344fc98ea2d13f21852b56ff1cd445a6fdf36cd0bde8cd2a154a4d8c4
+
+bindingはCWD、同じrootのCWD_FWD、実Gem配置GEM_ROOT、実entry LAUNCHERだけ。
+元rawへの逆変換の一致を確認し、任意の正規化・ANSI除去・改行変換を行わない。
+GEM_ROOTの元値はCLIの実frameから取得し、再採取では固定版Gemの実体から返す。
+APIへはid/pathだけを渡し、class/message/valueは実read_fileから構成する。
+Windowsの実共有違反はGENERIC_READ/share=0のhandleで起こす。APIとCLIの両方で
+親がhandleを保持し、例外・timeoutも含めて解放してから原本属性を再確認する。
+
+比較範囲:
+- API五行: directoryはErrno::EISDIR、共有違反の通常fileはErrno::EACCES、
+  欠落とWindowsのENOTDIR相当はConfigNotFoundError、通常fileは元本文を返す。
+- CLI十条件: 空指定・directory・dot・absolute・verbatim・強制色のdirectory六件、
+  共有違反一件、Missing二件、正常report一件。Nativeは全十件ともPATHを空にする。
+- system_headline七件は本家の先頭行の全CRLF bytesと終了2/stdout空を比較する。
+  本家の残る内部十三frameも全rawへ保持し、採取器はbinding後の全文を再照合する。
+  Nativeは設定ミスでRuby内部のbacktraceを生成せず、先頭行を返す。これは既存の
+  known_divergences.ymlの設定例外に関する方針と同じで、全文互換の成功とは呼ばない。
+- Missing二件は全stderr、正常一件はoutの全JSON fieldsを比較する。製品identity四項目
+  だけを除き、仕様版とpatchlevelは保つ。出力先の原本sentinel九件はbytes/mtime/modeも保つ。
+- CLI原本四十九観測とdirectory十観測、API原本二観測とdirectory一観測を確認する。
+  通常fileの共有違反32はRustでUncategorized、directoryはPermissionDeniedだった。
+  対象の実種別を確認し、全Uncategorizedや全アクセス拒否をdirectoryへ変えない。
+- 既存empty_config_argumentsの元20参照中I/O十一件、missing_config_errorsのI/O二件も
+  保存済み本家のmessageから先頭行比較へ昇格する。元データや入力条件は書き換えない。
+
+採取器は既存entry・dangling entry・work/out包含・out親なしをprocess生成前に拒否する。
+子環境はENV4・NO_COLOR・cache rootを除き、TERM・色・XDG rootだけを明示する。
+GEM/PATH/OSと親環境は保つ。timeoutのpartialを保存し、通常原本とdirectoryのlstat、
+未知のlink/reparse、全raw・reportを検査する。通常Pythonと-Oの契約七件は、
+独立したAPI/raw/out/directory/保存race、属性改変、実lockの解放、dangling junctionを検査する。
+実lockと全entryの契約二件はWindows限定で、他OSでの省略を計測成功と呼ばない。
+
+新しい実CLI/APIはWindows限定。非WindowsのI/O分類、ACL拒否、任意のOS故障、
+TTYや別Ruby版へ一般化しない。既存のMissing回帰の改行投影とは範囲を分ける。
+
+fixture canonical SHA256: 6a6dbce47beff44668d189810ae5be4fc44463897865437f2af240d43367e23a
+fixture file SHA256: 8fd31b65c2d86bca2a98b1a57943a73014ebc28a1ad168b03877e20d16aabad1
+本家由来の記録・表示はMIT。NOTICEとlicenses/RUBOCOP.txtを参照。

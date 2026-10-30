@@ -34,7 +34,7 @@ use loader::{
 };
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 
-pub(crate) use loader::MissingConfigError;
+pub(crate) use loader::{ConfigIoError, MissingConfigError};
 pub(crate) use namespaces::AmbiguousConfigCopError;
 pub(crate) use new_cops::InvalidNewCopsError;
 pub(crate) use obsoletion::ObsoleteConfigError;

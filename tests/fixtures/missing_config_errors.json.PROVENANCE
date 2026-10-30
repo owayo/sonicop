@@ -34,3 +34,8 @@ fixture SHA256: 6dcf55496a3eebe83b9b8cc9c7b7f562aa887e4945de46063db3c6971df09d30
 collector SHA256: a71b65d1a262b479f76044b21cd84849f2bdf7ca0f6cdc505d02d250c19b261a
 
 #147でemptyのcoverageだけdirectory_envelopeへ昇格した。元raw/他fields/Unicode escape表記は保持し、skipしない。
+
+#209の更新: 元参照のdirectory_envelope二条件はデータを変更せず、実APIの
+error_message_templateとnative改行による先頭行の厳密比較へ昇格した。
+旧labelは採取時の範囲として保持し、Missingと一般I/Oの分類を混ぜない。
+本家の内部backtraceを含む全文互換の成功ではない。

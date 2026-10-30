@@ -414,3 +414,10 @@ scripts/conformance/test_record_verbatim_config_origins.py text eol=lf
 tests/verbatim_config_origins.rs text eol=lf
 tests/fixtures/verbatim_config_origins.json text eol=lf
 tests/fixtures/verbatim_config_origins.json.PROVENANCE text eol=lf
+
+# I/Oの全本家rawとNativeの先頭行の比較範囲を分けて保持する。
+scripts/conformance/record_config_io_error_headers.py text eol=lf
+scripts/conformance/test_record_config_io_error_headers.py text eol=lf
+tests/config_io_error_headers.rs text eol=lf
+tests/fixtures/config_io_error_headers.json text eol=lf
+tests/fixtures/config_io_error_headers.json.PROVENANCE text eol=lf

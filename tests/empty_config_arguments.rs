@@ -1,4 +1,4 @@
-//! 空configは実本家と同じI/O phaseへ進める。一般I/O本文の一致は別に残す。
+//! 空configのI/O先頭行を実本家へ合わせ、内部backtraceとの比較範囲を分ける。
 #![cfg(windows)]
 
 use std::{fs, process::Command};
@@ -121,20 +121,12 @@ fn empty_config_reaches_io_without_confusing_missing_or_omitted_arguments() {
         );
         let stderr = String::from_utf8(output.stderr).unwrap();
         if kind == "io" {
-            let path = if case["id"] == "directory" {
-                folder.path().join("configdir")
-            } else {
-                folder.path().to_path_buf()
-            };
-            // 一般I/O本文は未一致。候補出力でなく、同じOSへの直接readを分類根拠にする。
-            let io_error = fs::read_to_string(path).unwrap_err();
-            assert!(
-                stderr.contains(&io_error.to_string()),
-                "{}: {stderr}",
-                case["id"]
-            );
-            assert!(!stderr.contains("Configuration file not found:"));
-            assert!(!stderr.contains("a value is required"));
+            // 元の本家記録の先頭行を使い、旧OS error envelopeから昇格する。
+            let expected = case["stderr_first_line"]
+                .as_str()
+                .unwrap()
+                .replace("{cwd}", &folder.path().to_string_lossy().replace('\\', "/"));
+            assert_eq!(stderr, format!("{expected}\r\n"), "{}", case["id"]);
         } else if kind == "missing_argument" {
             // 本文はOptionParserとの既存差。真に値がない場合はI/Oへ進まない。
             assert!(

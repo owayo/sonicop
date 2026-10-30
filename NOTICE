@@ -50,6 +50,17 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/loader.rs, src/config/mod.rs, src/cli.rs
+  tests/fixtures/config_io_error_headers.json
+      System I/O headlines follow RuboCop 1.89.0 ConfigLoader and CLI,
+      with five actual read_file API results and ten Windows CLI conditions.
+      The complete reference stderr is retained; native comparison covers
+      the first line for seven system errors, complete Missing messages,
+      and the complete successful report. Regenerate with
+      scripts/conformance/record_config_io_error_headers.py. The adjacent
+      .PROVENANCE records source hashes, bindings, real sharing locks and scope.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/config/loader.rs, src/config/namespaces.rs
   tests/fixtures/verbatim_config_origins.json
       Explicit Windows origin preservation follows RuboCop 1.89.0
