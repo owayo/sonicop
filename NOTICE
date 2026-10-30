@@ -760,3 +760,16 @@ Runtime, comparison limits and raw-byte provenance:
 `tests/fixtures/fuubar_reports.json.PROVENANCE`.
 RuboCop is Copyright (c) 2012-26 Bozhidar Batsov,
 licensed under the MIT License; see `licenses/RUBOCOP.txt`.
+
+Help and explicit require lifecycle reference output
+--------------------------------------------------
+`tests/fixtures/runtime_help.json` records actual RuboCop 1.89.0 help output,
+explicit feature loading and process exit behavior on Ruby 4.0.7 for Windows.
+The common upstream help text is retained once and each complete stdout can
+be reconstructed from its prefix and suffix. Ruby internal error frames are
+kept as reference; native tests compare the error headline.
+Collector: `scripts/conformance/record_runtime_help.py`.
+Runtime, source hashes and comparison scope:
+`tests/fixtures/runtime_help.json.PROVENANCE`.
+RuboCop is Copyright (c) 2012-26 Bozhidar Batsov,
+licensed under the MIT License; see `licenses/RUBOCOP.txt`.

@@ -84,7 +84,7 @@ fn version_aliases_keep_native_identity_and_recorded_transport_and_early_exit() 
         let expected = match case["kind"].as_str().unwrap() {
             "version" => format!("{}{eol}", sonicop::VERSION),
             "verbose" => format!(
-                "sonicop {} (RuboCop {} CLI, tree-sitter-ruby v26.10.104, analyzing as Ruby 2.7) [{} {}]{eol}",
+                "sonicop {} (RuboCop {} CLI, tree-sitter-ruby v26.10.105, analyzing as Ruby 2.7) [{} {}]{eol}",
                 sonicop::VERSION,
                 sonicop::RUBOCOP_COMPAT_VERSION,
                 std::env::consts::OS,

@@ -226,7 +226,7 @@ JSON を保存する。パスの同一性だけを根拠に表示の互換性を
 
 **依存更新も構文診断を変える。** tree-sitter 0.27.1 は旧 grammar で有効な percent literal に
 誤った `tSTAR` を追加した。grammar v26.10.103 との組でその回帰が解消することを実測した。
-現在は 0.27.1 と grammar v26.10.104 を固定し、文字列後の `%`、VT/FF を区切りとする `%Q`、
+現在は 0.27.1 と grammar v26.10.105 を固定し、文字列後の `%`、VT/FF を区切りとする `%Q`、
 入れ子の control/meta character を、原文のノード範囲・座標と本家の実診断で検査する。
 回帰テストは新たな誤診断を拒むが、既知の EOF 誤診断を期待値へ固定しない。
 
@@ -481,6 +481,13 @@ compiled byte/encoding が元識別子と一致する名前だけを通常束縛
 先行 extended-mode 文字列の破棄や meta escape 復号の差も、実 MRI の local と実適用括弧で判断する。
 元の本家記録を改変せず、既存72安全差分と追加24拒否の件数・版・実行環境を分けて残す。
 
+
+**help前のrequireも終了処理まで実行する。** 本家のhelpはOptionsのcallbackで終了するため、
+helpより前に指定したfeatureだけを読み込む。`.rubocop`・ENV・argvを結合した順序と、
+短縮flagの束・値の位置は同じ引数parserへ問い合わせる。読み込み失敗やexitではhelpを出さず、
+成功時はhelpの後でRubyのat_exitを処理して最終statusを保つ。help後のfeatureだけならRubyを起動しない。
+`runtime_help.json`の実二十五CLIからfeatureのprefix/suffix・help境界・終了値・原本を検査する。
+製品固有のhelp本文やversion identityと、本家内部のbacktraceをNative全文一致へ数えない。
 
 ## Adding a cop test
 
