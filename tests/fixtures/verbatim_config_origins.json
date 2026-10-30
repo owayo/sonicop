@@ -1,0 +1,365 @@
+{
+  "schema": 1,
+  "runtime": {
+    "ruby": "4.0.7",
+    "platform": "x64-mingw-ucrt",
+    "gems": {
+      "parser": "3.3.12.0",
+      "prism": "1.8.1",
+      "rubocop-ast": "1.50.0",
+      "rubocop": "1.89.0",
+      "rainbow": "3.1.1",
+      "psych": "5.3.1"
+    }
+  },
+  "source_sha256": {
+    "lib/rubocop/config_loader.rb": "90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e",
+    "lib/rubocop/path_util.rb": "daf716c5cb6eb9fbb9a687ef63195b96bdd511e0fbe31a563544e0c23e47c271",
+    "lib/rubocop/cop/registry.rb": "41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7"
+  },
+  "metadata_identity_keys": [
+    "sonicop_version",
+    "ruby_engine",
+    "ruby_version",
+    "ruby_platform"
+  ],
+  "coverage": {
+    "windows_cli": 10,
+    "full_json": 8,
+    "ambiguity": 2,
+    "required_runtime": 2,
+    "original_file_observations": 64,
+    "windows_api_rows": 10
+  },
+  "api_files": {
+    "config.yml": "{}\n",
+    "long-configuration-filename.yml": "{}\n"
+  },
+  "api": [
+    {
+      "id": "relative",
+      "input": "config.yml",
+      "absolute_path": "<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "uppercase",
+      "input": "CONFIG.YML",
+      "absolute_path": "<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "short-file",
+      "input": "<CWD>\\<SHORT_FILE>",
+      "absolute_path": "<CWD_FWD>/long-configuration-filename.yml"
+    },
+    {
+      "id": "verbatim-short-file",
+      "input": "\\\\?\\<CWD>\\<SHORT_FILE>",
+      "absolute_path": "//?/<CWD_FWD>/<SHORT_FILE>"
+    },
+    {
+      "id": "absolute",
+      "input": "<CWD>\\config.yml",
+      "absolute_path": "<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "verbatim",
+      "input": "\\\\?\\<CWD>\\config.yml",
+      "absolute_path": "//?/<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "forward",
+      "input": "//?/<CWD_FWD>/config.yml",
+      "absolute_path": "//?/<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "verbatim-upper",
+      "input": "\\\\?\\<CWD>\\CONFIG.YML",
+      "absolute_path": "//?/<CWD_FWD>/CONFIG.YML"
+    },
+    {
+      "id": "verbatim-parent",
+      "input": "\\\\?\\<CWD>\\missing\\..\\config.yml",
+      "absolute_path": "//?/<CWD_FWD>/config.yml"
+    },
+    {
+      "id": "inherited",
+      "input": "base.yml",
+      "base": "\\\\?\\<CWD>",
+      "absolute_path": "//?/<CWD_FWD>/base.yml"
+    }
+  ],
+  "cases": [
+    {
+      "id": "normal-direct",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "<CWD>\\config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "config.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "verbatim-direct",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "\\\\?\\<CWD>\\config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "//?/<CWD_FWD>/config.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "forward-verbatim",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "//?/<CWD_FWD>/config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "//?/<CWD_FWD>/config.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "normal-inherit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "<CWD>\\inherits.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "base.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "verbatim-inherit",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "\\\\?\\<CWD>\\inherits.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "//?/<CWD_FWD>/base.yml: Warning: no department given for SpaceAroundOperators.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "normal-ambiguous",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "<CWD>\\ambiguous.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "ambiguous.yml: Warning: no department given for SpaceAroundOperators.\r\nambiguous.yml: Warning: no department given for MultipleComparison.\r\nError: Ambiguous cop name `MultipleComparison` used in <CWD_FWD>/ambiguous.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "verbatim-ambiguous",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "\\\\?\\<CWD>\\ambiguous.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 2,
+      "stdout_hex": "",
+      "stderr_template": "//?/<CWD_FWD>/ambiguous.yml: Warning: no department given for SpaceAroundOperators.\r\n//?/<CWD_FWD>/ambiguous.yml: Warning: no department given for MultipleComparison.\r\nError: Ambiguous cop name `MultipleComparison` used in //?/<CWD_FWD>/ambiguous.yml needs department qualifier. Did you mean Lint/MultipleComparison or Style/MultipleComparison?\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "verbatim-parameter",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "inherits.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\ninherit_from: base.yml\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n",
+        "ambiguous.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nMultipleComparison:\n  Enabled: true\n",
+        "parameter.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\n  WrongKey: true\n"
+      },
+      "args": [
+        "--config",
+        "\\\\?\\<CWD>\\parameter.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": false,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "//?/<CWD_FWD>/parameter.yml: Warning: no department given for SpaceAroundOperators.\r\nWarning: Layout/SpaceAroundOperators does not support WrongKey parameter.\r\n\r\nSupported parameters are:\r\n\r\n  - Enabled\r\n  - AllowForAlignment\r\n  - EnforcedStyleForExponentOperator\r\n  - SupportedStylesForExponentOperator\r\n  - EnforcedStyleForRationalLiterals\r\n  - SupportedStylesForRationalLiterals\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": null
+    },
+    {
+      "id": "runtime-normal",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "feature.rb": "require 'rubocop'\nmodule RuboCop; module Cop; module Demo\n  class PrefixProbe < Base; end\nend; end; end\nFile.binwrite('loaded_marker', 'yes')\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nPrefixProbe:\n  Enabled: true\n"
+      },
+      "args": [
+        "--require",
+        "./feature.rb",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "<CWD>\\config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": true,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "config.yml: Warning: no department given for SpaceAroundOperators.\r\nconfig.yml: Warning: no department given for PrefixProbe.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": "796573"
+    },
+    {
+      "id": "runtime-verbatim",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "feature.rb": "require 'rubocop'\nmodule RuboCop; module Cop; module Demo\n  class PrefixProbe < Base; end\nend; end; end\nFile.binwrite('loaded_marker', 'yes')\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nSpaceAroundOperators:\n  Enabled: true\nPrefixProbe:\n  Enabled: true\n"
+      },
+      "args": [
+        "--require",
+        "./feature.rb",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--config",
+        "\\\\?\\<CWD>\\config.yml",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "runtime_required": true,
+      "exit": 1,
+      "stdout_hex": "7b226d65746164617461223a7b227275626f636f705f76657273696f6e223a22312e38392e30222c22727562795f656e67696e65223a2272756279222c22727562795f76657273696f6e223a22342e302e37222c22727562795f70617463686c6576656c223a2230222c22727562795f706c6174666f726d223a227836342d6d696e67772d75637274227d2c2266696c6573223a5b7b2270617468223a22612e7262222c226f6666656e736573223a5b7b227365766572697479223a22636f6e76656e74696f6e222c226d657373616765223a22537572726f756e64696e67207370616365206d697373696e6720666f72206f70657261746f7220603d602e222c22636f705f6e616d65223a224c61796f75742f537061636541726f756e644f70657261746f7273222c22636f72726563746564223a66616c73652c22636f727265637461626c65223a747275652c226c6f636174696f6e223a7b2273746172745f6c696e65223a312c2273746172745f636f6c756d6e223a322c226c6173745f6c696e65223a312c226c6173745f636f6c756d6e223a322c226c656e677468223a312c226c696e65223a312c22636f6c756d6e223a327d7d5d7d5d2c2273756d6d617279223a7b226f6666656e73655f636f756e74223a312c227461726765745f66696c655f636f756e74223a312c22696e737065637465645f66696c655f636f756e74223a317d7d",
+      "stderr_template": "//?/<CWD_FWD>/config.yml: Warning: no department given for SpaceAroundOperators.\r\n//?/<CWD_FWD>/config.yml: Warning: no department given for PrefixProbe.\r\n",
+      "source_bytes_mtime_mode_preserved": true,
+      "marker_hex": "796573"
+    }
+  ]
+}

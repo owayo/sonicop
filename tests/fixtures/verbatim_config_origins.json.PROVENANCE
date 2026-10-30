@@ -1,0 +1,46 @@
+実参照: Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1 / Psych 5.3.1。
+期待値は実本家のCLIと実RubyのAPIから採り、候補exeから生成していない。
+
+再採取（固定版Windows Ruby/gem、存在しないwork/out、既存out親が必要）:
+  python scripts/conformance/record_verbatim_config_origins.py --ruby <ruby-4.0.7> --work <fresh-private-work> --out <new.json>
+一つのAPI processが十行を返し、CLI十processを直列で実行する。全十一件を完了し、
+runtime・出典SHA・全raw・原本bytes/mtime/mode・markerを照合した後だけoutをexclusive保存する。
+各processのrawと原本のbefore/afterはprivate workへ先に保存し、timeoutのpartialも保持する。
+API原本二観測とCLI原本六十四観測の計六十六観測を検査する。
+
+本家の出典SHA256:
+  lib/rubocop/config_loader.rb: 90dd87be340fd22a81f7205ac0dbc4315f5a9eba08d3f3aef80f0fde3394f38e
+  lib/rubocop/path_util.rb: daf716c5cb6eb9fbb9a687ef63195b96bdd511e0fbe31a563544e0c23e47c271
+  lib/rubocop/cop/registry.rb: 41af570b3bbf8f3d28778e18be26d69130f5d23006327783d4b22e57e684fff7
+
+動的bindingはCWD（Windows表記）、CWD_FWD（同じrootのslash表記）、SHORT_FILE（実8.3 basename）だけ。
+元記録へ逆変換して一致を確認し、任意のパス正規化・ANSI除去・改行変換を期待値へ加えていない。
+stderr_templateは本家の全CRLFを残す。stdout_hexはcompact JSONの元bytesを残す。
+再採取のAPIでは期待のabsolute_pathを渡さず、実File.absolute_pathの結果から組み立てる。
+
+有限の範囲:
+- API十行: relative/absolute、通常の大文字・8.3名、backslash/forwardの明示prefix、
+  prefix付き大文字・8.3名、存在しない中間directoryの..、prefixを持つbaseからの相対展開。
+  通常は末尾だけ実名へ戻り、明示verbatimは末尾の入力表記も保つ。APIに実8.3 aliasが無ければ
+  明示的に失敗させ、未計測を十行の成功に数えない。CLI十条件は8.3 aliasを使わない。
+- CLI十条件: 通常/明示prefix/forward、通常/明示prefixの相対継承、通常/明示prefixの曖昧名、
+  parameter警告、通常/明示prefixと実Ruby登録。八件の完了JSON、二件のstdout空・終了2、
+  全十件のstderr・終了値・全原本属性を比較する。JSONは製品identity四項目だけを除き、
+  仕様版とpatchlevelを含む全fieldsを比較する。
+- Nativeの通常八条件はPATHを空にする。登録二条件は固定Rubyを必須gateで確認し、
+  featureの実行markerと登録時のnamespace警告を比較する。Ruby定義copのbody実行の証明ではない。
+- 内部canonicalのprefixを通常originへ戻すfallbackと、同一fileの明示originを区別する。
+  既存24条件のlong/short/hybrid、42条件のnamespace、欠落設定、remote出典の回帰も保つ。
+- 保存先の既存leaf・dangling entry・包含・親なしをprocess生成前に拒否する。
+  子環境はENV4・ambient NO_COLOR・cache rootを除き、色とXDG rootを条件として明示する。
+  GEM/PATH/OSと親環境は保つ。採取後に未知のlink/reparse entryを辿らず拒否する。
+
+Windows実CLIとWindowsのbasename APIに限定する。非Windows CLI、UNC、MAX_PATH超過、
+任意の異常path・encodingを検証した証拠にはしない。既存Windows参照を他OSの実走へ投影しない。
+通常Pythonと-Oで採取契約六件を検査し、全entry十一processとAPI/raw/marker/保存raceの
+独立した破損を検査する。全entryの契約は実Windowsのbasename APIを必要とする。
+
+fixture canonical SHA256: c3d22792107c7a7eb291ae351699f37405ab06a79064d364c73305bb737e4aa6
+fixture file SHA256: cdb24039243cfe0da6a0cf7b7cec398b16c7c27ddac816fee6e7fad1ef0fff16
+本家由来のCLI記録と命名・表示はMIT。NOTICEとlicenses/RUBOCOP.txtを参照。
