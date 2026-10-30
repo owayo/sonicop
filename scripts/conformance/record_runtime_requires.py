@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -209,6 +210,35 @@ def _encoded_inventory(inventory):
     }
 
 
+def _output_state(root):
+    path = root / "report.json"
+    if not os.path.lexists(path):
+        return None
+    info = path.lstat()
+    # junctionはis_symlink()が偽になる。参照先の存在や型ではentryの有無を決めない。
+    attributes = getattr(info, "st_file_attributes", 0)
+    if stat.S_ISLNK(info.st_mode):
+        kind = "symlink"
+    elif attributes & 0x400:
+        kind = "reparse"
+    elif stat.S_ISDIR(info.st_mode):
+        kind = "directory"
+    elif stat.S_ISREG(info.st_mode):
+        return _encoded_inventory(
+            {"report.json": (path.read_bytes(), info.st_mtime_ns, info.st_mode)}
+        )
+    else:
+        kind = "special"
+    state = {"entry_kind": kind, "mtime_ns": info.st_mtime_ns, "mode": info.st_mode}
+    for name, attribute in (
+        ("file_attributes", "st_file_attributes"),
+        ("reparse_tag", "st_reparse_tag"),
+    ):
+        if hasattr(info, attribute):
+            state[name] = getattr(info, attribute)
+    return {"report.json": state}
+
+
 def _private(root, name, output, before, after):
     value = {
         "exit": output.returncode,
@@ -217,9 +247,7 @@ def _private(root, name, output, before, after):
         "inputs_before": _encoded_inventory(before),
         "out_before": None,
         "inputs_after": _encoded_inventory(after),
-        "out_after": _encoded_inventory(_inventory(root, ["report.json"]))
-        if (root / "report.json").exists()
-        else None,
+        "out_after": _output_state(root),
     }
     with (root / name).open("x", encoding="utf8", newline="\n") as stream:
         stream.write(json.dumps(value, ensure_ascii=True, indent=2) + "\n")
@@ -280,7 +308,7 @@ def record(ruby, root, expected):
     output = _run(ruby, root, expected, CLI, expected["args"])
     after = _inventory(root, expected["files"])
     _private(root, "private-cli-raw.json", output, before, after)
-    if after != before or (root / "report.json").exists():
+    if after != before or os.path.lexists(root / "report.json"):
         raise ValueError("CLIが原本/出力先を変えました")
     result = copy.deepcopy(expected)
     result["cli"] = {
@@ -321,7 +349,7 @@ def record_api(ruby, root, expected):
     if (
         output.returncode != 0
         or output.stderr
-        or (root / "report.json").exists()
+        or os.path.lexists(root / "report.json")
         or after != before
     ):
         raise ValueError("API観測が未完了又は原本/出力先が変わりました")
@@ -357,7 +385,7 @@ def record_boundaries(ruby, root, expected):
     output = _run(ruby, root, expected, CLI, expected["args"])
     after = _inventory(root, expected["files"])
     _private(root, "private-cli-raw.json", output, before, after)
-    if after != before or (root / "report.json").exists():
+    if after != before or os.path.lexists(root / "report.json"):
         raise ValueError("境界CLIが原本/出力先を変えました")
     result = copy.deepcopy(expected)
     result.update(

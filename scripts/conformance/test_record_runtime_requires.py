@@ -28,6 +28,97 @@ def fixture(boundaries=False):
 class ReferenceContract(unittest.TestCase):
     """成功応答を保ち、一つの保持guardだけが失敗を検出する。"""
 
+    def assert_created_output_is_rejected(self, entrypoint, kind):
+        """正しい応答を保ち、作成したentryを拒否してprivate記録へ残す。"""
+        boundary = entrypoint == "boundary"
+        row = (
+            fixture(True)["cases"][0]
+            if boundary
+            else next(row for row in fixture()["cases"] if row["id"] == "exact-registered")
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "case"
+            target = Path(directory) / "target"
+            output_path = root / "report.json"
+            if entrypoint == "api":
+                recorder._write_inputs(root, row)
+
+            def child(*_arguments):
+                if kind == "file":
+                    output_path.write_bytes(b"WRONG")
+                elif kind == "directory":
+                    output_path.mkdir()
+                elif kind == "junction":
+                    target.mkdir()
+                    subprocess.run(
+                        ["cmd.exe", "/d", "/c", "mklink", "/J", str(output_path), str(target)],
+                        capture_output=True,
+                        check=True,
+                    )
+                    # 自分が作った空directoryだけを消し、junctionのentryを残す。
+                    target.rmdir()
+                else:
+                    try:
+                        output_path.symlink_to(target)
+                    except OSError as error:
+                        self.skipTest(f"symlinkを作成できません: {error}")
+                if entrypoint == "api":
+                    return subprocess.CompletedProcess([], 0, json.dumps(row["api"]).encode(), b"")
+                expected = row if boundary else row["cli"]
+                return subprocess.CompletedProcess(
+                    [],
+                    expected["exit"],
+                    bytes.fromhex(expected["stdout_hex"]),
+                    bytes.fromhex(expected["stderr_hex"]),
+                )
+
+            with patch.object(recorder, "_run", side_effect=child) as invocation:
+                with self.assertRaises(ValueError):
+                    if entrypoint == "api":
+                        recorder.record_api("not-started-ruby", root, row)
+                    elif boundary:
+                        recorder.record_boundaries("not-started-ruby", root, row)
+                    else:
+                        recorder.record("not-started-ruby", root, row)
+                self.assertEqual(invocation.call_count, 1)
+            name = "private-api-raw.json" if entrypoint == "api" else "private-cli-raw.json"
+            evidence = json.loads((root / name).read_bytes())
+            self.assertEqual(evidence["inputs_before"], evidence["inputs_after"])
+            self.assertIsNone(evidence["out_before"])
+            self.assertTrue(os.path.lexists(output_path))
+            self.assertIsNotNone(evidence["out_after"])
+            state = evidence["out_after"]["report.json"]
+            if kind == "file":
+                self.assertEqual(state["bytes_hex"], b"WRONG".hex())
+            else:
+                self.assertNotIn("bytes_hex", state)
+                self.assertEqual(state["entry_kind"], "reparse" if kind == "junction" else kind)
+            if kind in ("junction", "symlink"):
+                self.assertFalse(output_path.exists())
+            if kind == "junction":
+                self.assertEqual(state["reparse_tag"], 0xA0000003)
+                self.assertTrue(state["file_attributes"] & 0x400)
+
+    @unittest.skipUnless(os.name == "nt", "実NTFS junctionの負対照はWindowsで実行")
+    def test_created_dangling_junction_is_rejected_by_all_three_entrypoints(self):
+        """存在しない参照先を持つ実junctionを、APIだけでなく両CLIも拒否する。"""
+        for entrypoint in ("cli", "api", "boundary"):
+            with self.subTest(entrypoint=entrypoint):
+                self.assert_created_output_is_rejected(entrypoint, "junction")
+
+    def test_created_dangling_symlink_is_rejected_by_all_three_entrypoints(self):
+        """symlinkを作れるOSでは、参照先なしを出力なしへ読み替えない。"""
+        for entrypoint in ("cli", "api", "boundary"):
+            with self.subTest(entrypoint=entrypoint):
+                self.assert_created_output_is_rejected(entrypoint, "symlink")
+
+    def test_regular_file_and_directory_outputs_still_reject_and_keep_evidence(self):
+        """通常fileの本文を記録し、directoryも本文を読まずにentryとして残す。"""
+        for entrypoint in ("cli", "api", "boundary"):
+            for kind in ("file", "directory"):
+                with self.subTest(entrypoint=entrypoint, kind=kind):
+                    self.assert_created_output_is_rejected(entrypoint, kind)
+
     def test_fixture_fixed_ids_input_types_and_scopes(self):
         """空/重複/欠落/入力変更/型違い/範囲の付替えを拒む。"""
         for boundary in (False, True):
@@ -36,16 +127,18 @@ class ReferenceContract(unittest.TestCase):
             for mutate in (
                 lambda value: value.update(schema=True),
                 lambda value: value.update(native_invocations=False),
-                lambda value: value.update({"runtime" if boundary else "primary": {}}),
+                lambda value, boundary=boundary: value.update(
+                    {"runtime" if boundary else "primary": {}}
+                ),
                 lambda value: value.update(cases=[]),
                 lambda value: value["cases"].append(copy.deepcopy(value["cases"][0])),
                 lambda value: value["cases"][0]["files"].update({"a.rb": "changed"}),
-                lambda value: (value["cases"][0] if boundary else value["cases"][0]["cli"]).update(
-                    exit=True
-                ),
-                lambda value: (value["cases"][0] if boundary else value["cases"][0]["cli"]).update(
-                    stderr_hex="xz"
-                ),
+                lambda value, boundary=boundary: (
+                    value["cases"][0] if boundary else value["cases"][0]["cli"]
+                ).update(exit=True),
+                lambda value, boundary=boundary: (
+                    value["cases"][0] if boundary else value["cases"][0]["cli"]
+                ).update(stderr_hex="xz"),
             ):
                 changed = copy.deepcopy(data)
                 mutate(changed)
@@ -157,7 +250,7 @@ class ReferenceContract(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory) / "case"
 
-                def child(*_arguments):
+                def child(*_arguments, root=root, mutation=mutation, row=row):
                     path = root / "a.rb"
                     info = path.stat()
                     if mutation == "bytes":
@@ -188,7 +281,7 @@ class ReferenceContract(unittest.TestCase):
                 root = Path(directory) / "case"
                 recorder._write_inputs(root, row)
 
-                def child(*_arguments):
+                def child(*_arguments, root=root, mutation=mutation, row=row):
                     path = root / "a.rb"
                     info = path.stat()
                     if mutation == "bytes":
