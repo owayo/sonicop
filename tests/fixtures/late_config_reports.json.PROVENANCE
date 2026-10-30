@@ -15,15 +15,15 @@ work/outputの既存entry/danglingを先に拒否し、親解決/dotdot/Windows 
 入力全fields/比較scopeのSHAと38ID順を固定する。空/欠落/重複/変更入力やbool件数を受理しない。
 
 比較範囲（Windows38、Unix34）:
-- strict33: metadata以外のstdout/stderr/outの全bytes、全JSON fields、exit、物理原本を比較する。
+- strict37（Unix33）: metadata以外のstdout/stderr/outの全bytes、全JSON fields、exit、物理原本を比較する。
   #150済みの曖昧名は最終Errorの候補順・origin・色・末尾改行まで全文照合する。
-- deferred_158のWindows4: correct-parallel/cache-parallel/stderr-parallel/unvisited-config。
-  本家のfork非対応通知1区間だけを除いた残り全bytes/report/原本を照合する。
-  Nativeの通常Sonicop通知は存在するならそのまま検出する。未測定のUnix fork挙動へ投影せず4件を未実行とする。
+- Windows4: correct-parallel/cache-parallel/stderr-parallel/unvisited-configは#158でstrictへ昇格した。
+  本家のfork非対応通知を除去せず、前後を含む全bytes/report/原本を照合する。
+  coverage以外の元fields/rawは不変。未測定のUnix fork挙動へ投影せず4件を未実行とする。
 - list-files1は#155でstrictへ昇格し、元Windows CRLFの全bytesを比較する。coverage以外の元fields/rawは変えない。
 - open_envelope1: out-is-directoryはopen失敗のexit2/stdout空と、nested設定へ到達しない順序だけを検査する。
   Ruby内部backtraceは再現せず、公開側には実先頭行とraw hash、private rawには全文を保持する。
-deferred_158とopen_envelopeの5条件は全bytes互換の成功へ数えず、同rawから昇格できる分類を残す。
+open_envelopeの1条件は全bytes互換の成功へ数えない。
 
 root設定拒否と探索起点directory/force-exclusion+ignore-parentでの拒否はstarted前でreportを出さない。
 明示file/root directory/stdinでは実target数を得てからfile_started→設定観測→検査/補正→file_finishedと進む。
@@ -55,5 +55,5 @@ fresh raw hash差はstderr32/stdout1/output0。stderr31とstdout1はworkpath由�
 Linuxだけの実/dev/full負対照は、file_finishedのwrite失敗後に後続JSONをfinishedしないことを検査する。
 このOS固有テストはWindowsで未実行であり、主38の実測成功数へ加算しない。
 
-fixture SHA256: 52e4f0432460288ba4dfc25e2df391b6f0c8acbf496aba9f6c78cfd691abddbf
-collector SHA256: 0e31e3beb2addad276361f87fe1626e14bd390821c234920e3b90102eca13ed9
+fixture SHA256: 328fccc402e384acfa3b75a6f959a31f7bd566d770f9f587f2fbd7920ccaff22
+collector SHA256: e85a21a6254a93d11198c52bceb35eea34c7e580dff1f272d747252252cd7816

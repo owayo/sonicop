@@ -1,0 +1,49 @@
+実参照: Ruby 4.0.7 x64-mingw-ucrt / RuboCop 1.89.0 / Parallel 2.3.0。
+parser 3.3.12.0 / Prism 1.8.1 / rubocop-ast 1.50.0 / Rainbow 3.1.1。
+2026-10-28の独立した実CLI記録から25条件を選び、2026-10-30に公開collectorで再採取した。
+候補exeから期待値を作らず、元の全fields/rawは不変。schema:1と有限比較scopeの件数だけを加えた。
+
+再採取（固定Windows Rubyとgemが必要）:
+  python scripts/conformance/record_parallel_fork_fallback.py --ruby <ruby-4.0.7> --output <new.json> --work-dir <fresh-private-work>
+実API 1件とCLI 25件の全26processが終了し、全元期待値と型まで一致した後だけexclusiveで保存する。
+APIは実runtime/gem版・fork非対応・Runner/Parallel/licenseのSHAを再取得する。
+source SHA3件はJSONに保持し、インストール済み原本とも独立照合した。
+
+通知はASCII 52 bytesとCRLFの計54 bytes。startedのstream出力をflushした後、file/config訪問前に
+stderrへ1回だけ出る。workers=0/1でもParallel#mapはworker数決定より前に通知する。
+明示parallelの複数対象10条件はWindows固有の陽性参照で、Unixの実測へ読み替えず未実行とする。
+共通陰性15条件は通常parallel・単一/重複/空対象・cache false・fail-fast・一覧・stdin・初期拒否など。
+stdin陰性は対象1件の実条件であり、任意のstdin条件への一般化ではない。
+
+比較範囲:
+- 23条件: stdout/stderr/Fileの全bytes、全JSON、終了値、通知とformatterの順序を照合する。
+  metadataは実Ruby/Nativeのengineと仕様版を確認してから分ける。20個のJSON reportは
+  通常完了・空・成功prefix・未知selection拒否の実path/件数/offense集合を別々に検査する。
+- IO 2条件: openfail-activeとmulti-out-openfailは出力openが通知より前である順序・終了2・
+  原本・Fileの状態を比較する。実Rubyの完全backtraceはprivate rawだけへ保持し、公開stderr_hexはnull。
+  実Rubyの先頭行は Is a directory @ rb_sysopen - outdir + CRLF。Nativeのerror本文全文一致は主張しない。
+  これら2件を全stderr互換の成功へ数えない。
+非Windowsの陰性はpipeのCRLFだけをhostのLFへ投影し、原本bytesは変えない。
+profile/memory、任意のProjectIndex/JRuby/optional gem構成、一般の構文・missing-fileエラー、
+auto-genの設定書換え、configured UseCache拒否（#160）の完全互換はこの25条件の範囲外。
+通常のNative実行でRubyを起動せず、Nativeの並列backend・worker数決定も変えない。
+
+private-run0.jsonに全channelと、入力/宣言Fileのbytes・mtime_ns・mode、report.json不在を保持する。
+実102入力観測はbytes/mtime/modeがすべて不変で、26processのreport.json不在も独立照合した。
+新規のwork/outだけを使い、別表記・両方向の親子・通常entry・dangling entryを子起動前に拒否する。
+原本とFileはlstatで通常fileと確認してから読み、予期しないreport.jsonもdanglingを含め拒否する。
+ENV4とambient NO_COLORは子copyから除き、TERM=dumb、case固有のCLICOLOR_FORCE/cacheを明示する。
+GEM/PATH/OSと親環境は保持する。13契約テストは通常/-Oの両方で、件数のbool混同・空/重複report・
+独立した入力bytes/mtime/mode変化・通常/実dangling出力・途中失敗・保存競合・全26子環境を検査する。
+
+既存late_config_reportsのWindows4条件はcoverageだけstrictへ昇格した。通知を削除する比較は廃止し、
+元38の全期待bytes・raw hash・入力などは不変。Windows37全stream+1IO、Unix33全stream+1IOとなる。
+
+RuboCop由来のRunner順序と参照資料: MIT、Copyright (c) 2012-26 Bozhidar Batsov。
+全文: licenses/RUBOCOP.txt。
+Parallel由来の通知と呼出時期: MIT、Copyright (C) 2013 Michael Grosser <michael@grosser.it>。
+全文: licenses/PARALLEL.txt（インストール済み2.3.0のlicenseと全bytes一致）。NOTICEにも記載する。
+
+fixture SHA256: 5b90dee6060c7aeed1db283c5c8b453e50541d7b26e7f3ddff82b0a0e075b8ab
+collector SHA256: a6cb6473506cce7254a760348a7dbd6929662a37bd1f86c45a317a2159f731d4
+contract SHA256: 14365ba6f11a40fa69096bc838b11e5f5d9c51796e29d88513cb7b7e325a768d

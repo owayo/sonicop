@@ -1548,6 +1548,22 @@ fn rejected_selection_targets(
     Ok(expanded)
 }
 
+fn emit_windows_parallel_fork_notice(cli: &Cli, target_count: usize) -> Result<()> {
+    // Parallel 2.3.0#mapはworker数を読む前に警告する。nativeの実worker数から推測しない。
+    if cfg!(windows)
+        && cli.parallel
+        && !cli.no_parallel
+        && target_count > 1
+        && cli.cache.as_deref() != Some("false")
+        && !cli.fail_fast
+        && !cli.profile
+        && !cli.memory
+    {
+        io::stderr().write_all(b"parallel: Process.fork is not supported by this Ruby\r\n")?;
+    }
+    Ok(())
+}
+
 /// Runnerのstarted以後だけを所有し、失敗したfileにfinishedを捏造しない。
 struct LiveSession<'a> {
     formatters: Vec<Lifecycle<'a>>,
@@ -1609,6 +1625,7 @@ impl<'a> LiveSession<'a> {
             formatter.started(&mut session.destinations.writer(index))?;
         }
         session.destinations.flush_streams()?;
+        emit_windows_parallel_fork_notice(cli, request.target_count)?;
         Ok(session)
     }
 

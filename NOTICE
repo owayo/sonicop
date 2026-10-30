@@ -23,8 +23,28 @@ licence position checkable rather than remembered.
 WHAT IS TAKEN
 ================================================================================
 
+Parallel -- https://github.com/grosser/parallel -- MIT
+  Copyright (C) 2013 Michael Grosser <michael@grosser.it>
+
+  src/cli.rs (Windows Process.fork fallback notification)
+  tests/fixtures/parallel_fork_fallback.json
+      Notification and its timing adapted from Parallel 2.3.0 map, as called
+      by RuboCop 1.89.0 Runner. Twenty-five actual CLI conditions preserve
+      complete streams for 23 conditions and output-open phase checks for
+      two I/O controls. Ten positive notification conditions are Windows
+      references. Regenerate with
+      scripts/conformance/record_parallel_fork_fallback.py. The adjacent
+      .PROVENANCE records runtime, source hashes and finite comparison scope.
+      Full licence text: licenses/PARALLEL.txt.
+
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
+
+  src/cli.rs, tests/fixtures/parallel_fork_fallback.json
+      Runner's parallel invocation and formatter-start ordering adapted
+      from RuboCop 1.89.0. Reference collection and scope are documented in
+      the Parallel entry above and the adjacent .PROVENANCE.
+      Full licence text: licenses/RUBOCOP.txt.
 
   src/config/pending_cops.rs, src/config/namespaces.rs, src/config/mod.rs
   src/cli.rs, tests/fixtures/pending_cops.json
@@ -148,9 +168,10 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Runner file visitation and formatter completion boundaries adapted from
       RuboCop 1.89.0 Runner, TargetFinder, ExecuteRunner and FormatterSet.
       Thirty-eight actual CLI records preserve initial rejection separately
-      from completed file prefixes, corrections and final reports. Thirty-two
-      compare full streams and reports; four Windows fork fallback notices,
-      one list transport and one generic I/O error retain documented limits.
+      from completed file prefixes, corrections and final reports. Thirty-seven
+      compare full streams and reports, including the Windows fork fallback
+      notices and listing transport. One generic I/O error retains documented
+      limits. The four positive fork conditions are skipped on other hosts.
       Three separate display-filter channel controls and one unfiltered
       positive control retain full JSON and exit comparisons. Regenerate with
       scripts/conformance/record_late_config_reports.py and
