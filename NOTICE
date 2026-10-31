@@ -81,6 +81,16 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       four product identity fields from its otherwise complete comparison.
       Full licence text: licenses/RUBOCOP.txt.
 
+  src/cli.rs, tests/config_option_values.rs
+      Config-file option values follow RuboCop 1.89.0 Options#add_general_options:
+      a token that resembles another option is still the required FILE value.
+      Runtime-enabled tests compare 27 synthetic conditions in 54 independent
+      CLI invocations. Inspection JSON apart from four product identity fields,
+      error streams, original file attributes and an unexecuted feature marker
+      are checked. Help is checked for dispatch only; the missing-value control
+      checks rejection, without claiming complete help or error-text equality.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/engine.rs, src/cli.rs, tests/missing_targets.rs
       Explicit missing targets and their File.read error timing follow
       RuboCop 1.89.0 TargetFinder and Runner#get_processed_source. Runtime-enabled
