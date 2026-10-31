@@ -39,6 +39,10 @@ thread_local! {
     static PARSER: RefCell<Option<Parser>> = const { RefCell::new(None) };
 }
 
+#[cfg(test)]
+#[path = "parser/literal_tests.rs"]
+mod literal_tests;
+
 /// Parses `text` with this thread's parser, building one on first use.
 ///
 /// `None` means the parser produced no tree at all, which is not the same as a tree holding

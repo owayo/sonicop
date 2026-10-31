@@ -134,7 +134,7 @@ fn pending_notice_preserves_all_recorded_streams_and_early_boundaries() {
                     format!("{}\n", sonicop::VERSION)
                 } else {
                     format!(
-                        "sonicop {} (RuboCop {} CLI, tree-sitter-ruby v26.10.106, analyzing as Ruby 2.7) [{} {}]\n",
+                        "sonicop {} (RuboCop {} CLI, tree-sitter-ruby v26.10.107, analyzing as Ruby 2.7) [{} {}]\n",
                         sonicop::VERSION,
                         sonicop::RUBOCOP_COMPAT_VERSION,
                         std::env::consts::OS,
