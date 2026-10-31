@@ -18,9 +18,9 @@ use crate::config::{
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, CorrectionEncodingError, DirectoryOrder, NO_SYNTAX_GUARD, ResultCache, Selection,
-    SharedStdinState, correct_file_with_original, correct_shared_stdin, correction_bytes,
-    discover_cli_targets_with_store, discover_stdin_targets_with_store,
+    CorrectMode, CorrectionEncodingError, DirectoryOrder, MissingTargetError, NO_SYNTAX_GUARD,
+    ResultCache, Selection, SharedStdinState, correct_file_with_original, correct_shared_stdin,
+    correction_bytes, discover_cli_targets_with_store, discover_stdin_targets_with_store,
     inspect_file_results_with_store_cached, inspect_files, inspect_files_with_store_cached,
     inspect_shared_stdin, inspect_stdin, is_mandatory_cop, native_textmode_bytes, offense_count,
     stdin_output_bytes, write_correction,
@@ -560,6 +560,13 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                     format!("\x1b[31m{message}\x1b[0m\n")
                 } else {
                     format!("{message}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<MissingTargetError>() {
+                let text = if failure.color() {
+                    format!("\x1b[31mError: {failure}\x1b[0m\n")
+                } else {
+                    format!("Error: {failure}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
@@ -1108,6 +1115,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     )
     .map_err(|error| {
         let color = phase.load(Ordering::Relaxed);
+        let error = MissingTargetError::with_color(error, color);
         let error = crate::config::RuntimeError::with_color(error, color);
         let error = crate::ruby_version::ConfigTargetError::with_color(error, color);
         let error = crate::config::InvalidNewCopsError::with_color(error, color);

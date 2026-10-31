@@ -58,6 +58,15 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/engine.rs, src/cli.rs, tests/missing_targets.rs
+      Explicit missing targets and their File.read error timing follow
+      RuboCop 1.89.0 TargetFinder and Runner#get_processed_source. Runtime-enabled
+      tests compare 24 independent CLI conditions with pinned upstream gems,
+      including finished JSON, option filtering, color, source correction order
+      and a prior require with finalization. Complete JSON fields apart from
+      product identity, other streams and source bytes are compared.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/config/remote_cache.rs, tests/remote_config_cache.rs
       RemoteConfig cache lifetime, conditional requests and on-disk text-mode
       behavior follow RuboCop 1.89.0. Runtime-enabled tests compare independent
