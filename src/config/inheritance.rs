@@ -249,6 +249,10 @@ fn load_local_with_inheritance(
         &target,
         &resolved.runtime.snapshot(),
     );
+    if resolved.warnings.is_none() {
+        // quiet API も、この文書の拒否を次の継承先の I/O より後へ遅らせない。
+        trace.check_fatal_settings()?;
+    }
     let mut pending = trace.with_children(pending_children);
     if resolved.runtime.active()
         && let Some(warnings) = &resolved.warnings
@@ -343,6 +347,9 @@ fn load_remote_with_inheritance(
         &target,
         &resolved.runtime.snapshot(),
     );
+    if resolved.warnings.is_none() {
+        trace.check_fatal_settings()?;
+    }
     let mut pending = trace.with_children(pending_children);
     if resolved.runtime.active()
         && let Some(warnings) = &resolved.warnings

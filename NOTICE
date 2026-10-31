@@ -58,6 +58,18 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/config/{mod,validation,inheritance,obsoletion}.rs, src/cli.rs
+  tests/default_modes.rs, tests/fixtures/default_mode_cases.json
+      Default cop mode truthiness and rejection timing follow RuboCop 1.89.0
+      ConfigValidator#reject_mutually_exclusive_defaults, ConfigLoader's mode
+      overrides and Version#config_for_pwd. The matrix contains synthetic inputs;
+      runtime-enabled tests obtain fresh upstream output for 56 CLI conditions
+      and 17 configuration API calls. Report identity and product version text
+      have separate comparison scopes; selected mode listings compare the
+      boolean Enabled value. Original bytes, mtime and mode are checked.
+      Comparison scope: tests/fixtures/default_mode_cases.json.PROVENANCE.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/cli.rs, tests/cop_selection_arguments.rs
       Missing --only/--except values follow RuboCop 1.89.0
       Options#add_cop_selection_csv_option and CLI OptionArgumentError handling.

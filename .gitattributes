@@ -478,3 +478,8 @@ tests/missing_targets.rs text eol=lf
 
 # CSV拒否前のRuby副作用とstreamの物理bytesを比較する。
 tests/cop_selection_arguments.rs text eol=lf
+
+# 既定モードの実参照比較でJSONと原本の改行を保持する。
+tests/default_modes.rs text eol=lf
+tests/fixtures/default_mode_cases.json text eol=lf
+tests/fixtures/default_mode_cases.json.PROVENANCE text eol=lf

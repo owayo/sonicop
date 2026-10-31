@@ -1,0 +1,1187 @@
+{
+  "cases": [
+    {
+      "id": "both-true",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "enabled-false",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 1,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "disabled-false",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: false\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 1,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "disabled-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: null\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 1,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "disabled-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: 0\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "disabled-empty-string",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: ''\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "disabled-false-string",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: 'false'\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "disabled-array",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: []\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "disabled-map",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: {}\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "enabled-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: 0\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--version"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "explicit-version",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--version"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "version-cli-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "version",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-cli-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "verbose",
+      "mode_error": false
+    },
+    {
+      "id": "force-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--force-default-config",
+        "--disable-pending-cops",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 1,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "explicit-force-default",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--force-default-config",
+        "--disable-pending-cops",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "parent-conflict-child-overrides",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n",
+        ".rubocop.yml": "inherit_from: base.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: false\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "merged-conflict",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        ".rubocop.yml": "inherit_from: base.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "nested-conflict",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "nested-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/.rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "nested/a.rb": "x=1\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "initial-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "initial-force-color",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {
+        "CLICOLOR_FORCE": "1"
+      },
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "existing-report",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n",
+        "report.json": "KEEP\u0000\r\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb",
+        "--out",
+        "report.json"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "invalid-new-cops-first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: sometimes\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: true\n  DisabledByDefault: true\nLayout/SpaceAroundOperators:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--only",
+        "Layout/SpaceAroundOperators",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: 0\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-empty",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: ''\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-false-string",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: 'false'\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-array",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: []\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-map",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: {}\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-false",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: false\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "DisabledByDefault-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: null\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Layout/SpaceAroundOperators"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Layout/SpaceAroundOperators",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: 0\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-empty",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: ''\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-false-string",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: 'false'\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-array",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: []\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-map",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: {}\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-false",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: false\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "EnabledByDefault-null",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  EnabledByDefault: null\n  DisabledByDefault: false\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache",
+        "false",
+        "--show-cops",
+        "Style/MethodCallWithArgsParentheses"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Style/MethodCallWithArgsParentheses",
+      "mode_error": false
+    },
+    {
+      "id": "parameter-warning-first",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\nLayout/SpaceAroundOperators:\n  MissingParameterForProbe: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "new-cops-before-warning",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: sometimes\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\nLayout/SpaceAroundOperators:\n  MissingParameterForProbe: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "unknown-before-defaults",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\nUnknownDepartmentForProbe/NoCop:\n  Enabled: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "ignored-unknown-before-defaults",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\nUnknownDepartmentForProbe/NoCop:\n  Enabled: true\n"
+      },
+      "args": [
+        "--ignore-unrecognized-cops",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "conflict-before-target",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 99.9\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "parent-before-later-io",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "inherit_from: [base.yml, missing.yml]\n",
+        "base.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "correct-before-conflict",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "-A",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "disabled-zero-inspect",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: 0\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "disabled-zero-correct",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: 0\n  EnabledByDefault: false\n"
+      },
+      "args": [
+        "-A",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "legacy-empty-zero",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: 0\nNaming/PredicateName: {}\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--show-cops",
+        "Naming/PredicatePrefix"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Naming/PredicatePrefix",
+      "mode_error": false
+    },
+    {
+      "id": "legacy-empty-boolean",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNaming/PredicateName: {}\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--show-cops",
+        "Naming/PredicatePrefix"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "enabled",
+      "cop": "Naming/PredicatePrefix",
+      "mode_error": false
+    },
+    {
+      "id": "require-before-conflict",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "require: ./feature.rb\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n",
+        "feature.rb": "File.binwrite('loaded_marker', \"loaded\\n\")\nat_exit { STDERR.puts(\"leave:#{$!.is_a?(SystemExit) ? $!.status : 'nil'}\") }\n"
+      },
+      "args": [
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "nested-require-conflict",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "nested/.rubocop.yml": "require: ../feature.rb\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n",
+        "nested/a.rb": "x=1\n",
+        "feature.rb": "File.binwrite('loaded_marker', \"loaded\\n\")\nat_exit { STDERR.puts(\"leave:#{$!.is_a?(SystemExit) ? $!.status : 'nil'}\") }\n"
+      },
+      "args": [
+        "--color",
+        "--cache",
+        "false",
+        "--format",
+        "json",
+        "nested/a.rb"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "verbose-unvalidated-target",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: sometimes\n  TargetRubyVersion: 3.4\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\nLayout/SpaceAroundOperators:\n  MissingParameterForProbe: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "verbose",
+      "target_display": "3.4",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-unvalidated-require",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "require: ./feature.rb\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n",
+        "feature.rb": "File.binwrite('loaded_marker', \"loaded\\n\")\nat_exit { STDERR.puts(\"leave:#{$!.is_a?(SystemExit) ? $!.status : 'nil'}\") }\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "verbose",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-explicit-bad",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": true
+    },
+    {
+      "id": "verbose-unvalidated-io",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "inherit_from: missing.yml\nAllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 2,
+      "scope": "report",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-env-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n  EnabledByDefault: true\n"
+      },
+      "args": [
+        "--verbose-version"
+      ],
+      "environment": {
+        "RUBOCOP_CACHE_ROOT": "cache"
+      },
+      "status": 0,
+      "scope": "verbose",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-explicit-renamed",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNaming/PredicateName:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "verbose",
+      "mode_error": false
+    },
+    {
+      "id": "verbose-explicit-renamed-cache-root",
+      "files": {
+        "Gemfile": "",
+        "a.rb": "x=1\n",
+        ".rubocop.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\n",
+        "config.yml": "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n  SuggestExtensions: false\n  DisabledByDefault: true\nNaming/PredicateName:\n  Enabled: true\n"
+      },
+      "args": [
+        "--config",
+        "config.yml",
+        "--cache-root",
+        "cache",
+        "--verbose-version"
+      ],
+      "environment": {},
+      "status": 0,
+      "scope": "verbose",
+      "mode_error": false
+    }
+  ]
+}

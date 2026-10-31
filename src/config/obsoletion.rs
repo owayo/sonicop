@@ -80,11 +80,7 @@ fn renamed_warnings(config: &Value, origin: &str) -> Vec<String> {
 }
 
 pub(super) fn legacy_settings(config: &Value) -> Vec<(&'static str, &'static str, Mapping)> {
-    let disabled = config
-        .get("AllCops")
-        .and_then(|all| all.get("DisabledByDefault"))
-        .and_then(Value::as_bool)
-        == Some(true);
+    let disabled = super::all_cops_truthy(config, "DisabledByDefault");
     RENAMED
         .iter()
         .filter(|rule| matches!(rule.severity, Severity::Warning))
