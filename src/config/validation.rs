@@ -8,6 +8,32 @@ use serde_yaml_ng::Value;
 
 use super::runtime::Snapshot;
 
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ConflictingDefaultsError {
+    color: bool,
+}
+
+impl ConflictingDefaultsError {
+    pub(crate) fn color(&self) -> bool {
+        self.color
+    }
+
+    pub(crate) fn with_color(mut error: anyhow::Error, color: bool) -> anyhow::Error {
+        if let Some(conflict) = error.downcast_mut::<Self>() {
+            conflict.color = color;
+        }
+        error
+    }
+}
+
+impl fmt::Display for ConflictingDefaultsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("Cops cannot be both enabled by default and disabled by default")
+    }
+}
+
+impl std::error::Error for ConflictingDefaultsError {}
+
 const COMMON: &[&str] = &[
     "Exclude",
     "Include",
@@ -303,6 +329,8 @@ impl OrderedKeys {
                 self.sections.iter().map(|section| section.name.as_str()),
                 registry,
             ),
+            conflicting_defaults: super::all_cops_truthy(value, "EnabledByDefault")
+                && super::all_cops_truthy(value, "DisabledByDefault"),
             warnings,
             unknown,
             legacy_unknown,
@@ -342,6 +370,7 @@ pub(crate) enum ConfigWarning {
 struct Prepared {
     obsolete: super::obsoletion::Outcome,
     new_cops: Option<super::new_cops::InvalidNewCopsError>,
+    conflicting_defaults: bool,
     namespaces: Vec<ConfigWarning>,
     warnings: Vec<ConfigWarning>,
     unknown: Vec<String>,
@@ -357,6 +386,7 @@ pub(super) struct ValidationTrace {
     has_unknown: bool,
     has_obsolete: bool,
     has_new_cops: bool,
+    has_conflicting_defaults: bool,
 }
 
 impl ValidationTrace {
@@ -402,6 +432,8 @@ impl ValidationTrace {
                 || inherited.iter().any(|trace| trace.has_obsolete),
             has_new_cops: own.new_cops.is_some()
                 || inherited.iter().any(|trace| trace.has_new_cops),
+            has_conflicting_defaults: own.conflicting_defaults
+                || inherited.iter().any(|trace| trace.has_conflicting_defaults),
             has_warnings: !own.unknown.is_empty()
                 || own.obsolete.warning.is_some()
                 || !own.namespaces.is_empty()
@@ -415,16 +447,19 @@ impl ValidationTrace {
         })
     }
 
-    pub(super) fn check_new_cops(&self) -> Result<()> {
+    pub(super) fn check_fatal_settings(&self) -> Result<()> {
         // quiet APIも継承先から検査する。妥当な共有部分木を展開しない。
         let mut stack = vec![(self, false)];
         while let Some((trace, own)) = stack.pop() {
-            if !trace.has_new_cops {
+            if !trace.has_new_cops && !trace.has_conflicting_defaults {
                 continue;
             }
             if own {
                 if let Some(error) = &trace.own.new_cops {
                     return Err(error.clone().into());
+                }
+                if trace.own.conflicting_defaults {
+                    return Err(ConflictingDefaultsError::default().into());
                 }
             } else {
                 stack.push((trace, true));
@@ -456,6 +491,7 @@ impl ValidationTrace {
                     // 警告もfatalもない共有部分木だけを省略し、ignoreで廃止copの拒否を失わない。
                     if !trace.has_obsolete
                         && !trace.has_new_cops
+                        && !trace.has_conflicting_defaults
                         && !trace.has_warnings
                         && (ignore_unknown || !trace.has_unknown)
                     {
@@ -492,6 +528,10 @@ impl ValidationTrace {
                     for warning in &prepared.warnings {
                         emit(warning)?;
                     }
+                    // 本家の末尾の拒否を再生し、先に出た parameter warning を失わない。
+                    if prepared.conflicting_defaults {
+                        return Err(ConflictingDefaultsError::default().into());
+                    }
                 }
             }
         }
@@ -516,6 +556,7 @@ pub(crate) struct ConfigWarnings {
     pub(super) runtime: Arc<super::RuntimeSession>,
     pub(super) ignore_unknown: bool,
     pub(super) parent_exclusion: bool,
+    validate: bool,
     output: Arc<WarningOutput>,
 }
 
@@ -565,6 +606,7 @@ impl ConfigWarnings {
             runtime: Arc::new(super::RuntimeSession::default()),
             ignore_unknown,
             parent_exclusion,
+            validate: true,
             output: Arc::new(move |warning| {
                 output(warning).map_err(|error| WarningOutputFailure(error).into())
             }),
@@ -576,8 +618,20 @@ impl ConfigWarnings {
         self
     }
 
+    pub(super) fn unvalidated(&self) -> Self {
+        Self {
+            validate: false,
+            output: Arc::new(|_| Ok(())),
+            ..self.clone()
+        }
+    }
+
     pub(super) fn emit(&self, trace: &ValidationTrace) -> Result<()> {
-        trace.replay(self.ignore_unknown, self.output.as_ref())
+        if self.validate {
+            trace.replay(self.ignore_unknown, self.output.as_ref())
+        } else {
+            Ok(())
+        }
     }
 
     pub(super) fn emit_using(&self, message: &str) -> Result<()> {

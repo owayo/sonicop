@@ -712,6 +712,15 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
                     format!("Error: {unknown}\n")
                 };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(conflict) =
+                error.downcast_ref::<crate::config::ConflictingDefaultsError>()
+            {
+                let text = if conflict.color() {
+                    format!("\x1b[31mError: {conflict}\x1b[0m\n")
+                } else {
+                    format!("Error: {conflict}\n")
+                };
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(invalid) = error.downcast_ref::<crate::config::InvalidNewCopsError>()
             {
                 let text = if invalid.color() {
@@ -1192,6 +1201,7 @@ fn try_run_with_outputs(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         let error = crate::config::RuntimeError::with_color(error, color);
         let error = crate::ruby_version::ConfigTargetError::with_color(error, color);
         let error = crate::config::InvalidNewCopsError::with_color(error, color);
+        let error = crate::config::ConflictingDefaultsError::with_color(error, color);
         AmbiguousConfigCopError::with_color(
             ObsoleteConfigError::with_color(
                 UnknownConfigError::with_color(MissingConfigError::with_color(error, color), color),
@@ -1241,13 +1251,25 @@ fn try_run_with_warning_phase(
     }
     if cli.verbose_version {
         let cwd = std::env::current_dir().context("failed to determine current directory")?;
-        let config = Config::load_for_cli(
-            cli.config.as_deref(),
-            &cwd,
-            cli.force_default_config,
-            &config_warnings,
-            cli.cache_root.is_none() && std::env::var_os("RUBOCOP_CACHE_ROOT").is_none(),
-        )?;
+        // 明示configはここで一度だけ通常検証し、先行observeで警告を二重に再生しない。
+        let config = if cli.config.is_some()
+            || (cli.cache_root.is_none() && std::env::var_os("RUBOCOP_CACHE_ROOT").is_none())
+        {
+            Config::load_for_cli(
+                cli.config.as_deref(),
+                &cwd,
+                cli.force_default_config,
+                &config_warnings,
+                true,
+            )?
+        } else {
+            Config::load_unvalidated_for_version(
+                cli.config.as_deref(),
+                &cwd,
+                cli.force_default_config,
+                &config_warnings,
+            )?
+        };
         cache_root::report(
             cli.cache_root.as_deref(),
             &cwd,

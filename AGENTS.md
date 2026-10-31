@@ -251,6 +251,17 @@ path most users are on and the one a `--cache false` comparison never measures. 
 rayon の indexed collect と逐次の collect が保った入力順をそのまま使う。
 並列・単一、キャッシュの有無と再実行、ディレクトリ・正順・逆順の引数を一緒に検査する。
 
+**既定copモードはRubyの真偽と文書ごとの検証を使う。** `EnabledByDefault` と
+`DisabledByDefault` はfalse/null以外を真とし、0・空文字列・空配列・空Hashも真になる。
+cop選択と旧copの空HashへのEnabled補完にも同じ判定を使う。両方が真の拒否は
+ConfigValidator#validateの末尾として、先行警告の後にValidationTraceから再生する。
+親の不正設定を子の上書きで取り消さず、quiet APIも後続継承先のI/Oより先にその文書で拒否する。
+詳細版表示のunvalidated storeは設定の拒否と警告を省くが、YAML/I/Oとrequireを保つ。
+明示configの通常検証は一度だけ行い、詳細版表示の先行observeと読込で警告を二重に再生しない。
+cache-root推定に必要な通常検証とも区別する。
+`default_modes.rs` は58実CLIと17設定API、原本のbytes/mtime/modeを照合する。
+一覧の16条件はEnabled値、版表示は製品identityを分け、拒否streamとreport全項目の比較へ混ぜない。
+
 **値なしcop選択はOptions callbackの位置で拒否する。** `--only` と `--except` は本家の
 同じCSV callbackで、値がnilなら専用の一行エラーになる。明示した空文字列とは区別する。
 先行requireとcache-rootの拒否を先に、後続のrequireとhelpを後に置き、Rubyのexit/abortとat_exitも保つ。

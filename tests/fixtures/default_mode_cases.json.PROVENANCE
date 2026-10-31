@@ -1,0 +1,21 @@
+これは人工的な入力と実測済み終了値の行列であり、保存済みの診断を再生するfixtureではない。
+tests/default_modes.rsが固定Ruby/RuboCopを毎回先に起動し、現在OSの実出力を取得する。
+仕様版: RuboCop 1.89.0。Psych 5.3.1、parser 3.3.12.0、Prism 1.8.1、
+rubocop-ast 1.50.0、Rainbow 3.1.1をloaderで固定する。
+
+2026-10-30/31のWindows実CLIによる24件の拒否段階と14件の単独モードを元に、
+警告・継承先I/O・補正対照・旧copの空Hash・requireとat_exit・詳細版表示の対照を加えた。
+全58 CLI条件は実本家とNativeの独立したprocessで終了値とstreamを比較する。
+JSON reportは製品identity四項目以外の全項目、cop設定の一覧は16件のEnabled値、
+単純版表示は各製品の版とnative改行、詳細版表示6件は互換仕様版と対象Rubyの表示を検査する。
+明示configの旧名cop警告はcache-root上書きの有無で一度だけ出ることを実本家と比較する。
+版表示の製品名・実装・parser説明の全文一致や、cop一覧の全YAML一致は主張しない。
+拒否と警告のstderrはcwdの絶対名だけを束縛し、ANSIと物理改行を含む全bytesを比較する。
+require三条件は実marker fileとat_exitのstatusを確認する。
+
+設定APIの17件は、単独モード14件の二つの非pending copの有効状態と、
+同時指定・親の矛盾・後続I/Oより先の親の拒否を比較する。その他のAPI挙動へ一般化しない。
+全既存原本のbytes/mtime/modeを実行前後で照合し、既存reportのNUL/CRLFも保持する。
+Rubyが無い実行は未計測と表示し、SONICOP_RUNTIME_TESTS=1のCIでは失敗させる。
+
+本家の動作・エラー文の出典はNOTICEとlicenses/RUBOCOP.txtを参照。

@@ -46,7 +46,9 @@ pub(crate) use runtime::{RuntimeError, RuntimeSession};
 pub use store::ConfigStore;
 pub(crate) use unrecognized::UnknownConfigError;
 use validation::ValidationBundle;
-pub(crate) use validation::{ConfigWarning, ConfigWarnings, WarningOutputFailure};
+pub(crate) use validation::{
+    ConfigWarning, ConfigWarnings, ConflictingDefaultsError, WarningOutputFailure,
+};
 
 const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 
@@ -224,6 +226,20 @@ impl Config {
         Ok(config)
     }
 
+    pub(crate) fn load_unvalidated_for_version(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+        warnings: &ConfigWarnings,
+    ) -> Result<Self> {
+        // Version#config_for_pwd は unvalidated store と silence_warnings を使う。
+        // YAML/I/O と require は保ち、設定の拒否・警告と最終対象版検証だけを省く。
+        let warnings = warnings.unvalidated();
+        let config = Self::load_internal(explicit, cwd, force_default, Some(&warnings), false)?;
+        config.emit_parent_validation(&warnings, None)?;
+        Ok(config)
+    }
+
     fn load_internal(
         explicit: Option<&Path>,
         cwd: &Path,
@@ -309,14 +325,10 @@ impl Config {
         };
 
         if warnings.is_none() {
-            // libraryの未知名metadataは保ち、NewCopsの無効値だけを無出力で拒否する。
-            validation.trace.check_new_cops()?;
+            // 未知名metadataは保ち、文書ごとの設定拒否を無出力で伝える。
+            validation.trace.check_fatal_settings()?;
         }
         let result = (|| -> Result<Self> {
-            if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
-                bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
-            }
-
             let path_base = path_parameter_base_directory(config_path.as_deref(), cwd);
             // ENVのgetterは設定値より先。存在する空文字列も設定へfallbackしない。
             let environment = std::env::var_os("RUBOCOP_TARGET_RUBY_VERSION").is_some();
@@ -570,10 +582,10 @@ impl Config {
             .user_department_mapping(name)
             .and_then(|cop| cop.get("Enabled"));
         let disabled = mode.map_or_else(
-            || self.all_cops_bool_value("DisabledByDefault"),
+            || self.all_cops_truthy_value("DisabledByDefault"),
             |value| !value,
         );
-        let all_enabled = mode.unwrap_or_else(|| self.all_cops_bool_value("EnabledByDefault"));
+        let all_enabled = mode.unwrap_or_else(|| self.all_cops_truthy_value("EnabledByDefault"));
         // disable既定では明示空HashにもEnabled:trueを補う。CLIは明示値を消さない。
         if enabled == Some(&Value::Bool(true))
             || enabled.and_then(Value::as_str) == Some("override_department")
@@ -587,7 +599,9 @@ impl Config {
         if let Some(value) = enabled {
             // merge_with_default(unset_nil:true)で消えたキーのfallbackは元AllCopsの値。
             return if value.is_null() {
-                Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault")))
+                Cow::Owned(Value::Bool(
+                    !self.all_cops_truthy_value("DisabledByDefault"),
+                ))
             } else {
                 Cow::Borrowed(value)
             };
@@ -596,7 +610,9 @@ impl Config {
             self.cop_mapping(name)
                 .and_then(|cop| cop.get("Enabled"))
                 .map_or(
-                    Cow::Owned(Value::Bool(!self.all_cops_bool_value("DisabledByDefault"))),
+                    Cow::Owned(Value::Bool(
+                        !self.all_cops_truthy_value("DisabledByDefault"),
+                    )),
                     Cow::Borrowed,
                 )
         };
@@ -941,10 +957,8 @@ impl Config {
         }
     }
 
-    fn all_cops_bool_value(&self, key: &str) -> bool {
-        self.cop_raw_value("AllCops", key)
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
+    fn all_cops_truthy_value(&self, key: &str) -> bool {
+        ruby_truthy(self.cop_raw_value("AllCops", key))
     }
 }
 
@@ -967,11 +981,12 @@ fn ordered_settings(default: &Value, merged: &Value) -> Value {
     Value::Mapping(ordered)
 }
 
-fn all_cops_bool(config: &Value, key: &str) -> bool {
-    all_cops_mapping(config)
-        .and_then(|mapping| mapping.get(key))
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
+fn ruby_truthy(value: Option<&Value>) -> bool {
+    value.is_some_and(|value| !matches!(value, Value::Null | Value::Bool(false)))
+}
+
+fn all_cops_truthy(config: &Value, key: &str) -> bool {
+    ruby_truthy(all_cops_mapping(config).and_then(|mapping| mapping.get(key)))
 }
 
 fn all_cops_mapping(config: &Value) -> Option<&Mapping> {
