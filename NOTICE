@@ -23,6 +23,14 @@ licence position checkable rather than remembered.
 WHAT IS TAKEN
 ================================================================================
 
+chrono -- https://github.com/chronotope/chrono -- MIT (selected option)
+  Copyright (c) 2014--2026, Kang Seonghoon and contributors.
+
+  Cargo dependency chrono 0.4.45, used by src/config/remote_cache.rs
+      Formats the cached file mtime with the local UTC offset used by
+      Ruby Time#rfc2822 for conditional HTTP requests.
+      Full selected licence text: licenses/CHRONO.txt.
+
 md5 -- https://github.com/stainless-steel/md5 -- MIT (selected option)
   Copyright 2015–2026 The md5 Developers
 
@@ -49,6 +57,13 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
+
+  src/config/remote_cache.rs, tests/remote_config_cache.rs
+      RemoteConfig cache lifetime, conditional requests and on-disk text-mode
+      behavior follow RuboCop 1.89.0. Runtime-enabled tests compare independent
+      CLI processes with the pinned upstream release and inspect the cache files,
+      HTTP requests, complete reports and original source files.
+      Full licence text: licenses/RUBOCOP.txt.
 
   src/ruby_version.rs, src/config/mod.rs, src/config/obsoletion/parameters.rs
   src/engine.rs, src/cli.rs, tests/fixtures/target_ruby_environment.json

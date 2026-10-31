@@ -4,7 +4,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use serde_yaml_ng::{Mapping, Value};
@@ -14,8 +13,6 @@ use super::loader::{
 };
 use super::namespaces::{self, Origin};
 use super::validation::{OrderedKeys, ValidationBundle, ValidationTrace};
-
-const MAX_REMOTE_CONFIG_BYTES: u64 = 5 * 1024 * 1024;
 
 #[derive(Clone)]
 struct ResolvedDocument {
@@ -291,7 +288,7 @@ fn load_remote_with_inheritance(
     let cwd = std::env::current_dir()?;
     let root = super::cache_root::for_remote(resolved.warnings.as_ref(), &cwd)?;
     let remote_origin = super::remote_origin::path(url, &root, &cwd)?;
-    let contents = fetch_remote_config(url)?;
+    let contents = super::remote_cache::read(url, &remote_origin)?;
     let mut current = parse_yaml_configuration(&contents, url)?;
     let mut keys = OrderedKeys::from_value(&current);
     let target = super::obsoletion::TargetRuby::new(&current, None);
@@ -385,32 +382,6 @@ pub(super) fn parse_yaml_configuration(contents: &str, origin: impl Display) -> 
         Value::Mapping(_) => Ok(value),
         _ => bail!("Malformed configuration in {origin}"),
     }
-}
-
-fn fetch_remote_config(url: &str) -> Result<String> {
-    use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
-
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(30)))
-        .tls_config(
-            TlsConfig::builder()
-                .provider(TlsProvider::NativeTls)
-                .root_certs(RootCerts::PlatformVerifier)
-                .build(),
-        )
-        .build()
-        .into();
-    let mut response = agent
-        .get(url)
-        .call()
-        .with_context(|| format!("failed to fetch remote configuration: {url}"))?;
-    response
-        .body_mut()
-        .with_config()
-        // ureq は指定値と同じ長さでも上限超過にするため、論理上限を含む 1 バイト先を渡す。
-        .limit(MAX_REMOTE_CONFIG_BYTES + 1)
-        .read_to_string()
-        .with_context(|| format!("failed to read remote configuration: {url}"))
 }
 
 /// Resolves an `inherit_from` entry of a remote configuration against the URL it was found in,
@@ -720,8 +691,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        InheritMode, MAX_REMOTE_CONFIG_BYTES, PARSED_CONFIG_COUNT, deep_merge, fetch_remote_config,
-        join_remote_url, load_with_inheritance, merge_config, merge_inherited_config,
+        InheritMode, PARSED_CONFIG_COUNT, deep_merge, join_remote_url, load_with_inheritance,
+        merge_config, merge_inherited_config,
     };
     use crate::config::Config;
 
@@ -958,20 +929,60 @@ mod tests {
 
     #[test]
     fn remote_configuration_enforces_the_response_size_limit() {
-        let limit = MAX_REMOTE_CONFIG_BYTES as usize;
+        let limit = 5 * 1024 * 1024;
+        let directory = tempdir().unwrap();
 
         let (url, server) = serve_once(vec![b'a'; limit]);
-        let accepted = fetch_remote_config(&url).unwrap();
+        let accepted =
+            crate::config::remote_cache::read(&url, &directory.path().join("accepted.yml"))
+                .unwrap();
         server.join().unwrap();
         assert_eq!(accepted.len(), limit);
 
         let (url, server) = serve_once(vec![b'a'; limit + 1]);
-        let error = fetch_remote_config(&url).unwrap_err().to_string();
+        let rejected = directory.path().join("rejected.yml");
+        let error = crate::config::remote_cache::read(&url, &rejected)
+            .unwrap_err()
+            .to_string();
         server.join().unwrap();
+        assert!(!rejected.exists());
         assert!(
             error.starts_with("failed to read remote configuration:"),
             "unexpected error: {error}"
         );
+    }
+
+    #[test]
+    fn remote_response_limit_precedes_text_mode_and_preserves_a_stale_cache_on_failure() {
+        use std::fs::{File, FileTimes};
+        use std::time::{Duration, SystemTime};
+
+        let limit = 5 * 1024 * 1024;
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("cache.yml");
+        // Windows の実 File.write は改行ごとに CR を足す。保存後のサイズで上限を判定しない。
+        let (url, server) = serve_once(vec![b'\n'; limit]);
+        let accepted = crate::config::remote_cache::read(&url, &path).unwrap();
+        server.join().unwrap();
+        assert_eq!(accepted.as_bytes(), vec![b'\n'; limit]);
+        assert_eq!(
+            fs::metadata(&path).unwrap().len(),
+            (limit * if cfg!(windows) { 2 } else { 1 }) as u64
+        );
+
+        let old = SystemTime::UNIX_EPOCH + Duration::from_secs(946_684_800);
+        File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_times(FileTimes::new().set_modified(old))
+            .unwrap();
+        let before = fs::read(&path).unwrap();
+        let (url, server) = serve_once(vec![b'a'; limit + 1]);
+        assert!(crate::config::remote_cache::read(&url, &path).is_err());
+        server.join().unwrap();
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::metadata(&path).unwrap().modified().unwrap(), old);
     }
 
     #[test]

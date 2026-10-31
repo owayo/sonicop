@@ -8,6 +8,7 @@ mod new_cops;
 mod obsoletion;
 mod paths;
 mod pending_cops;
+mod remote_cache;
 mod remote_origin;
 mod runtime;
 mod store;
