@@ -58,6 +58,17 @@ Parallel -- https://github.com/grosser/parallel -- MIT
 RuboCop -- https://github.com/rubocop/rubocop -- MIT
   Copyright (c) 2012-26 Bozhidar Batsov
 
+  src/cli.rs, tests/cop_selection_arguments.rs
+      Missing --only/--except values follow RuboCop 1.89.0
+      Options#add_cop_selection_csv_option and CLI OptionArgumentError handling.
+      Runtime-enabled tests compare 68 conditions against actual pinned upstream
+      CLI processes, both directly and through the Ruby gem wrapper. Complete
+      error streams, feature markers, exit status and original file attributes
+      are compared. Product-specific help bodies are checked for help dispatch
+      and feature boundaries only; the positional-path JSON control excludes
+      four product identity fields from its otherwise complete comparison.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/engine.rs, src/cli.rs, tests/missing_targets.rs
       Explicit missing targets and their File.read error timing follow
       RuboCop 1.89.0 TargetFinder and Runner#get_processed_source. Runtime-enabled

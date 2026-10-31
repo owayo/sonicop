@@ -9,7 +9,10 @@ use std::sync::{
 use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
-use clap::{ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser, error::ErrorKind};
+use clap::{
+    ArgAction, ArgMatches, CommandFactory, FromArgMatches, Parser,
+    error::{ContextKind, ContextValue, ErrorKind},
+};
 
 use crate::config::{
     AmbiguousConfigCopError, Config, ConfigIoError, ConfigStore, ConfigWarning, ConfigWarnings,
@@ -339,7 +342,15 @@ fn run_inner() -> i32 {
             return 2;
         }
     };
-    if let Some(entries) = cache_root_callback_entries(&arguments) {
+    let parsed = Cli::command().try_get_matches_from(&arguments);
+    let missing_selection = parsed
+        .as_ref()
+        .err()
+        .and_then(|error| missing_selection_boundary(&arguments, error));
+    let callback_arguments = missing_selection
+        .map(|(index, _)| &arguments[..index])
+        .unwrap_or(&arguments);
+    if let Some(entries) = cache_root_callback_entries(callback_arguments) {
         // Options#optionのcallbackはhelpや後続requireより先に止まる。
         let initial_color = initial_warning_color();
         runtime.phase(false, initial_color);
@@ -354,7 +365,24 @@ fn run_inner() -> i32 {
             });
         return finish_runtime(&runtime, result, initial_color);
     }
-    let matches = match Cli::command().try_get_matches_from(&arguments) {
+    if let Some((_, option)) = missing_selection {
+        // CSV の nil 拒否も Options callback の位置で起き、後続の require は実行しない。
+        let initial_color = initial_warning_color();
+        runtime.phase(false, initial_color);
+        let result = ordered_option_matches(callback_arguments)
+            .map(|matches| cli_extension_entries(&matches, usize::MAX))
+            .and_then(|entries| runtime.cli_extensions(&entries))
+            .map_err(|error| crate::config::RuntimeError::with_color(error, initial_color))
+            .and_then(|()| {
+                Err(CopSelectionArgumentError {
+                    option,
+                    color: initial_color,
+                }
+                .into())
+            });
+        return finish_runtime(&runtime, result, initial_color);
+    }
+    let matches = match parsed {
         Ok(matches) => matches,
         Err(error)
             if matches!(
@@ -411,6 +439,44 @@ fn run_inner() -> i32 {
             try_run(cli, &outputs)
         });
     finish_runtime(&runtime, result, formatter_error_color)
+}
+
+fn missing_selection_option(error: &clap::Error) -> Option<&'static str> {
+    if error.kind() != ErrorKind::InvalidValue
+        || !matches!(error.get(ContextKind::InvalidValue), Some(ContextValue::String(value)) if value.is_empty())
+    {
+        return None;
+    }
+    let Some(ContextValue::String(invalid)) = error.get(ContextKind::InvalidArg) else {
+        return None;
+    };
+    // 描画済みエラー本文ではなく Clap の引数情報で、他の値不足と区別する。
+    let mut command = Cli::command();
+    command.build();
+    ["only", "except"].into_iter().find(|name| {
+        command
+            .get_arguments()
+            .any(|arg| arg.get_id().as_str() == *name && arg.to_string() == *invalid)
+    })
+}
+
+fn missing_selection_boundary(
+    arguments: &[String],
+    error: &clap::Error,
+) -> Option<(usize, &'static str)> {
+    let option = missing_selection_option(error)?;
+    let flag = format!("--{option}");
+    arguments.iter().enumerate().find_map(|(index, value)| {
+        if value != &flag {
+            return None;
+        }
+        // 同じ flag が先に有効な値を持つ場合や、他の引数の値・-- 後のパスを誤認しない。
+        let end = (index + 2).min(arguments.len());
+        let prefix_error = Cli::command()
+            .try_get_matches_from(&arguments[..end])
+            .err()?;
+        (missing_selection_option(&prefix_error) == Some(option)).then_some((index, option))
+    })
 }
 
 fn help_extensions(arguments: &[String]) -> Result<Vec<(bool, String)>> {
@@ -572,6 +638,13 @@ fn render_run_result(result: Result<i32>, formatter_error_color: bool) -> i32 {
             } else if let Some(failure) = error.downcast_ref::<SelectionFailure>() {
                 let prefix = if failure.error_prefix { "Error: " } else { "" };
                 let text = format!("{prefix}{failure}\n");
+                let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
+            } else if let Some(failure) = error.downcast_ref::<CopSelectionArgumentError>() {
+                let text = if failure.color {
+                    format!("\x1b[31m{failure}\x1b[0m\n")
+                } else {
+                    format!("{failure}\n")
+                };
                 let _ = io::stderr().write_all(&native_textmode_bytes(text.as_bytes()));
             } else if let Some(failure) = error.downcast_ref::<CacheRootOptionError>() {
                 let text = if failure.color {
@@ -1531,6 +1604,24 @@ fn message_display_cop_names(cli: &Cli, config: &Config) -> bool {
 }
 
 impl std::error::Error for SelectionFailure {}
+
+#[derive(Debug)]
+struct CopSelectionArgumentError {
+    option: &'static str,
+    color: bool,
+}
+
+impl std::fmt::Display for CopSelectionArgumentError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "--{} argument should be [COP1,COP2,...].",
+            self.option
+        )
+    }
+}
+
+impl std::error::Error for CopSelectionArgumentError {}
 
 #[derive(Debug)]
 struct CacheRootOptionError {
