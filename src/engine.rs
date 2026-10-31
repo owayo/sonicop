@@ -24,6 +24,33 @@ use crate::magic_comment::MagicComment;
 use crate::rules::{AstIndex, DirectiveReview, Rule, RuleContext, rules};
 use crate::source::SourceFile;
 
+#[derive(Debug)]
+pub(crate) struct MissingTargetError {
+    path: String,
+    color: bool,
+}
+
+impl MissingTargetError {
+    pub(crate) fn with_color(mut error: anyhow::Error, color: bool) -> anyhow::Error {
+        if let Some(missing) = error.downcast_mut::<Self>() {
+            missing.color = color;
+        }
+        error
+    }
+
+    pub(crate) fn color(&self) -> bool {
+        self.color
+    }
+}
+
+impl std::fmt::Display for MissingTargetError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "No such file or directory: {}", self.path)
+    }
+}
+
+impl std::error::Error for MissingTargetError {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CorrectMode {
     None,
@@ -1398,7 +1425,20 @@ const INVALID_UTF8: &str = "Invalid byte sequence in utf-8.";
 /// not the ones `encoding_rs` answers to. It keeps the message it had. See
 /// `tests/conformance/known_divergences.yml`.
 fn decoded_source(path: &Path) -> Result<Decoded> {
-    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // Runner#get_processed_source が ENOENT を RuboCop::Error へ変える位置を保つ。
+            return Err(MissingTargetError {
+                path: crate::formatter::absolute_path(path, &std::env::current_dir()?),
+                color: false,
+            }
+            .into());
+        }
+        Err(error) => {
+            return Err(error).with_context(|| format!("failed to read {}", path.display()));
+        }
+    };
     Ok(decoded_bytes(bytes))
 }
 
@@ -1684,10 +1724,9 @@ fn discover_target_paths(
     let mut targets = Vec::new();
 
     for root in roots {
-        if !root.exists() {
-            bail!("No such file or directory: {}", root.display());
-        }
-        if root.is_file() {
+        // TargetFinder は明示した不存在名も選択する。拒否は started 後の File.read まで遅らせる。
+        let missing = !root.exists();
+        if root.is_file() || missing {
             // TargetFinderは通常fileをfor_pwdで選び、ignore_parent時だけ個別設定を訪問する。
             let per_file = if force_exclusion && configs.ignores_parent_exclusion() {
                 Some(configs.for_path_observed(&root)?)
@@ -1697,9 +1736,13 @@ fn discover_target_paths(
             let config = per_file.as_deref().unwrap_or(configs.root());
             let recognized = config.path_included(&root) || has_ruby_shebang(&root);
             if (!force_exclusion || !config.path_excluded(&root))
-                && (!only_recognized_file_types || recognized)
+                && (!(only_recognized_file_types || force_exclusion) || recognized)
             {
-                targets.push(root);
+                targets.push(if missing {
+                    PathBuf::from(crate::formatter::absolute_path(&root, cwd))
+                } else {
+                    root
+                });
             }
             continue;
         }

@@ -251,6 +251,14 @@ path most users are on and the one a `--cache false` comparison never measures. 
 rayon の indexed collect と逐次の collect が保った入力順をそのまま使う。
 並列・単一、キャッシュの有無と再実行、ディレクトリ・正順・逆順の引数を一緒に検査する。
 
+**不存在の明示対象も File.read まで残す。** TargetFinder は拡張子・除外の option を適用し、
+不存在名を一覧にも渡す。探索で先に拒むと formatter の started/finished が走らず、既存 report を
+更新しない。実際の source 読込で MissingTargetError にし、成功した prefix の診断と補正を
+完了してから返す。エラーの絶対パス・色・Windows 改行は設定ファイルの Missing と区別する。
+`missing_targets.rs` は24条件の実CLIと比較し、全JSON項目・他stream・原本のbytes/mtime/mode、
+LF/CRLFの補正、後続fileの保持と先行requireの終了statusを検査する。
+POSIXの本家が補正済みfileをLFへ変える条件だけは、登録済みのCRLF保持差として双方の実bytesを検査する。
+
 **入れ子設定の探索位置とプロセスの cwd は別物。** サブディレクトリの設定を読み込んでも
 診断中のパスは起動位置を基準にする。絶対パスの stdin・相対パスの stdin・ディスク探索を
 一緒に確認し、設定ファイルのディレクトリで cwd を上書きしない。

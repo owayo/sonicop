@@ -472,3 +472,6 @@ tests/fixtures/cache_root_option_order.json.PROVENANCE text eol=lf
 src/config/remote_cache.rs text eol=lf
 tests/remote_config_cache.rs text eol=lf
 licenses/CHRONO.txt text eol=lf
+
+# 不存在対象の終了report・stderr・補正本文の物理bytesを比較する。
+tests/missing_targets.rs text eol=lf
