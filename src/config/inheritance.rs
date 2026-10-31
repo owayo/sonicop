@@ -179,7 +179,7 @@ fn load_local_with_inheritance(
     let inherit_gem = take_mapping_key(&mut current, "inherit_gem");
     let parent = origin.parent().unwrap_or(Path::new("."));
     let mut inherited_paths = resolve_inherit_gems(inherit_gem)?;
-    inherited_paths.extend(parse_inherit_paths(inherit)?);
+    inherited_paths.extend(parse_inherit_from(inherit)?);
     let inherited_paths = expand_inherit_paths(inherited_paths)?;
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
@@ -301,7 +301,7 @@ fn load_remote_with_inheritance(
     let mut merged = Value::Mapping(Mapping::new());
     let mut inherited_keys = Vec::new();
     let mut inherited_traces = Vec::new();
-    for inherited in expand_inherit_paths(parse_inherit_paths(inherit)?)? {
+    for inherited in expand_inherit_paths(parse_inherit_from(inherit)?)? {
         let inherited_url = if inherited.starts_with("http://") || inherited.starts_with("https://")
         {
             inherited
@@ -421,6 +421,19 @@ fn join_remote_url(base: &str, relative: &str) -> Result<String> {
         )),
         None => Ok(format!("{hierarchical}/{relative}")),
     }
+}
+
+fn parse_inherit_from(value: Option<Value>) -> Result<Vec<String>> {
+    // base_configsのArray(...).compact。inherit_gemの配列にはcompactがないため分ける。
+    let value = match value {
+        Some(Value::Null) => None,
+        Some(Value::Sequence(mut paths)) => {
+            paths.retain(|path| !path.is_null());
+            Some(Value::Sequence(paths))
+        }
+        other => other,
+    };
+    parse_inherit_paths(value)
 }
 
 fn parse_inherit_paths(value: Option<Value>) -> Result<Vec<String>> {
