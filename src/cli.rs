@@ -256,6 +256,8 @@ struct Cli {
         short = 'c',
         long,
         overrides_with = "config",
+        // OptionsのFILEは--onlyや--helpも値として消費し、別optionのcallbackを呼ばない。
+        allow_hyphen_values = true,
         value_name = "FILE",
         help_heading = "General Options",
         // 空文字も先行値として保存し、最後のconfigだけをファイルとして解決する。
