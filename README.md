@@ -166,7 +166,7 @@ Set `AllCops/UseProjectIndex: true` to enable project-wide analysis, including `
 The cache flags are honoured rather than merely parsed. Sonicop keeps a result cache of its own and serves a stored report for a file whose size, modification time and permission bits have not moved since it was inspected.
 
 - Caching is on by default. `--cache false` turns it off, as does `AllCops/MaxFilesInCache: 0` in a configuration file.
-- `--cache-root DIR` chooses where it lives. Without it the root is `$XDG_CACHE_HOME/sonicop`, or `~/Library/Caches/sonicop` on macOS, or `~/.cache/sonicop`. `--cache-root` cannot be combined with `--cache false`.
+- `--cache-root DIR` chooses where it lives. Without it the root is `$XDG_CACHE_HOME/sonicop`, or `~/Library/Caches/sonicop` on macOS, or `~/.cache/sonicop`. `--cache-root DIR --cache false` is accepted; the reverse order, `--cache false --cache-root DIR`, is rejected because caching is already disabled when `--cache-root` is processed.
 - `AllCops/MaxFilesInCache` bounds how many reports are kept, defaulting to RuboCop's 20,000.
 - Autocorrect runs, `--stdin`, `--profile` and `--memory` neither read nor write it.
 - It is not shared with RuboCop's cache: the formats are unrelated, and an entry is only served back to a build of Sonicop identical to the one that wrote it.
