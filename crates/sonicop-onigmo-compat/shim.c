@@ -52,9 +52,10 @@ static int sonicop_collect_name(const unsigned char *name, const unsigned char *
     receiver->callback(name, (size_t)(name_end - name), first, receiver->context);
     return 0;
 }
-int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int encoding,
+static int compile_regexp(const unsigned char *pattern, size_t length, int encoding,
                           int extended, unsigned char *error, size_t capacity,
-                          int *compiled_encoding_out, sonicop_name_callback callback, void *context) {
+                          int *compiled_encoding_out, sonicop_name_callback callback, void *context,
+                          OnigRegex *retained) {
     OnigEncoding enc;
     switch (encoding) {
       case 1: enc = ONIG_ENCODING_ASCII; break;
@@ -71,7 +72,9 @@ int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int enco
     int result = -1;
     if (processed && !allocation_failed) {
         OnigRegex regex = NULL;OnigErrorInfo info;
-        OnigEncoding compiled_encoding = fixed ? fixed : &OnigEncodingUS_ASCII;
+        /* ASCII regexpもUTF-8本文へ適応する。名前取得の元の符号化判定は変えない。 */
+        OnigEncoding compiled_encoding = fixed ? fixed :
+            (retained ? ONIG_ENCODING_UTF_8 : &OnigEncodingUS_ASCII);
         /* 空の byte buffer も、C の pointer 算術に有効な領域を渡す。 */
         const unsigned char empty[] = {0};
         const unsigned char *bytes = processed->bytes ? processed->bytes : empty;
@@ -91,7 +94,9 @@ int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int enco
                 /* 列挙失敗では未設定の OnigErrorInfo をコンパイルエラーとして読まない。 */
                 if (result) errcpy(reason, "failed to collect regexp names");
             }
-            onig_free(regex);
+            /* onig_newが所有するbytecodeだけをworkerに保持し、String arenaは解放する。 */
+            if (!result && retained) *retained = regex;
+            else onig_free(regex);
         }
         else onig_error_code_to_str((unsigned char *)reason, result, &info);
     }
@@ -107,6 +112,41 @@ int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int enco
         } else error[0] = 0;
     }
     free_arena();return result;
+}
+
+int sonicop_onigmo_compile(const unsigned char *pattern, size_t length, int encoding,
+                          int extended, unsigned char *error, size_t capacity,
+                          int *compiled_encoding_out, sonicop_name_callback callback, void *context) {
+    return compile_regexp(pattern, length, encoding, extended, error, capacity,
+                          compiled_encoding_out, callback, context, NULL);
+}
+
+void *sonicop_onigmo_match_compile(const unsigned char *pattern, size_t length,
+                                  unsigned char *error, size_t capacity) {
+    OnigRegex regex = NULL;
+    int result = compile_regexp(pattern, length, 0, 0, error, capacity,
+                                NULL, NULL, NULL, &regex);
+    return result ? NULL : regex;
+}
+
+int sonicop_onigmo_match(void *compiled, const unsigned char *text, size_t length,
+                        unsigned char *error, size_t capacity) {
+    OnigPosition result = onig_search((OnigRegex)compiled, text, text + length,
+                                      text, text + length, NULL, ONIG_OPTION_NONE);
+    if (result >= 0) return 1;
+    if (result == ONIG_MISMATCH) return 0;
+    if (capacity) {
+        unsigned char message[ONIG_MAX_ERROR_MESSAGE_LEN];
+        onig_error_code_to_str(message, (int)result);
+        size_t n = strlen((const char *)message);
+        if (n >= capacity) n = capacity - 1;
+        memcpy(error, message, n);error[n] = 0;
+    }
+    return -1;
+}
+
+void sonicop_onigmo_match_free(void *compiled) {
+    onig_free((OnigRegex)compiled);
 }
 
 int sonicop_onigmo_check(const unsigned char *pattern, size_t length, int encoding,

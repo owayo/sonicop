@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{c_int, c_long, c_void};
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
@@ -1722,15 +1722,41 @@ fn discover_target_paths(
         arguments.to_vec()
     };
     let mut targets = Vec::new();
+    // TargetFinderのextension/basename shortcutは、子設定を読むshebang判定より先。
+    // generic Includeを先にすると、拡張子のない対象の設定失敗を隠してしまう。
+    let mut ruby_extensions = HashSet::new();
+    let mut ruby_filenames = HashSet::new();
+    for pattern in configs
+        .root()
+        .all_cops_value::<Vec<String>>("Include")
+        .unwrap_or_default()
+    {
+        if pattern.starts_with("**/*.") {
+            ruby_extensions.insert(pattern[4..].to_owned());
+        } else {
+            ruby_filenames.insert(pattern.replacen("**/", "", 1));
+        }
+    }
 
     for root in roots {
         // TargetFinder は明示した不存在名も選択する。拒否は started 後の File.read まで遅らせる。
         let missing = !root.exists();
         if root.is_file() || missing {
-            // process_explicit_pathはfor_pwdで認識してからwithout_excludedへ渡す。
-            // 対象外fileの子設定を先に読むと、本家が訪問しない継承失敗まで報告してしまう。
+            // ruby_file?はrootの名前判定、個別設定のshebang、rootのgeneric Includeの順。
+            // Excludeに使う設定とRubyInterpretersの参照位置を混ぜない。
             if (only_recognized_file_types || force_exclusion)
-                && !(configs.root().path_included(&root) || has_ruby_shebang(&root))
+                && !(stdin
+                    || ruby_extensions.contains(
+                        &root
+                            .extension()
+                            .map(|ext| format!(".{}", ext.to_string_lossy()))
+                            .unwrap_or_default(),
+                    )
+                    || root.file_name().is_some_and(|name| {
+                        ruby_filenames.contains(name.to_string_lossy().as_ref())
+                    })
+                    || has_ruby_shebang(&root, configs)?
+                    || configs.root().path_included(&root))
             {
                 continue;
             }
@@ -1833,7 +1859,9 @@ fn discover_target_paths(
                 Verdict::Keep => true,
                 Verdict::Drop => false,
                 Verdict::AskShebang => {
-                    crate::profile::phase(crate::profile::Phase::Shebang, || has_ruby_shebang(path))
+                    crate::profile::phase(crate::profile::Phase::Shebang, || {
+                        has_ruby_shebang(path, configs)
+                    })?
                 }
             };
             if !keep {
@@ -2103,29 +2131,36 @@ fn normalized_target_path(path: &Path) -> PathBuf {
     path.strip_prefix(".").unwrap_or(path).to_path_buf()
 }
 
-fn has_ruby_shebang(path: &Path) -> bool {
-    // RuboCop's `ruby_executable?` bails out before reading the file unless the name carries no
-    // extension at all, so a shebang only rescues files like `bin/console`. Templates such as
-    // `newgem.tt` or `Executable.standalone` start with `#!/usr/bin/env ruby` and would otherwise be
-    // linted here while upstream leaves them alone.
+fn has_ruby_shebang(path: &Path, configs: &ConfigStore) -> Result<bool> {
+    // ruby_executable?は拡張子付き・不存在・空fileの個別設定を読まない。
     if path.extension().is_some() {
-        return false;
+        return Ok(false);
     }
-    let Ok(contents) = fs::read(path) else {
-        return false;
+    let Ok(file) = fs::File::open(path) else {
+        return Ok(false);
     };
-    let first_line = contents
-        .split(|byte| *byte == b'\n')
-        .next()
+    let mut first_line = Vec::new();
+    if BufReader::new(file)
+        .read_until(b'\n', &mut first_line)
+        .unwrap_or(0)
+        == 0
+    {
+        return Ok(false);
+    }
+    // File.readlineの終端LFもregexpの入力。Windowsのtext modeだけCRLFをLFへ戻す。
+    #[cfg(windows)]
+    if first_line.ends_with(b"\r\n") {
+        first_line.remove(first_line.len() - 2);
+    }
+    // '#!'の有無や不正UTF-8を先に調べると、本家が先に返す設定エラーを落とす。
+    let config = configs.for_path_observed(path)?;
+    let interpreters = config
+        .all_cops_value::<Vec<String>>("RubyInterpreters")
         .unwrap_or_default();
-    first_line.starts_with(b"#!")
-        && [b"ruby".as_slice(), b"rake".as_slice(), b"jruby".as_slice()]
-            .iter()
-            .any(|interpreter| {
-                first_line
-                    .windows(interpreter.len())
-                    .any(|part| part == *interpreter)
-            })
+    let pattern = format!("#!.*({})", interpreters.join("|"));
+    sonicop_onigmo_compat::matches_utf8(pattern.as_bytes(), &first_line)
+        .map(|matched| matched.unwrap_or(false))
+        .map_err(|error| anyhow::anyhow!("{}", String::from_utf8_lossy(&error)))
 }
 
 /// Stands in for the `Parser::ClobberingError` upstream raises when an edit cannot be placed.

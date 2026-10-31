@@ -1,6 +1,8 @@
 //! 本家 Ruby の Onigmo を、Ruby VM と OS 共有ライブラリなしで利用する。
 use std::{
+    collections::HashMap,
     ffi::c_void,
+    ptr::NonNull,
     sync::{OnceLock, mpsc},
 };
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,12 +51,38 @@ unsafe extern "C" {
         callback: Option<NameCallback>,
         context: *mut c_void,
     ) -> i32;
+    fn sonicop_onigmo_match_compile(
+        pattern: *const u8,
+        length: usize,
+        error: *mut u8,
+        capacity: usize,
+    ) -> *mut c_void;
+    fn sonicop_onigmo_match(
+        compiled: *mut c_void,
+        text: *const u8,
+        length: usize,
+        error: *mut u8,
+        capacity: usize,
+    ) -> i32;
+    fn sonicop_onigmo_match_free(compiled: *mut c_void);
 }
 pub fn validate(pattern: &[u8], encoding: Encoding, extended: bool) -> Result<(), Vec<u8>> {
-    request(pattern, encoding, extended, Operation::Validate).map(|_| ())
+    request(
+        pattern,
+        encoding,
+        extended,
+        Operation::Compile(CompileOperation::Validate),
+    )
+    .map(|_| ())
 }
 pub fn check(pattern: &[u8], encoding: Encoding, extended: bool) -> Result<(), Vec<u8>> {
-    request(pattern, encoding, extended, Operation::Check).map(|_| ())
+    request(
+        pattern,
+        encoding,
+        extended,
+        Operation::Compile(CompileOperation::Check),
+    )
+    .map(|_| ())
 }
 /// 前処理後にコンパイルした名前を返す。Unicode escape による UTF-8 固定も Onigmo に任せる。
 pub fn compile(
@@ -62,27 +90,64 @@ pub fn compile(
     encoding: Encoding,
     extended: bool,
 ) -> Result<CompiledRegexp, Vec<u8>> {
-    request(pattern, encoding, extended, Operation::Names)
+    request(
+        pattern,
+        encoding,
+        extended,
+        Operation::Compile(CompileOperation::Names),
+    )
+    .map(|reply| {
+        let Reply::Compiled(compiled) = reply else {
+            unreachable!("compile request returns compiled names")
+        };
+        compiled
+    })
 }
+
+/// UTF-8本文への一致。不正な本文はRubyのArgumentErrorに対応するNone、regexpの拒否はErr。
+/// 設定由来のpatternは専用workerでコンパイルし、プロセス中に再利用する。
+pub fn matches_utf8(pattern: &[u8], text: &[u8]) -> Result<Option<bool>, Vec<u8>> {
+    request(
+        pattern,
+        Encoding::Utf8,
+        false,
+        Operation::Match(text.to_vec()),
+    )
+    .map(|reply| {
+        let Reply::Matched(matched) = reply else {
+            unreachable!("match request returns a match")
+        };
+        matched
+    })
+}
+
 #[derive(Clone, Copy)]
-enum Operation {
+enum CompileOperation {
     Validate,
     Check,
     Names,
+}
+enum Operation {
+    Compile(CompileOperation),
+    Match(Vec<u8>),
+}
+enum Reply {
+    Compiled(CompiledRegexp),
+    Matched(Option<bool>),
 }
 struct Job {
     pattern: Vec<u8>,
     encoding: Encoding,
     extended: bool,
     operation: Operation,
-    reply: mpsc::SyncSender<Result<CompiledRegexp, Vec<u8>>>,
+    reply: mpsc::SyncSender<Result<Reply, Vec<u8>>>,
 }
 fn request(
     pattern: &[u8],
     encoding: Encoding,
     extended: bool,
     operation: Operation,
-) -> Result<CompiledRegexp, Vec<u8>> {
+) -> Result<Reply, Vec<u8>> {
     static ENGINE: OnceLock<mpsc::SyncSender<Job>> = OnceLock::new();
     let engine = ENGINE.get_or_init(|| {
         let (sender, receiver) = mpsc::sync_channel::<Job>(1);
@@ -94,8 +159,31 @@ fn request(
             .spawn(move || {
                 // process-global な初期化・警告設定・byte buffer arena は名前取得も同じ thread だけが触る。
                 unsafe { sonicop_onigmo_init() };
+                // C handleとそのdestructorも同じ大きなstackのworkerだけが所有する。
+                let mut matchers: HashMap<Vec<u8>, Result<NativeMatcher, Vec<u8>>> = HashMap::new();
                 while let Ok(job) = receiver.recv() {
-                    let result = native(&job.pattern, job.encoding, job.extended, job.operation);
+                    let result = match job.operation {
+                        Operation::Compile(operation) => {
+                            native(&job.pattern, job.encoding, job.extended, operation)
+                                .map(Reply::Compiled)
+                        }
+                        Operation::Match(text) => {
+                            let compiled = matchers
+                                .entry(job.pattern.clone())
+                                .or_insert_with(|| NativeMatcher::new(&job.pattern));
+                            compiled
+                                .as_ref()
+                                .map_err(Clone::clone)
+                                .and_then(|compiled| {
+                                    if std::str::from_utf8(&text).is_err() {
+                                        Ok(None)
+                                    } else {
+                                        compiled.matches(&text).map(Some)
+                                    }
+                                })
+                                .map(Reply::Matched)
+                        }
+                    };
                     let _ = job.reply.send(result);
                 }
             })
@@ -116,6 +204,67 @@ fn request(
         .recv()
         .expect("regexp compiler worker did not return")
 }
+
+struct NativeMatcher(NonNull<c_void>);
+
+impl NativeMatcher {
+    fn new(pattern: &[u8]) -> Result<Self, Vec<u8>> {
+        let mut error = vec![0; pattern.len().saturating_mul(6).saturating_add(2048)];
+        static EMPTY: [u8; 1] = [0];
+        let pointer = if pattern.is_empty() {
+            EMPTY.as_ptr()
+        } else {
+            pattern.as_ptr()
+        };
+        // Cは入力を呼出し中だけ読み、独立したbytecodeを返す。handleはworker内に留める。
+        let compiled = unsafe {
+            sonicop_onigmo_match_compile(pointer, pattern.len(), error.as_mut_ptr(), error.len())
+        };
+        NonNull::new(compiled)
+            .map(Self)
+            .ok_or_else(|| error_message(error))
+    }
+
+    fn matches(&self, text: &[u8]) -> Result<bool, Vec<u8>> {
+        let mut error = vec![0; 2048];
+        static EMPTY: [u8; 1] = [0];
+        let pointer = if text.is_empty() {
+            EMPTY.as_ptr()
+        } else {
+            text.as_ptr()
+        };
+        // UTF-8検証済み本文と、同じworkerで生存するhandleを同期呼出し中だけ渡す。
+        match unsafe {
+            sonicop_onigmo_match(
+                self.0.as_ptr(),
+                pointer,
+                text.len(),
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        } {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(error_message(error)),
+        }
+    }
+}
+
+impl Drop for NativeMatcher {
+    fn drop(&mut self) {
+        // compilerと同じworkerのstackで解放し、呼出し側の小さなstackへ移さない。
+        unsafe { sonicop_onigmo_match_free(self.0.as_ptr()) };
+    }
+}
+
+fn error_message(mut error: Vec<u8>) -> Vec<u8> {
+    let length = error
+        .iter()
+        .position(|byte| *byte == 0)
+        .unwrap_or(error.len());
+    error.truncate(length);
+    error
+}
 unsafe extern "C" fn collect_name(
     name: *const u8,
     length: usize,
@@ -131,7 +280,7 @@ fn native(
     pattern: &[u8],
     encoding: Encoding,
     extended: bool,
-    operation: Operation,
+    operation: CompileOperation,
 ) -> Result<CompiledRegexp, Vec<u8>> {
     let mut error = vec![0u8; pattern.len().saturating_mul(6).saturating_add(2048)];
     // 長さ 0 でも C の範囲演算へ実在する配列の pointer を渡す。
@@ -146,7 +295,7 @@ fn native(
     // 入出力は呼出し中に生存し、callback もこの worker 上で同期的に完了する。
     let result = unsafe {
         match operation {
-            Operation::Names => sonicop_onigmo_compile(
+            CompileOperation::Names => sonicop_onigmo_compile(
                 pointer,
                 pattern.len(),
                 encoding as i32,
@@ -157,7 +306,7 @@ fn native(
                 Some(collect_name),
                 (&mut names as *mut Vec<(i32, Vec<u8>)>).cast(),
             ),
-            Operation::Check => sonicop_onigmo_check(
+            CompileOperation::Check => sonicop_onigmo_check(
                 pointer,
                 pattern.len(),
                 encoding as i32,
@@ -165,7 +314,7 @@ fn native(
                 error.as_mut_ptr(),
                 error.len(),
             ),
-            Operation::Validate => sonicop_onigmo_validate(
+            CompileOperation::Validate => sonicop_onigmo_validate(
                 pointer,
                 pattern.len(),
                 encoding as i32,

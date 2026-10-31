@@ -109,6 +109,18 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       fields, empty stdout, stderr bytes and original file attributes are compared.
       Full licence text: licenses/RUBOCOP.txt.
 
+  src/engine.rs, tests/ruby_interpreters.rs
+      Interpreter recognition and configuration lookup order follow RuboCop
+      1.89.0 TargetFinder#ruby_executable?, #ruby_interpreters and #ruby_file?.
+      Runtime-enabled tests compare 21 synthetic conditions in 42 independent
+      CLI invocations, including per-file settings, regex fragments, empty
+      lists, line endings and invalid UTF-8. Complete JSON except four product
+      identity fields, stderr, exit status and original file attributes are
+      compared. Native processes have no Ruby executable search path.
+      The standalone Onigmo matching tests use separately measured Ruby 4.0.7
+      Regexp.new/match? results and preserve the existing name-query API.
+      Full licence text: licenses/RUBOCOP.txt. Ruby's licence is reproduced below.
+
   src/config/remote_cache.rs, tests/remote_config_cache.rs
       RemoteConfig cache lifetime, conditional requests and on-disk text-mode
       behavior follow RuboCop 1.89.0. Runtime-enabled tests compare independent
