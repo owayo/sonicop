@@ -251,6 +251,15 @@ path most users are on and the one a `--cache false` comparison never measures. 
 rayon の indexed collect と逐次の collect が保った入力順をそのまま使う。
 並列・単一、キャッシュの有無と再実行、ディレクトリ・正順・逆順の引数を一緒に検査する。
 
+**値なしcop選択はOptions callbackの位置で拒否する。** `--only` と `--except` は本家の
+同じCSV callbackで、値がnilなら専用の一行エラーになる。明示した空文字列とは区別する。
+先行requireとcache-rootの拒否を先に、後続のrequireとhelpを後に置き、Rubyのexit/abortとat_exitも保つ。
+Clapの構造化エラーでこの二optionの値不足だけを選び、その位置までを再解析する。
+ignore_errorsは値不足後も解析を続けるため、全argvから副作用を拾ってはいけない。
+色はCLI色指定の反映前のENV値を使い、Windows改行を一度だけ通す。
+`cop_selection_arguments.rs` は68条件を実本家・Native・Ruby wrapperで比較する。
+help本文は製品固有として到達とfeature境界を検査し、拒否streamは全bytesで照合する。
+
 **不存在の明示対象も File.read まで残す。** TargetFinder は拡張子・除外の option を適用し、
 不存在名を一覧にも渡す。探索で先に拒むと formatter の started/finished が走らず、既存 report を
 更新しない。実際の source 読込で MissingTargetError にし、成功した prefix の診断と補正を

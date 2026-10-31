@@ -475,3 +475,6 @@ licenses/CHRONO.txt text eol=lf
 
 # 不存在対象の終了report・stderr・補正本文の物理bytesを比較する。
 tests/missing_targets.rs text eol=lf
+
+# CSV拒否前のRuby副作用とstreamの物理bytesを比較する。
+tests/cop_selection_arguments.rs text eol=lf
