@@ -90,6 +90,15 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       product identity, other streams and source bytes are compared.
       Full licence text: licenses/RUBOCOP.txt.
 
+  src/engine.rs, tests/explicit_recognition.rs
+      Explicit-file recognition uses the root Include configuration before
+      visiting per-file Exclude settings, following RuboCop 1.89.0 TargetFinder
+      process_explicit_path and without_excluded. Runtime-enabled tests use
+      13 synthetic conditions and 26 independent CLI invocations with pinned
+      upstream gems. Exit status, complete JSON except four product identity
+      fields, empty stdout, stderr bytes and original file attributes are compared.
+      Full licence text: licenses/RUBOCOP.txt.
+
   src/config/remote_cache.rs, tests/remote_config_cache.rs
       RemoteConfig cache lifetime, conditional requests and on-disk text-mode
       behavior follow RuboCop 1.89.0. Runtime-enabled tests compare independent
