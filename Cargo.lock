@@ -1536,8 +1536,8 @@ checksum = "d0af592be68c579aa78a16846bd19422978c3c52e438523d45ff5d1bff1f9d4a"
 
 [[package]]
 name = "tree-sitter-ruby"
-version = "26.10.106"
-source = "git+https://github.com/owayo/tree-sitter-ruby.git?tag=v26.10.106#12e6f527702e7a98a3b02bc0125e0861d39be36a"
+version = "26.10.107"
+source = "git+https://github.com/owayo/tree-sitter-ruby.git?tag=v26.10.107#3a3899f441a97e60f880d6dfb1b5be6e1c081303"
 dependencies = [
  "cc",
  "tree-sitter-language",

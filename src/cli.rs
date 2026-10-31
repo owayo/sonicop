@@ -1280,7 +1280,7 @@ fn try_run_with_warning_phase(
         )?;
         write_output(
             &format!(
-                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.106, analyzing as Ruby {}) [{} {}]\n",
+                "sonicop {VERSION} (RuboCop {RUBOCOP_COMPAT_VERSION} CLI, tree-sitter-ruby v26.10.107, analyzing as Ruby {}) [{} {}]\n",
                 config.target_ruby_version(),
                 std::env::consts::OS,
                 std::env::consts::ARCH

@@ -637,6 +637,10 @@ tree-sitter-ruby -- https://github.com/owayo/tree-sitter-ruby -- MIT
   Linked as a dependency (see Cargo.toml). sonicop uses a fork; the grammar
   itself is derived from the original. Full text: licenses/TREE_SITTER_RUBY.txt
 
+  src/parser/literal_tests.rs の入力と parts の期待は、fork の v26.10.107
+  (3a3899f441a97e60f880d6dfb1b5be6e1c081303) の
+  tests/literal_contents_test.rs を元にし、Sonicop の読込と LF/CRLF 座標を検査する。
+
 Prism -- https://github.com/ruby/prism -- MIT
   Copyright 2022-present, Shopify Inc.
 
