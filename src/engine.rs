@@ -1727,17 +1727,21 @@ fn discover_target_paths(
         // TargetFinder は明示した不存在名も選択する。拒否は started 後の File.read まで遅らせる。
         let missing = !root.exists();
         if root.is_file() || missing {
-            // TargetFinderは通常fileをfor_pwdで選び、ignore_parent時だけ個別設定を訪問する。
+            // process_explicit_pathはfor_pwdで認識してからwithout_excludedへ渡す。
+            // 対象外fileの子設定を先に読むと、本家が訪問しない継承失敗まで報告してしまう。
+            if (only_recognized_file_types || force_exclusion)
+                && !(configs.root().path_included(&root) || has_ruby_shebang(&root))
+            {
+                continue;
+            }
+            // Excludeだけはignore_parent時に個別設定を使う。
             let per_file = if force_exclusion && configs.ignores_parent_exclusion() {
                 Some(configs.for_path_observed(&root)?)
             } else {
                 None
             };
             let config = per_file.as_deref().unwrap_or(configs.root());
-            let recognized = config.path_included(&root) || has_ruby_shebang(&root);
-            if (!force_exclusion || !config.path_excluded(&root))
-                && (!(only_recognized_file_types || force_exclusion) || recognized)
-            {
+            if !force_exclusion || !config.path_excluded(&root) {
                 targets.push(if missing {
                     PathBuf::from(crate::formatter::absolute_path(&root, cwd))
                 } else {
